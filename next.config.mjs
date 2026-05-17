@@ -5,15 +5,8 @@ const withNextIntl = createNextIntlPlugin("./i18n.ts");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  typedRoutes: true,
-
-  // Temporary during Phase I-IV: route / to the legacy /index.html in public/.
-  // Removed in Phase IV.1 when app/page.tsx becomes the real landing.
-  async redirects() {
-    return [
-      { source: "/", destination: "/index.html", permanent: false },
-    ];
-  },
+  // Re-enable in Phase VII once all routes exist in app/.
+  typedRoutes: false,
 
   async headers() {
     return [

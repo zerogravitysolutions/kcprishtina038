@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { Database } from "./types";
+import type { Database, UserRole, MemberStatus } from "./types";
 
 type CookieSet = { name: string; value: string; options?: CookieOptions };
 
@@ -26,8 +26,17 @@ export async function createClient() {
   );
 }
 
-// Fetch the current user's profile (or null). Used by layouts + middleware.
-export async function getProfile() {
+export type ProfileSummary = {
+  id: string;
+  full_name: string;
+  email: string;
+  role: UserRole;
+  status: MemberStatus;
+  section_id: string | null;
+};
+
+// Fetch the current user's profile (or null).
+export async function getProfile(): Promise<ProfileSummary | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -36,5 +45,5 @@ export async function getProfile() {
     .select("id, full_name, email, role, status, section_id")
     .eq("id", user.id)
     .maybeSingle();
-  return data;
+  return (data as ProfileSummary | null) ?? null;
 }

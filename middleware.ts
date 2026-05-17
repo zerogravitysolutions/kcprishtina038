@@ -9,9 +9,19 @@ type CookieSet = { name: string; value: string; options?: CookieOptions };
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request });
 
+  // Fail-safe: if Supabase env vars are missing on this deployment, skip
+  // auth checks rather than crash. Public pages stay reachable; protected
+  // routes fall through to the page (which itself redirects to /login).
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    console.warn("[middleware] Supabase env vars missing — auth checks bypassed.");
+    return response;
+  }
+
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),

@@ -5,10 +5,19 @@ import type { Database, UserRole, MemberStatus } from "./types";
 type CookieSet = { name: string; value: string; options?: CookieOptions };
 
 export async function createClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    throw new Error(
+      "Supabase env vars missing — set NEXT_PUBLIC_SUPABASE_URL + " +
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel Project Settings → " +
+      "Environment Variables (Production + Preview + Development)."
+    );
+  }
   const cookieStore = await cookies();
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll: () => cookieStore.getAll(),

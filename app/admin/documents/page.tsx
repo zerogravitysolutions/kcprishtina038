@@ -11,7 +11,8 @@ import { DeleteButton } from "./DeleteButton";
 export const metadata = { title: "Dokumentet" };
 
 export default async function DocumentsAdminPage() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   if (!["admin", "editor"].includes(profile.role)) redirect("/admin/dashboard");
 
   const rows: DocumentRow[] = await getDocuments();

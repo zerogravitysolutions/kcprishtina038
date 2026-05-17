@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 type Row = { id: string; storage_path: string; filename: string; alt: string | null; byte_size: number | null; created_at: string };
 
 export default async function MediaAdminPage() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
   const { data } = await supabase.from("media").select("id, storage_path, filename, alt, byte_size, created_at").order("created_at", { ascending: false }).limit(48);

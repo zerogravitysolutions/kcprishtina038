@@ -26,3 +26,6 @@ supabase/.branches/
 out/
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated credentials — never commit
+.team-accounts.md

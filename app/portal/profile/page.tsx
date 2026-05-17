@@ -1,5 +1,6 @@
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { ProfileForm } from "./ProfileForm";
+import { redirect } from "next/navigation";
 
 type FullProfile = {
   full_name: string; email: string; phone: string | null;
@@ -8,7 +9,8 @@ type FullProfile = {
 };
 
 export default async function ProfilePage() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   const supabase = await createClient();
   const { data } = await supabase.from("profiles")
     .select("full_name, email, phone, dob, bio, metadata")

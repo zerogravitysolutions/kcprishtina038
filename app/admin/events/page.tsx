@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 type Row = { id: string; title_sq: string; type: string; status: string; start_at: string; location: string | null; section: { name_sq: string } | null };
 
 export default async function EventsAdminPage() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   if (!["admin","editor","coach"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
   const { data } = await supabase.from("events")

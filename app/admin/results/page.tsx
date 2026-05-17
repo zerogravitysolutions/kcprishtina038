@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 type Row = { id: string; position: number | null; event: { title_sq: string; start_at: string } | null; member: { full_name: string } | null; rider_name_override: string | null; category: { name: string } | null };
 
 export default async function ResultsAdminPage() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   if (!["admin","editor","coach"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
   const { data } = await supabase.from("results")

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 type AppRow = { id: string; full_name: string; email: string; experience: string | null; created_at: string; section: { slug: string; name_sq: string } | null };
 
@@ -13,7 +14,8 @@ function rel(iso: string) {
 }
 
 export default async function AdminDashboard() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   const supabase = await createClient();
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
   const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString().slice(0, 10);

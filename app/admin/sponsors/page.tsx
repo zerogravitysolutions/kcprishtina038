@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 type Row = { id: string; name: string; tier: string; role_sq: string | null; contract_end: string | null; active: boolean };
 
 export default async function SponsorsAdminPage() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
   const { data } = await supabase.from("sponsors")

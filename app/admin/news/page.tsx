@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 type Row = { id: string; slug: string; title_sq: string; status: string; updated_at: string; author: { full_name: string } | null };
 
 export default async function NewsAdminPage() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
   const { data } = await supabase.from("news")

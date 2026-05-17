@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 type Row = { id: string; slug: string; display_order: number; name_sq: string; name_en: string; active: boolean; coach: { full_name: string } | null };
 
 export default async function SectionsAdminPage() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
   const { data } = await supabase.from("sections")

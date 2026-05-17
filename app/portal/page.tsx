@@ -1,5 +1,6 @@
 import { createClient, getProfile } from "@/lib/supabase/server";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 type NextReg = {
   status: string;
@@ -10,7 +11,8 @@ type NextReg = {
 type DueRow = { amount_eur: number; status: string; period: string };
 
 export default async function PortalDashboard() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   const supabase = await createClient();
   const first = profile.full_name.split(/\s+/)[0] || "Anëtar";
 

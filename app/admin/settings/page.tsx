@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 type Row = { key: string; value: unknown; updated_at: string };
 
 export default async function SettingsAdminPage() {
-  const profile = (await getProfile())!;
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
   if (profile.role !== "admin") redirect("/admin/dashboard");
   const supabase = await createClient();
   const { data } = await supabase.from("settings").select("key, value, updated_at").order("key");

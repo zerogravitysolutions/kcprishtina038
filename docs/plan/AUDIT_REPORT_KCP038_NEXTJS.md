@@ -191,6 +191,18 @@ All 5 steps DEFERRED. None blocking production.
 | LOW | Migrate Google Fonts imports to `next/font/google`. | 10 min |
 | LOW | Re-enable `typedRoutes` and fix the `as never` casts on `<Link href>`. | 30 min |
 
+## Post-deploy issues found and fixed (added 2026-05-17 after live verification)
+
+The initial audit verdict was correct for the code itself, but production verification revealed two issues that prevented Next.js routes from rendering at all. Both fixed:
+
+| Issue | Root cause | Fix | Commit |
+|-------|-----------|-----|--------|
+| All Next.js routes 404 in prod | Original `vercel.json` had `cleanUrls: true` — Vercel treats it as static-site config and shadows `app/` routing | Deleted `vercel.json`; `next.config.mjs` already had the same headers | `d2fe281` |
+| All Next.js routes still 404 after vercel.json deletion | Vercel project's **Framework Preset** was set to **"Other"** (from initial project creation); `next build` ran but Vercel didn't wire up serverless functions | User changed Preset → "Next.js" in Vercel Dashboard → Settings → General, then redeployed | (Vercel UI) |
+| `/section-mtb` legacy URL 404 | Route renamed to `/sections/mtb` during migration | Added 301 redirect in `next.config.mjs` `redirects()` | `ff2ccdc` |
+
+Final state: 12/12 production smoke checks pass.
+
 ## Verdict
 
 **PASS WITH DOCUMENTED DEFERRALS.**

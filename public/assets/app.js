@@ -142,6 +142,13 @@ const I18N = {
     "news.eyebrow": "Lajme",
     "news.title": "Nga klubi.",
     "news.cta": "Të gjitha lajmet",
+    "news.pageTitle": "Lajmet e fundit nga klubi.",
+    "news.pageLede": "Postime, foto dhe lajme direkt nga faqja jonë në Facebook.",
+    "news.viewOnFb": "Shiko në Facebook",
+    "news.older": "Më të vjetra →",
+    "news.newer": "← Më të reja",
+    "news.empty": "Nuk ka lajme për momentin.",
+    "news.loading": "Duke ngarkuar...",
 
     // Gallery
     "gallery.eyebrow": "Galeria",
@@ -395,6 +402,13 @@ const I18N = {
     "news.eyebrow": "News",
     "news.title": "From the club.",
     "news.cta": "All news",
+    "news.pageTitle": "Latest news from the club.",
+    "news.pageLede": "Posts, photos and updates straight from our Facebook page.",
+    "news.viewOnFb": "View on Facebook",
+    "news.older": "Older →",
+    "news.newer": "← Newer",
+    "news.empty": "No news yet.",
+    "news.loading": "Loading...",
 
     "gallery.eyebrow": "Gallery",
     "gallery.title": "A year in photographs.",

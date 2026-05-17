@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seksionet — KÇ Prishtina 038</title>
+<meta name="description" content="Gjashtë disiplina aktive: Rrugë, MTB, Gravel, Trek, Akademia e të rinjve, Femra. Trajner i dedikuar dhe kalendar i veçantë për secilën." />
+<link rel="canonical" href="https://prishtina038.cc/sections" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="KÇ Prishtina 038" />
+<meta property="og:title" content="Seksionet — KÇ Prishtina 038" />
+<meta property="og:description" content="Gjashtë disiplina aktive: Rrugë, MTB, Gravel, Trek, Akademia e të rinjve, Femra. Trajner i dedikuar dhe kalendar i veçantë për secilën." />
+<meta property="og:url" content="https://prishtina038.cc/sections" />
+<meta property="og:image" content="https://prishtina038.cc/assets/og-default.jpg" />
+<meta property="og:locale" content="sq_AL" />
+<meta property="og:locale:alternate" content="en_US" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Seksionet — KÇ Prishtina 038" />
+<meta name="twitter:description" content="Gjashtë disiplina aktive: Rrugë, MTB, Gravel, Trek, Akademia e të rinjve, Femra. Trajner i dedikuar dhe kalendar i veçantë për secilën." />
+<meta name="twitter:image" content="https://prishtina038.cc/assets/og-default.jpg" />
+<meta name="theme-color" content="#0F1A2E" />
+<link rel="icon" href="assets/logo.jpg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..125,400..900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css" />
+<style>
+  /* Section detail row on hub */
+  .sec-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 1.2fr 240px;
+    gap: 32px;
+    padding: 40px 0;
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+    align-items: start;
+  }
+  .sec-row:last-of-type { border-bottom: 0; }
+  .sec-row .num {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .sec-row h3 {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: clamp(36px, 4vw, 56px); letter-spacing: -0.025em; line-height: 0.95;
+  }
+  .sec-row .body {
+    font-size: 15px; color: var(--ink-2); line-height: 1.55;
+  }
+  .sec-row .specs {
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--ink-2); line-height: 1.8;
+  }
+  .sec-row .specs span { color: var(--ink-3); margin-right: 8px; }
+  .sec-row .side {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .sec-row .ph { aspect-ratio: 4/3; border-radius: 10px; }
+  @media (max-width: 900px) {
+    .sec-row { grid-template-columns: 1fr; gap: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav" data-screen-label="00 Top Nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.jpg" alt="KÇ Prishtina 038" />
+      <div class="brand-text">
+        <span class="kc" data-i18n="brand.kc">KÇ Prishtina 038</span>
+        <span class="sub" data-i18n="brand.sub">Klubi Çiklistik · Prishtinë</span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" data-i18n="nav.about">Klubi</a>
+      <a href="sections.html" class="is-active" data-i18n="nav.sections">Seksionet</a>
+      <a href="events.html" data-i18n="nav.events">Garat</a>
+      <a href="join.html" data-i18n="nav.join">Bashkohu</a>
+      <a href="index.html#news" data-i18n="nav.news">Lajme</a>
+      <a href="index.html#contact" data-i18n="nav.contact">Kontakti</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-pill" role="group" aria-label="Language">
+        <button data-lang="sq" class="active">SQ</button>
+        <button data-lang="en">EN</button>
+      </div>
+      <a class="btn btn-sm btn-ember" href="join.html" data-i18n="hero.cta.primary">Bëhu pjesë e klubit</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero" style="padding-bottom: 40px;" data-screen-label="01 Hero">
+  <div class="container">
+    <div class="eyebrow"><span data-i18n="secs.eyebrow">Seksionet</span></div>
+    <h1 class="display display-l" style="margin-top: 20px; max-width: 18ch;" data-i18n="secs.title">Gjashtë disiplina, një klub.</h1>
+    <p class="lede" style="margin-top: 24px;" data-i18n="secs.lede">
+      Zgjidhni një seksion për të parë trajnerin, oraret e stërvitjes, kalendarin e garave dhe çiklistët aktualë.
+    </p>
+  </div>
+</section>
+
+<!-- ============ SECTIONS LIST ============ -->
+<section data-screen-label="02 Sections List" style="padding-top: 24px;">
+  <div class="container">
+
+    <!-- ROAD -->
+    <div class="sec-row" id="road">
+      <div class="num">01 / RRUGË</div>
+      <div>
+        <h3 data-i18n="disc.road.name">Rrugë</h3>
+        <p class="body" style="margin-top: 16px;" data-i18n="disc.road.desc">
+          Sezoni i pranverës–vjeshtës. Garat kombëtare të FÇK, Granfondo, dhe etapat rajonale.
+        </p>
+        <div class="specs" style="margin-top: 20px;">
+          <div><span>TRAJNER</span> Albion Ymeri</div>
+          <div><span>ÇIKLISTË</span> 12 · Elite, U23, Masters</div>
+          <div><span>STËRVITJE</span> E hënë, e mërkurë, e premte · 17:30</div>
+          <div><span>VIT THEMELIMI</span> 2022</div>
+        </div>
+        <a class="btn btn-sm btn-ghost" style="margin-top:24px;" href="join.html">Apliko për Rrugë →</a>
+      </div>
+      <div class="body">
+        Seksioni themelor i klubit. Garojmë në Tour of Kosovo, kampionatet kombëtare të FÇK në rrugë dhe krono, Granfondo Sharri, Granfondo Prizren, dhe disa Cup të hapura në Shqipëri dhe Maqedoni të Veriut. Programi i stërvitjes bazohet në metodologjinë e USAC-së dhe FCI, me blloqe sezonale: bazë (Shkurt–Mars), ngritje (Prill–Maj), garë (Qershor–Tetor).
+      </div>
+      <div class="side">
+        <div class="ph"><span class="ph-label">FOTO · EKIPI RRUGË</span><span class="ph-corner">4:3</span></div>
+      </div>
+    </div>
+
+    <!-- MTB -->
+    <div class="sec-row" id="mtb">
+      <div class="num">02 / MTB</div>
+      <div>
+        <h3 data-i18n="disc.mtb.name">MTB</h3>
+        <p class="body" style="margin-top: 16px;" data-i18n="disc.mtb.desc">
+          Cross-country mbi Germinë, Sharrin dhe Prokletijet. Format XCO dhe maratonë.
+        </p>
+        <div class="specs" style="margin-top: 20px;">
+          <div><span>TRAJNER</span> Blerton Krasniqi</div>
+          <div><span>ÇIKLISTË</span> 9 · 3 juniorë</div>
+          <div><span>STËRVITJE</span> E martë 18:00 · E shtunë 09:00 · Germi</div>
+          <div><span>FORMATET</span> XCO · Marathon · Enduro</div>
+        </div>
+        <a class="btn btn-sm btn-ghost" style="margin-top:24px;" href="section-mtb.html">Hape faqen e MTB →</a>
+      </div>
+      <div class="body">
+        Seksioni i dytë më i madh i klubit. Stërvitemi në shtigjet e Germisë, Sharrit dhe Prokletijeve dhe garojmë në kalendarin XCO të FÇK, plus në maratonat rajonale. Sezoni: Prill–Tetor. Anëtarësia: €25/muaj (zbritur për U23). Seksioni mban edhe një grup të hapur "Germi Saturday" për ride pa gara, çdo të shtunë.
+      </div>
+      <div class="side">
+        <div class="ph"><span class="ph-label">FOTO · MTB GERMI</span><span class="ph-corner">4:3</span></div>
+      </div>
+    </div>
+
+    <!-- GRAVEL -->
+    <div class="sec-row" id="gravel">
+      <div class="num">03 / GRAVEL</div>
+      <div>
+        <h3 data-i18n="disc.gravel.name">Gravel</h3>
+        <p class="body" style="margin-top: 16px;" data-i18n="disc.gravel.desc">
+          E reja e klubit. Gara aventureske dhe ekspedita të hapura në rrugët dytësore të Kosovës.
+        </p>
+        <div class="specs" style="margin-top: 20px;">
+          <div><span>TRAJNER</span> Qëndrim Pllana</div>
+          <div><span>ÇIKLISTË</span> 8</div>
+          <div><span>STËRVITJE</span> E shtunë 08:00 · Pikë takimi rrotullohet</div>
+          <div><span>FORMAT</span> Ride 80–180 km · gravel race serie</div>
+        </div>
+        <a class="btn btn-sm btn-ghost" style="margin-top:24px;" href="join.html">Apliko për Gravel →</a>
+      </div>
+      <div class="body">
+        Seksioni më i ri i klubit, themeluar në 2024. Filozofia: më pak garë, më shumë eksplorim. Rrugët dytësore të Kosovës dhe rajonit ofrojnë qindra kilometra të pashkelura nga klubet tjera. Bashkëpunojmë me Velo Tirana për një kalendar të përbashkët gravel race serie që fillon sezonin 2026 me 4 etapa.
+      </div>
+      <div class="side">
+        <div class="ph"><span class="ph-label">FOTO · GRAVEL EKSPEDITË</span><span class="ph-corner">4:3</span></div>
+      </div>
+    </div>
+
+    <!-- TRACK -->
+    <div class="sec-row" id="track">
+      <div class="num">04 / TREK</div>
+      <div>
+        <h3 data-i18n="disc.track.name">Trek</h3>
+        <p class="body" style="margin-top: 16px;" data-i18n="disc.track.desc">
+          Disiplinë e shkurtër — sprint, keirin, persecution. Bashkëpunim me velodromin rajonal.
+        </p>
+        <div class="specs" style="margin-top: 20px;">
+          <div><span>TRAJNER</span> Driton Berisha</div>
+          <div><span>ÇIKLISTË</span> 5</div>
+          <div><span>STËRVITJE</span> Sezonale · Skopje velodrom</div>
+          <div><span>DISIPLINAT</span> Sprint · Keirin · Pursuit · Madison</div>
+        </div>
+        <a class="btn btn-sm btn-ghost" style="margin-top:24px;" href="join.html">Apliko për Trek →</a>
+      </div>
+      <div class="body">
+        Seksioni më ekzotik i klubit. Kosova nuk ka velodrom të vetin, prandaj seksioni udhëton dhe stërvitet në velodromin e Shkupit dhe Sofjes në bashkëpunim me FÇK dhe federatat fqinje. Synimi: dy çiklistë në Lojërat e Mesdheut të Rinisë 2027.
+      </div>
+      <div class="side">
+        <div class="ph"><span class="ph-label">FOTO · VELODROM</span><span class="ph-corner">4:3</span></div>
+      </div>
+    </div>
+
+    <!-- YOUTH -->
+    <div class="sec-row" id="youth">
+      <div class="num">05 / TË RINJTË</div>
+      <div>
+        <h3 data-i18n="disc.youth.name">Akademia e të rinjve</h3>
+        <p class="body" style="margin-top: 16px;" data-i18n="disc.youth.desc">
+          Çiklistët e ardhshëm të Kosovës — moshat 9–17 vjeç. Stërvitje çdo të shtunë.
+        </p>
+        <div class="specs" style="margin-top: 20px;">
+          <div><span>TRAJNERE</span> Shqiponja Osmani Pllana</div>
+          <div><span>ÇIKLISTË</span> 18 · 9 vajza, 9 djem</div>
+          <div><span>STËRVITJE</span> E shtunë 10:00 · Park-Pylli Germi</div>
+          <div><span>ÇMIMI</span> Gratis (nën 14 vjeç) · €10/muaj (14–17)</div>
+        </div>
+        <a class="btn btn-sm btn-ghost" style="margin-top:24px;" href="join.html">Apliko për fëmijën tuaj →</a>
+      </div>
+      <div class="body">
+        Misioni më i rëndësishëm i klubit. Programi përfshin: aftësi themelore të biçikletës, siguri në trafik, mekanikë bazë, gara të vogla brenda klubit, dhe udhëtime në kampe verore. Pajisjet bazë (helmetë, doreza) sigurohen nga klubi për tre muajt e parë. Akademia është krenare që ka tashmë dy çiklistë në ekipin kombëtar U17.
+      </div>
+      <div class="side">
+        <div class="ph"><span class="ph-label">FOTO · AKADEMIA</span><span class="ph-corner">4:3</span></div>
+      </div>
+    </div>
+
+    <!-- WOMEN -->
+    <div class="sec-row" id="women">
+      <div class="num">06 / FEMRA</div>
+      <div>
+        <h3 data-i18n="disc.women.name">Femra</h3>
+        <p class="body" style="margin-top: 16px;" data-i18n="disc.women.desc">
+          Programi i çiklizmit të femrave — gara, ride të hapura, dhe mentorim ndër-gjenerata.
+        </p>
+        <div class="specs" style="margin-top: 20px;">
+          <div><span>TRAJNERE</span> Shqiponja Osmani Pllana</div>
+          <div><span>ÇIKLISTË</span> 11 · në të gjitha disiplinat</div>
+          <div><span>STËRVITJE</span> Sipas seksionit primar</div>
+          <div><span>RIDE I HAPUR</span> E diel 09:00 · Lakna Sahatkulla</div>
+        </div>
+        <a class="btn btn-sm btn-ghost" style="margin-top:24px;" href="join.html">Apliko për programin →</a>
+      </div>
+      <div class="body">
+        Më shumë se një seksion — një rrjet. Çiklistet janë anëtare të seksioneve të rregullta (Rrugë, MTB, Gravel) por marrin pjesë në një program shtesë mentorimi që e drejton Shqiponja. Çdo të diel në mëngjes, klubi organizon një ride të hapur për çdo grua që do të provojë çiklizmin — me biçikleta për qira nga BikePlus.
+      </div>
+      <div class="side">
+        <div class="ph"><span class="ph-label">FOTO · FEMRAT</span><span class="ph-corner">4:3</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ JOIN BAND ============ -->
+<section data-screen-label="03 Join CTA" style="padding-top: 40px;">
+  <div class="container">
+    <div class="join-band">
+      <div>
+        <div class="eyebrow"><span data-i18n="join.eyebrow">Bashkohu</span></div>
+        <h2 class="mt-16" data-i18n="join.title">Nëse pedalon, ka vend për ty.</h2>
+        <p class="lede mt-24" style="color: var(--ink-2);" data-i18n="join.lede">
+          Pranojmë çiklistë të të gjitha niveleve nga 9 vjeç e lart. Stërvitje me trajner, kalendar me gara, fanellë e klubit dhe një ekip që të shtyn.
+        </p>
+        <a class="btn btn-ember mt-32" href="join.html">
+          <span data-i18n="join.cta">Apliko si anëtar</span>
+          <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+        </a>
+      </div>
+      <div class="perks">
+        <div class="perk"><span class="num">01</span><span class="text" data-i18n="join.perk.1">Stërvitje me trajner çertifikuar — 3× në javë</span></div>
+        <div class="perk"><span class="num">02</span><span class="text" data-i18n="join.perk.2">Kalendari i garave FÇK & rajonale</span></div>
+        <div class="perk"><span class="num">03</span><span class="text" data-i18n="join.perk.3">Fanella e klubit + helmetë gjatë sezonit</span></div>
+        <div class="perk"><span class="num">04</span><span class="text" data-i18n="join.perk.4">Servis i biçikletës me BikePlus</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="foot" id="contact" data-screen-label="04 Footer">
+  <div class="container">
+    <div class="foot-grid">
+      <div>
+        <div class="brand" style="color:var(--paper);">
+          <img src="assets/logo.jpg" alt="KÇ Prishtina 038" />
+          <div class="brand-text">
+            <span class="kc" data-i18n="brand.kc">KÇ Prishtina 038</span>
+            <span class="sub" data-i18n="brand.sub">Klubi Çiklistik · Prishtinë</span>
+          </div>
+        </div>
+        <p style="font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-0.01em;line-height:1.2;margin:24px 0 0;max-width:30ch;" data-i18n="foot.tagline">
+          Nga rruga te shtegu. Nga Prishtina për Kosovën.
+        </p>
+        <p style="font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);margin-top:24px;" data-i18n="foot.federation">
+          I regjistruar pranë FÇK · ID: KS-22-038
+        </p>
+      </div>
+      <div>
+        <h4 data-i18n="foot.about">Klubi</h4>
+        <ul>
+          <li><a href="about.html" data-i18n="nav.about">Klubi</a></li>
+          <li><a href="about.html#team">Ekipi</a></li>
+          <li><a href="about.html#history">Historia</a></li>
+          <li><a href="#">Federata FÇK</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 data-i18n="foot.disciplines">Disiplinat</h4>
+        <ul>
+          <li><a href="#road" data-i18n="disc.road.name">Rrugë</a></li>
+          <li><a href="section-mtb.html" data-i18n="disc.mtb.name">MTB</a></li>
+          <li><a href="#gravel" data-i18n="disc.gravel.name">Gravel</a></li>
+          <li><a href="#track" data-i18n="disc.track.name">Trek</a></li>
+          <li><a href="#youth" data-i18n="disc.youth.name">Akademia e të rinjve</a></li>
+          <li><a href="#women" data-i18n="disc.women.name">Femra</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 data-i18n="contact.eyebrow">Kontakti</h4>
+        <ul>
+          <li data-i18n="contact.address">Rruga e Maleve 14, 10000 Prishtinë</li>
+          <li><a href="mailto:info@prishtina038.cc" data-i18n="contact.email">info@prishtina038.cc</a></li>
+          <li><a href="tel:+38338000000" data-i18n="contact.phone">+383 38 000 000</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span data-i18n="foot.copy">© 2026 KÇ Prishtina 038 · Të gjitha të drejtat e rezervuara</span>
+      <span data-i18n="foot.legal">Anëtarësia · Politika e privatësisë · UCI</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

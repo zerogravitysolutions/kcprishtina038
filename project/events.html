@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Garat — KÇ Prishtina 038</title>
+<link rel="icon" href="assets/logo.jpg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..125,400..900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css" />
+<style>
+  .filter-bar {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 16px 0;
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+  }
+  .filter-bar .chip {
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--ink) 18%, transparent);
+    background: var(--white);
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    cursor: pointer;
+    color: var(--ink-2);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .filter-bar .chip.active {
+    background: var(--ink); color: var(--paper); border-color: var(--ink);
+  }
+  .month-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 36px 0 16px;
+    border-top: 1px solid color-mix(in oklab, var(--ink) 18%, transparent);
+    margin-top: 24px;
+  }
+  .month-head .m {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: clamp(40px, 6vw, 80px); letter-spacing: -0.025em;
+    line-height: 1;
+  }
+  .month-head .yr {
+    font-family: var(--font-mono); font-size: 12px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .month-head .count {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .event-row.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<nav class="nav" data-screen-label="00 Top Nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.jpg" alt="KÇ Prishtina 038" />
+      <div class="brand-text">
+        <span class="kc" data-i18n="brand.kc">KÇ Prishtina 038</span>
+        <span class="sub" data-i18n="brand.sub">Klubi Çiklistik · Prishtinë</span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" data-i18n="nav.about">Klubi</a>
+      <a href="sections.html" data-i18n="nav.sections">Seksionet</a>
+      <a href="events.html" class="is-active" data-i18n="nav.events">Garat</a>
+      <a href="join.html" data-i18n="nav.join">Bashkohu</a>
+      <a href="index.html#news" data-i18n="nav.news">Lajme</a>
+      <a href="index.html#contact" data-i18n="nav.contact">Kontakti</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-pill" role="group" aria-label="Language">
+        <button data-lang="sq" class="active">SQ</button>
+        <button data-lang="en">EN</button>
+      </div>
+      <a class="btn btn-sm btn-ember" href="join.html" data-i18n="hero.cta.primary">Bëhu pjesë e klubit</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero" style="padding-bottom: 32px;" data-screen-label="01 Hero">
+  <div class="container">
+    <div class="eyebrow"><span data-i18n="evpage.eyebrow">Kalendari 2026</span></div>
+    <h1 class="display display-l" style="margin-top: 20px; max-width: 18ch;" data-i18n="evpage.title">Çdo garë dhe ride e sezonit 2026.</h1>
+    <p class="lede" style="margin-top: 32px;" data-i18n="evpage.lede">
+      Filtroni sipas disiplinës, kategorisë ose muajit. Anëtarët gjejnë regjistrimin në panel personal.
+    </p>
+  </div>
+</section>
+
+<!-- ============ NEXT RACE COUNTDOWN ============ -->
+<section data-screen-label="02 Next Race" style="padding-block: 32px;">
+  <div class="container">
+    <div class="countdown-band">
+      <div>
+        <div class="cd-status"><span class="cd-dot"></span><span data-i18n="cd.status">Gara e ardhshme</span></div>
+        <h2 class="display display-l" style="color:var(--paper);margin-top:16px;" data-i18n="cd.title">Granfondo Sharri 2026</h2>
+        <p class="mono" style="font-size:13px;letter-spacing:.06em;color:var(--slate);margin-top:16px;" data-i18n="cd.subtitle">
+          Brezovicë → Prevallë → Prizren · 142 km · 2 600 m ngritje
+        </p>
+        <p class="mono" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate-2);margin-top:24px;" data-i18n="cd.detail">
+          Kategoritë: Elite · U23 · Masters · Femra · Youth
+        </p>
+        <a class="btn btn-ember" style="margin-top:28px;" href="join.html">
+          <span data-i18n="cd.cta">Regjistrohu për garën</span>
+          <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+        </a>
+      </div>
+      <div class="countdown-digits">
+        <div class="cd-unit"><div class="num" id="cd-d">00</div><div class="label" data-i18n="cd.days">Ditë</div></div>
+        <div class="cd-unit"><div class="num" id="cd-h">00</div><div class="label" data-i18n="cd.hours">Orë</div></div>
+        <div class="cd-unit"><div class="num" id="cd-m">00</div><div class="label" data-i18n="cd.minutes">Min</div></div>
+        <div class="cd-unit"><div class="num" id="cd-s">00</div><div class="label" data-i18n="cd.seconds">Sek</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FILTERS ============ -->
+<section data-screen-label="03 Calendar" style="padding-top: 24px;">
+  <div class="container">
+    <div class="filter-bar" id="filters">
+      <button class="chip active" data-filter="all" data-i18n="evpage.filter.all">Të gjitha</button>
+      <button class="chip" data-filter="race" data-i18n="evpage.filter.race">Garat</button>
+      <button class="chip" data-filter="ride" data-i18n="evpage.filter.ride">Ride të hapura</button>
+      <button class="chip" data-filter="camp" data-i18n="evpage.filter.camp">Kampet</button>
+      <span style="flex:1;"></span>
+      <button class="chip" data-filter="road">Rrugë</button>
+      <button class="chip" data-filter="mtb">MTB</button>
+      <button class="chip" data-filter="gravel">Gravel</button>
+      <button class="chip" data-filter="youth">Youth</button>
+    </div>
+
+    <!-- MAY -->
+    <div class="month-head">
+      <span class="m">Maj</span>
+      <span class="yr">2026</span>
+      <span class="count">2 ngjarje</span>
+    </div>
+    <div class="event-row" data-tags="race road">
+      <div class="date">MAJ <span class="day">17</span> 2026</div>
+      <div>
+        <div class="title">Granfondo Sharri 2026</div>
+        <div class="meta" style="margin-top:6px;">142 KM · 2 600 M · BREZOVICË → PRIZREN</div>
+      </div>
+      <div class="meta">RRUGË · GRANFONDO · KATEGORITË</div>
+      <span class="tag ember">Garë</span>
+    </div>
+    <div class="event-row" data-tags="ride mtb">
+      <div class="date">MAJ <span class="day">31</span> 2026</div>
+      <div>
+        <div class="title">Germi Open Ride #04</div>
+        <div class="meta" style="margin-top:6px;">42 KM · MTB · GERMI LOOP</div>
+      </div>
+      <div class="meta">PËR TË GJITHË · NIVELI 2/5</div>
+      <span class="tag">Ride i hapur</span>
+    </div>
+
+    <!-- JUNE -->
+    <div class="month-head">
+      <span class="m">Qershor</span>
+      <span class="yr">2026</span>
+      <span class="count">3 ngjarje</span>
+    </div>
+    <div class="event-row" data-tags="race road">
+      <div class="date">QER <span class="day">14</span> 2026</div>
+      <div>
+        <div class="title">Tour of Kosovo — etapa 1</div>
+        <div class="meta" style="margin-top:6px;">168 KM · PRISHTINË → PEJË</div>
+      </div>
+      <div class="meta">UCI 2.2 · ELITE</div>
+      <span class="tag ember">Garë</span>
+    </div>
+    <div class="event-row" data-tags="race road">
+      <div class="date">QER <span class="day">15</span> 2026</div>
+      <div>
+        <div class="title">Tour of Kosovo — etapa 2</div>
+        <div class="meta" style="margin-top:6px;">142 KM · PEJË → MITROVICË</div>
+      </div>
+      <div class="meta">UCI 2.2 · ELITE</div>
+      <span class="tag ember">Garë</span>
+    </div>
+    <div class="event-row" data-tags="race mtb">
+      <div class="date">QER <span class="day">21</span> 2026</div>
+      <div>
+        <div class="title">Sharri MTB Marathon</div>
+        <div class="meta" style="margin-top:6px;">86 KM · 2 100 M NGRITJE · BREZOVICA</div>
+      </div>
+      <div class="meta">MARATONË · RAJONALE</div>
+      <span class="tag ember">Garë</span>
+    </div>
+
+    <!-- JULY -->
+    <div class="month-head">
+      <span class="m">Korrik</span>
+      <span class="yr">2026</span>
+      <span class="count">2 ngjarje</span>
+    </div>
+    <div class="event-row" data-tags="camp road mtb">
+      <div class="date">KOR <span class="day">06</span> 2026</div>
+      <div>
+        <div class="title">Kampi Veror — Bjeshkët e Nemuna</div>
+        <div class="meta" style="margin-top:6px;">7 DITË · DECAN BASE · ELITE + U23</div>
+      </div>
+      <div class="meta">SEKSIONI MTB + RRUGË</div>
+      <span class="tag">Kamp stërvitor</span>
+    </div>
+    <div class="event-row" data-tags="ride gravel">
+      <div class="date">KOR <span class="day">19</span> 2026</div>
+      <div>
+        <div class="title">Gravel Expedition — Rugova Loop</div>
+        <div class="meta" style="margin-top:6px;">168 KM · GRAVEL · 2 100 M NGRITJE</div>
+      </div>
+      <div class="meta">VETËM ANËTARËT + ROGER</div>
+      <span class="tag">Ride i hapur</span>
+    </div>
+
+    <!-- AUGUST -->
+    <div class="month-head">
+      <span class="m">Gusht</span>
+      <span class="yr">2026</span>
+      <span class="count">2 ngjarje</span>
+    </div>
+    <div class="event-row" data-tags="race road">
+      <div class="date">GUS <span class="day">09</span> 2026</div>
+      <div>
+        <div class="title">Kampionati Kombëtar — Krono</div>
+        <div class="meta" style="margin-top:6px;">38 KM · INDIVIDUAL TIME TRIAL · FUSHË-KOSOVË</div>
+      </div>
+      <div class="meta">FÇK · TË GJITHA KATEGORITË</div>
+      <span class="tag ember">Garë</span>
+    </div>
+    <div class="event-row" data-tags="race mtb">
+      <div class="date">GUS <span class="day">23</span> 2026</div>
+      <div>
+        <div class="title">Kampionati Kombëtar XCO</div>
+        <div class="meta" style="margin-top:6px;">PRISHTINË · GERMI · 1.5–6 RRETHE</div>
+      </div>
+      <div class="meta">FÇK · TË GJITHA KATEGORITË</div>
+      <span class="tag ember">Garë</span>
+    </div>
+
+    <!-- SEPTEMBER -->
+    <div class="month-head">
+      <span class="m">Shtator</span>
+      <span class="yr">2026</span>
+      <span class="count">3 ngjarje</span>
+    </div>
+    <div class="event-row" data-tags="race road">
+      <div class="date">SHT <span class="day">06</span> 2026</div>
+      <div>
+        <div class="title">Granfondo Prizren 2026</div>
+        <div class="meta" style="margin-top:6px;">156 KM · 2 400 M · PRIZREN → SHARR LOOP</div>
+      </div>
+      <div class="meta">GRANFONDO · NDËRKOMBËTARE</div>
+      <span class="tag ember">Garë</span>
+    </div>
+    <div class="event-row" data-tags="race mtb">
+      <div class="date">SHT <span class="day">19</span> 2026</div>
+      <div>
+        <div class="title">Balkan MTB Marathon — Tiranë</div>
+        <div class="meta" style="margin-top:6px;">110 KM · 3 200 M · DAJTI LOOP</div>
+      </div>
+      <div class="meta">ECU · MARATONË</div>
+      <span class="tag ember">Garë</span>
+    </div>
+    <div class="event-row" data-tags="ride youth">
+      <div class="date">SHT <span class="day">27</span> 2026</div>
+      <div>
+        <div class="title">Akademia — Festa e fundvitit</div>
+        <div class="meta" style="margin-top:6px;">PARK-PYLLI GERMI · GARA & PIKNIK</div>
+      </div>
+      <div class="meta">FËMIJË + FAMILJET</div>
+      <span class="tag">Ride i hapur</span>
+    </div>
+
+    <!-- OCTOBER -->
+    <div class="month-head">
+      <span class="m">Tetor</span>
+      <span class="yr">2026</span>
+      <span class="count">2 ngjarje</span>
+    </div>
+    <div class="event-row" data-tags="race road">
+      <div class="date">TET <span class="day">10</span> 2026</div>
+      <div>
+        <div class="title">Tour of Albania — etapa 3</div>
+        <div class="meta" style="margin-top:6px;">198 KM · TIRANË → SHKODËR · ELITE</div>
+      </div>
+      <div class="meta">UCI 2.2 · ELITE</div>
+      <span class="tag ember">Garë</span>
+    </div>
+    <div class="event-row" data-tags="camp gravel">
+      <div class="date">TET <span class="day">24</span> 2026</div>
+      <div>
+        <div class="title">Mbyllja e sezonit — Gravel Camp</div>
+        <div class="meta" style="margin-top:6px;">3 DITË · DRENICA & MALISHEVA</div>
+      </div>
+      <div class="meta">VETËM ANËTARËT</div>
+      <span class="tag">Kamp stërvitor</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="foot" data-screen-label="04 Footer">
+  <div class="container">
+    <div class="foot-grid">
+      <div>
+        <div class="brand" style="color:var(--paper);">
+          <img src="assets/logo.jpg" alt="KÇ Prishtina 038" />
+          <div class="brand-text">
+            <span class="kc" data-i18n="brand.kc">KÇ Prishtina 038</span>
+            <span class="sub" data-i18n="brand.sub">Klubi Çiklistik · Prishtinë</span>
+          </div>
+        </div>
+        <p style="font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-0.01em;line-height:1.2;margin:24px 0 0;max-width:30ch;" data-i18n="foot.tagline">
+          Nga rruga te shtegu. Nga Prishtina për Kosovën.
+        </p>
+        <p style="font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);margin-top:24px;" data-i18n="foot.federation">
+          I regjistruar pranë FÇK · ID: KS-22-038
+        </p>
+      </div>
+      <div>
+        <h4 data-i18n="foot.about">Klubi</h4>
+        <ul>
+          <li><a href="about.html" data-i18n="nav.about">Klubi</a></li>
+          <li><a href="about.html#team">Ekipi</a></li>
+          <li><a href="about.html#history">Historia</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 data-i18n="foot.disciplines">Disiplinat</h4>
+        <ul>
+          <li><a href="sections.html#road" data-i18n="disc.road.name">Rrugë</a></li>
+          <li><a href="section-mtb.html" data-i18n="disc.mtb.name">MTB</a></li>
+          <li><a href="sections.html#gravel" data-i18n="disc.gravel.name">Gravel</a></li>
+          <li><a href="sections.html#track" data-i18n="disc.track.name">Trek</a></li>
+          <li><a href="sections.html#youth" data-i18n="disc.youth.name">Akademia e të rinjve</a></li>
+          <li><a href="sections.html#women" data-i18n="disc.women.name">Femra</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 data-i18n="contact.eyebrow">Kontakti</h4>
+        <ul>
+          <li data-i18n="contact.address">Rruga e Maleve 14, 10000 Prishtinë</li>
+          <li><a href="mailto:info@prishtina038.cc" data-i18n="contact.email">info@prishtina038.cc</a></li>
+          <li><a href="tel:+38338000000" data-i18n="contact.phone">+383 38 000 000</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span data-i18n="foot.copy">© 2026 KÇ Prishtina 038 · Të gjitha të drejtat e rezervuara</span>
+      <span data-i18n="foot.legal">Anëtarësia · Politika e privatësisë · UCI</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+<script>
+  startCountdown("2026-05-17T09:00:00", "cd");
+
+  // Filter chips: 2 axes — type (all/race/ride/camp) and discipline (road/mtb/gravel/youth)
+  const TYPE = new Set(["all","race","ride","camp"]);
+  const DISC = new Set(["road","mtb","gravel","youth"]);
+  let activeType = "all";
+  let activeDisc = null;
+
+  function applyFilter() {
+    document.querySelectorAll(".event-row").forEach(row => {
+      const tags = (row.dataset.tags || "").split(" ");
+      const okType = activeType === "all" || tags.includes(activeType);
+      const okDisc = !activeDisc || tags.includes(activeDisc);
+      row.classList.toggle("hidden", !(okType && okDisc));
+    });
+    // Recount per month
+    document.querySelectorAll(".month-head").forEach(mh => {
+      let n = mh.nextElementSibling;
+      let count = 0;
+      while (n && n.classList.contains("event-row")) {
+        if (!n.classList.contains("hidden")) count++;
+        n = n.nextElementSibling;
+      }
+      const c = mh.querySelector(".count");
+      if (c) c.textContent = count + " ngjarje";
+      mh.style.display = count === 0 ? "none" : "";
+    });
+  }
+
+  document.querySelectorAll("#filters .chip").forEach(b => {
+    b.addEventListener("click", () => {
+      const f = b.dataset.filter;
+      if (TYPE.has(f)) {
+        activeType = f;
+        document.querySelectorAll("#filters .chip").forEach(x => {
+          if (TYPE.has(x.dataset.filter)) x.classList.toggle("active", x.dataset.filter === f);
+        });
+      } else if (DISC.has(f)) {
+        activeDisc = (activeDisc === f) ? null : f;
+        document.querySelectorAll("#filters .chip").forEach(x => {
+          if (DISC.has(x.dataset.filter)) x.classList.toggle("active", x.dataset.filter === activeDisc);
+        });
+      }
+      applyFilter();
+    });
+  });
+</script>
+</body>
+</html>

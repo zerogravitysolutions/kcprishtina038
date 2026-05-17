@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KÇ Prishtina 038 — Klubi Çiklistik</title>
+<link rel="icon" href="assets/logo.jpg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..125,400..900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css" />
+<script src="assets/image-slot.js"></script>
+<style>
+  /* ====== HERO v2 — modern, dark, collage-led ====== */
+  .hero-v2 {
+    background: var(--ink);
+    color: var(--paper);
+    position: relative;
+    padding: 80px 0 64px;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(244,242,236,.08);
+  }
+  .hero-v2 .topo {
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: .35;
+  }
+  .hero-v2 .ghost {
+    position: absolute;
+    left: 50%;
+    bottom: -10%;
+    transform: translateX(-50%);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(220px, 42vw, 640px);
+    line-height: 0.78;
+    letter-spacing: -0.06em;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(111,170,168,0.16);
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    z-index: 0;
+  }
+  .hero-v2 .container { position: relative; z-index: 2; }
+  .hero-v2 .hero-top {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 56px;
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: color-mix(in oklab, var(--slate-2) 70%, transparent);
+    flex-wrap: wrap; gap: 16px;
+  }
+  .hero-v2 .hero-top .l, .hero-v2 .hero-top .c, .hero-v2 .hero-top .r {
+    display: flex; gap: 14px; align-items: center;
+  }
+  .hero-v2 .hero-top .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ember);
+    display: inline-block;
+  }
+  .hero-v2 .hero-top .live {
+    color: var(--ember); display: inline-flex; gap: 8px; align-items: center;
+  }
+  .hero-v2 .hero-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 64px;
+    align-items: center;
+  }
+  @media (max-width: 1000px) {
+    .hero-v2 .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+  }
+  .hero-v2 h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(40px, 6.5vw, 96px);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    color: var(--paper);
+    margin: 0;
+    max-width: 18ch;
+  }
+  .hero-v2 h1 em {
+    font-style: italic;
+    font-variation-settings: "wdth" 75;
+    color: var(--ember);
+    display: inline-block;
+  }
+  .hero-v2 h1 .strike {
+    position: relative;
+    display: inline-block;
+  }
+  .hero-v2 .hero-lede {
+    font-size: clamp(16px, 1.1vw, 18px);
+    line-height: 1.55;
+    color: color-mix(in oklab, var(--paper) 72%, transparent);
+    max-width: 44ch;
+    margin: 28px 0 0;
+  }
+  .hero-v2 .cta-row {
+    display: flex; gap: 12px; margin-top: 36px; flex-wrap: wrap;
+  }
+  .hero-v2 .btn-ghost {
+    color: var(--paper);
+    border-color: rgba(244,242,236,.3);
+  }
+  .hero-v2 .btn-ghost:hover {
+    background: var(--paper); color: var(--ink);
+  }
+
+  /* Photo collage */
+  .collage {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    grid-template-rows: 1.1fr 1fr;
+    gap: 12px;
+    height: 480px;
+    position: relative;
+  }
+  @media (max-width: 600px) {
+    .collage { height: 420px; }
+  }
+  .collage image-slot {
+    width: 100%; height: 100%;
+    background: var(--ink-2);
+    color: rgba(244,242,236,.65);
+  }
+  .collage .s1 { grid-column: 1; grid-row: 1 / span 2; }
+  .collage .s2 { grid-column: 2; grid-row: 1; }
+  .collage .s3 { grid-column: 2; grid-row: 2; }
+  .collage .badge {
+    position: absolute;
+    right: -18px; top: 24px;
+    background: var(--ember);
+    color: var(--paper);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 999px;
+    z-index: 4;
+    box-shadow: 0 12px 28px rgba(194,90,45,.35);
+  }
+  .collage .stamp {
+    position: absolute;
+    left: -16px; bottom: -16px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    border-radius: 8px;
+    z-index: 4;
+    display: flex; flex-direction: column; gap: 2px;
+    box-shadow: 0 12px 30px rgba(15,26,46,.4);
+  }
+  .collage .stamp strong {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+
+  /* Marquee ticker */
+  .hero-ticker {
+    margin-top: 56px;
+    border-top: 1px solid rgba(244,242,236,.12);
+    border-bottom: 1px solid rgba(244,242,236,.12);
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 14px 0;
+    position: relative;
+  }
+  .ticker-track {
+    display: inline-flex; gap: 40px;
+    animation: kc-marquee 48s linear infinite;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: color-mix(in oklab, var(--paper) 75%, transparent);
+    will-change: transform;
+  }
+  .ticker-track .dot { color: var(--ember); }
+  .ticker-track .num {
+    color: var(--teal);
+    font-weight: 600;
+  }
+  @keyframes kc-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* Left-side rail (vertical text) */
+  .hero-v2 .rail {
+    position: absolute;
+    left: 16px; top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    transform-origin: left center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--slate);
+    z-index: 1;
+    display: flex; gap: 18px;
+  }
+  @media (max-width: 1100px) { .hero-v2 .rail { display: none; } }
+  .hero-v2 .rail .pulse {
+    display: inline-flex; gap: 8px; align-items: center;
+  }
+  .hero-v2 .rail .pulse::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--teal);
+    animation: kc-blink 1.6s infinite;
+  }
+  @keyframes kc-blink {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.2; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<nav class="nav" data-screen-label="00 Top Nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.jpg" alt="KÇ Prishtina 038" />
+      <div class="brand-text">
+        <span class="kc" data-i18n="brand.kc">KÇ Prishtina 038</span>
+        <span class="sub" data-i18n="brand.sub">Klubi Çiklistik · Prishtinë</span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" data-i18n="nav.about">Klubi</a>
+      <a href="sections.html" data-i18n="nav.sections">Seksionet</a>
+      <a href="events.html" data-i18n="nav.events">Garat</a>
+      <a href="join.html" data-i18n="nav.join">Bashkohu</a>
+      <a href="#news" data-i18n="nav.news">Lajme</a>
+      <a href="#contact" data-i18n="nav.contact">Kontakti</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-pill" role="group" aria-label="Language">
+        <button data-lang="sq" class="active">SQ</button>
+        <button data-lang="en">EN</button>
+      </div>
+      <a class="btn btn-sm btn-ember" href="join.html" data-i18n="hero.cta.primary">Bëhu pjesë e klubit</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO v2 ============ -->
+<section class="hero-v2" data-screen-label="01 Hero">
+  <!-- decorative ghost "038" -->
+  <span class="ghost" aria-hidden="true">038</span>
+
+  <!-- decorative topo grid -->
+  <svg class="topo" preserveAspectRatio="none" viewBox="0 0 1600 900" aria-hidden="true">
+    <defs>
+      <pattern id="hero-grid" width="56" height="56" patternUnits="userSpaceOnUse">
+        <path d="M56 0 H0 V56" stroke="rgba(244,242,236,.05)" fill="none" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="1600" height="900" fill="url(#hero-grid)"/>
+    <path d="M0 720 Q 240 660 480 690 T 960 640 T 1600 600" stroke="rgba(111,170,168,.18)" fill="none" stroke-width="1"/>
+    <path d="M0 780 Q 240 720 480 750 T 960 700 T 1600 660" stroke="rgba(111,170,168,.12)" fill="none" stroke-width="1"/>
+    <path d="M0 840 Q 240 780 480 810 T 960 760 T 1600 720" stroke="rgba(111,170,168,.08)" fill="none" stroke-width="1"/>
+  </svg>
+
+  <!-- vertical rail -->
+  <div class="rail">
+    <span class="pulse">SEZONI 2026 · ACTIVE</span>
+    <span>·</span>
+    <span>UCI · ECU · FÇK</span>
+    <span>·</span>
+    <span>PRISHTINË · KOSOVA</span>
+  </div>
+
+  <div class="container">
+    <!-- top status strip -->
+    <div class="hero-top">
+      <div class="l">
+        <span>KÇ Prishtina 038 · est. 2022</span>
+      </div>
+      <div class="c">
+        <span class="live"><span class="dot"></span> <span data-i18n="hero.eyebrow">Themeluar 2022 · Anëtar i FÇK & UCI</span></span>
+      </div>
+      <div class="r">
+        <span>42° 39′ N · 21° 09′ E</span>
+      </div>
+    </div>
+
+    <!-- main grid -->
+    <div class="hero-grid">
+      <div>
+        <h1>
+          <span data-i18n="hero.title.1">Mbi qiellin</span>
+          <span data-i18n="hero.title.2"> e </span><em data-i18n="hero.title.em">Prishtinës</em><span data-i18n="hero.title.3">, vetëm</span><br/>
+          <span data-i18n="hero.title.4">ne pedalojmë.</span>
+        </h1>
+
+        <p class="hero-lede" data-i18n="hero.lede">
+          Klubi çiklistik i Prishtinës. Gjashtë disiplina, një ekip, një qytet. Garojmë nën kodin e UCI dhe FÇK — nga shtigjet e Germisë te kalendari kontinental.
+        </p>
+
+        <div class="cta-row">
+          <a class="btn btn-ember" href="join.html">
+            <span data-i18n="hero.cta.primary">Bëhu pjesë e klubit</span>
+            <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </a>
+          <a class="btn btn-ghost" href="sections.html" data-i18n="hero.cta.ghost">Shfletoni seksionet</a>
+        </div>
+      </div>
+
+      <!-- Photo collage with drop-in image slots -->
+      <div class="collage">
+        <span class="badge">SEZONI 2026 · LIVE</span>
+
+        <image-slot id="hero-photo-1" class="s1" shape="rounded" radius="14" placeholder="Drag in: team riding shot (large hero photo)"></image-slot>
+        <image-slot id="hero-photo-2" class="s2" shape="rounded" radius="14" placeholder="Drag in: race/portrait"></image-slot>
+        <image-slot id="hero-photo-3" class="s3" shape="rounded" radius="14" placeholder="Drag in: training/landscape"></image-slot>
+
+        <div class="stamp">
+          <span>EKIPI · 2026</span>
+          <strong>47 ÇIKLISTË</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- ticker -->
+    <div class="hero-ticker" aria-hidden="true">
+      <div class="ticker-track">
+        <span><span class="num">184 200</span> KM PEDALED · SEZONI 2025</span>
+        <span class="dot">●</span>
+        <span><span class="num">23</span> NATIONAL PODIUMS</span>
+        <span class="dot">●</span>
+        <span><span class="num">06</span> SEKSIONE</span>
+        <span class="dot">●</span>
+        <span>UCI · ECU · FÇK REGISTERED</span>
+        <span class="dot">●</span>
+        <span>FOUNDED <span class="num">2022</span> · PRISHTINË</span>
+        <span class="dot">●</span>
+        <span><span class="num">47</span> ÇIKLISTË AKTIVË</span>
+        <span class="dot">●</span>
+        <span>NEXT RACE · GRANFONDO SHARRI · <span class="num">17.05.2026</span></span>
+        <span class="dot">●</span>
+        <!-- duplicate for seamless loop -->
+        <span><span class="num">184 200</span> KM PEDALED · SEZONI 2025</span>
+        <span class="dot">●</span>
+        <span><span class="num">23</span> NATIONAL PODIUMS</span>
+        <span class="dot">●</span>
+        <span><span class="num">06</span> SEKSIONE</span>
+        <span class="dot">●</span>
+        <span>UCI · ECU · FÇK REGISTERED</span>
+        <span class="dot">●</span>
+        <span>FOUNDED <span class="num">2022</span> · PRISHTINË</span>
+        <span class="dot">●</span>
+        <span><span class="num">47</span> ÇIKLISTË AKTIVË</span>
+        <span class="dot">●</span>
+        <span>NEXT RACE · GRANFONDO SHARRI · <span class="num">17.05.2026</span></span>
+        <span class="dot">●</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATS STRIP ============ -->
+<div class="container" data-screen-label="02 Stats">
+  <div class="stats-strip">
+    <div class="stat">
+      <div class="num mono" data-i18n="stats.km.num">184 200</div>
+      <div class="label" data-i18n="stats.km.label">KM të pedaluar — sezoni 2025</div>
+    </div>
+    <div class="stat">
+      <div class="num mono" data-i18n="stats.podium.num">23</div>
+      <div class="label" data-i18n="stats.podium.label">Pozita në podium — kombëtare</div>
+    </div>
+    <div class="stat">
+      <div class="num mono" data-i18n="stats.juniors.num">18</div>
+      <div class="label" data-i18n="stats.juniors.label">Çiklistë në akademinë e të rinjve</div>
+    </div>
+    <div class="stat">
+      <div class="num mono" data-i18n="stats.years.num">04</div>
+      <div class="label" data-i18n="stats.years.label">Vite në kalendar</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ COUNTDOWN ============ -->
+<section data-screen-label="03 Race Countdown">
+  <div class="container">
+    <div class="countdown-band">
+      <div>
+        <div class="cd-status"><span class="cd-dot"></span><span data-i18n="cd.status">Gara e ardhshme</span></div>
+        <h2 class="display display-l" style="color:var(--paper);margin-top:16px;" data-i18n="cd.title">Granfondo Sharri 2026</h2>
+        <p class="mono" style="font-size:13px;letter-spacing:.06em;color:var(--slate);margin-top:16px;" data-i18n="cd.subtitle">
+          Brezovicë → Prevallë → Prizren · 142 km · 2 600 m ngritje
+        </p>
+        <p class="mono" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate-2);margin-top:24px;" data-i18n="cd.detail">
+          Kategoritë: Elite · U23 · Masters · Femra · Youth
+        </p>
+        <a class="btn btn-ember" style="margin-top:28px;" href="events.html">
+          <span data-i18n="cd.cta">Regjistrohu për garën</span>
+          <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+        </a>
+      </div>
+      <div class="countdown-digits">
+        <div class="cd-unit"><div class="num" id="cd-d">00</div><div class="label" data-i18n="cd.days">Ditë</div></div>
+        <div class="cd-unit"><div class="num" id="cd-h">00</div><div class="label" data-i18n="cd.hours">Orë</div></div>
+        <div class="cd-unit"><div class="num" id="cd-m">00</div><div class="label" data-i18n="cd.minutes">Min</div></div>
+        <div class="cd-unit"><div class="num" id="cd-s">00</div><div class="label" data-i18n="cd.seconds">Sek</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ABOUT TEASER ============ -->
+<section data-screen-label="04 About">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span data-i18n="about.eyebrow">Klubi</span></div>
+        <h2 class="display display-m" style="margin-top:16px;" data-i18n="about.title">
+          Tre themelues. Një ide e qartë: ta vendosim Prishtinën në hartën çiklistike të Ballkanit.
+        </h2>
+      </div>
+      <div>
+        <p class="lede" data-i18n="about.body">
+          KÇ Prishtina 038 lindi në vitin 2022 nga Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana. I regjistruar nën Federatën Çiklistike të Kosovës dhe duke garuar sipas rregullave të UCI dhe ECU, klubi mban gjashtë disiplina aktive — nga rruga te treku, nga shtigjet e maleve te akademia e re e të rinjve.
+        </p>
+        <a class="btn btn-ghost" style="margin-top:24px;" href="about.html">
+          <span data-i18n="about.link">Lexo historinë e plotë</span>
+          <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Founders -->
+    <div class="roster-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="rider">
+        <div class="ph" style="aspect-ratio: 4/5;">
+          <span class="ph-label">QËNDRIM PLLANA · PORTRAIT</span>
+          <span class="ph-corner">JPG · 4:5</span>
+        </div>
+        <div>
+          <div class="name" data-i18n="about.founder.1.name">Qëndrim Pllana</div>
+          <div class="role" data-i18n="about.founder.1.role">Themelues · President</div>
+        </div>
+      </div>
+      <div class="rider">
+        <div class="ph" style="aspect-ratio: 4/5;">
+          <span class="ph-label">ALBION YMERI · PORTRAIT</span>
+          <span class="ph-corner">JPG · 4:5</span>
+        </div>
+        <div>
+          <div class="name" data-i18n="about.founder.2.name">Albion Ymeri</div>
+          <div class="role" data-i18n="about.founder.2.role">Themelues · Trajner kryesor</div>
+        </div>
+      </div>
+      <div class="rider">
+        <div class="ph" style="aspect-ratio: 4/5;">
+          <span class="ph-label">SHQIPONJA OSMANI PLLANA · PORTRAIT</span>
+          <span class="ph-corner">JPG · 4:5</span>
+        </div>
+        <div>
+          <div class="name" data-i18n="about.founder.3.name">Shqiponja Osmani Pllana</div>
+          <div class="role" data-i18n="about.founder.3.role">Themelueze · Programe të femrave</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DISCIPLINES ============ -->
+<section data-screen-label="05 Disciplines" style="background: var(--paper-2);">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span data-i18n="disc.eyebrow">Seksionet</span></div>
+        <h2 class="display display-m" style="margin-top:16px;" data-i18n="disc.title">Gjashtë disiplina. Një ekip.</h2>
+      </div>
+      <p class="lede" data-i18n="disc.lede">
+        Çdo disiplinë ka trajnerin e vet, kalendarin e vet, dhe palestrën e vet. Por kemi një logo dhe një gjuhë.
+      </p>
+    </div>
+
+    <div class="disc-grid">
+      <a class="disc-card" href="sections.html#road">
+        <div class="num">01 / RRUGË</div>
+        <h3 data-i18n="disc.road.name">Rrugë</h3>
+        <p data-i18n="disc.road.desc">Sezoni i pranverës–vjeshtës. Garat kombëtare të FÇK, Granfondo, dhe etapat rajonale.</p>
+        <div class="meta">
+          <span data-i18n="disc.road.meta">12 çiklistë · trajner: A. Ymeri</span>
+          <span class="go"><span data-i18n="disc.go">Hape seksionin</span>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+        </div>
+      </a>
+      <a class="disc-card" href="section-mtb.html">
+        <div class="num">02 / MTB</div>
+        <h3 data-i18n="disc.mtb.name">MTB</h3>
+        <p data-i18n="disc.mtb.desc">Cross-country mbi Germinë, Sharrin dhe Prokletijet. Format XCO dhe maratonë.</p>
+        <div class="meta">
+          <span data-i18n="disc.mtb.meta">9 çiklistë · trajner: B. Krasniqi</span>
+          <span class="go"><span data-i18n="disc.go">Hape seksionin</span>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+        </div>
+      </a>
+      <a class="disc-card" href="sections.html#gravel">
+        <div class="num">03 / GRAVEL</div>
+        <h3 data-i18n="disc.gravel.name">Gravel</h3>
+        <p data-i18n="disc.gravel.desc">E reja e klubit. Gara aventureske dhe ekspedita të hapura në rrugët dytësore të Kosovës.</p>
+        <div class="meta">
+          <span data-i18n="disc.gravel.meta">8 çiklistë · trajner: Q. Pllana</span>
+          <span class="go"><span data-i18n="disc.go">Hape seksionin</span>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+        </div>
+      </a>
+      <a class="disc-card" href="sections.html#track">
+        <div class="num">04 / TREK</div>
+        <h3 data-i18n="disc.track.name">Trek</h3>
+        <p data-i18n="disc.track.desc">Disiplinë e shkurtër — sprint, keirin, persecution. Bashkëpunim me velodromin rajonal.</p>
+        <div class="meta">
+          <span data-i18n="disc.track.meta">5 çiklistë · trajner: D. Berisha</span>
+          <span class="go"><span data-i18n="disc.go">Hape seksionin</span>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+        </div>
+      </a>
+      <a class="disc-card" href="sections.html#youth">
+        <div class="num">05 / TË RINJTË</div>
+        <h3 data-i18n="disc.youth.name">Akademia e të rinjve</h3>
+        <p data-i18n="disc.youth.desc">Çiklistët e ardhshëm të Kosovës — moshat 9–17 vjeç. Stërvitje çdo të shtunë.</p>
+        <div class="meta">
+          <span data-i18n="disc.youth.meta">18 fëmijë · trajnere: Sh. Osmani Pllana</span>
+          <span class="go"><span data-i18n="disc.go">Hape seksionin</span>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+        </div>
+      </a>
+      <a class="disc-card" href="sections.html#women">
+        <div class="num">06 / FEMRA</div>
+        <h3 data-i18n="disc.women.name">Femra</h3>
+        <p data-i18n="disc.women.desc">Programi i çiklizmit të femrave — gara, ride të hapura, dhe mentorim ndër-gjenerata.</p>
+        <div class="meta">
+          <span data-i18n="disc.women.meta">11 çikliste · trajnere: Sh. Osmani Pllana</span>
+          <span class="go"><span data-i18n="disc.go">Hape seksionin</span>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RESULTS ============ -->
+<section data-screen-label="06 Results">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span data-i18n="results.eyebrow">Rezultatet e fundit</span></div>
+        <h2 class="display display-m" style="margin-top:16px;" data-i18n="results.title">Sezoni 2025 në numra.</h2>
+      </div>
+      <p class="lede" data-i18n="results.lede">
+        Garat ku kemi marrë pjesë në gjashtë muajt e fundit. Lista e plotë në Garat.
+      </p>
+    </div>
+
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th style="width:60px;" data-i18n="results.col.pos">Pozita</th>
+          <th data-i18n="results.col.race">Gara</th>
+          <th data-i18n="results.col.rider">Çiklisti</th>
+          <th data-i18n="results.col.category">Kategoria</th>
+          <th style="text-align:right;" data-i18n="results.col.date">Data</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="pos gold mono">01</span></td>
+          <td data-i18n="results.r1.race">Tour of Kosovo — etapa 2</td>
+          <td data-i18n="results.r1.rider">Albion Ymeri</td>
+          <td class="mono" style="font-size:12px;" data-i18n="results.r1.cat">Elite · Rrugë</td>
+          <td class="mono" style="text-align:right;font-size:13px;">11.10.2025</td>
+        </tr>
+        <tr>
+          <td><span class="pos bronze mono">03</span></td>
+          <td data-i18n="results.r2.race">Sharri MTB Marathon</td>
+          <td data-i18n="results.r2.rider">Blerton Krasniqi</td>
+          <td class="mono" style="font-size:12px;" data-i18n="results.r2.cat">Masters · MTB</td>
+          <td class="mono" style="text-align:right;font-size:13px;">28.09.2025</td>
+        </tr>
+        <tr>
+          <td><span class="pos gold mono">01</span></td>
+          <td data-i18n="results.r3.race">Granfondo Prizren</td>
+          <td data-i18n="results.r3.rider">Era Hoxha</td>
+          <td class="mono" style="font-size:12px;" data-i18n="results.r3.cat">Elite Femra · Rrugë</td>
+          <td class="mono" style="text-align:right;font-size:13px;">14.09.2025</td>
+        </tr>
+        <tr>
+          <td><span class="pos silver mono">02</span></td>
+          <td data-i18n="results.r4.race">Kampionati Kombëtar — Krono</td>
+          <td data-i18n="results.r4.rider">Qëndrim Pllana</td>
+          <td class="mono" style="font-size:12px;" data-i18n="results.r4.cat">Masters · Krono</td>
+          <td class="mono" style="text-align:right;font-size:13px;">23.08.2025</td>
+        </tr>
+        <tr>
+          <td><span class="pos silver mono">02</span></td>
+          <td data-i18n="results.r5.race">Balkan Junior Cup — Tiranë</td>
+          <td data-i18n="results.r5.rider">Edon Gashi</td>
+          <td class="mono" style="font-size:12px;" data-i18n="results.r5.cat">Junior · Rrugë</td>
+          <td class="mono" style="text-align:right;font-size:13px;">02.08.2025</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <a class="btn btn-ghost" style="margin-top:32px;" href="events.html">
+      <span data-i18n="results.cta">Të gjitha rezultatet</span>
+      <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- ============ ROSTER ============ -->
+<section data-screen-label="07 Roster" style="background: var(--paper-2);">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span data-i18n="roster.eyebrow">Ekipi</span></div>
+        <h2 class="display display-m" style="margin-top:16px;" data-i18n="roster.title">Çiklistët tanë.</h2>
+      </div>
+      <p class="lede" data-i18n="roster.lede">
+        Një faqe nga libri i ekipit 2026. Roster i plotë me biografi në faqen e ekipit.
+      </p>
+    </div>
+
+    <div class="roster-grid">
+      <div class="rider">
+        <div class="ph"><span class="ph-label">RIDER · ALBION YMERI</span><span class="ph-corner">JPG · 3:4</span></div>
+        <div class="name">Albion Ymeri</div>
+        <div class="role">RRUGË · ELITE</div>
+      </div>
+      <div class="rider">
+        <div class="ph"><span class="ph-label">RIDER · BLERTON KRASNIQI</span><span class="ph-corner">JPG · 3:4</span></div>
+        <div class="name">Blerton Krasniqi</div>
+        <div class="role">MTB · MASTERS</div>
+      </div>
+      <div class="rider">
+        <div class="ph"><span class="ph-label">RIDER · ERA HOXHA</span><span class="ph-corner">JPG · 3:4</span></div>
+        <div class="name">Era Hoxha</div>
+        <div class="role">RRUGË · ELITE FEMRA</div>
+      </div>
+      <div class="rider">
+        <div class="ph"><span class="ph-label">RIDER · EDON GASHI</span><span class="ph-corner">JPG · 3:4</span></div>
+        <div class="name">Edon Gashi</div>
+        <div class="role">RRUGË · JUNIOR</div>
+      </div>
+      <div class="rider">
+        <div class="ph"><span class="ph-label">RIDER · DRITON BERISHA</span><span class="ph-corner">JPG · 3:4</span></div>
+        <div class="name">Driton Berisha</div>
+        <div class="role">TREK · ELITE</div>
+      </div>
+      <div class="rider">
+        <div class="ph"><span class="ph-label">RIDER · ARIANIT GASHI</span><span class="ph-corner">JPG · 3:4</span></div>
+        <div class="name">Arianit Gashi</div>
+        <div class="role">GRAVEL · MASTERS</div>
+      </div>
+      <div class="rider">
+        <div class="ph"><span class="ph-label">RIDER · DRILONA HALITI</span><span class="ph-corner">JPG · 3:4</span></div>
+        <div class="name">Drilona Haliti</div>
+        <div class="role">MTB · FEMRA</div>
+      </div>
+      <div class="rider">
+        <div class="ph"><span class="ph-label">RIDER · YOUTH ACADEMY</span><span class="ph-corner">JPG · 3:4</span></div>
+        <div class="name">+ 39 të tjerë</div>
+        <div class="role">AKADEMIA + KLUBI</div>
+      </div>
+    </div>
+
+    <a class="btn btn-ghost" style="margin-top:32px;" href="about.html#team">
+      <span data-i18n="roster.cta">Shih të gjithë ekipin</span>
+      <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- ============ EVENTS ============ -->
+<section data-screen-label="08 Events">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span data-i18n="events.eyebrow">Kalendari</span></div>
+        <h2 class="display display-m" style="margin-top:16px;" data-i18n="events.title">Garat e ardhshme.</h2>
+      </div>
+      <p class="lede" data-i18n="events.lede">
+        Çfarë po vijon — për ekipin, për anëtarët, dhe për çdo çiklist që dëshiron të vrapojë me ne.
+      </p>
+    </div>
+
+    <div>
+      <div class="event-row">
+        <div class="date">
+          MAJ <span class="day">17</span> 2026
+        </div>
+        <div>
+          <div class="title">Granfondo Sharri 2026</div>
+          <div class="meta" style="margin-top:6px;">142 KM · 2 600 M · BREZOVICË → PRIZREN</div>
+        </div>
+        <div class="meta">RRUGË · GRANFONDO</div>
+        <span class="tag ember" data-i18n="events.tag.race">Garë</span>
+      </div>
+      <div class="event-row">
+        <div class="date">
+          MAJ <span class="day">31</span> 2026
+        </div>
+        <div>
+          <div class="title">Germi Open Ride #04</div>
+          <div class="meta" style="margin-top:6px;">42 KM · MTB · GERMI LOOP</div>
+        </div>
+        <div class="meta">PËR TË GJITHË</div>
+        <span class="tag" data-i18n="events.tag.ride">Ride i hapur</span>
+      </div>
+      <div class="event-row">
+        <div class="date">
+          QER <span class="day">14</span> 2026
+        </div>
+        <div>
+          <div class="title">Tour of Kosovo — etapa 1</div>
+          <div class="meta" style="margin-top:6px;">168 KM · PRISHTINË → PEJË</div>
+        </div>
+        <div class="meta">RRUGË · UCI 2.2</div>
+        <span class="tag ember" data-i18n="events.tag.race">Garë</span>
+      </div>
+      <div class="event-row">
+        <div class="date">
+          KOR <span class="day">06</span> 2026
+        </div>
+        <div>
+          <div class="title">Kampi Veror — Bjeshkët e Nemuna</div>
+          <div class="meta" style="margin-top:6px;">7 DITË · ELITE + U23 · DECAN BASE</div>
+        </div>
+        <div class="meta">EKIPI I PËRZGJEDHUR</div>
+        <span class="tag" data-i18n="events.tag.camp">Kamp stërvitor</span>
+      </div>
+    </div>
+
+    <a class="btn btn-ghost" style="margin-top:32px;" href="events.html">
+      <span data-i18n="events.cta">Kalendari i plotë</span>
+      <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- ============ JOIN BAND ============ -->
+<section data-screen-label="09 Join CTA">
+  <div class="container">
+    <div class="join-band">
+      <div>
+        <div class="eyebrow"><span data-i18n="join.eyebrow">Bashkohu</span></div>
+        <h2 class="mt-16" data-i18n="join.title">Nëse pedalon, ka vend për ty.</h2>
+        <p class="lede mt-24" style="color: var(--ink-2);" data-i18n="join.lede">
+          Pranojmë çiklistë të të gjitha niveleve nga 9 vjeç e lart. Stërvitje me trajner, kalendar me gara, fanellë e klubit dhe një ekip që të shtyn.
+        </p>
+        <a class="btn btn-ember mt-32" href="join.html">
+          <span data-i18n="join.cta">Apliko si anëtar</span>
+          <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+        </a>
+      </div>
+      <div class="perks">
+        <div class="perk"><span class="num">01</span><span class="text" data-i18n="join.perk.1">Stërvitje me trajner çertifikuar — 3× në javë</span></div>
+        <div class="perk"><span class="num">02</span><span class="text" data-i18n="join.perk.2">Kalendari i garave FÇK & rajonale</span></div>
+        <div class="perk"><span class="num">03</span><span class="text" data-i18n="join.perk.3">Fanella e klubit + helmetë gjatë sezonit</span></div>
+        <div class="perk"><span class="num">04</span><span class="text" data-i18n="join.perk.4">Servis i biçikletës me BikePlus</span></div>
+        <div class="perk"><span class="num">05</span><span class="text" data-i18n="join.perk.5">Akses te kampet stërvitore verore</span></div>
+        <div class="perk"><span class="num">06</span><span class="text" data-i18n="join.perk.6">Komunitet me çiklistë nga gjithë Kosova</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NEWS ============ -->
+<section data-screen-label="10 News" id="news">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span data-i18n="news.eyebrow">Lajme</span></div>
+        <h2 class="display display-m" style="margin-top:16px;" data-i18n="news.title">Nga klubi.</h2>
+      </div>
+      <a class="btn btn-ghost" href="#news" style="justify-self:start;">
+        <span data-i18n="news.cta">Të gjitha lajmet</span>
+        <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+      </a>
+    </div>
+
+    <div class="news-grid">
+      <article class="news-card">
+        <div class="ph"><span class="ph-label">FOTO · LAJM 01</span><span class="ph-corner">JPG · 4:3</span></div>
+        <span class="date mono">04.04.2026 · LAJME</span>
+        <h3>Para-sezoni 2026: 14 çiklistë në Brezovicë për dhjetë ditë.</h3>
+        <p style="font-size:14px;color:var(--ink-2);margin:0;">Kampi i parë i vitit ka filluar mbi 1 700 m. Programi përfshin trajnim baze, teste FTP dhe punë teknike në zbritje.</p>
+      </article>
+      <article class="news-card">
+        <div class="ph"><span class="ph-label">FOTO · LAJM 02</span><span class="ph-corner">JPG · 4:3</span></div>
+        <span class="date mono">28.03.2026 · NJOFTIM</span>
+        <h3>Akademia e të rinjve hapet për regjistrime — moshat 9–17.</h3>
+        <p style="font-size:14px;color:var(--ink-2);margin:0;">Stërvitje çdo të shtunë në Park-Pylli i Germisë. Pajisjet bazë sigurohen nga klubi për tre muajt e parë.</p>
+      </article>
+      <article class="news-card">
+        <div class="ph"><span class="ph-label">FOTO · LAJM 03</span><span class="ph-corner">JPG · 4:3</span></div>
+        <span class="date mono">15.03.2026 · PARTNERSHIP</span>
+        <h3>BikePlus zgjat partneritetin teknik për sezonin 2026.</h3>
+        <p style="font-size:14px;color:var(--ink-2);margin:0;">Servisi i biçikletave dhe komponentët për gjithë ekipin do të vazhdojnë të mbulohen nga BikePlus — viti i katërt rresht.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NEWS ============ -->
+<section data-screen-label="12 Sponsors">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span data-i18n="sponsors.eyebrow">Sponsorët</span></div>
+        <h2 class="display display-m" style="margin-top:16px;" data-i18n="sponsors.title">Bëjnë rolimin të mundur.</h2>
+      </div>
+    </div>
+
+    <div class="sponsors">
+      <div class="sponsor">
+        <div class="logo-box">BikePlus</div>
+        <div>
+          <div class="name" data-i18n="sponsors.bp.name">BikePlus</div>
+          <div class="role" data-i18n="sponsors.bp.role">Sponsor teknik · Mekanika & komponentët</div>
+          <p data-i18n="sponsors.bp.body">Servisi i biçikletave dhe komponentët për gjithë ekipin që nga 2022.</p>
+        </div>
+      </div>
+      <div class="sponsor">
+        <div class="logo-box" style="background:var(--ink);color:var(--paper);border-color:var(--ink);">Novus</div>
+        <div>
+          <div class="name" data-i18n="sponsors.nv.name">Novus</div>
+          <div class="role" data-i18n="sponsors.nv.role">Sponsor i përgjithshëm</div>
+          <p data-i18n="sponsors.nv.body">Përkrahja kryesore për sezonin garues — fanellat, udhëtimet, kampet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SUPPORT ============ -->
+<section data-screen-label="14 Support">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span data-i18n="support.eyebrow">Mbështet klubin</span></div>
+        <h2 class="display display-m" style="margin-top:16px;" data-i18n="support.title">Pa sponsorët dhe donatorët, pa garë.</h2>
+      </div>
+      <p class="lede" data-i18n="support.lede">
+        Klubi është organizatë jofitimprurëse. Buxheti shkon në fanella, udhëtime, kampe dhe akademinë e të rinjve.
+      </p>
+    </div>
+
+    <div class="support-strip">
+      <div class="support-card dark">
+        <div class="eyebrow" style="color:var(--slate-2);"><span>01 / DONACION</span></div>
+        <h3 data-i18n="support.donate.title">Bëj një donacion</h3>
+        <p style="color:var(--slate-2);" data-i18n="support.donate.body">Kontribute njëhershe ose mujore. Çdo euro shkon në programin e të rinjve.</p>
+        <a class="btn btn-ember" style="align-self:flex-start;margin-top:auto;" href="#">
+          <span data-i18n="support.donate.cta">Dono tani</span>
+          <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+        </a>
+      </div>
+      <div class="support-card">
+        <div class="eyebrow"><span>02 / SPONSOR</span></div>
+        <h3 data-i18n="support.sponsor.title">Bëhu sponsor</h3>
+        <p data-i18n="support.sponsor.body">Logoja juaj në fanellë, në karavanin e garave dhe në kanalet tona dixhitale.</p>
+        <a class="btn btn-ghost" style="align-self:flex-start;margin-top:auto;" href="#">
+          <span data-i18n="support.sponsor.cta">Shih paketat</span>
+          <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+        </a>
+      </div>
+      <div class="support-card">
+        <div class="eyebrow"><span>03 / VOLLNETAR</span></div>
+        <h3>Bëhu vullnetar</h3>
+        <p>Na duhen koka për ditë gare, akademinë e të rinjve, dhe marketing.</p>
+        <a class="btn btn-ghost" style="align-self:flex-start;margin-top:auto;" href="mailto:info@prishtina038.cc">
+          <span>Na shkruaj</span>
+          <svg class="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" stroke-width="1.5"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER / CONTACT ============ -->
+<footer class="foot" id="contact" data-screen-label="15 Footer">
+  <div class="container">
+    <div class="foot-grid">
+      <div>
+        <div class="brand" style="color:var(--paper);">
+          <img src="assets/logo.jpg" alt="KÇ Prishtina 038" />
+          <div class="brand-text">
+            <span class="kc" data-i18n="brand.kc">KÇ Prishtina 038</span>
+            <span class="sub" data-i18n="brand.sub">Klubi Çiklistik · Prishtinë</span>
+          </div>
+        </div>
+        <p style="font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-0.01em;line-height:1.2;margin:24px 0 0;max-width:30ch;" data-i18n="foot.tagline">
+          Nga rruga te shtegu. Nga Prishtina për Kosovën.
+        </p>
+        <p style="font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);margin-top:24px;" data-i18n="foot.federation">
+          I regjistruar pranë FÇK · ID: KS-22-038
+        </p>
+      </div>
+
+      <div>
+        <h4 data-i18n="foot.about">Klubi</h4>
+        <ul>
+          <li><a href="about.html" data-i18n="nav.about">Klubi</a></li>
+          <li><a href="about.html#team">Ekipi</a></li>
+          <li><a href="about.html#history">Historia</a></li>
+          <li><a href="#">Federata FÇK</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 data-i18n="foot.disciplines">Disiplinat</h4>
+        <ul>
+          <li><a href="sections.html#road" data-i18n="disc.road.name">Rrugë</a></li>
+          <li><a href="section-mtb.html" data-i18n="disc.mtb.name">MTB</a></li>
+          <li><a href="sections.html#gravel" data-i18n="disc.gravel.name">Gravel</a></li>
+          <li><a href="sections.html#track" data-i18n="disc.track.name">Trek</a></li>
+          <li><a href="sections.html#youth" data-i18n="disc.youth.name">Akademia e të rinjve</a></li>
+          <li><a href="sections.html#women" data-i18n="disc.women.name">Femra</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 data-i18n="contact.eyebrow">Kontakti</h4>
+        <ul>
+          <li data-i18n="contact.address">Rruga e Maleve 14, 10000 Prishtinë</li>
+          <li><a href="mailto:info@prishtina038.cc" data-i18n="contact.email">info@prishtina038.cc</a></li>
+          <li><a href="tel:+38338000000" data-i18n="contact.phone">+383 38 000 000</a></li>
+          <li style="margin-top:10px;" data-i18n="contact.hours">Stërvitje: E martë & e enjte 18:00 · E shtunë 09:00</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="foot-bottom">
+      <span data-i18n="foot.copy">© 2026 KÇ Prishtina 038 · Të gjitha të drejtat e rezervuara</span>
+      <span data-i18n="foot.legal">Anëtarësia · Politika e privatësisë · UCI</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+<script>
+  // Mark active nav
+  // Race day target — 17 May 2026 09:00 local
+  startCountdown("2026-05-17T09:00:00", "cd");
+</script>
+</body>
+</html>

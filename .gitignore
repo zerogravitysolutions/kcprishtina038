@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Vercel
+.vercel/
+
+# Node (not used today; future-proofing)
+node_modules/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# Local logs
+*.log

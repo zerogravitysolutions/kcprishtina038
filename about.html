@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Klubi — KÇ Prishtina 038</title>
+<meta name="description" content="Tre themelues, një ide e qartë: ta vendosim Prishtinën në hartën çiklistike të Ballkanit. Klub i FÇK, sipas rregullave të UCI dhe ECU." />
+<link rel="canonical" href="https://prishtina038.cc/about" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="KÇ Prishtina 038" />
+<meta property="og:title" content="Klubi — KÇ Prishtina 038" />
+<meta property="og:description" content="Tre themelues, një ide e qartë: ta vendosim Prishtinën në hartën çiklistike të Ballkanit. Klub i FÇK, sipas rregullave të UCI dhe ECU." />
+<meta property="og:url" content="https://prishtina038.cc/about" />
+<meta property="og:image" content="https://prishtina038.cc/assets/og-default.jpg" />
+<meta property="og:locale" content="sq_AL" />
+<meta property="og:locale:alternate" content="en_US" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Klubi — KÇ Prishtina 038" />
+<meta name="twitter:description" content="Tre themelues, një ide e qartë: ta vendosim Prishtinën në hartën çiklistike të Ballkanit. Klub i FÇK, sipas rregullave të UCI dhe ECU." />
+<meta name="twitter:image" content="https://prishtina038.cc/assets/og-default.jpg" />
+<meta name="theme-color" content="#0F1A2E" />
+<link rel="icon" href="assets/logo.jpg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..125,400..900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css" />
+<style>
+  .timeline {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 24px;
+  }
+  .tl-row {
+    display: contents;
+  }
+  .tl-year {
+    font-family: var(--font-display);
+    font-weight: 800; font-size: clamp(36px, 4vw, 56px);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--ink);
+    padding-top: 24px;
+    border-top: 1px solid color-mix(in oklab, var(--ink) 18%, transparent);
+  }
+  .tl-event {
+    padding-top: 24px;
+    padding-bottom: 32px;
+    border-top: 1px solid color-mix(in oklab, var(--ink) 18%, transparent);
+  }
+  .tl-event h4 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 22px; letter-spacing: -0.01em;
+  }
+  .tl-event p {
+    margin: 8px 0 0; color: var(--ink-2); font-size: 15px;
+    max-width: 60ch;
+  }
+  .pillars {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+  }
+  @media (max-width: 800px) { .pillars { grid-template-columns: 1fr; } }
+  .pillar {
+    background: var(--white);
+    border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    border-radius: 14px;
+    padding: 28px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .pillar .num {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .pillar h3 { font-family: var(--font-display); font-weight: 700; font-size: 28px; letter-spacing: -0.02em; }
+  .pillar p { margin: 0; font-size: 15px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+
+<nav class="nav" data-screen-label="00 Top Nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.jpg" alt="KÇ Prishtina 038" />
+      <div class="brand-text">
+        <span class="kc" data-i18n="brand.kc">KÇ Prishtina 038</span>
+        <span class="sub" data-i18n="brand.sub">Klubi Çiklistik · Prishtinë</span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="is-active" data-i18n="nav.about">Klubi</a>
+      <a href="sections.html" data-i18n="nav.sections">Seksionet</a>
+      <a href="events.html" data-i18n="nav.events">Garat</a>
+      <a href="join.html" data-i18n="nav.join">Bashkohu</a>
+      <a href="index.html#news" data-i18n="nav.news">Lajme</a>
+      <a href="index.html#contact" data-i18n="nav.contact">Kontakti</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-pill" role="group" aria-label="Language">
+        <button data-lang="sq" class="active">SQ</button>
+        <button data-lang="en">EN</button>
+      </div>
+      <a class="btn btn-sm btn-ember" href="join.html" data-i18n="hero.cta.primary">Bëhu pjesë e klubit</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero" data-screen-label="01 Hero">
+  <div class="container">
+    <div class="eyebrow"><span data-i18n="about.eyebrow">Klubi</span></div>
+    <h1 class="display display-l" style="margin-top: 20px; max-width: 16ch;">
+      Një klub, katër vite, gjashtë disiplina, <em style="font-style:italic;font-variation-settings:'wdth' 75;color:var(--ember);">një qiell</em>.
+    </h1>
+    <p class="lede" style="margin-top: 32px;">
+      KÇ Prishtina 038 është themeluar në vitin 2022 nga tre çiklistë me një ide të qartë: Prishtina meritonte një klub çiklistik me ambicje rajonale. Kjo është historia jonë.
+    </p>
+  </div>
+</section>
+
+<!-- ============ MISSION ============ -->
+<section data-screen-label="02 Mission" style="padding-top: 24px;">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span>Misioni</span></div>
+        <h2 class="display display-m" style="margin-top: 16px;">Tre shtylla që na mbajnë në kalendar.</h2>
+      </div>
+      <p class="lede">
+        Klubi nuk është ekip — është strukturë. Misioni ynë qëndron mbi tre shtylla, dhe çdo vendim që marrim mund të kthehet te ato.
+      </p>
+    </div>
+    <div class="pillars">
+      <div class="pillar">
+        <div class="num">01 / GARAT</div>
+        <h3>Garojmë seriozisht.</h3>
+        <p>Klubi merr pjesë në kalendarin e plotë të FÇK dhe në gara të zgjedhura rajonale & europiane. Pa "vetëm për argëtim" — pretendojmë çdo herë që shtypim pedalin.</p>
+      </div>
+      <div class="pillar">
+        <div class="num">02 / TË RINJTË</div>
+        <h3>Investojmë në fëmijë.</h3>
+        <p>Akademia e të rinjve është falas për nën-14. Ne besojmë që çiklizmi në Kosovë do të rritet vetëm nëse fëmijët njihen me biçikletën para se të njihen me makinën.</p>
+      </div>
+      <div class="pillar">
+        <div class="num">03 / QYTETI</div>
+        <h3>Bëjmë qytetin tonë.</h3>
+        <p>Çdo të diel: ride i hapur falas. Çdo sezon: dy gara komunitare. Klubi nuk ekziston pa Prishtinën, dhe duam të jemi pjesë e jetës së saj urbane.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TIMELINE ============ -->
+<section data-screen-label="03 History" id="history" style="background: var(--paper-2);">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span>Historia</span></div>
+        <h2 class="display display-m" style="margin-top: 16px;">Katër vite në kalendar.</h2>
+      </div>
+      <p class="lede">
+        Nga tre çiklistë në një kafene të Prishtinës më 2022, te 47 anëtarë në gjashtë seksione sot. Kjo është kronologjia.
+      </p>
+    </div>
+
+    <div class="timeline">
+      <div class="tl-row">
+        <div class="tl-year">2022</div>
+        <div class="tl-event">
+          <span class="kicker">PRILL · THEMELIMI</span>
+          <h4 style="margin-top:6px;">Klubi regjistrohet pranë FÇK.</h4>
+          <p>Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana e regjistrojnë klubin pranë Federatës Çiklistike të Kosovës. Pesë çiklistë në Rrugë, dy në MTB.</p>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-year"></div>
+        <div class="tl-event">
+          <span class="kicker">SHTATOR · GARA E PARË</span>
+          <h4 style="margin-top:6px;">Pjesëmarrja e parë në Tour of Kosovo.</h4>
+          <p>Klubi merr pjesë në Tour of Kosovo 2022. Albion përfundon i 14-ti në klasifikimin e përgjithshëm — rezultati i parë në librin e klubit.</p>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-year">2023</div>
+        <div class="tl-event">
+          <span class="kicker">JANAR · BIKEPLUS</span>
+          <h4 style="margin-top:6px;">BikePlus bëhet sponsor teknik.</h4>
+          <p>Sponsori i parë i klubit — BikePlus mbulon servisin dhe komponentët për të gjithë anëtarët.</p>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-year"></div>
+        <div class="tl-event">
+          <span class="kicker">MAJ · AKADEMIA</span>
+          <h4 style="margin-top:6px;">Hapja e Akademisë së të rinjve.</h4>
+          <p>Programi për fëmijë 9–17 vjeç fillon me 6 çiklistë. Shqiponja drejton programin me një trajner asistent. Stërvitje çdo të shtunë në Germi.</p>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-year">2024</div>
+        <div class="tl-event">
+          <span class="kicker">MARS · GRAVEL</span>
+          <h4 style="margin-top:6px;">Seksioni i Gravel hapet.</h4>
+          <p>Klubi shton seksionin e gjashtë. Tetë çiklistë në grupin e parë. Filozofia: më pak garë, më shumë eksplorim i rrugëve dytësore të Kosovës.</p>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-year"></div>
+        <div class="tl-event">
+          <span class="kicker">TETOR · PODIUMI I PARË NDËRKOMBËTAR</span>
+          <h4 style="margin-top:6px;">Era Hoxha fiton Granfondo Prizren.</h4>
+          <p>Fitorja e parë në një garë ndërkombëtare për klubin. Era Hoxha fiton kategorinë Elite Femra në Granfondo Prizren — gara me 240 pjesëmarrëse nga 7 vende.</p>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-year">2025</div>
+        <div class="tl-event">
+          <span class="kicker">QERSHOR · NOVUS</span>
+          <h4 style="margin-top:6px;">Novus bëhet sponsor i përgjithshëm.</h4>
+          <p>Marrëveshja për tri vite. Novus mbulon fanellat, udhëtimet dhe kampet. Buxheti vjetor i klubit dyfishohet.</p>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-year"></div>
+        <div class="tl-event">
+          <span class="kicker">TETOR · TOUR OF KOSOVO — ETAPA 2</span>
+          <h4 style="margin-top:6px;">Fitorja e parë e etapës nga Albion Ymeri.</h4>
+          <p>Albion fiton etapën e dytë të Tour of Kosovo në sprint. Fitorja e parë e klubit në një UCI 2.2.</p>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-year">2026</div>
+        <div class="tl-event">
+          <span class="kicker">PRILL · SEZONI 5</span>
+          <h4 style="margin-top:6px;">47 anëtarë. 6 seksione.</h4>
+          <p>Klubi fillon sezonin e pestë me numrin më të madh të anëtarëve deri më tani. Synimi për këtë sezon: top 5 në klasifikimin kombëtar të klubeve, dhe një çiklist në kombëtaren U23 për Lojërat Mesdhetare.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOUNDERS ============ -->
+<section data-screen-label="04 Founders" id="team">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span>Themeluesit</span></div>
+        <h2 class="display display-m" style="margin-top: 16px;">Tre që e nisën.</h2>
+      </div>
+    </div>
+
+    <div class="roster-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="rider">
+        <div class="ph" style="aspect-ratio: 4/5;"><span class="ph-label">QËNDRIM PLLANA</span><span class="ph-corner">4:5</span></div>
+        <div class="name" data-i18n="about.founder.1.name">Qëndrim Pllana</div>
+        <div class="role" data-i18n="about.founder.1.role">Themelues · President</div>
+        <p style="font-size:14px;color:var(--ink-2);margin:8px 0 0;">Ish-çiklist Masters, organizator i Granfondo Sharri 2024 dhe 2025. Trajner i seksionit Gravel.</p>
+      </div>
+      <div class="rider">
+        <div class="ph" style="aspect-ratio: 4/5;"><span class="ph-label">ALBION YMERI</span><span class="ph-corner">4:5</span></div>
+        <div class="name" data-i18n="about.founder.2.name">Albion Ymeri</div>
+        <div class="role" data-i18n="about.founder.2.role">Themelues · Trajner kryesor</div>
+        <p style="font-size:14px;color:var(--ink-2);margin:8px 0 0;">Çiklist Elite në Rrugë. Trajner UCI Level 1 dhe trajner kryesor i seksionit Rrugë. Drejton planifikimin e sezonit.</p>
+      </div>
+      <div class="rider">
+        <div class="ph" style="aspect-ratio: 4/5;"><span class="ph-label">SHQIPONJA OSMANI PLLANA</span><span class="ph-corner">4:5</span></div>
+        <div class="name" data-i18n="about.founder.3.name">Shqiponja Osmani Pllana</div>
+        <div class="role" data-i18n="about.founder.3.role">Themelueze · Programe të femrave</div>
+        <p style="font-size:14px;color:var(--ink-2);margin:8px 0 0;">Drejton Akademinë e të rinjve dhe programin e femrave. Çikliste e dikurshme XCO në kombëtare. Kryen kontaktet me FÇK dhe sponsorët.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COACHING STAFF ============ -->
+<section data-screen-label="05 Staff" style="background: var(--paper-2);">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span>Stafi i stërvitjeve</span></div>
+        <h2 class="display display-m" style="margin-top: 16px;">Pesë trajnerë. Gjashtë seksione.</h2>
+      </div>
+      <p class="lede">
+        Çdo seksion ka trajnerin e vet. Shqiponja drejton dy programe (Femra + Akademia) sepse ato ndajnë filozofinë e mentorimit.
+      </p>
+    </div>
+
+    <div class="roster-grid">
+      <div class="rider"><div class="ph"><span class="ph-label">COACH · ALBION YMERI</span><span class="ph-corner">3:4</span></div><div class="name">Albion Ymeri</div><div class="role">RRUGË · UCI L1</div></div>
+      <div class="rider"><div class="ph"><span class="ph-label">COACH · BLERTON KRASNIQI</span><span class="ph-corner">3:4</span></div><div class="name">Blerton Krasniqi</div><div class="role">MTB · UCI L2</div></div>
+      <div class="rider"><div class="ph"><span class="ph-label">COACH · QËNDRIM PLLANA</span><span class="ph-corner">3:4</span></div><div class="name">Qëndrim Pllana</div><div class="role">GRAVEL · FÇK</div></div>
+      <div class="rider"><div class="ph"><span class="ph-label">COACH · DRITON BERISHA</span><span class="ph-corner">3:4</span></div><div class="name">Driton Berisha</div><div class="role">TREK · FÇK</div></div>
+      <div class="rider"><div class="ph"><span class="ph-label">COACH · SHQIPONJA OSMANI PLLANA</span><span class="ph-corner">3:4</span></div><div class="name">Shqiponja Osmani Pllana</div><div class="role">AKADEMIA + FEMRA</div></div>
+      <div class="rider"><div class="ph"><span class="ph-label">MECH · BIKEPLUS</span><span class="ph-corner">3:4</span></div><div class="name">Vesë Krasniqi</div><div class="role">MEKANIK · BIKEPLUS</div></div>
+      <div class="rider"><div class="ph"><span class="ph-label">PHYSIO</span><span class="ph-corner">3:4</span></div><div class="name">Dr. Liridon Hoxha</div><div class="role">FIZIOTERAPI</div></div>
+      <div class="rider"><div class="ph"><span class="ph-label">OPS</span><span class="ph-corner">3:4</span></div><div class="name">Drilon Sahatxhija</div><div class="role">OPERACIONE · TEAM CAR</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATS ============ -->
+<section data-screen-label="06 Stats">
+  <div class="container">
+    <div class="stats-strip">
+      <div class="stat"><div class="num mono">47</div><div class="label">Anëtarë aktivë</div></div>
+      <div class="stat"><div class="num mono">06</div><div class="label">Seksione</div></div>
+      <div class="stat"><div class="num mono">04</div><div class="label">Vite në kalendar</div></div>
+      <div class="stat"><div class="num mono">23</div><div class="label">Pozita në podium 2025</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="foot" data-screen-label="07 Footer">
+  <div class="container">
+    <div class="foot-grid">
+      <div>
+        <div class="brand" style="color:var(--paper);">
+          <img src="assets/logo.jpg" alt="KÇ Prishtina 038" />
+          <div class="brand-text">
+            <span class="kc" data-i18n="brand.kc">KÇ Prishtina 038</span>
+            <span class="sub" data-i18n="brand.sub">Klubi Çiklistik · Prishtinë</span>
+          </div>
+        </div>
+        <p style="font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-0.01em;line-height:1.2;margin:24px 0 0;max-width:30ch;" data-i18n="foot.tagline">
+          Nga rruga te shtegu. Nga Prishtina për Kosovën.
+        </p>
+        <p style="font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);margin-top:24px;" data-i18n="foot.federation">
+          I regjistruar pranë FÇK · ID: KS-22-038
+        </p>
+      </div>
+      <div>
+        <h4 data-i18n="foot.about">Klubi</h4>
+        <ul>
+          <li><a href="about.html" data-i18n="nav.about">Klubi</a></li>
+          <li><a href="#team">Ekipi</a></li>
+          <li><a href="#history">Historia</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 data-i18n="foot.disciplines">Disiplinat</h4>
+        <ul>
+          <li><a href="sections.html#road" data-i18n="disc.road.name">Rrugë</a></li>
+          <li><a href="section-mtb.html" data-i18n="disc.mtb.name">MTB</a></li>
+          <li><a href="sections.html#gravel" data-i18n="disc.gravel.name">Gravel</a></li>
+          <li><a href="sections.html#track" data-i18n="disc.track.name">Trek</a></li>
+          <li><a href="sections.html#youth" data-i18n="disc.youth.name">Akademia e të rinjve</a></li>
+          <li><a href="sections.html#women" data-i18n="disc.women.name">Femra</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 data-i18n="contact.eyebrow">Kontakti</h4>
+        <ul>
+          <li data-i18n="contact.address">Rruga e Maleve 14, 10000 Prishtinë</li>
+          <li><a href="mailto:info@prishtina038.cc" data-i18n="contact.email">info@prishtina038.cc</a></li>
+          <li><a href="tel:+38338000000" data-i18n="contact.phone">+383 38 000 000</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span data-i18n="foot.copy">© 2026 KÇ Prishtina 038 · Të gjitha të drejtat e rezervuara</span>
+      <span data-i18n="foot.legal">Anëtarësia · Politika e privatësisë · UCI</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

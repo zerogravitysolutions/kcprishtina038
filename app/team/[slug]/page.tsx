@@ -105,8 +105,8 @@ export default async function TeamMemberPage({ params }: { params: Params }) {
               <div className="member-stats mono">
                 {cat && (
                   <div>
-                    <div className="member-stat__num">{cat.code}</div>
-                    <div className="member-stat__label">Kategoria UCI {cat.label.includes("Femra") ? "Femra" : ""}</div>
+                    <div className="member-stat__num">{cat.label}</div>
+                    <div className="member-stat__label">Kategoria UCI</div>
                   </div>
                 )}
                 {m.section_slug && (

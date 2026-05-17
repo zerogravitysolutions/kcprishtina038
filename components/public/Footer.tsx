@@ -36,7 +36,6 @@ export async function Footer() {
               <li><Link href={"/sections#road" as never}>{t("disc.road.name")}</Link></li>
               <li><Link href="/sections/mtb">{t("disc.mtb.name")}</Link></li>
               <li><Link href={"/sections#gravel" as never}>{t("disc.gravel.name")}</Link></li>
-              <li><Link href={"/sections#track" as never}>{t("disc.track.name")}</Link></li>
               <li><Link href={"/sections#youth" as never}>{t("disc.youth.name")}</Link></li>
               <li><Link href={"/sections#women" as never}>{t("disc.women.name")}</Link></li>
             </ul>

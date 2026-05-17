@@ -3,13 +3,16 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
-import { getFbPostsPage, mediaUrl, postTitle, postBody, formatPostDate } from "@/lib/supabase/fb";
+import {
+  getNewsPage, mediaUrl,
+  newsCardTitle, newsCardExcerpt, formatNewsDate,
+} from "@/lib/supabase/fb";
 
 const PAGE_SIZE = 12;
 
 export const metadata: Metadata = {
   title: "Lajme",
-  description: "Postimet më të reja nga faqja jonë në Facebook — KÇ Prishtina 038.",
+  description: "Postimet më të reja nga klubi KÇ Prishtina 038.",
   alternates: { canonical: "/news" },
 };
 
@@ -20,7 +23,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
   const sp = await searchParams;
   const pageNum = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
   const offset = (pageNum - 1) * PAGE_SIZE;
-  const { rows, total } = await getFbPostsPage({ offset, limit: PAGE_SIZE });
+  const { rows, total } = await getNewsPage({ offset, limit: PAGE_SIZE });
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
@@ -47,12 +50,18 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
             <p style={{ color: "var(--ink-2)", fontSize: 16 }}>{t("news.empty")}</p>
           ) : (
             <div className="news-grid">
-              {rows.map((p) => {
-                const imgUrl = mediaUrl(p.cover?.storage_path ?? null);
-                const title = postTitle(p);
-                const body = postBody(p);
-                const card = (
-                  <>
+              {rows.map((n) => {
+                const imgUrl = mediaUrl(n.cover?.storage_path ?? null);
+                const title = newsCardTitle(n);
+                const excerpt = newsCardExcerpt(n);
+                const tag = n.tags?.[0]?.toUpperCase() || (n.source === "facebook" ? "FACEBOOK" : "LAJME");
+                return (
+                  <Link
+                    key={n.slug}
+                    href={`/news/${n.slug}` as never}
+                    className="news-card"
+                    style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column" }}
+                  >
                     {imgUrl ? (
                       <div
                         className="ph"
@@ -63,46 +72,16 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
                         }}
                       />
                     ) : (
-                      <div className="ph"><span className="ph-label">FACEBOOK</span><span className="ph-corner">POST</span></div>
+                      <div className="ph"><span className="ph-label">FOTO</span><span className="ph-corner">JPG · 4:3</span></div>
                     )}
                     <span className="date mono">
-                      {formatPostDate(p.created_time)} · FACEBOOK
+                      {formatNewsDate(n.published_at)} · {tag}
                     </span>
                     <h3>{title || "KÇ Prishtina 038"}</h3>
-                    {body && (
-                      <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>{body}</p>
+                    {excerpt && (
+                      <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>{excerpt}</p>
                     )}
-                    {p.permalink_url && (
-                      <span
-                        className="mono"
-                        style={{
-                          fontSize: 11,
-                          letterSpacing: ".14em",
-                          textTransform: "uppercase",
-                          color: "var(--ember)",
-                          marginTop: 12,
-                        }}
-                      >
-                        {t("news.viewOnFb")} →
-                      </span>
-                    )}
-                  </>
-                );
-                return p.permalink_url ? (
-                  <a
-                    key={p.id}
-                    href={p.permalink_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="news-card"
-                    style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column" }}
-                  >
-                    {card}
-                  </a>
-                ) : (
-                  <article key={p.id} className="news-card">
-                    {card}
-                  </article>
+                  </Link>
                 );
               })}
             </div>

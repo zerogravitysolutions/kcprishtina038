@@ -194,7 +194,12 @@
     "older": "Më të vjetra →",
     "newer": "← Më të reja",
     "empty": "Nuk ka lajme për momentin.",
-    "loading": "Duke ngarkuar..."
+    "loading": "Duke ngarkuar...",
+    "backToList": "← Të gjitha lajmet",
+    "gallery": "Galeria",
+    "originalOnFb": "Shih postimin origjinal në Facebook",
+    "notFoundTitle": "Lajmi nuk u gjet",
+    "notFoundBody": "Ky lajm mund të jetë hequr ose lidhja është e pasaktë."
   },
   "gallery": {
     "eyebrow": "Galeria",

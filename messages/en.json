@@ -194,7 +194,12 @@
     "older": "Older →",
     "newer": "← Newer",
     "empty": "No news yet.",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "backToList": "← All news",
+    "gallery": "Gallery",
+    "originalOnFb": "View the original post on Facebook",
+    "notFoundTitle": "Article not found",
+    "notFoundBody": "This article may have been removed or the link is incorrect."
   },
   "gallery": {
     "eyebrow": "Gallery",

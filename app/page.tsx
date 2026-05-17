@@ -4,21 +4,23 @@ import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
 import { Countdown } from "@/components/landing/Countdown";
 import { createClient } from "@/lib/supabase/server";
-import { getRecentFbPosts, getFbPhotos, mediaUrl, postTitle, postBody, formatPostDate } from "@/lib/supabase/fb";
+import {
+  getRecentNews, getFbPhotos, mediaUrl,
+  newsCardTitle, newsCardExcerpt, formatNewsDate,
+} from "@/lib/supabase/fb";
 
 type NextRace = {
   title_sq: string; start_at: string; location: string | null;
   distance_km: number | null; elevation_m: number | null; description_sq: string | null;
 };
 type SectionRow = { slug: string; name_sq: string; description_sq: string | null };
-type NewsRow = { slug: string; title_sq: string; body_sq: string; published_at: string | null; tags: string[] };
 type SponsorRow = { name: string; tier: string; role_sq: string | null; body_sq: string | null };
 
 async function fetchHomeData() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
 
-  const [nextRace, sections, news, sponsors, fbPhotos, fbPosts] = await Promise.all([
+  const [nextRace, sections, news, sponsors, fbPhotos] = await Promise.all([
     supabase.from("events")
       .select("title_sq, start_at, location, distance_km, elevation_m, description_sq")
       .eq("type", "race").eq("status", "published")
@@ -28,38 +30,31 @@ async function fetchHomeData() {
     supabase.from("sections")
       .select("slug, name_sq, description_sq")
       .eq("active", true).order("display_order"),
-    supabase.from("news")
-      .select("slug, title_sq, body_sq, published_at, tags")
-      .eq("status", "published")
-      .order("published_at", { ascending: false }).limit(3),
+    getRecentNews(3),
     supabase.from("sponsors")
       .select("name, tier, role_sq, body_sq, website_url, display_order")
       .eq("active", true).order("display_order"),
     getFbPhotos(3),
-    getRecentFbPosts(3),
   ]);
 
   return {
     nextRace: (nextRace.data as NextRace | null) ?? null,
     sections: (sections.data as SectionRow[] | null) ?? [],
-    news: (news.data as NewsRow[] | null) ?? [],
+    news,
     sponsors: (sponsors.data as SponsorRow[] | null) ?? [],
     fbPhotos,
-    fbPosts,
   };
 }
 
 export default async function Home() {
   const t = await getTranslations();
-  const { nextRace, sections, news, sponsors, fbPhotos, fbPosts } = await fetchHomeData();
+  const { nextRace, sections, news, sponsors, fbPhotos } = await fetchHomeData();
   // Hero collage uses real FB photos when available; otherwise the labeled
   // placeholder boxes remain (existing behavior preserved).
   const heroSlots: Array<{ url: string | null; alt: string }> = [0, 1, 2].map(i => {
     const p = fbPhotos[i];
     return { url: mediaUrl(p?.media?.storage_path ?? null), alt: p?.alt_text ?? "" };
   });
-  // News strip: native news first, fall back to FB posts to fill empty slots.
-  const newsHasNative = news.length > 0;
 
   // Race target: DB-driven if a future published race exists, else fallback.
   const raceTargetIso = nextRace?.start_at ?? "2026-05-17T09:00:00";
@@ -229,7 +224,7 @@ export default async function Home() {
       </section>
 
       {/* ============ NEWS ============ */}
-      {(newsHasNative || fbPosts.length > 0) && (
+      {news.length > 0 && (
         <section id="news">
           <div className="container">
             <div className="section-head">
@@ -243,54 +238,40 @@ export default async function Home() {
               </Link>
             </div>
             <div className="news-grid">
-              {newsHasNative
-                ? news.map((n) => (
-                    <article key={n.slug} className="news-card">
+              {news.map((n) => {
+                const imgUrl = mediaUrl(n.cover?.storage_path ?? null);
+                const title = newsCardTitle(n);
+                const excerpt = newsCardExcerpt(n);
+                const tag = n.tags?.[0]?.toUpperCase() || (n.source === "facebook" ? "FACEBOOK" : "LAJME");
+                return (
+                  <Link
+                    key={n.slug}
+                    href={`/news/${n.slug}` as never}
+                    className="news-card"
+                    style={{ textDecoration: "none", color: "inherit" }}
+                  >
+                    {imgUrl ? (
+                      <div
+                        className="ph"
+                        style={{
+                          backgroundImage: `url(${imgUrl})`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      />
+                    ) : (
                       <div className="ph"><span className="ph-label">FOTO</span><span className="ph-corner">JPG · 4:3</span></div>
-                      <span className="date mono">
-                        {n.published_at ? new Date(n.published_at).toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" }) : ""}
-                        {n.tags?.[0] ? " · " + n.tags[0].toUpperCase() : ""}
-                      </span>
-                      <h3>{n.title_sq}</h3>
-                      <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>
-                        {(n.body_sq || "").replace(/\s+/g, " ").slice(0, 200)}{(n.body_sq || "").length > 200 ? "…" : ""}
-                      </p>
-                    </article>
-                  ))
-                : fbPosts.map((p) => {
-                    const imgUrl = mediaUrl(p.cover?.storage_path ?? null);
-                    const title = postTitle(p);
-                    const body = postBody(p);
-                    const Wrapper = (props: { children: React.ReactNode }) =>
-                      p.permalink_url ? (
-                        <a href={p.permalink_url} target="_blank" rel="noopener noreferrer" className="news-card" style={{ textDecoration: "none", color: "inherit" }}>
-                          {props.children}
-                        </a>
-                      ) : (
-                        <article className="news-card">{props.children}</article>
-                      );
-                    return (
-                      <Wrapper key={p.id}>
-                        {imgUrl ? (
-                          <div
-                            className="ph"
-                            style={{
-                              backgroundImage: `url(${imgUrl})`,
-                              backgroundSize: "cover",
-                              backgroundPosition: "center",
-                            }}
-                          />
-                        ) : (
-                          <div className="ph"><span className="ph-label">FACEBOOK</span><span className="ph-corner">POST</span></div>
-                        )}
-                        <span className="date mono">{formatPostDate(p.created_time)} · FACEBOOK</span>
-                        <h3>{title || "KÇ Prishtina 038"}</h3>
-                        {body && (
-                          <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>{body}</p>
-                        )}
-                      </Wrapper>
-                    );
-                  })}
+                    )}
+                    <span className="date mono">
+                      {formatNewsDate(n.published_at)} · {tag}
+                    </span>
+                    <h3>{title || "KÇ Prishtina 038"}</h3>
+                    {excerpt && (
+                      <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>{excerpt}</p>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </section>

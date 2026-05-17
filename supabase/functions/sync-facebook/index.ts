@@ -278,6 +278,11 @@ async function syncPosts(
           if (phErr) counts.failed++;
         }
 
+        // Create a `news` row mirroring this FB post, IF none exists yet
+        // for this post. Once created, the news row is editor-owned;
+        // re-syncs do not overwrite it.
+        await upsertNewsFromPost(supa, post, id, coverMediaId, photoRows);
+
         counts.upserted++;
       } catch (e) {
         counts.failed++;
@@ -289,6 +294,47 @@ async function syncPosts(
   }
 
   return counts;
+}
+
+// Create a public.news row for a fresh FB post. Insert-only: if a news
+// row already exists with this fb_post_id (or the same auto-slug), we
+// don't touch it — editor changes stay sticky.
+async function upsertNewsFromPost(
+  supa: SupabaseClient,
+  post: Record<string, unknown>,
+  postId: string,
+  coverMediaId: string | null,
+  photoRows: Array<{ id: string; media_id: string }>,
+): Promise<void> {
+  const message = (post["message"] as string | undefined) ?? null;
+  const story = (post["story"] as string | undefined) ?? null;
+  const permalink = (post["permalink_url"] as string | undefined) ?? null;
+  const createdTime = post["created_time"] as string;
+
+  const titleSource = (message ?? story ?? "KÇ Prishtina 038").trim();
+  const title = titleSource.length > 120 ? titleSource.slice(0, 117) + "..." : titleSource;
+  const body = (message ?? story ?? "").trim();
+  const slug = `fb-${postId.split("_").pop() ?? postId}`;
+
+  // Idempotent — `news_fb_post_idx` unique-by-fb_post_id blocks duplicates.
+  // ON CONFLICT DO NOTHING means once a row exists, the editor owns it.
+  const { error } = await supa.from("news").upsert(
+    {
+      slug,
+      title_sq: title || "KÇ Prishtina 038",
+      body_sq: body,
+      cover_media_id: coverMediaId,
+      status: "published",
+      published_at: createdTime,
+      tags: ["facebook"],
+      source: "facebook",
+      fb_post_id: postId,
+      external_url: permalink,
+      gallery_media_ids: photoRows.map((p) => p.media_id),
+    },
+    { onConflict: "fb_post_id", ignoreDuplicates: true },
+  );
+  if (error) console.warn("news upsert fail", postId, error.message);
 }
 
 // ============================================================

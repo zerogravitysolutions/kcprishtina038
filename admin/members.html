@@ -16,7 +16,7 @@
   <div class="page-head">
     <div>
       <h1>Members</h1>
-      <div class="sub">47 active · 2 inactive · 18 in academy</div>
+      <div class="sub" data-bind="page-sub">…</div>
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-ghost">Export CSV</button>
@@ -30,13 +30,13 @@
   <!-- Filters -->
   <div class="filter-bar">
     <span style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-right:6px;">Section</span>
-    <button class="chip active">All · 47</button>
-    <button class="chip">Road · 12</button>
-    <button class="chip">MTB · 9</button>
-    <button class="chip">Gravel · 8</button>
-    <button class="chip">Track · 5</button>
-    <button class="chip">Youth · 18</button>
-    <button class="chip">Women's · 11</button>
+    <button class="chip active" data-section="all">All · <span data-bind="sec-all">—</span></button>
+    <button class="chip" data-section="road">Road · <span data-bind="sec-road">—</span></button>
+    <button class="chip" data-section="mtb">MTB · <span data-bind="sec-mtb">—</span></button>
+    <button class="chip" data-section="gravel">Gravel · <span data-bind="sec-gravel">—</span></button>
+    <button class="chip" data-section="track">Track · <span data-bind="sec-track">—</span></button>
+    <button class="chip" data-section="youth">Youth · <span data-bind="sec-youth">—</span></button>
+    <button class="chip" data-section="women">Women's · <span data-bind="sec-women">—</span></button>
     <span class="spacer"></span>
     <span style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-right:6px;">Status</span>
     <button class="chip">Active</button>
@@ -59,197 +59,11 @@
           <th class="right">Actions</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td>
-            <div class="person">
-              <div class="avatar">AY</div>
-              <div class="nm">Albion Ymeri<small>albion@prishtina038.cc</small></div>
-            </div>
-          </td>
-          <td><span class="tag-sec road">Road</span></td>
-          <td class="mono">Elite</td>
-          <td class="mono">Apr 2022</td>
-          <td><span class="badge-st ok">Paid · May</span></td>
-          <td><span class="badge-st ok">Active · Coach</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">BK</div><div class="nm">Blerton Krasniqi<small>blerton.k@gmail.com</small></div></div></td>
-          <td><span class="tag-sec mtb">MTB</span></td>
-          <td class="mono">Masters</td>
-          <td class="mono">Apr 2022</td>
-          <td><span class="badge-st ok">Paid · May</span></td>
-          <td><span class="badge-st ok">Active · Coach</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">EH</div><div class="nm">Era Hoxha<small>era.hoxha@uni-pr.edu</small></div></div></td>
-          <td><span class="tag-sec road">Road</span> <span class="tag-sec women">Women's</span></td>
-          <td class="mono">Elite Women</td>
-          <td class="mono">Sep 2022</td>
-          <td><span class="badge-st ok">Paid · May</span></td>
-          <td><span class="badge-st ok">Active</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">DH</div><div class="nm">Drilona Haliti<small>drilona@gmail.com</small></div></div></td>
-          <td><span class="tag-sec mtb">MTB</span> <span class="tag-sec women">Women's</span></td>
-          <td class="mono">Elite Women</td>
-          <td class="mono">Jan 2023</td>
-          <td><span class="badge-st ok">Paid · May</span></td>
-          <td><span class="badge-st ok">Active</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">EG</div><div class="nm">Edon Gashi<small>edon.gashi@gmail.com</small></div></div></td>
-          <td><span class="tag-sec road">Road</span></td>
-          <td class="mono">Junior</td>
-          <td class="mono">Mar 2024</td>
-          <td><span class="badge-st ok">Paid · May</span></td>
-          <td><span class="badge-st ok">Active</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">DB</div><div class="nm">Driton Berisha<small>d.berisha@protonmail.com</small></div></div></td>
-          <td><span class="tag-sec track">Track</span></td>
-          <td class="mono">Elite</td>
-          <td class="mono">Jun 2022</td>
-          <td><span class="badge-st warn">Unpaid · May</span></td>
-          <td><span class="badge-st ok">Active · Coach</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">AG</div><div class="nm">Arianit Gashi<small>arianit.g@hotmail.com</small></div></div></td>
-          <td><span class="tag-sec gravel">Gravel</span></td>
-          <td class="mono">Masters</td>
-          <td class="mono">Mar 2024</td>
-          <td><span class="badge-st ok">Paid · May</span></td>
-          <td><span class="badge-st ok">Active</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">AS</div><div class="nm">Ardit Shala<small>ardit.shala@gmail.com</small></div></div></td>
-          <td><span class="tag-sec mtb">MTB</span></td>
-          <td class="mono">Elite</td>
-          <td class="mono">Jul 2023</td>
-          <td><span class="badge-st ok">Paid · May</span></td>
-          <td><span class="badge-st ok">Active</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">LB</div><div class="nm">Liridon Berisha<small>liridon.b@gmail.com</small></div></div></td>
-          <td><span class="tag-sec mtb">MTB</span></td>
-          <td class="mono">U23</td>
-          <td class="mono">Sep 2023</td>
-          <td><span class="badge-st ok">Paid · May</span></td>
-          <td><span class="badge-st ok">Active</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">DM</div><div class="nm">Drinon Maqedonci<small>drinon.m@yahoo.com</small></div></div></td>
-          <td><span class="tag-sec mtb">MTB</span></td>
-          <td class="mono">U23</td>
-          <td class="mono">Apr 2024</td>
-          <td><span class="badge-st err">Overdue · Apr</span></td>
-          <td><span class="badge-st warn">Flagged</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">LS</div><div class="nm">Leart Sadiku<small>leart.s.parent@gmail.com</small></div></div></td>
-          <td><span class="tag-sec mtb">MTB</span> <span class="tag-sec youth">Youth</span></td>
-          <td class="mono">Junior</td>
-          <td class="mono">Sep 2024</td>
-          <td><span class="badge-st err">Overdue · Apr</span></td>
-          <td><span class="badge-st warn">Flagged</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">AR</div><div class="nm">Alba Rexhepi<small>alba.r.parent@yahoo.com</small></div></div></td>
-          <td><span class="tag-sec mtb">MTB</span> <span class="tag-sec youth">Youth</span></td>
-          <td class="mono">Junior Women</td>
-          <td class="mono">Oct 2024</td>
-          <td><span class="badge-st ok">Paid · May</span></td>
-          <td><span class="badge-st ok">Active</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="checkbox" /></td>
-          <td><div class="person"><div class="avatar">DH</div><div class="nm">Dion Hoti<small>dion.h.parent@gmail.com</small></div></div></td>
-          <td><span class="tag-sec mtb">MTB</span> <span class="tag-sec youth">Youth</span></td>
-          <td class="mono">Junior</td>
-          <td class="mono">Jan 2025</td>
-          <td><span class="badge-st ok">Paid · May</span></td>
-          <td><span class="badge-st ok">Active</span></td>
-          <td class="right actions">
-            <button class="btn btn-sm btn-ghost">Edit</button>
-            <button class="btn btn-icon btn-sm"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="7" r="1.2" fill="currentColor"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/><circle cx="11" cy="7" r="1.2" fill="currentColor"/></svg></button>
-          </td>
-        </tr>
+      <tbody id="members-tbody">
+        <tr><td colspan="8" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Po ngarkohet…</td></tr>
       </tbody>
     </table>
   </div>
-
-  <div class="pagi">
-    <span class="meta">Showing 12 of 47 · sorted by joined date</span>
-    <div class="controls">
-      <button>‹</button>
-      <button class="active">1</button>
-      <button>2</button>
-      <button>3</button>
-      <button>4</button>
-      <button>›</button>
-    </div>
-  </div>
-
 </div>
 
 <script src="_shell.js"></script>
@@ -258,6 +72,69 @@
     page: "members",
     crumbs: [{ label: "Admin", href: "dashboard.html" }, { label: "Members" }]
   });
+</script>
+<script type="module">
+import { supa, boot, escapeHtml, initials } from "./admin.js";
+
+const profile = await boot(["admin","editor","staff","coach"]);
+const tbody = document.getElementById("members-tbody");
+const set = (k, v) => document.querySelectorAll(`[data-bind="${k}"]`).forEach(el => el.textContent = v);
+let currentSection = "all";
+
+async function loadCounts() {
+  const { data } = await supa.from("profiles").select("section_id, sections:section_id(slug)");
+  const counts = { all: 0, road:0, mtb:0, gravel:0, track:0, youth:0, women:0 };
+  (data || []).forEach(r => {
+    counts.all++;
+    const slug = r.sections?.slug;
+    if (slug && counts.hasOwnProperty(slug)) counts[slug]++;
+  });
+  Object.entries(counts).forEach(([k, v]) => set(`sec-${k}`, v));
+  set("page-sub", `${counts.all} në bazë`);
+}
+
+async function loadList() {
+  let q = supa.from("profiles")
+    .select("id, full_name, email, role, status, joined_at, section:sections(slug, name_sq)")
+    .order("joined_at", { ascending: false, nullsFirst: false });
+  if (currentSection !== "all") q = q.eq("section.slug", currentSection);
+  const { data, error } = await q;
+  if (error) { tbody.innerHTML = `<tr><td colspan="8" style="padding:16px;color:#9B4220;font-family:'JetBrains Mono',monospace;">${escapeHtml(error.message)}</td></tr>`; return; }
+  if (!data || !data.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka anëtarë.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(m => `
+    <tr>
+      <td><input type="checkbox" /></td>
+      <td>
+        <div class="person">
+          <div class="avatar">${initials(m.full_name)}</div>
+          <div class="nm">${escapeHtml(m.full_name)}<small>${escapeHtml(m.email)}</small></div>
+        </div>
+      </td>
+      <td>${m.section ? `<span class="tag-sec ${escapeHtml(m.section.slug)}">${escapeHtml(m.section.name_sq)}</span>` : '<span class="mono" style="color:var(--ink-3);">—</span>'}</td>
+      <td class="mono">${escapeHtml(m.role[0].toUpperCase() + m.role.slice(1))}</td>
+      <td class="mono">${m.joined_at ? new Date(m.joined_at).toLocaleDateString("sq", { month: "short", year: "numeric" }) : "—"}</td>
+      <td><span class="mono" style="color:var(--ink-3);font-size:11px;">—</span></td>
+      <td><span class="badge-st ${m.status === 'active' ? 'ok' : m.status === 'pending' ? 'warn' : 'err'}">${escapeHtml(m.status)}</span></td>
+      <td class="right actions">
+        <a class="btn btn-sm btn-ghost" href="member-detail.html?id=${encodeURIComponent(m.id)}">Open</a>
+      </td>
+    </tr>
+  `).join("");
+}
+
+document.querySelectorAll(".filter-bar .chip[data-section]").forEach(chip => {
+  chip.addEventListener("click", () => {
+    document.querySelectorAll(".filter-bar .chip[data-section]").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    currentSection = chip.dataset.section;
+    loadList();
+  });
+});
+
+await Promise.all([loadCounts(), loadList()]);
 </script>
 </body>
 </html>

@@ -316,5 +316,27 @@
     crumbs: [{ label: "Admin", href: "dashboard.html" }, { label: "Sections" }]
   });
 </script>
+<script type="module">
+import { supa, boot, escapeHtml } from "./admin.js";
+await boot(["admin","editor"]);
+const list = document.getElementById("sections-tbody") || document.querySelector("tbody");
+if (list) {
+  const { data, error } = await supa.from("sections").select("*, coach:coach_id(full_name)").order("display_order");
+  if (error) { list.innerHTML = `<tr><td colspan="6" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; }
+  else if (data) {
+    list.innerHTML = data.map(s => `
+      <tr>
+        <td><span class="tag-sec ${escapeHtml(s.slug)}">${escapeHtml(s.name_sq)}</span></td>
+        <td class="mono">${escapeHtml(s.slug)}</td>
+        <td>${escapeHtml(s.coach?.full_name || "—")}</td>
+        <td class="mono">${s.display_order}</td>
+        <td><span class="badge-st ${s.active ? "ok" : "err"}">${s.active ? "active" : "inactive"}</span></td>
+        <td class="right"><span class="mono" style="color:var(--ink-3);">—</span></td>
+      </tr>
+    `).join("");
+  }
+}
+
+</script>
 </body>
 </html>

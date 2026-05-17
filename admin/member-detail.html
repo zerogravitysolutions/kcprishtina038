@@ -582,5 +582,46 @@
     });
   });
 </script>
+<script type="module">
+import { supa, boot, escapeHtml, fmtDate } from "./admin.js";
+const profile = await boot(["admin","editor","staff","coach"]);
+const id = new URLSearchParams(location.search).get("id");
+if (!id) { document.body.innerHTML = "<p style=\"padding:32px;\">Missing ?id= in URL.</p>"; throw new Error("no id"); }
+
+const { data: m, error } = await supa.from("profiles")
+  .select("id, full_name, email, phone, dob, role, status, joined_at, bio, section:sections(slug, name_sq)")
+  .eq("id", id).maybeSingle();
+if (error || !m) { document.body.innerHTML = "<p style=\"padding:32px;\">Anëtari nuk u gjet.</p>"; throw new Error("not found"); }
+
+const h1 = document.querySelector(".page-head h1"); if (h1) h1.textContent = m.full_name;
+const sub = document.querySelector(".page-head .sub"); if (sub) sub.textContent =
+  [m.section?.name_sq || "—", m.role, m.status, m.joined_at ? "joined " + new Date(m.joined_at).getFullYear() : ""]
+  .filter(Boolean).join(" · ");
+
+// Dues
+const { data: dues } = await supa.from("dues").select("period, amount_eur, status, paid_at").eq("member_id", id).order("period", { ascending: false }).limit(12);
+const duesEl = document.getElementById("dues-list");
+if (duesEl) duesEl.innerHTML = (dues && dues.length)
+  ? dues.map(d => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">
+       <span class="mono">${escapeHtml(d.period)}</span>
+       <span>€${d.amount_eur}</span>
+       <span class="badge-st ${d.status === 'paid' ? 'ok' : d.status === 'unpaid' ? 'warn' : 'err'}">${escapeHtml(d.status)}</span>
+     </div>`).join("")
+  : '<p style="color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka dues të regjistruara.</p>';
+
+// Registrations
+const { data: regs } = await supa.from("event_registrations")
+  .select("status, registered_at, event:events(title_sq, start_at)")
+  .eq("member_id", id).order("registered_at", { ascending: false }).limit(20);
+const regEl = document.getElementById("regs-list");
+if (regEl) regEl.innerHTML = (regs && regs.length)
+  ? regs.map(r => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">
+       <span>${escapeHtml(r.event?.title_sq || "(event removed)")}</span>
+       <span class="mono">${r.event?.start_at ? new Date(r.event.start_at).toLocaleDateString("sq") : ""}</span>
+       <span class="badge-st">${escapeHtml(r.status)}</span>
+     </div>`).join("")
+  : '<p style="color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka regjistrime.</p>';
+
+</script>
 </body>
 </html>

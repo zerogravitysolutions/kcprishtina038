@@ -423,5 +423,76 @@
     });
   });
 </script>
+<script type="module">
+// Replace static event rows with DB rows when Supabase has data.
+// On error / empty, the static design stays visible (progressive enhancement).
+import { supa } from "./assets/supabase.js";
+
+const MONTH_SQ = ["JAN","SHK","MAR","PRI","MAJ","QER","KOR","GUS","SHT","TET","NËN","DHJ"];
+try {
+  const { data, error } = await supa.from("events")
+    .select("id, title_sq, type, start_at, location, distance_km, elevation_m, section:sections(slug)")
+    .eq("status", "published")
+    .gte("start_at", new Date().toISOString())
+    .order("start_at", { ascending: true })
+    .limit(50);
+  if (error) throw error;
+  if (!data || !data.length) throw "no rows";
+
+  // Hide all static rows + month bands.
+  document.querySelectorAll(".event-row, .month-head").forEach(el => el.style.display = "none");
+
+  // Group by year-month.
+  const groups = new Map();
+  for (const ev of data) {
+    const d = new Date(ev.start_at);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (!groups.has(key)) groups.set(key, { y: d.getFullYear(), m: d.getMonth(), items: [] });
+    groups.get(key).items.push(ev);
+  }
+
+  // Insert dynamic rows after the filter bar.
+  const host = document.querySelector("#filters")?.parentElement || document.querySelector("section");
+  if (!host) throw "no host";
+  const dyn = document.createElement("div");
+  dyn.id = "events-dynamic";
+  host.appendChild(dyn);
+
+  for (const g of groups.values()) {
+    const head = document.createElement("div");
+    head.className = "month-head";
+    head.innerHTML = `<span class="m">${MONTH_SQ[g.m].charAt(0) + MONTH_SQ[g.m].slice(1).toLowerCase()}</span><span class="yr">${g.y}</span><span class="count">${g.items.length} ngjarje</span>`;
+    dyn.appendChild(head);
+    for (const ev of g.items) {
+      const row = document.createElement("div");
+      row.className = "event-row";
+      const tagClass = ev.type === "race" ? "ember" : "";
+      const d = new Date(ev.start_at);
+      const day = String(d.getDate()).padStart(2,"0");
+      const monPart = `${MONTH_SQ[d.getMonth()]} <span class="day">${day}</span> ${d.getFullYear()}`;
+      const parts = [];
+      if (ev.distance_km) parts.push(`${ev.distance_km} KM`);
+      if (ev.elevation_m) parts.push(`${ev.elevation_m} M`);
+      if (ev.location)    parts.push(ev.location.toUpperCase());
+      row.dataset.tags = `${ev.type} ${ev.section?.slug || ""}`.trim();
+      row.innerHTML = `
+        <div class="date">${monPart}</div>
+        <div>
+          <div class="title">${ev.title_sq}</div>
+          <div class="meta" style="margin-top:6px;">${parts.join(" · ")}</div>
+        </div>
+        <div class="meta">${(ev.section?.slug || "").toUpperCase()} · ${ev.type.toUpperCase()}</div>
+        <span class="tag ${tagClass}">${ev.type === "race" ? "Garë" : ev.type === "ride" ? "Ride i hapur" : ev.type === "camp" ? "Kamp" : "Stërvitje"}</span>
+      `;
+      dyn.appendChild(row);
+    }
+  }
+  // Re-run the filter logic against the new rows.
+  applyFilter();
+} catch (e) {
+  // Static rows stay visible — that's the fallback.
+  console.info("events: using static fallback", e);
+}
+</script>
 </body>
 </html>

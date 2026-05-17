@@ -29,18 +29,18 @@
 
   <!-- ===== KPI tiles ===== -->
   <div class="kpi-grid">
-    <div class="kpi">
+    <div class="kpi" data-kpi="members">
       <span class="lab">Active members</span>
-      <span class="val">47</span>
-      <span class="delta up">▲ 3 last 30 days</span>
+      <span class="val" data-bind="kpi-members">—</span>
+      <span class="delta up" data-bind="kpi-members-delta">…</span>
       <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none">
         <polyline fill="none" stroke="var(--teal)" stroke-width="1.6" points="0,22 12,20 24,21 36,16 48,18 60,14 72,12 84,10 96,9 108,7 120,5"/>
       </svg>
     </div>
-    <div class="kpi">
+    <div class="kpi" data-kpi="applications">
       <span class="lab">New applications</span>
-      <span class="val">4</span>
-      <span class="delta">Last 7 days · 2 new today</span>
+      <span class="val" data-bind="kpi-applications">—</span>
+      <span class="delta" data-bind="kpi-applications-delta">…</span>
       <svg class="spark" viewBox="0 0 120 30" preserveAspectRatio="none">
         <g fill="var(--ember)">
           <rect x="0"  y="22" width="10" height="6"/>
@@ -54,10 +54,10 @@
         </g>
       </svg>
     </div>
-    <div class="kpi">
+    <div class="kpi" data-kpi="dues">
       <span class="lab">Dues paid · this month</span>
-      <span class="val">38<span style="font-family:var(--font-mono);color:var(--ink-3);font-size:18px;font-weight:500;">/47</span></span>
-      <span class="delta down">9 unpaid · 2 overdue 30+ days</span>
+      <span class="val"><span data-bind="kpi-dues-paid">—</span><span style="font-family:var(--font-mono);color:var(--ink-3);font-size:18px;font-weight:500;">/<span data-bind="kpi-dues-total">—</span></span></span>
+      <span class="delta down" data-bind="kpi-dues-delta">…</span>
       <svg class="spark" viewBox="0 0 120 30">
         <rect x="0" y="12" width="96" height="6" fill="var(--teal)" rx="3"/>
         <rect x="0" y="12" width="120" height="6" fill="none" stroke="var(--line-strong)" stroke-width="1" rx="3"/>
@@ -81,35 +81,35 @@
     <div class="col gap-20">
 
       <!-- Next race -->
-      <div class="card" style="background: var(--ink); color: var(--paper); border-color: var(--ink);">
+      <div class="card" style="background: var(--ink); color: var(--paper); border-color: var(--ink);" data-bind="next-race-card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div>
             <div style="display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ember);">
               <span style="width:8px;height:8px;border-radius:50%;background:var(--ember);"></span>
-              Next race · 6 days
+              <span data-bind="next-race-eyebrow">Next race · —</span>
             </div>
-            <h2 style="font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:-0.025em;margin:10px 0 6px;">Granfondo Sharri 2026</h2>
-            <div style="font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--slate-2);">Brezovicë → Prevallë → Prizren · 142 km · 2 600 m</div>
+            <h2 style="font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:-0.025em;margin:10px 0 6px;" data-bind="next-race-title">Asnjë garë e planifikuar</h2>
+            <div style="font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--slate-2);" data-bind="next-race-meta">Krijoni një garë te Events</div>
           </div>
           <a class="btn btn-sm" href="events.html" style="background:transparent;border-color:rgba(244,242,236,.3);color:var(--paper);">Edit event →</a>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px;">
           <div style="padding:14px;background:var(--ink-2);border-radius:8px;border:1px solid rgba(244,242,236,.1);">
-            <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;color:var(--paper);">28</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;color:var(--paper);" data-bind="next-race-registered">—</div>
             <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate);margin-top:6px;">Registered</div>
           </div>
           <div style="padding:14px;background:var(--ink-2);border-radius:8px;border:1px solid rgba(244,242,236,.1);">
-            <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;color:var(--paper);">14</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;color:var(--paper);" data-bind="next-race-our">—</div>
             <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate);margin-top:6px;">Our riders</div>
           </div>
           <div style="padding:14px;background:var(--ink-2);border-radius:8px;border:1px solid rgba(244,242,236,.1);">
-            <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;color:var(--paper);">5</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;color:var(--paper);" data-bind="next-race-categories">—</div>
             <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate);margin-top:6px;">Categories</div>
           </div>
           <div style="padding:14px;background:var(--ink-2);border-radius:8px;border:1px solid rgba(244,242,236,.1);">
-            <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;color:var(--paper);">3</div>
-            <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate);margin-top:6px;">Days to lock-in</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;color:var(--paper);" data-bind="next-race-days">—</div>
+            <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate);margin-top:6px;">Days to race</div>
           </div>
         </div>
       </div>
@@ -118,7 +118,7 @@
       <div class="card">
         <div class="card-head">
           <h3>Latest applications</h3>
-          <a href="applications.html">See all 4 →</a>
+          <a href="applications.html" data-bind="apps-link">See all →</a>
         </div>
         <table class="t">
           <thead>
@@ -130,63 +130,8 @@
               <th></th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td>
-                <div class="person">
-                  <div class="avatar">FM</div>
-                  <div class="nm">Festim Mehmeti<small>festim.m@gmail.com</small></div>
-                </div>
-              </td>
-              <td><span class="tag-sec road">Road</span></td>
-              <td class="mono">3+ years · Racer</td>
-              <td class="mono">2h ago</td>
-              <td class="right">
-                <a class="btn btn-sm btn-ember" href="applications.html">Review</a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="person">
-                  <div class="avatar">DK</div>
-                  <div class="nm">Donika Krasniqi<small>donika.k@yahoo.com</small></div>
-                </div>
-              </td>
-              <td><span class="tag-sec women">Women's</span></td>
-              <td class="mono">1–3 years</td>
-              <td class="mono">5h ago</td>
-              <td class="right">
-                <a class="btn btn-sm btn-ember" href="applications.html">Review</a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="person">
-                  <div class="avatar">AR</div>
-                  <div class="nm">Arta Rexhepi (parent)<small>arta.r@gmail.com</small></div>
-                </div>
-              </td>
-              <td><span class="tag-sec youth">Youth</span></td>
-              <td class="mono">Beginner · age 11</td>
-              <td class="mono">Yesterday</td>
-              <td class="right">
-                <a class="btn btn-sm btn-ember" href="applications.html">Review</a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="person">
-                  <div class="avatar">VG</div>
-                  <div class="nm">Veton Gashi<small>v.gashi@protonmail.com</small></div>
-                </div>
-              </td>
-              <td><span class="tag-sec gravel">Gravel</span></td>
-              <td class="mono">1–3 years</td>
-              <td class="mono">2 days ago</td>
-              <td class="right">
-                <a class="btn btn-sm btn-ember" href="applications.html">Review</a>
-              </td>
-            </tr>
+          <tbody id="apps-tbody">
+            <tr><td colspan="5" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Po ngarkohet…</td></tr>
           </tbody>
         </table>
       </div>
@@ -351,6 +296,118 @@
     page: "dashboard",
     crumbs: [{ label: "Admin" }, { label: "Dashboard" }]
   });
+</script>
+<script type="module">
+import { supa, boot, escapeHtml, fmtRelative, initials, tryRender } from "./admin.js";
+
+const profile = await boot();
+const set = (k, v) => document.querySelectorAll(`[data-bind="${k}"]`).forEach(el => el.textContent = v);
+
+// Personalise the page head greeting (already says "Përshëndetje, Shqiponja." in static).
+const h1 = document.querySelector(".page-head h1");
+if (h1) h1.textContent = `Përshëndetje, ${(profile.full_name || "").split(" ")[0]}.`;
+
+// ============ KPIs ============
+async function loadKpis() {
+  const [members, applications, dues] = await Promise.all([
+    supa.from("profiles").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supa.from("applications").select("id, created_at", { count: "exact" }).eq("status", "pending"),
+    supa.from("dues")
+      .select("status, member_id")
+      .gte("period", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10))
+      .lt ("period", new Date(new Date().getFullYear(), new Date().getMonth()+1, 1).toISOString().slice(0,10)),
+  ]);
+
+  set("kpi-members", members.count ?? 0);
+  set("kpi-members-delta", `${members.count ?? 0} aktivë në bazë`);
+
+  set("kpi-applications", applications.count ?? 0);
+  const last7 = (applications.data || []).filter(a => (Date.now() - new Date(a.created_at).getTime()) < 7*86_400_000).length;
+  set("kpi-applications-delta", `${last7} në 7 ditët e fundit · në pritje`);
+
+  const total = (dues.data || []).length;
+  const paid  = (dues.data || []).filter(d => d.status === "paid").length;
+  set("kpi-dues-paid", paid);
+  set("kpi-dues-total", total);
+  const unpaid = total - paid;
+  set("dummy", "");
+  document.querySelector('[data-bind="kpi-dues-delta"]').textContent =
+    total === 0 ? "Nuk ka dues të krijuara për këtë muaj" : `${unpaid} pa paguar · ${paid}/${total}`;
+}
+
+// ============ Next race ============
+async function loadNextRace() {
+  const nowIso = new Date().toISOString();
+  const { data: events } = await supa.from("events")
+    .select("id, title_sq, start_at, location, distance_km, elevation_m")
+    .eq("type", "race")
+    .eq("status", "published")
+    .gte("start_at", nowIso)
+    .order("start_at", { ascending: true })
+    .limit(1);
+
+  if (!events || !events.length) return;
+  const ev = events[0];
+  const days = Math.max(0, Math.ceil((new Date(ev.start_at) - Date.now()) / 86400_000));
+
+  set("next-race-eyebrow", `Next race · ${days} ditë`);
+  set("next-race-title",   ev.title_sq);
+  const parts = [];
+  if (ev.location)    parts.push(ev.location);
+  if (ev.distance_km) parts.push(`${ev.distance_km} km`);
+  if (ev.elevation_m) parts.push(`${ev.elevation_m} m`);
+  set("next-race-meta", parts.join(" · ") || new Date(ev.start_at).toLocaleDateString("sq"));
+  set("next-race-days", days);
+
+  const [regs, ourRiders, cats] = await Promise.all([
+    supa.from("event_registrations").select("id", { count: "exact", head: true }).eq("event_id", ev.id),
+    supa.from("event_registrations").select("id", { count: "exact", head: true }).eq("event_id", ev.id),
+    supa.from("event_categories").select("id", { count: "exact", head: true }).eq("event_id", ev.id),
+  ]);
+  set("next-race-registered", regs.count ?? 0);
+  set("next-race-our",        ourRiders.count ?? 0);
+  set("next-race-categories", cats.count ?? 0);
+}
+
+// ============ Latest applications ============
+async function loadApplications() {
+  const tbody = document.getElementById("apps-tbody");
+  const { data, error } = await supa
+    .from("applications")
+    .select("id, full_name, email, experience, section:sections(slug, name_sq), created_at, status")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(4);
+  if (error) throw error;
+
+  const link = document.querySelector('[data-bind="apps-link"]');
+  if (link) link.textContent = `See all →`;
+
+  if (!data || !data.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka aplikime në pritje.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(a => `
+    <tr>
+      <td>
+        <div class="person">
+          <div class="avatar">${initials(a.full_name)}</div>
+          <div class="nm">${escapeHtml(a.full_name)}<small>${escapeHtml(a.email)}</small></div>
+        </div>
+      </td>
+      <td>${a.section ? `<span class="tag-sec ${escapeHtml(a.section.slug)}">${escapeHtml(a.section.name_sq)}</span>` : '<span class="mono" style="color:var(--ink-3);">—</span>'}</td>
+      <td class="mono">${escapeHtml(a.experience || "—")}</td>
+      <td class="mono">${fmtRelative(a.created_at)}</td>
+      <td class="right"><a class="btn btn-sm btn-ember" href="applications.html?id=${encodeURIComponent(a.id)}">Review</a></td>
+    </tr>
+  `).join("");
+}
+
+await Promise.all([
+  tryRender(loadKpis, ""),
+  tryRender(loadNextRace, ""),
+  tryRender(loadApplications, "#apps-tbody"),
+]);
 </script>
 </body>
 </html>

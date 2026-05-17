@@ -383,5 +383,44 @@
     crumbs: [{ label: "Admin", href: "dashboard.html" }, { label: "Staff & coaches" }]
   });
 </script>
+<script type="module">
+import { supa, boot, escapeHtml, initials, toast } from "./admin.js";
+const profile = await boot(["admin"]);
+const tbody = document.getElementById("staff-tbody") || document.querySelector("tbody");
+async function load() {
+  const { data, error } = await supa.from("profiles")
+    .select("id, full_name, email, role, status, section:sections(name_sq)")
+    .neq("role", "member")
+    .order("role");
+  if (!tbody) return;
+  if (error) { tbody.innerHTML = `<tr><td colspan="6" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; return; }
+  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka staf.</td></tr>'; return; }
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td><div class="person"><div class="avatar">${initials(s.full_name)}</div><div class="nm">${escapeHtml(s.full_name)}<small>${escapeHtml(s.email)}</small></div></div></td>
+      <td class="mono">${escapeHtml(s.role)}</td>
+      <td>${escapeHtml(s.section?.name_sq || "—")}</td>
+      <td><span class="badge-st ${s.status === 'active' ? 'ok' : 'warn'}">${escapeHtml(s.status)}</span></td>
+      <td class="right actions">
+        <select data-id="${escapeHtml(s.id)}" class="role-picker" style="font-family:var(--font-mono);font-size:11px;padding:6px 10px;border-radius:6px;">
+          ${["admin","editor","staff","coach","member"].map(r => `<option value="${r}" ${r === s.role ? "selected" : ""}>${r}</option>`).join("")}
+        </select>
+      </td>
+    </tr>
+  `).join("");
+  tbody.querySelectorAll(".role-picker").forEach(sel => {
+    sel.addEventListener("change", async (e) => {
+      const id = sel.dataset.id; const newRole = sel.value;
+      if (!confirm(`Set role to ${newRole}?`)) { sel.value = sel.dataset.prev || "member"; return; }
+      const { error } = await supa.rpc("set_user_role", { target_id: id, new_role: newRole });
+      if (error) { toast("Gabim: " + error.message, "err"); load(); return; }
+      toast("Updated.");
+      load();
+    });
+  });
+}
+await load();
+
+</script>
 </body>
 </html>

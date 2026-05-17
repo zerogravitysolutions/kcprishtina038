@@ -271,5 +271,55 @@
     });
   });
 </script>
+<script type="module">
+import { supa, boot, escapeHtml, fmtRelative, toast } from "./admin.js";
+await boot(["admin","editor"]);
+const grid = document.getElementById("media-grid") || document.querySelector(".media-grid") || document.querySelector(".gallery-grid");
+async function load() {
+  const { data, error } = await supa.from("media").select("id, storage_path, filename, alt, byte_size, created_at, uploaded_by").order("created_at", { ascending: false }).limit(48);
+  if (!grid) return;
+  if (error) { grid.innerHTML = `<p style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</p>`; return; }
+  if (!data || !data.length) { grid.innerHTML = '<p style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Mediateka është bosh. Ngarko një imazh më poshtë.</p>'; return; }
+  grid.innerHTML = data.map(m => {
+    const { data: pub } = supa.storage.from("media").getPublicUrl(m.storage_path);
+    return `
+      <div class="media-card" style="background:var(--white);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;">
+        <img src="${escapeHtml(pub?.publicUrl || "")}" alt="${escapeHtml(m.alt || m.filename)}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--paper);" loading="lazy" />
+        <div style="padding:10px 12px;">
+          <div style="font-size:12px;font-weight:600;">${escapeHtml(m.filename)}</div>
+          <div class="mono" style="font-size:10.5px;color:var(--ink-3);margin-top:4px;">${Math.round((m.byte_size||0)/1024)} KB · ${fmtRelative(m.created_at)}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// Hook a file <input>; if not present in markup, add a small uploader.
+let uploader = document.querySelector('input[type="file"][data-uploader]');
+if (!uploader) {
+  uploader = document.createElement("input");
+  uploader.type = "file";
+  uploader.accept = "image/*";
+  uploader.multiple = true;
+  uploader.style.cssText = "margin:16px 0;";
+  uploader.dataset.uploader = "1";
+  (grid?.parentElement || document.getElementById("page-content"))?.prepend(uploader);
+}
+uploader.addEventListener("change", async (e) => {
+  for (const file of e.target.files) {
+    const path = `${Date.now()}-${file.name.replace(/[^\w.-]+/g,"_")}`;
+    const { error: upErr } = await supa.storage.from("media").upload(path, file, { contentType: file.type });
+    if (upErr) { toast("Upload error: " + upErr.message, "err"); continue; }
+    const { error: dbErr } = await supa.from("media").insert({ storage_path: path, filename: file.name, mime_type: file.type, byte_size: file.size });
+    if (dbErr) { toast("DB error: " + dbErr.message, "err"); continue; }
+    toast("Uploaded " + file.name);
+  }
+  e.target.value = "";
+  await load();
+});
+
+await load();
+
+</script>
 </body>
 </html>

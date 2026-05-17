@@ -231,5 +231,30 @@
     crumbs: [{ label: "Admin", href: "dashboard.html" }, { label: "Results" }]
   });
 </script>
+<script type="module">
+import { supa, boot, escapeHtml } from "./admin.js";
+await boot(["admin","editor","coach"]);
+const tbody = document.getElementById("results-tbody") || document.querySelector("tbody");
+const { data, error } = await supa.from("results")
+  .select("id, position, time_seconds, points, notes, event:events(title_sq, start_at), member:profiles(full_name), rider_name_override, category:event_categories(name)")
+  .order("created_at", { ascending: false }).limit(50);
+if (tbody) {
+  if (error) { tbody.innerHTML = `<tr><td colspan="6" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; }
+  else if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka rezultate.</td></tr>'; }
+  else {
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td class="mono" style="font-size:18px;">${r.position ? String(r.position).padStart(2,"0") : "—"}</td>
+        <td>${escapeHtml(r.event?.title_sq || "—")}</td>
+        <td>${escapeHtml(r.member?.full_name || r.rider_name_override || "—")}</td>
+        <td class="mono">${escapeHtml(r.category?.name || "—")}</td>
+        <td class="mono">${r.event?.start_at ? new Date(r.event.start_at).toLocaleDateString("sq") : "—"}</td>
+        <td class="right actions"><a class="btn btn-sm btn-ghost" href="#">Edit</a></td>
+      </tr>
+    `).join("");
+  }
+}
+
+</script>
 </body>
 </html>

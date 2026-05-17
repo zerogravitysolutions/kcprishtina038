@@ -333,5 +333,30 @@
     crumbs: [{ label: "Admin", href: "dashboard.html" }, { label: "Events" }]
   });
 </script>
+<script type="module">
+import { supa, boot, escapeHtml } from "./admin.js";
+const profile = await boot(["admin","editor","coach"]);
+const tbody = document.getElementById("events-tbody") || document.querySelector("tbody");
+const { data, error } = await supa.from("events")
+  .select("id, title_sq, type, status, start_at, location, section:sections(name_sq)")
+  .order("start_at", { ascending: false }).limit(50);
+if (tbody) {
+  if (error) { tbody.innerHTML = `<tr><td colspan="6" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; }
+  else if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka eventet — krijoni një të ri.</td></tr>'; }
+  else {
+    tbody.innerHTML = data.map(ev => `
+      <tr>
+        <td>${escapeHtml(ev.title_sq)}<small style="display:block;color:var(--ink-3);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;margin-top:2px;">${escapeHtml(ev.location || "—")}</small></td>
+        <td class="mono">${escapeHtml(ev.type)}</td>
+        <td>${escapeHtml(ev.section?.name_sq || "—")}</td>
+        <td class="mono">${new Date(ev.start_at).toLocaleDateString("sq")}</td>
+        <td><span class="badge-st ${ev.status === 'published' ? 'ok' : ev.status === 'draft' ? 'warn' : 'err'}">${escapeHtml(ev.status)}</span></td>
+        <td class="right actions"><a class="btn btn-sm btn-ghost" href="#">Edit</a></td>
+      </tr>
+    `).join("");
+  }
+}
+
+</script>
 </body>
 </html>

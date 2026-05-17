@@ -250,5 +250,29 @@
     crumbs: [{ label: "Admin", href: "dashboard.html" }, { label: "News" }]
   });
 </script>
+<script type="module">
+import { supa, boot, escapeHtml, fmtRelative } from "./admin.js";
+await boot(["admin","editor"]);
+const tbody = document.getElementById("news-tbody") || document.querySelector("tbody");
+const { data, error } = await supa.from("news")
+  .select("id, title_sq, slug, status, published_at, updated_at, author:profiles!author_id(full_name)")
+  .order("updated_at", { ascending: false }).limit(50);
+if (tbody) {
+  if (error) { tbody.innerHTML = `<tr><td colspan="5" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; }
+  else if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka artikuj — krijoni një draft të ri.</td></tr>'; }
+  else {
+    tbody.innerHTML = data.map(n => `
+      <tr>
+        <td>${escapeHtml(n.title_sq)}<small style="display:block;color:var(--ink-3);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;margin-top:2px;">/${escapeHtml(n.slug)}</small></td>
+        <td>${escapeHtml(n.author?.full_name || "—")}</td>
+        <td><span class="badge-st ${n.status === 'published' ? 'ok' : n.status === 'draft' ? 'warn' : 'err'}">${escapeHtml(n.status)}</span></td>
+        <td class="mono">${fmtRelative(n.updated_at)}</td>
+        <td class="right actions"><a class="btn btn-sm btn-ghost" href="#">Edit</a></td>
+      </tr>
+    `).join("");
+  }
+}
+
+</script>
 </body>
 </html>

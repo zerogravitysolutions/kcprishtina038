@@ -369,5 +369,37 @@
     });
   });
 </script>
+<script type="module">
+import { supa, boot, escapeHtml, toast } from "./admin.js";
+await boot(["admin"]);
+const tbody = document.getElementById("settings-tbody") || document.querySelector("tbody");
+async function load() {
+  const { data, error } = await supa.from("settings").select("*").order("key");
+  if (!tbody) return;
+  if (error) { tbody.innerHTML = `<tr><td colspan="3" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; return; }
+  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="3" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka cilësime.</td></tr>'; return; }
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td class="mono">${escapeHtml(s.key)}</td>
+      <td><input type="text" data-key="${escapeHtml(s.key)}" value="${escapeHtml(JSON.stringify(s.value))}" style="width:100%;font-family:var(--font-mono);font-size:12px;padding:8px;border:1px solid var(--line);border-radius:6px;" /></td>
+      <td class="right"><button class="btn btn-sm btn-ember" data-save-key="${escapeHtml(s.key)}">Save</button></td>
+    </tr>
+  `).join("");
+  tbody.querySelectorAll("[data-save-key]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const key = btn.dataset.saveKey;
+      const input = tbody.querySelector(`input[data-key="${CSS.escape(key)}"]`);
+      let parsed;
+      try { parsed = JSON.parse(input.value); }
+      catch { toast("JSON i pavlefshëm: " + input.value, "err"); return; }
+      const { error } = await supa.from("settings").update({ value: parsed, updated_at: new Date().toISOString() }).eq("key", key);
+      if (error) { toast("Gabim: " + error.message, "err"); return; }
+      toast("Saved.");
+    });
+  });
+}
+await load();
+
+</script>
 </body>
 </html>

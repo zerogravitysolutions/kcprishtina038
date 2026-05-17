@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Media library · KÇ Prishtina 038 Admin</title>
+<link rel="icon" href="../assets/logo.jpg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..125,400..900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+<style>
+  .mlib-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+  }
+  @media (max-width: 1100px) { .mlib-grid { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 900px) { .mlib-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 600px) { .mlib-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .media-tile {
+    position: relative;
+    aspect-ratio: 1;
+    background:
+      repeating-linear-gradient(135deg, rgba(15,26,46,.04) 0 12px, rgba(15,26,46,.07) 12px 14px),
+      var(--paper-2);
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .15s, border-color .15s;
+  }
+  .media-tile:hover { border-color: var(--ember); }
+  .media-tile.selected {
+    outline: 2px solid var(--ember);
+    outline-offset: 2px;
+  }
+  .media-tile.dark {
+    background:
+      repeating-linear-gradient(135deg, rgba(244,242,236,.05) 0 12px, rgba(244,242,236,.08) 12px 14px),
+      var(--ink);
+    color: var(--paper);
+  }
+  .media-tile .corner-tl {
+    position: absolute; top: 8px; left: 8px;
+  }
+  .media-tile .corner-tr {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(0,0,0,.5);
+    color: var(--paper);
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 3px 6px; border-radius: 3px;
+  }
+  .media-tile .bottom {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 8px;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,.55));
+    color: var(--paper);
+  }
+  .media-tile .bottom .nm {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+  .media-tile .bottom .meta {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.08em; color: var(--slate-2);
+    margin-top: 2px;
+  }
+  .pill-cat {
+    display: inline-block; padding: 2px 6px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .pill-cat.hero { background: var(--ember); color: var(--paper); }
+  .pill-cat.race { background: var(--ink); color: var(--paper); }
+  .pill-cat.team { background: var(--teal); color: var(--ink); }
+  .pill-cat.youth { background: #C25A2D; color: var(--paper); opacity: .8; }
+  .pill-cat.kit { background: #4F2A8B; color: var(--paper); opacity: .85; }
+  .upload-tile {
+    background: var(--paper);
+    border: 2px dashed color-mix(in oklab, var(--ink) 18%, transparent);
+    border-radius: 8px;
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 6px;
+    color: var(--ink-3);
+    cursor: pointer;
+    text-align: center; padding: 12px;
+  }
+  .upload-tile:hover { background: var(--white); border-color: var(--ember); color: var(--ember); }
+</style>
+</head>
+<body>
+
+<div id="page-content">
+  <div class="page-head">
+    <div>
+      <h1>Media library</h1>
+      <div class="sub">142 photos · 8 videos · 14.2 GB used of 50 GB</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost">Connect Drive</button>
+      <button class="btn btn-ember">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Upload
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar" style="border-radius: 12px; margin-bottom: 20px;">
+    <button class="chip active">All · 142</button>
+    <button class="chip">Hero · 8</button>
+    <button class="chip">Race · 48</button>
+    <button class="chip">Team · 22</button>
+    <button class="chip">Youth · 31</button>
+    <button class="chip">Kit · 12</button>
+    <button class="chip">Camp · 21</button>
+    <span class="spacer"></span>
+    <input type="search" placeholder="Search by name, tag, photographer…" />
+  </div>
+
+  <div class="mlib-grid">
+
+    <!-- Upload tile -->
+    <div class="upload-tile">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M11 4v10M6 9l5-5 5 5M4 18h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink);">Drop photos here</div>
+      <div style="font-size:11px;">JPG, PNG, WEBP · max 20 MB</div>
+    </div>
+
+    <div class="media-tile dark selected">
+      <span class="corner-tl"><span class="pill-cat hero">Hero</span></span>
+      <span class="corner-tr">3 uses</span>
+      <div class="bottom"><div class="nm">EKIPI · STERVITJE GERMI</div><div class="meta">04.05.2026 · Drilon · 4032×3024</div></div>
+    </div>
+
+    <div class="media-tile dark">
+      <span class="corner-tl"><span class="pill-cat race">Race</span></span>
+      <span class="corner-tr">2 uses</span>
+      <div class="bottom"><div class="nm">GRANFONDO PRIZREN 2025</div><div class="meta">14.09.2025 · Drilon</div></div>
+    </div>
+
+    <div class="media-tile">
+      <span class="corner-tl"><span class="pill-cat youth">Youth</span></span>
+      <span class="corner-tr">1 use</span>
+      <div class="bottom" style="color: var(--ink);"><div class="nm" style="color:var(--ink-2);">AKADEMIA · GERMI</div><div class="meta" style="color: var(--ink-3);">12.04.2026 · Shqiponja</div></div>
+    </div>
+
+    <div class="media-tile dark">
+      <span class="corner-tl"><span class="pill-cat race">Race</span></span>
+      <span class="corner-tr">—</span>
+      <div class="bottom"><div class="nm">MITROVICË XCO · ETAPA 1</div><div class="meta">10.05.2026 · Blerton</div></div>
+    </div>
+
+    <div class="media-tile">
+      <span class="corner-tl"><span class="pill-cat team">Team</span></span>
+      <span class="corner-tr">4 uses</span>
+      <div class="bottom" style="color: var(--ink);"><div class="nm" style="color:var(--ink-2);">PORTRAIT · ALBION YMERI</div><div class="meta" style="color: var(--ink-3);">22.03.2026 · studio</div></div>
+    </div>
+
+    <div class="media-tile dark">
+      <span class="corner-tl"><span class="pill-cat race">Race</span></span>
+      <span class="corner-tr">1 use</span>
+      <div class="bottom"><div class="nm">SHARRI MTB · PRE-SEASON</div><div class="meta">19.04.2026 · Drilon</div></div>
+    </div>
+
+    <div class="media-tile">
+      <span class="corner-tl"><span class="pill-cat kit">Kit</span></span>
+      <span class="corner-tr">2 uses</span>
+      <div class="bottom" style="color: var(--ink);"><div class="nm" style="color:var(--ink-2);">KIT 2026 · FRONT</div><div class="meta" style="color: var(--ink-3);">28.03.2026 · Castelli</div></div>
+    </div>
+
+    <div class="media-tile">
+      <span class="corner-tl"><span class="pill-cat team">Team</span></span>
+      <span class="corner-tr">5 uses</span>
+      <div class="bottom" style="color: var(--ink);"><div class="nm" style="color:var(--ink-2);">PORTRAIT · ERA HOXHA</div><div class="meta" style="color: var(--ink-3);">22.03.2026 · studio</div></div>
+    </div>
+
+    <div class="media-tile dark">
+      <span class="corner-tl"><span class="pill-cat hero">Hero</span></span>
+      <span class="corner-tr">2 uses</span>
+      <div class="bottom"><div class="nm">BREZOVICA CAMP · 2026</div><div class="meta">17.02.2026 · Albion</div></div>
+    </div>
+
+    <div class="media-tile">
+      <span class="corner-tl"><span class="pill-cat youth">Youth</span></span>
+      <span class="corner-tr">—</span>
+      <div class="bottom" style="color: var(--ink);"><div class="nm" style="color:var(--ink-2);">AKADEMI · SHQIPONJA + KIDS</div><div class="meta" style="color: var(--ink-3);">22.02.2026</div></div>
+    </div>
+
+    <div class="media-tile dark">
+      <span class="corner-tl"><span class="pill-cat race">Race</span></span>
+      <span class="corner-tr">—</span>
+      <div class="bottom"><div class="nm">TOUR OF KOSOVO 2025 · ST.2</div><div class="meta">11.10.2025 · Drilon</div></div>
+    </div>
+
+    <div class="media-tile">
+      <span class="corner-tl"><span class="pill-cat team">Team</span></span>
+      <span class="corner-tr">1 use</span>
+      <div class="bottom" style="color: var(--ink);"><div class="nm" style="color:var(--ink-2);">PORTRAIT · BLERTON KRASNIQI</div><div class="meta" style="color: var(--ink-3);">22.03.2026</div></div>
+    </div>
+
+    <div class="media-tile dark">
+      <span class="corner-tl"><span class="pill-cat race">Race</span></span>
+      <span class="corner-tr">—</span>
+      <div class="bottom"><div class="nm">GRANFONDO PRIZREN · ERA WIN</div><div class="meta">14.09.2025</div></div>
+    </div>
+
+    <div class="media-tile">
+      <span class="corner-tl"><span class="pill-cat kit">Kit</span></span>
+      <span class="corner-tr">1 use</span>
+      <div class="bottom" style="color: var(--ink);"><div class="nm" style="color:var(--ink-2);">CASQUETTE 2026</div><div class="meta" style="color: var(--ink-3);">28.03.2026</div></div>
+    </div>
+
+    <div class="media-tile dark">
+      <span class="corner-tl"><span class="pill-cat hero">Hero</span></span>
+      <span class="corner-tr">—</span>
+      <div class="bottom"><div class="nm">GERMI · GOLDEN HOUR</div><div class="meta">02.05.2026 · Drilon</div></div>
+    </div>
+
+    <div class="media-tile">
+      <span class="corner-tl"><span class="pill-cat youth">Youth</span></span>
+      <span class="corner-tr">1 use</span>
+      <div class="bottom" style="color: var(--ink);"><div class="nm" style="color:var(--ink-2);">PARK-PYLLI · TRAINING</div><div class="meta" style="color: var(--ink-3);">05.04.2026</div></div>
+    </div>
+
+    <div class="media-tile dark">
+      <span class="corner-tl"><span class="pill-cat race">Race</span></span>
+      <span class="corner-tr">—</span>
+      <div class="bottom"><div class="nm">FÇK TT CUP · PRIZREN</div><div class="meta">12.04.2026</div></div>
+    </div>
+
+    <div class="media-tile">
+      <span class="corner-tl"><span class="pill-cat team">Team</span></span>
+      <span class="corner-tr">—</span>
+      <div class="bottom" style="color: var(--ink);"><div class="nm" style="color:var(--ink-2);">PORTRAIT · DRILONA HALITI</div><div class="meta" style="color: var(--ink-3);">22.03.2026</div></div>
+    </div>
+
+  </div>
+
+  <div class="pagi" style="border: 1px solid var(--line); border-radius: 12px; margin-top: 16px;">
+    <span class="meta">19 of 142 photos · selected: 1</span>
+    <div class="controls">
+      <button>‹</button>
+      <button class="active">1</button>
+      <button>2</button>
+      <button>3</button>
+      <button>...</button>
+      <button>8</button>
+      <button>›</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="_shell.js"></script>
+<script>
+  renderShell({
+    page: "media",
+    crumbs: [{ label: "Admin", href: "dashboard.html" }, { label: "Media library" }]
+  });
+
+  // Tile selection
+  document.querySelectorAll(".media-tile").forEach(t => {
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".media-tile").forEach(x => x.classList.remove("selected"));
+      t.classList.add("selected");
+    });
+  });
+</script>
+</body>
+</html>

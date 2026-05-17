@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Results · KÇ Prishtina 038 Admin</title>
+<link rel="icon" href="../assets/logo.jpg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..125,400..900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div id="page-content">
+  <div class="page-head">
+    <div>
+      <h1>Results</h1>
+      <div class="sub">Season 2026 · 12 logged · 23 podiums in 2025</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost">Export CSV</button>
+      <button class="btn btn-ember">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Log new result
+      </button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <span class="lab">Podiums · 2026</span>
+      <span class="val">7</span>
+      <span class="delta up">2 gold · 3 silver · 2 bronze</span>
+    </div>
+    <div class="kpi">
+      <span class="lab">Wins · 2026</span>
+      <span class="val">2</span>
+      <span class="delta">Drilona H. · Era H.</span>
+    </div>
+    <div class="kpi">
+      <span class="lab">Races entered</span>
+      <span class="val">12</span>
+      <span class="delta">Across 4 sections</span>
+    </div>
+    <div class="kpi">
+      <span class="lab">Top rider · UCI pts</span>
+      <span class="val mono">38</span>
+      <span class="delta">Albion Ymeri · 8 pts up</span>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar" style="margin-top: 20px;">
+    <span style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-right:6px;">Season</span>
+    <button class="chip active">2026</button>
+    <button class="chip">2025</button>
+    <button class="chip">2024</button>
+    <button class="chip">2023</button>
+    <span style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-left:12px;">Section</span>
+    <button class="chip">All</button>
+    <button class="chip">Road</button>
+    <button class="chip">MTB</button>
+    <button class="chip">Gravel</button>
+    <button class="chip">Track</button>
+    <span class="spacer"></span>
+    <input type="search" placeholder="Search rider, race…" />
+  </div>
+
+  <div class="table-wrap" style="border-radius: 0 0 12px 12px;">
+    <table class="t">
+      <thead>
+        <tr>
+          <th style="width: 60px;">Pos.</th>
+          <th>Race</th>
+          <th>Rider</th>
+          <th>Category</th>
+          <th>Time / Gap</th>
+          <th>Date</th>
+          <th>Pts</th>
+          <th class="right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="mono" style="color:var(--ember);font-size:18px;font-weight:500;">01</span></td>
+          <td>Mitrovicë XCO — etapa 1</td>
+          <td><div class="person"><div class="avatar">DH</div><div class="nm">Drilona Haliti<small>MTB · Elite W</small></div></div></td>
+          <td><span class="tag-sec mtb">MTB</span> <span class="mono" style="font-size:11px;color:var(--ink-3);">Elite W</span></td>
+          <td class="mono">01:14:23</td>
+          <td class="mono">10.05.2026</td>
+          <td class="mono">+10</td>
+          <td class="right actions"><button class="btn btn-sm btn-ghost">Edit</button></td>
+        </tr>
+        <tr>
+          <td><span class="mono" style="font-size:18px;font-weight:500;">02</span></td>
+          <td>Mitrovicë XCO — etapa 1</td>
+          <td><div class="person"><div class="avatar">AS</div><div class="nm">Ardit Shala<small>MTB · Elite</small></div></div></td>
+          <td><span class="tag-sec mtb">MTB</span> <span class="mono" style="font-size:11px;color:var(--ink-3);">Elite</span></td>
+          <td class="mono">+ 00:42</td>
+          <td class="mono">10.05.2026</td>
+          <td class="mono">+8</td>
+          <td class="right actions"><button class="btn btn-sm btn-ghost">Edit</button></td>
+        </tr>
+        <tr>
+          <td><span class="mono" style="color:var(--teal-deep);font-size:18px;font-weight:500;">03</span></td>
+          <td>Open Granfondo Mali Sharr</td>
+          <td><div class="person"><div class="avatar">AY</div><div class="nm">Albion Ymeri<small>Road · Elite</small></div></div></td>
+          <td><span class="tag-sec road">Road</span> <span class="mono" style="font-size:11px;color:var(--ink-3);">Elite</span></td>
+          <td class="mono">03:48:11</td>
+          <td class="mono">03.05.2026</td>
+          <td class="mono">+6</td>
+          <td class="right actions"><button class="btn btn-sm btn-ghost">Edit</button></td>
+        </tr>
+        <tr>
+          <td><span class="mono" style="font-size:18px;font-weight:500;">07</span></td>
+          <td>Open Granfondo Mali Sharr</td>
+          <td><div class="person"><div class="avatar">EH</div><div class="nm">Era Hoxha<small>Road · Elite W</small></div></div></td>
+          <td><span class="tag-sec road">Road</span> <span class="mono" style="font-size:11px;color:var(--ink-3);">Elite W</span></td>
+          <td class="mono">+ 04:22</td>
+          <td class="mono">03.05.2026</td>
+          <td class="mono">—</td>
+          <td class="right actions"><button class="btn btn-sm btn-ghost">Edit</button></td>
+        </tr>
+        <tr>
+          <td><span class="mono" style="color:var(--ember);font-size:18px;font-weight:500;">01</span></td>
+          <td>FÇK Junior Cup — Vushtrri</td>
+          <td><div class="person"><div class="avatar">EG</div><div class="nm">Edon Gashi<small>Road · Junior</small></div></div></td>
+          <td><span class="tag-sec road">Road</span> <span class="mono" style="font-size:11px;color:var(--ink-3);">Junior</span></td>
+          <td class="mono">02:14:08</td>
+          <td class="mono">26.04.2026</td>
+          <td class="mono">+10</td>
+          <td class="right actions"><button class="btn btn-sm btn-ghost">Edit</button></td>
+        </tr>
+        <tr>
+          <td><span class="mono" style="font-size:18px;font-weight:500;">04</span></td>
+          <td>Sharri MTB · pre-season</td>
+          <td><div class="person"><div class="avatar">LB</div><div class="nm">Liridon Berisha<small>MTB · U23</small></div></div></td>
+          <td><span class="tag-sec mtb">MTB</span> <span class="mono" style="font-size:11px;color:var(--ink-3);">U23</span></td>
+          <td class="mono">02:48:32</td>
+          <td class="mono">19.04.2026</td>
+          <td class="mono">+4</td>
+          <td class="right actions"><button class="btn btn-sm btn-ghost">Edit</button></td>
+        </tr>
+        <tr>
+          <td><span class="mono" style="color:var(--teal-deep);font-size:18px;font-weight:500;">03</span></td>
+          <td>FÇK Time Trial Cup — Prizren</td>
+          <td><div class="person"><div class="avatar">QP</div><div class="nm">Qëndrim Pllana<small>Road · Masters</small></div></div></td>
+          <td><span class="tag-sec road">Road</span> <span class="mono" style="font-size:11px;color:var(--ink-3);">Masters</span></td>
+          <td class="mono">00:42:18</td>
+          <td class="mono">12.04.2026</td>
+          <td class="mono">+6</td>
+          <td class="right actions"><button class="btn btn-sm btn-ghost">Edit</button></td>
+        </tr>
+        <tr>
+          <td><span class="mono" style="font-size:18px;font-weight:500;">DNF</span></td>
+          <td>FÇK Time Trial Cup — Prizren</td>
+          <td><div class="person"><div class="avatar">DM</div><div class="nm">Drinon Maqedonci<small>MTB · U23</small></div></div></td>
+          <td><span class="tag-sec mtb">MTB</span> <span class="mono" style="font-size:11px;color:var(--ink-3);">U23</span></td>
+          <td class="mono" style="color:var(--ink-3);">mechanical</td>
+          <td class="mono">12.04.2026</td>
+          <td class="mono">—</td>
+          <td class="right actions"><button class="btn btn-sm btn-ghost">Edit</button></td>
+        </tr>
+        <tr>
+          <td><span class="mono" style="font-size:18px;font-weight:500;">02</span></td>
+          <td>Akademi Cup — Germi (internal)</td>
+          <td><div class="person"><div class="avatar">AR</div><div class="nm">Alba Rexhepi<small>Youth · Junior W</small></div></div></td>
+          <td><span class="tag-sec youth">Youth</span> <span class="mono" style="font-size:11px;color:var(--ink-3);">Junior W</span></td>
+          <td class="mono">00:24:11</td>
+          <td class="mono">05.04.2026</td>
+          <td class="mono">—</td>
+          <td class="right actions"><button class="btn btn-sm btn-ghost">Edit</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagi">
+    <span class="meta">Showing 9 of 12 · season 2026</span>
+    <div class="controls">
+      <button>‹</button>
+      <button class="active">1</button>
+      <button>2</button>
+      <button>›</button>
+    </div>
+  </div>
+
+  <!-- Quick log -->
+  <div class="card" style="margin-top: 24px;">
+    <div class="card-head">
+      <h3>Quick log · new result</h3>
+      <span class="kicker">faster than the modal</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1.6fr 1.4fr 80px 80px 110px 120px auto;gap:12px;align-items:end;">
+      <div class="field" style="margin-bottom: 0;">
+        <label>Race</label>
+        <select><option>Granfondo Sharri 2026</option><option>Add new race…</option></select>
+      </div>
+      <div class="field" style="margin-bottom: 0;">
+        <label>Rider</label>
+        <select><option>Albion Ymeri</option><option>Drilona Haliti</option><option>Era Hoxha</option></select>
+      </div>
+      <div class="field" style="margin-bottom: 0;">
+        <label>Position</label>
+        <input type="text" value="" placeholder="01" />
+      </div>
+      <div class="field" style="margin-bottom: 0;">
+        <label>UCI pts</label>
+        <input type="text" placeholder="0" />
+      </div>
+      <div class="field" style="margin-bottom: 0;">
+        <label>Time</label>
+        <input type="text" placeholder="00:00:00" />
+      </div>
+      <div class="field" style="margin-bottom: 0;">
+        <label>Date</label>
+        <input type="date" value="2026-05-17" />
+      </div>
+      <button class="btn btn-ember">Log</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="_shell.js"></script>
+<script>
+  renderShell({
+    page: "results",
+    crumbs: [{ label: "Admin", href: "dashboard.html" }, { label: "Results" }]
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Supabase project config — managed by the Supabase ↔ GitHub integration.
+# Migrations live in ./migrations and are applied automatically on push to main.
+
+project_id = "xutklvcsdgzmhxzexisb"
+
+[db]
+major_version = 15

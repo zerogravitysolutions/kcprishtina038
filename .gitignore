@@ -14,3 +14,9 @@ node_modules/
 
 # Local logs
 *.log
+
+# Supabase CLI scratch (keep config.toml + migrations/ + tests/)
+supabase/.temp/
+supabase/.branches/
+.env
+.env.local

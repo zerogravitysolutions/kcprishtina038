@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sections · KÇ Prishtina 038 Admin</title>
+<link rel="icon" href="../assets/logo.jpg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..125,400..900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+<style>
+  .section-row {
+    display: grid;
+    grid-template-columns: 220px 1fr 180px 140px 110px 90px;
+    gap: 20px;
+    padding: 20px 24px;
+    border-top: 1px solid var(--line);
+    align-items: center;
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .section-row:hover { background: var(--paper); }
+  .section-row.first { border-top: 0; }
+  .sec-id {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .sec-id .num {
+    font-family: var(--font-display);
+    font-weight: 700; font-size: 28px;
+    letter-spacing: -0.025em;
+    color: var(--ink-3);
+    line-height: 1;
+    width: 44px;
+  }
+  .sec-id .nm {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 17px; letter-spacing: -0.015em;
+  }
+  .sec-id .alt {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+    margin-top: 3px;
+  }
+  .sec-desc {
+    font-size: 13px; color: var(--ink-2); line-height: 1.45;
+  }
+  .sec-row .coach { display: flex; align-items: center; gap: 8px; }
+  .sec-row .coach .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--paper-2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 600; font-size: 11px;
+  }
+  .members-bar {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .members-bar .b {
+    height: 6px; background: var(--paper-2); border-radius: 3px; overflow: hidden;
+  }
+  .members-bar .f { height: 100%; background: var(--ink); }
+  .members-bar .label {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.04em; color: var(--ink-3);
+  }
+  .members-bar .label strong {
+    font-family: var(--font-display); font-weight: 700;
+    color: var(--ink); font-size: 15px; letter-spacing: -0.01em;
+  }
+  .fee {
+    font-family: var(--font-mono); font-size: 14px;
+    font-weight: 500; color: var(--ink);
+    font-feature-settings: "tnum" 1;
+  }
+  .fee small {
+    color: var(--ink-3); font-weight: 400; font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<div id="page-content">
+  <div class="page-head">
+    <div>
+      <h1>Sections</h1>
+      <div class="sub">6 active disciplines · 47 members across all sections</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost">Reorder</button>
+      <button class="btn btn-ember">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Add section
+      </button>
+    </div>
+  </div>
+
+  <!-- Sections table -->
+  <div class="table-wrap">
+    <div style="padding:14px 24px;background:var(--paper);border-bottom:1px solid var(--line-strong);display:grid;grid-template-columns:220px 1fr 180px 140px 110px 90px;gap:20px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);">
+      <span>Section</span>
+      <span>Description</span>
+      <span>Coach</span>
+      <span>Members</span>
+      <span>Fee/mo</span>
+      <span style="text-align:right;">Status</span>
+    </div>
+
+    <div class="section-row first">
+      <div class="sec-id">
+        <span class="num">01</span>
+        <div>
+          <div class="nm">Road · Rrugë</div>
+          <div class="alt">slug: road · created 04.2022</div>
+        </div>
+      </div>
+      <div class="sec-desc">Spring–autumn season. FÇK national races, Granfondos, and regional stage races.</div>
+      <div class="coach">
+        <div class="avatar">AY</div>
+        <div style="line-height:1.2;">
+          <div style="font-size:13px;font-weight:600;">Albion Ymeri</div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-3);">UCI L1</div>
+        </div>
+      </div>
+      <div class="members-bar">
+        <div class="label"><strong>12</strong> / 20</div>
+        <div class="b"><div class="f" style="width:60%;background:#1B2742;"></div></div>
+      </div>
+      <div class="fee">€ 25<small> std</small></div>
+      <div style="text-align:right;"><span class="badge-st ok">Live</span></div>
+    </div>
+
+    <div class="section-row">
+      <div class="sec-id">
+        <span class="num">02</span>
+        <div>
+          <div class="nm">MTB</div>
+          <div class="alt">slug: mtb · created 04.2022</div>
+        </div>
+      </div>
+      <div class="sec-desc">Cross-country across Germia, Sharri and the Accursed Mountains. XCO and marathon formats.</div>
+      <div class="coach">
+        <div class="avatar">BK</div>
+        <div style="line-height:1.2;">
+          <div style="font-size:13px;font-weight:600;">Blerton Krasniqi</div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-3);">UCI L2</div>
+        </div>
+      </div>
+      <div class="members-bar">
+        <div class="label"><strong>9</strong> / 15</div>
+        <div class="b"><div class="f" style="width:60%;background:#2F6A47;"></div></div>
+      </div>
+      <div class="fee">€ 25<small> std</small></div>
+      <div style="text-align:right;"><span class="badge-st ok">Live</span></div>
+    </div>
+
+    <div class="section-row">
+      <div class="sec-id">
+        <span class="num">03</span>
+        <div>
+          <div class="nm">Gravel</div>
+          <div class="alt">slug: gravel · created 03.2024</div>
+        </div>
+      </div>
+      <div class="sec-desc">The newest section. Adventure events and open expeditions across Kosovo's back roads.</div>
+      <div class="coach">
+        <div class="avatar">QP</div>
+        <div style="line-height:1.2;">
+          <div style="font-size:13px;font-weight:600;">Qëndrim Pllana</div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-3);">FÇK</div>
+        </div>
+      </div>
+      <div class="members-bar">
+        <div class="label"><strong>8</strong> / 15</div>
+        <div class="b"><div class="f" style="width:53%;background:#8B5A2B;"></div></div>
+      </div>
+      <div class="fee">€ 20<small> u23</small></div>
+      <div style="text-align:right;"><span class="badge-st ok">Live</span></div>
+    </div>
+
+    <div class="section-row">
+      <div class="sec-id">
+        <span class="num">04</span>
+        <div>
+          <div class="nm">Track · Trek</div>
+          <div class="alt">slug: track · created 06.2022</div>
+        </div>
+      </div>
+      <div class="sec-desc">The short discipline — sprint, keirin, pursuit. Partnered with the regional velodrome.</div>
+      <div class="coach">
+        <div class="avatar">DB</div>
+        <div style="line-height:1.2;">
+          <div style="font-size:13px;font-weight:600;">Driton Berisha</div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-3);">FÇK</div>
+        </div>
+      </div>
+      <div class="members-bar">
+        <div class="label"><strong>5</strong> / 8</div>
+        <div class="b"><div class="f" style="width:62%;background:#4F2A8B;"></div></div>
+      </div>
+      <div class="fee">€ 30<small> std</small></div>
+      <div style="text-align:right;"><span class="badge-st warn">Beta</span></div>
+    </div>
+
+    <div class="section-row">
+      <div class="sec-id">
+        <span class="num">05</span>
+        <div>
+          <div class="nm">Youth Academy</div>
+          <div class="alt">slug: youth · created 05.2023</div>
+        </div>
+      </div>
+      <div class="sec-desc">The future of Kosovar cycling — ages 9–17. Training every Saturday morning.</div>
+      <div class="coach">
+        <div class="avatar">SP</div>
+        <div style="line-height:1.2;">
+          <div style="font-size:13px;font-weight:600;">Shqiponja O.P.</div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-3);">UCI L1</div>
+        </div>
+      </div>
+      <div class="members-bar">
+        <div class="label"><strong>18</strong> / 25</div>
+        <div class="b"><div class="f" style="width:72%;background:#C25A2D;"></div></div>
+      </div>
+      <div class="fee">Free<small> &lt;14</small></div>
+      <div style="text-align:right;"><span class="badge-st ok">Live</span></div>
+    </div>
+
+    <div class="section-row">
+      <div class="sec-id">
+        <span class="num">06</span>
+        <div>
+          <div class="nm">Women's program</div>
+          <div class="alt">slug: women · created 05.2023 · cross-section</div>
+        </div>
+      </div>
+      <div class="sec-desc">The women's cycling program — racing, open rides and inter-generational mentoring.</div>
+      <div class="coach">
+        <div class="avatar">SP</div>
+        <div style="line-height:1.2;">
+          <div style="font-size:13px;font-weight:600;">Shqiponja O.P.</div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-3);">UCI L1</div>
+        </div>
+      </div>
+      <div class="members-bar">
+        <div class="label"><strong>11</strong> · cross-section</div>
+        <div class="b"><div class="f" style="width:55%;background:#8B2B5A;"></div></div>
+      </div>
+      <div class="fee">+0<small> overlay</small></div>
+      <div style="text-align:right;"><span class="badge-st ok">Live</span></div>
+    </div>
+  </div>
+
+  <!-- Edit panel preview -->
+  <div class="card" style="margin-top: 24px;">
+    <div class="card-head">
+      <h3>Edit section · <span class="mono" style="font-size:14px;font-weight:500;color:var(--ink-3);">mtb</span></h3>
+      <span class="kicker">unsaved changes</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div>
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px;">Albanian (SQ)</div>
+        <div class="field">
+          <label>Title</label>
+          <input type="text" value="MTB" />
+        </div>
+        <div class="field">
+          <label>Short description</label>
+          <textarea rows="3">Cross-country mbi Germinë, Sharrin dhe Prokletijet. Format XCO dhe maratonë.</textarea>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px;">English (EN)</div>
+        <div class="field">
+          <label>Title</label>
+          <input type="text" value="MTB" />
+        </div>
+        <div class="field">
+          <label>Short description</label>
+          <textarea rows="3">Cross-country across Germia, Sharri and the Accursed Mountains. XCO and marathon formats.</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:16px;padding-top:16px;border-top:1px solid var(--line);margin-top:8px;">
+      <div class="field">
+        <label>Head coach</label>
+        <select><option>Blerton Krasniqi</option><option>Albion Ymeri</option></select>
+      </div>
+      <div class="field">
+        <label>Monthly fee (EUR)</label>
+        <input type="number" value="25" />
+      </div>
+      <div class="field">
+        <label>Capacity</label>
+        <input type="number" value="15" />
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select><option>Live</option><option>Beta</option><option>Hidden</option></select>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:16px;border-top:1px solid var(--line);">
+      <button class="btn btn-ghost">Discard</button>
+      <button class="btn btn-ember">Save changes</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="_shell.js"></script>
+<script>
+  renderShell({
+    page: "sections",
+    crumbs: [{ label: "Admin", href: "dashboard.html" }, { label: "Sections" }]
+  });
+</script>
+</body>
+</html>

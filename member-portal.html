@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Llogaria ime · KÇ Prishtina 038</title>
+<link rel="icon" href="assets/logo.jpg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..125,400..900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css" />
+<style>
+  .portal-shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 100vh;
+  }
+  @media (max-width: 800px) {
+    .portal-shell { grid-template-columns: 1fr; }
+    .portal-side { display: none; }
+  }
+
+  .portal-side {
+    background: var(--paper-2);
+    border-right: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    padding: 24px 16px;
+    position: sticky; top: 0; height: 100vh;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .portal-side .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 8px 20px;
+  }
+  .portal-side .brand img { width: 32px; height: 32px; border-radius: 999px; }
+  .portal-side .brand .kc {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 14px; letter-spacing: -0.01em;
+  }
+  .portal-side .brand .sub {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3);
+    margin-top: 3px;
+  }
+  .portal-side .group {
+    font-family: var(--font-mono); font-size: 9.5px;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--ink-3); padding: 16px 8px 6px;
+  }
+  .portal-side a.nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: var(--ink-2);
+    font-size: 13.5px;
+    transition: background .12s;
+  }
+  .portal-side a.nav-item:hover { background: rgba(15,26,46,.05); color: var(--ink); }
+  .portal-side a.nav-item.active {
+    background: var(--ink); color: var(--paper);
+  }
+  .portal-side a.nav-item .badge {
+    margin-left: auto;
+    background: var(--ember); color: var(--paper);
+    font-family: var(--font-mono); font-size: 10px;
+    padding: 2px 7px; border-radius: 999px;
+  }
+  .portal-side .me {
+    margin-top: auto;
+    padding: 10px;
+    border-top: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .portal-side .me .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--teal); color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  }
+  .portal-side .me .who { font-size: 13px; font-weight: 600; line-height: 1.2; }
+  .portal-side .me .who span {
+    display: block; font-family: var(--font-mono); font-size: 9.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+    margin-top: 2px;
+  }
+
+  .portal-main { padding: 36px 48px; }
+  @media (max-width: 800px) { .portal-main { padding: 24px; } }
+
+  .portal-top {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    gap: 24px; padding-bottom: 28px; margin-bottom: 28px;
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+  }
+  .portal-top h1 {
+    margin: 0;
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(28px, 3vw, 40px); letter-spacing: -0.025em;
+    line-height: 1.05;
+  }
+  .portal-top h1 em {
+    font-style: italic;
+    font-variation-settings: "wdth" 75;
+    color: var(--ember);
+  }
+  .portal-top .sub {
+    font-size: 14.5px; color: var(--ink-2); margin-top: 8px;
+  }
+
+  .pcols {
+    display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px;
+  }
+  @media (max-width: 1000px) { .pcols { grid-template-columns: 1fr; } }
+
+  .pcard {
+    background: var(--white);
+    border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .pcard.dark {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .pcard-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 18px;
+  }
+  .pcard h2 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 19px; letter-spacing: -0.015em;
+    margin: 0;
+  }
+  .pcard-head .kicker {
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .pcard.dark .pcard-head .kicker { color: var(--slate); }
+
+  .dues {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: center;
+  }
+  .dues .label {
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--slate);
+  }
+  .dues .val {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 36px; letter-spacing: -0.025em;
+    color: var(--paper);
+    line-height: 1;
+    margin-top: 6px;
+  }
+  .dues .sub {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--slate-2); margin-top: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .session-row {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 7%, transparent);
+    align-items: center;
+  }
+  .session-row:last-child { border-bottom: 0; }
+  .session-row .d {
+    text-align: center;
+    padding: 8px 0;
+    background: var(--paper);
+    border-radius: 8px;
+  }
+  .session-row .d .day {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 22px; letter-spacing: -0.02em; line-height: 1;
+  }
+  .session-row .d .mo {
+    font-family: var(--font-mono); font-size: 9.5px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3); margin-top: 4px; display: block;
+  }
+  .session-row .info .t {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 15px; letter-spacing: -0.005em;
+  }
+  .session-row .info .sub {
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.06em; color: var(--ink-3); margin-top: 3px;
+  }
+  .session-row .status .pill {
+    display: inline-flex; padding: 4px 10px; border-radius: 999px;
+    background: color-mix(in oklab, var(--ok) 14%, var(--white));
+    color: var(--ok);
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.06em;
+    border: 1px solid color-mix(in oklab, var(--ok) 22%, transparent);
+  }
+  .session-row .status .pill.race {
+    background: color-mix(in oklab, var(--ember) 12%, var(--white));
+    color: var(--ember-deep);
+    border-color: color-mix(in oklab, var(--ember) 20%, transparent);
+  }
+  .session-row .status .pill.tbd {
+    background: var(--paper);
+    color: var(--ink-3);
+    border-color: color-mix(in oklab, var(--ink) 12%, transparent);
+  }
+
+  .results-line {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 7%, transparent);
+    align-items: center;
+  }
+  .results-line:last-child { border-bottom: 0; }
+  .results-line .pos {
+    font-family: var(--font-mono); font-weight: 500;
+    font-size: 18px; font-feature-settings: "tnum" 1;
+    color: var(--ink);
+  }
+  .results-line .pos.gold { color: var(--ember); }
+  .results-line .pos.bronze { color: var(--teal-deep); }
+  .results-line .nm { font-family: var(--font-display); font-weight: 600; font-size: 14.5px; letter-spacing: -0.01em; }
+  .results-line .sub { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink-3); margin-top: 2px; }
+  .results-line .date { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  .stat-grid .stat {
+    padding: 0;
+  }
+  .stat-grid .stat .n {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 28px; letter-spacing: -0.025em; line-height: 1;
+  }
+  .stat-grid .stat .l {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3); margin-top: 6px;
+  }
+
+  .race-card {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .race-card .countdown {
+    text-align: center;
+    padding: 10px 0;
+    background: var(--ember);
+    color: var(--paper);
+    border-radius: 8px;
+  }
+  .race-card .countdown .n {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 28px; line-height: 1; letter-spacing: -0.02em;
+  }
+  .race-card .countdown .l {
+    font-family: var(--font-mono); font-size: 9.5px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .race-card .info h3 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 17px; letter-spacing: -0.015em; margin: 0;
+  }
+  .race-card .info .meta {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.06em; color: var(--ink-3); margin-top: 4px;
+  }
+  .race-card .info .ub {
+    margin-top: 8px;
+    display: inline-flex; gap: 6px; align-items: center;
+    padding: 3px 8px; border-radius: 999px;
+    background: color-mix(in oklab, var(--ok) 14%, var(--white));
+    color: var(--ok);
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.06em;
+    border: 1px solid color-mix(in oklab, var(--ok) 22%, transparent);
+  }
+
+  .profile-line {
+    display: grid; grid-template-columns: 100px 1fr;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 7%, transparent);
+    font-size: 14px;
+  }
+  .profile-line:last-child { border-bottom: 0; }
+  .profile-line .l {
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .profile-line .v { color: var(--ink); }
+</style>
+</head>
+<body style="background: var(--paper);">
+
+<div class="portal-shell">
+
+  <!-- ====== Sidebar ====== -->
+  <aside class="portal-side">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.jpg" alt="" />
+      <div>
+        <div class="kc">Prishtina 038</div>
+        <div class="sub">Member portal</div>
+      </div>
+    </a>
+
+    <div class="group">Workspace</div>
+    <a class="nav-item active" href="#">Dashboard</a>
+    <a class="nav-item" href="#">My calendar <span class="badge">3</span></a>
+    <a class="nav-item" href="#">My results</a>
+    <a class="nav-item" href="#">My dues</a>
+
+    <div class="group">Club</div>
+    <a class="nav-item" href="events.html">All events</a>
+    <a class="nav-item" href="index.html#news">News</a>
+    <a class="nav-item" href="sections.html">Sections</a>
+
+    <div class="group">Account</div>
+    <a class="nav-item" href="#">Profile & kit</a>
+    <a class="nav-item" href="#">Settings</a>
+    <a class="nav-item" href="login.html" style="color: var(--err);">Sign out →</a>
+
+    <div class="me">
+      <div class="avatar">EH</div>
+      <div class="who">Era Hoxha<span>Elite Women · Road</span></div>
+    </div>
+  </aside>
+
+  <!-- ====== Main ====== -->
+  <main class="portal-main">
+
+    <div class="portal-top">
+      <div>
+        <h1>Mirë se erdhe, <em>Era</em>.</h1>
+        <div class="sub">E djelë, 17 maj · 6 ditë deri te Granfondo Sharri · Ke 2 stërvitje këtë javë</div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" style="padding: 10px 14px;font-size: 13px;">Pay dues · €25</button>
+        <button class="btn btn-ember" style="padding: 10px 14px;font-size: 13px;">RSVP next ride</button>
+      </div>
+    </div>
+
+    <!-- ====== Top row: race + dues ====== -->
+    <div class="pcols">
+
+      <!-- Next race card -->
+      <div class="pcard">
+        <div class="pcard-head">
+          <h2>Gara jote e ardhshme</h2>
+          <span class="kicker">Konfirmuar</span>
+        </div>
+
+        <div class="race-card">
+          <div class="countdown">
+            <div class="n">06</div>
+            <div class="l">days</div>
+          </div>
+          <div class="info">
+            <h3>Granfondo Sharri 2026</h3>
+            <div class="meta">17 MAJ · Brezovicë → Prizren · 142 km · 2 600 m</div>
+            <span class="ub">● Regjistrimi konfirmuar · Elite Women</span>
+          </div>
+        </div>
+
+        <div class="stat-grid" style="padding-top: 16px; border-top: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);">
+          <div class="stat">
+            <div class="n">312</div>
+            <div class="l">FTP · W</div>
+          </div>
+          <div class="stat">
+            <div class="n">2 840</div>
+            <div class="l">KM sezoni 2026</div>
+          </div>
+          <div class="stat">
+            <div class="n">14</div>
+            <div class="l">Stërvitje këtë muaj</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dues / status -->
+      <div class="pcard dark">
+        <div class="pcard-head">
+          <h2 style="color: var(--paper);">Anëtarësia</h2>
+          <span class="kicker">Sezoni 2026</span>
+        </div>
+
+        <div class="dues">
+          <div>
+            <span class="label">Pagesa e majit</span>
+            <div class="val">€ 25</div>
+            <div class="sub">Maturim: 25 maj · paguar nëpërmjet Stripe</div>
+          </div>
+          <div style="text-align:right;">
+            <span style="display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border-radius:999px;background:color-mix(in oklab, var(--ok) 20%, transparent);color:#7DDDA8;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;border:1px solid color-mix(in oklab, var(--ok) 30%, transparent);">
+              ● Paguar
+            </span>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(244,242,236,.12);">
+          <div class="label" style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);">Sezoni i pagesave 2026</div>
+          <div style="display:flex;gap:4px;margin-top:10px;">
+            <span title="Jan" style="flex:1;height:8px;background:var(--teal);border-radius:2px;"></span>
+            <span title="Feb" style="flex:1;height:8px;background:var(--teal);border-radius:2px;"></span>
+            <span title="Mar" style="flex:1;height:8px;background:var(--teal);border-radius:2px;"></span>
+            <span title="Apr" style="flex:1;height:8px;background:var(--teal);border-radius:2px;"></span>
+            <span title="Maj" style="flex:1;height:8px;background:var(--teal);border-radius:2px;"></span>
+            <span title="Qer" style="flex:1;height:8px;background:rgba(244,242,236,.1);border-radius:2px;"></span>
+            <span title="Kor" style="flex:1;height:8px;background:rgba(244,242,236,.1);border-radius:2px;"></span>
+            <span title="Gus" style="flex:1;height:8px;background:rgba(244,242,236,.1);border-radius:2px;"></span>
+            <span title="Sht" style="flex:1;height:8px;background:rgba(244,242,236,.1);border-radius:2px;"></span>
+            <span title="Tet" style="flex:1;height:8px;background:rgba(244,242,236,.1);border-radius:2px;"></span>
+            <span title="Nën" style="flex:1;height:8px;background:rgba(244,242,236,.1);border-radius:2px;"></span>
+            <span title="Dhj" style="flex:1;height:8px;background:rgba(244,242,236,.1);border-radius:2px;"></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:var(--slate);margin-top:8px;">
+            <span>JAN</span><span>DHJ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== Schedule + Results ====== -->
+    <div class="pcols" style="margin-top: 24px;">
+      <div class="pcard">
+        <div class="pcard-head">
+          <h2>Java jote</h2>
+          <a href="#" style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);">All sessions →</a>
+        </div>
+
+        <div class="session-row">
+          <div class="d"><span class="day">19</span><span class="mo">Maj</span></div>
+          <div class="info">
+            <div class="t">Stërvitje rrugë · Intervale</div>
+            <div class="sub">18:00 · Germi · me Albionin · 60–75 min</div>
+          </div>
+          <div class="status"><span class="pill">● RSVP'd</span></div>
+        </div>
+        <div class="session-row">
+          <div class="d"><span class="day">21</span><span class="mo">Maj</span></div>
+          <div class="info">
+            <div class="t">Stërvitje rrugë · Tempo</div>
+            <div class="sub">18:00 · Germi · me Albionin · 90 min</div>
+          </div>
+          <div class="status"><span class="pill">● RSVP'd</span></div>
+        </div>
+        <div class="session-row">
+          <div class="d"><span class="day">23</span><span class="mo">Maj</span></div>
+          <div class="info">
+            <div class="t">Granfondo Sharri 2026 — Race day</div>
+            <div class="sub">07:00 · Brezovicë · 142 km</div>
+          </div>
+          <div class="status"><span class="pill race">● Registered</span></div>
+        </div>
+        <div class="session-row">
+          <div class="d"><span class="day">25</span><span class="mo">Maj</span></div>
+          <div class="info">
+            <div class="t">Rikuperim · solo</div>
+            <div class="sub">Plani individual · zona 1–2 · 60 min</div>
+          </div>
+          <div class="status"><span class="pill tbd">○ Plan</span></div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <div class="pcard-head">
+          <h2>Rezultatet e mia</h2>
+          <a href="#" style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);">All →</a>
+        </div>
+
+        <div class="results-line">
+          <span class="pos">07</span>
+          <div>
+            <div class="nm">Open Granfondo Mali Sharr</div>
+            <div class="sub">Elite Women · Road</div>
+          </div>
+          <span class="date">03.05.2026</span>
+        </div>
+        <div class="results-line">
+          <span class="pos gold">01</span>
+          <div>
+            <div class="nm">Granfondo Prizren 2025</div>
+            <div class="sub">Elite Women · Road</div>
+          </div>
+          <span class="date">14.09.2025</span>
+        </div>
+        <div class="results-line">
+          <span class="pos bronze">03</span>
+          <div>
+            <div class="nm">Tour of Kosovo — Stage 2</div>
+            <div class="sub">Elite Women · Road</div>
+          </div>
+          <span class="date">11.10.2025</span>
+        </div>
+        <div class="results-line">
+          <span class="pos">05</span>
+          <div>
+            <div class="nm">Granfondo Sharri 2025</div>
+            <div class="sub">Elite Women · Road</div>
+          </div>
+          <span class="date">17.05.2025</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== Profile + Quick links ====== -->
+    <div class="pcols" style="margin-top: 24px;">
+
+      <div class="pcard">
+        <div class="pcard-head">
+          <h2>Profili</h2>
+          <a href="#" style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);">Edit →</a>
+        </div>
+
+        <div class="profile-line">
+          <span class="l">Section</span>
+          <span class="v">Road · Women's program</span>
+        </div>
+        <div class="profile-line">
+          <span class="l">Category</span>
+          <span class="v">Elite Women</span>
+        </div>
+        <div class="profile-line">
+          <span class="l">Coach</span>
+          <span class="v">Albion Ymeri</span>
+        </div>
+        <div class="profile-line">
+          <span class="l">Joined</span>
+          <span class="v mono">Sep 2022 — 3 yrs 8 mo</span>
+        </div>
+        <div class="profile-line">
+          <span class="l">Kit size</span>
+          <span class="v">S · jersey · bib XS</span>
+        </div>
+        <div class="profile-line">
+          <span class="l">Licence</span>
+          <span class="v mono">FÇK · KS-22-038-014 · valid 2026</span>
+        </div>
+        <div class="profile-line">
+          <span class="l">Emergency</span>
+          <span class="v">Arta Hoxha (sister) · +383 44 999 111</span>
+        </div>
+      </div>
+
+      <div class="pcard" style="background: var(--paper-2); border-color: color-mix(in oklab, var(--ink) 6%, transparent);">
+        <div class="pcard-head">
+          <h2>Lajme nga klubi</h2>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="padding-bottom: 14px; border-bottom: 1px solid color-mix(in oklab, var(--ink) 7%, transparent);">
+            <div style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);">04.05.2026 · NJOFTIM</div>
+            <a href="#" style="display:block;margin-top:6px;font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:-0.01em;line-height:1.3;">Briefing i ekipit për Granfondo Sharri — të mërkurën 18:00.</a>
+          </div>
+          <div style="padding-bottom: 14px; border-bottom: 1px solid color-mix(in oklab, var(--ink) 7%, transparent);">
+            <div style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);">28.04.2026 · LAJM</div>
+            <a href="#" style="display:block;margin-top:6px;font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:-0.01em;line-height:1.3;">Fanella e re e sezonit 2026 — kohëzgjatja për të zgjedhur madhësinë: 25 maj.</a>
+          </div>
+          <div>
+            <div style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);">22.04.2026 · KAMP</div>
+            <a href="#" style="display:block;margin-top:6px;font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:-0.01em;line-height:1.3;">Kampi Veror — Bjeshkët e Nemuna · regjistrimet hapen nesër.</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

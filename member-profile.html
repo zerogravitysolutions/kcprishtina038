@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Profili im · KÇ Prishtina 038</title>
+<link rel="icon" href="assets/logo.jpg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..125,400..900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css" />
+<style>
+  body { background: var(--paper); }
+
+  .portal-shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 100vh;
+  }
+  @media (max-width: 800px) {
+    .portal-shell { grid-template-columns: 1fr; }
+    .portal-side { display: none; }
+  }
+  .portal-side {
+    background: var(--paper-2);
+    border-right: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    padding: 24px 16px;
+    position: sticky; top: 0; height: 100vh;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .portal-side .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 8px 20px;
+  }
+  .portal-side .brand img { width: 32px; height: 32px; border-radius: 999px; }
+  .portal-side .brand .kc {
+    font-family: var(--font-display); font-weight: 700; font-size: 14px;
+  }
+  .portal-side .brand .sub {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3);
+    margin-top: 3px;
+  }
+  .portal-side .group {
+    font-family: var(--font-mono); font-size: 9.5px;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--ink-3); padding: 16px 8px 6px;
+  }
+  .portal-side a.nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    color: var(--ink-2); font-size: 13.5px;
+    transition: background .12s;
+  }
+  .portal-side a.nav-item:hover { background: rgba(15,26,46,.05); color: var(--ink); }
+  .portal-side a.nav-item.active { background: var(--ink); color: var(--paper); }
+  .portal-side .me {
+    margin-top: auto;
+    padding: 10px;
+    border-top: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .portal-side .me .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--teal); color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  }
+  .portal-side .me .who { font-size: 13px; font-weight: 600; line-height: 1.2; }
+  .portal-side .me .who span {
+    display: block; font-family: var(--font-mono); font-size: 9.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+    margin-top: 2px;
+  }
+  .portal-main { padding: 36px 48px; }
+  @media (max-width: 800px) { .portal-main { padding: 24px; } }
+
+  /* ===== Profile hero ===== */
+  .profile-hero {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 28px;
+    align-items: center;
+    padding-bottom: 28px; margin-bottom: 28px;
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+  }
+  .profile-hero .avatar-big {
+    width: 92px; height: 92px; border-radius: 50%;
+    background: var(--teal); color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 32px;
+    letter-spacing: -0.02em;
+    border: 3px solid var(--white);
+    box-shadow: 0 4px 14px rgba(15,26,46,.1);
+    position: relative;
+  }
+  .profile-hero .avatar-big .edit-pill {
+    position: absolute; bottom: 0; right: 0;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--ink); color: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: 2px solid var(--paper);
+  }
+  .profile-hero h1 {
+    margin: 0; font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(28px, 3vw, 38px); letter-spacing: -0.025em; line-height: 1;
+  }
+  .profile-hero .role-row {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3);
+    align-items: center;
+  }
+  .profile-hero .tag {
+    display: inline-block; padding: 3px 9px; border-radius: 6px;
+    background: var(--paper-2); color: var(--ink); border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em;
+  }
+
+  /* ===== Tabs ===== */
+  .tabs-bar {
+    display: flex; gap: 0;
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 12%, transparent);
+    margin-bottom: 28px;
+  }
+  .tab-btn {
+    padding: 12px 18px;
+    background: transparent; border: 0;
+    font-family: var(--font-body); font-weight: 600;
+    font-size: 14px; color: var(--ink-3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab-btn.active { color: var(--ink); border-bottom-color: var(--ember); }
+  .tab-btn .count {
+    font-family: var(--font-mono); font-size: 11px;
+    margin-left: 6px; color: var(--ink-3);
+  }
+  .tab-btn.active .count { color: var(--ember); }
+  .tab-btn .alert {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ember);
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ===== Cards ===== */
+  .pcard {
+    background: var(--white);
+    border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .pcard h2 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 18px; letter-spacing: -0.015em;
+    margin: 0;
+  }
+  .pcard .help {
+    font-size: 13px; color: var(--ink-3); margin: 4px 0 20px;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .row2 { grid-template-columns: 1fr; } }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .row3 { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .field input, .field select, .field textarea {
+    font-family: var(--font-body); font-size: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+    background: var(--paper);
+    color: var(--ink);
+    width: 100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: 2px solid var(--ember); outline-offset: 0;
+    border-color: var(--ember); background: var(--white);
+  }
+  .field .hint { font-size: 11.5px; color: var(--ink-3); }
+  .save-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 20px; padding-top: 20px;
+    border-top: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+  }
+
+  /* ===== Documents ===== */
+  .doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .doc-grid { grid-template-columns: 1fr; } }
+  .doc-card {
+    background: var(--white);
+    border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .doc-card.urgent {
+    border-color: color-mix(in oklab, var(--ember) 30%, transparent);
+    background: color-mix(in oklab, var(--ember) 5%, var(--white));
+  }
+  .doc-card.missing {
+    background: color-mix(in oklab, var(--ember) 8%, var(--white));
+    border-color: color-mix(in oklab, var(--ember) 24%, transparent);
+  }
+  .doc-card .head {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  }
+  .doc-card .icon-wrap {
+    width: 40px; height: 40px; border-radius: 8px;
+    background: var(--paper);
+    border: 1px solid color-mix(in oklab, var(--ink) 10%, transparent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .doc-card .title {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 15px; letter-spacing: -0.01em;
+  }
+  .doc-card .req {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+    margin-top: 3px;
+  }
+  .doc-card .meta-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    padding: 12px; background: var(--paper);
+    border-radius: 8px;
+    font-size: 12.5px;
+  }
+  .doc-card .meta-row .l {
+    font-family: var(--font-mono); font-size: 9.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+    margin-bottom: 2px;
+  }
+  .doc-card .meta-row .v.mono { font-family: var(--font-mono); }
+  .doc-card .actions {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .doc-card .actions .btn { padding: 8px 14px; font-size: 12.5px; }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.06em;
+    border: 1px solid transparent;
+  }
+  .status-pill::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+  }
+  .status-pill.ok {
+    background: color-mix(in oklab, #2E8B57 12%, var(--white));
+    color: #2E8B57;
+    border-color: color-mix(in oklab, #2E8B57 22%, transparent);
+  }
+  .status-pill.warn {
+    background: color-mix(in oklab, #C49B2D 14%, var(--white));
+    color: #8C6F1F;
+    border-color: color-mix(in oklab, #C49B2D 28%, transparent);
+  }
+  .status-pill.err {
+    background: color-mix(in oklab, var(--ember) 14%, var(--white));
+    color: var(--ember-deep);
+    border-color: color-mix(in oklab, var(--ember) 28%, transparent);
+  }
+  .status-pill.neutral {
+    background: var(--paper);
+    color: var(--ink-3);
+    border-color: color-mix(in oklab, var(--ink) 10%, transparent);
+  }
+
+  .upload-zone {
+    border: 2px dashed color-mix(in oklab, var(--ink) 18%, transparent);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    background: var(--paper);
+    transition: all .15s;
+    cursor: pointer;
+  }
+  .upload-zone:hover {
+    border-color: var(--ember); background: var(--white);
+    color: var(--ember);
+  }
+  .upload-zone .ic { margin-bottom: 8px; }
+
+  /* ===== Bikes ===== */
+  .bike-card {
+    background: var(--white);
+    border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    border-radius: 12px;
+    padding: 18px;
+    display: grid; grid-template-columns: 60px 1fr auto; gap: 14px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .bike-card .ic-bike {
+    width: 56px; height: 56px; border-radius: 10px;
+    background: var(--paper-2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-2);
+  }
+  .bike-card .nm { font-family: var(--font-display); font-weight: 700; font-size: 15.5px; }
+  .bike-card .meta {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.04em; color: var(--ink-3); margin-top: 4px;
+  }
+
+  /* ===== Notif rows ===== */
+  .notif-row {
+    display: grid; grid-template-columns: 1fr 130px 130px;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+    align-items: center;
+  }
+  .notif-row:last-child { border-bottom: 0; }
+  .notif-row .nm { font-size: 14px; font-weight: 500; }
+  .notif-row .desc { font-size: 12.5px; color: var(--ink-3); margin-top: 3px; }
+  .toggle {
+    width: 38px; height: 22px;
+    background: color-mix(in oklab, var(--ink) 18%, transparent);
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: background .15s;
+    flex-shrink: 0;
+    justify-self: center;
+  }
+  .toggle::after {
+    content: ""; position: absolute;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--white);
+    top: 3px; left: 3px;
+    transition: transform .15s;
+    box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  }
+  .toggle.on { background: var(--ember); }
+  .toggle.on::after { transform: translateX(16px); }
+</style>
+</head>
+<body>
+
+<div class="portal-shell">
+
+  <!-- Sidebar -->
+  <aside class="portal-side">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.jpg" alt="" />
+      <div>
+        <div class="kc">Prishtina 038</div>
+        <div class="sub">Member portal</div>
+      </div>
+    </a>
+    <div class="group">Workspace</div>
+    <a class="nav-item" href="member-portal.html">Dashboard</a>
+    <a class="nav-item" href="#">My calendar</a>
+    <a class="nav-item" href="#">My results</a>
+    <a class="nav-item" href="#">My dues</a>
+    <div class="group">Account</div>
+    <a class="nav-item active" href="member-profile.html">Profile & docs</a>
+    <a class="nav-item" href="#">Settings</a>
+    <a class="nav-item" href="login.html" style="color: var(--err);">Sign out →</a>
+
+    <div class="me">
+      <div class="avatar">EH</div>
+      <div class="who">Era Hoxha<span>Elite Women · Road</span></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="portal-main">
+
+    <!-- Profile hero -->
+    <div class="profile-hero">
+      <div class="avatar-big">
+        EH
+        <span class="edit-pill" title="Change photo">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 11l9-9 1 1-9 9-1.5.5.5-1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
+      <div>
+        <h1>Era Hoxha</h1>
+        <div class="role-row">
+          <span class="tag" style="background:color-mix(in oklab, #1B2742 6%, var(--white));color:#1B2742;">Road</span>
+          <span class="tag" style="background:#F1D0E2;color:#8B2B5A;">Women's</span>
+          <span>·</span>
+          <span>Elite Women · since Sep 2022</span>
+          <span>·</span>
+          <span>FÇK ID KS-22-038-014</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" style="padding:10px 14px;font-size:13px;">Share profile</button>
+        <button class="btn btn-ember" style="padding:10px 14px;font-size:13px;">Save changes</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" data-tab="profile">Personal info</button>
+      <button class="tab-btn" data-tab="documents">Documents<span class="count">5 / 7</span><span class="alert" title="2 documents missing or expiring"></span></button>
+      <button class="tab-btn" data-tab="bikes">My bikes<span class="count">2</span></button>
+      <button class="tab-btn" data-tab="emergency">Emergency & medical</button>
+      <button class="tab-btn" data-tab="prefs">Notifications</button>
+    </div>
+
+    <!-- ============== PROFILE TAB ============== -->
+    <div class="tab-panel active" data-panel="profile">
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:start;">
+
+        <div class="pcard">
+          <h2>Personal information</h2>
+          <p class="help">Your contact details. Used by your section coach and for race registrations.</p>
+
+          <div class="row2">
+            <div class="field"><label>First name</label><input type="text" value="Era" /></div>
+            <div class="field"><label>Last name</label><input type="text" value="Hoxha" /></div>
+          </div>
+          <div class="row2" style="margin-top: 14px;">
+            <div class="field"><label>Date of birth</label><input type="date" value="2001-08-12" /></div>
+            <div class="field"><label>Gender</label><select><option>Femër</option><option>Mashkull</option><option>Tjetër</option></select></div>
+          </div>
+          <div class="row2" style="margin-top: 14px;">
+            <div class="field"><label>Email</label><input type="email" value="era.hoxha@uni-pr.edu" /></div>
+            <div class="field"><label>Phone</label><input type="tel" value="+383 44 567 890" /></div>
+          </div>
+          <div class="row3" style="margin-top: 14px;">
+            <div class="field"><label>Address</label><input type="text" value="Rruga e Bjeshkëve 22" /></div>
+            <div class="field"><label>City</label><input type="text" value="Prishtinë" /></div>
+            <div class="field"><label>Postal</label><input type="text" value="10000" /></div>
+          </div>
+          <div class="row2" style="margin-top: 14px;">
+            <div class="field"><label>Nationality</label><select><option>Kosovare</option><option>Shqiptare</option><option>Tjetër</option></select></div>
+            <div class="field"><label>ID / Passport number</label><input type="text" value="1234567890" /></div>
+          </div>
+
+          <h2 style="margin-top: 32px;">About you</h2>
+          <p class="help">Optional. Shown on the team page if you're a public roster rider.</p>
+          <div class="field">
+            <label>Short bio · SQ</label>
+            <textarea rows="3">Çikliste Elite Women në Rrugë. Kampione e Granfondo Prizren 2024 dhe 2025. Studente në UP, anëtare e klubit që nga shtatori 2022.</textarea>
+          </div>
+          <div class="field" style="margin-top: 14px;">
+            <label>Short bio · EN</label>
+            <textarea rows="3">Elite Women road racer. Winner of Granfondo Prizren 2024 and 2025. UP student, club member since September 2022.</textarea>
+          </div>
+
+          <div class="save-bar">
+            <span class="mono" style="font-size:11px;color:var(--ink-3);letter-spacing:.04em;">Last edited 2 weeks ago · auto-saves enabled</span>
+            <button class="btn btn-ember">Save changes</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="pcard" style="background: var(--ink); color: var(--paper); border-color: var(--ink);">
+            <h2 style="color: var(--paper);">Kit & sizing</h2>
+            <p class="help" style="color: var(--slate-2);">Used for the season kit and helmet replacements.</p>
+            <div class="row2">
+              <div class="field"><label style="color: var(--slate);">Jersey</label><select><option>XS</option><option selected>S</option><option>M</option></select></div>
+              <div class="field"><label style="color: var(--slate);">Bib</label><select><option selected>XS</option><option>S</option><option>M</option></select></div>
+            </div>
+            <div class="row2" style="margin-top: 14px;">
+              <div class="field"><label style="color: var(--slate);">Helmet</label><select><option>S</option><option selected>M</option></select></div>
+              <div class="field"><label style="color: var(--slate);">Shoe (EU)</label><input type="number" value="38" /></div>
+            </div>
+            <div class="row2" style="margin-top: 14px;">
+              <div class="field"><label style="color: var(--slate);">Height (cm)</label><input type="number" value="168" /></div>
+              <div class="field"><label style="color: var(--slate);">Weight (kg)</label><input type="number" value="58" /></div>
+            </div>
+          </div>
+
+          <div class="pcard" style="margin-top: 16px;">
+            <h2>Strava & socials</h2>
+            <p class="help">Optional links shared with your coach.</p>
+            <div class="field"><label>Strava handle</label><input type="text" value="era_hoxha" /></div>
+            <div class="field" style="margin-top: 14px;"><label>Instagram</label><input type="text" value="@era.hoxha" /></div>
+            <div class="field" style="margin-top: 14px;"><label>Garmin Connect</label><input type="text" value="connected" disabled style="color: var(--ok); background: color-mix(in oklab, var(--ok) 8%, var(--white));" /></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== DOCUMENTS TAB ============== -->
+    <div class="tab-panel" data-panel="documents">
+
+      <!-- Overview banner -->
+      <div class="pcard" style="background: color-mix(in oklab, var(--ember) 6%, var(--white)); border-color: color-mix(in oklab, var(--ember) 22%, transparent); margin-bottom: 20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+          <div>
+            <h2>2 documents need attention</h2>
+            <p class="help" style="margin: 8px 0 0;">Your medical certificate expires in 14 days. Your photo consent form is missing. Both are required for the 2026 race season.</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ember">Resolve now</button>
+            <button class="btn btn-ghost">Email coach</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-grid">
+
+        <!-- Medical cert -->
+        <div class="doc-card urgent">
+          <div class="head">
+            <div style="display:flex;gap:14px;">
+              <div class="icon-wrap" style="background: color-mix(in oklab, var(--ember) 14%, var(--white)); border-color: color-mix(in oklab, var(--ember) 26%, transparent);">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="2" width="14" height="16" rx="2" stroke="var(--ember-deep)" stroke-width="1.5"/><path d="M10 7v6M7 10h6" stroke="var(--ember-deep)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div>
+                <div class="title">Medical certificate</div>
+                <div class="req">REQUIRED · ANNUAL · ISSUED BY DOCTOR</div>
+              </div>
+            </div>
+            <span class="status-pill warn">Expiring · 14 days</span>
+          </div>
+          <div class="meta-row">
+            <div><div class="l">Current file</div><div class="v">med-cert-2025.pdf</div></div>
+            <div><div class="l">Expires</div><div class="v mono">31.05.2026</div></div>
+            <div><div class="l">Uploaded</div><div class="v mono">28.05.2025</div></div>
+            <div><div class="l">Verified by</div><div class="v">Albion · 30.05.2025</div></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-ember btn-sm">Upload renewal</button>
+            <button class="btn btn-ghost btn-sm">Download current</button>
+            <button class="btn btn-ghost btn-sm">View history</button>
+          </div>
+        </div>
+
+        <!-- UCI/FÇK License -->
+        <div class="doc-card">
+          <div class="head">
+            <div style="display:flex;gap:14px;">
+              <div class="icon-wrap">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="11" rx="2" stroke="var(--ink-2)" stroke-width="1.5"/><circle cx="6.5" cy="10" r="1.5" stroke="var(--ink-2)" stroke-width="1.5"/><path d="M11 9h5M11 12h3" stroke="var(--ink-2)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div>
+                <div class="title">FÇK Racing licence</div>
+                <div class="req">REQUIRED · 2026 SEASON</div>
+              </div>
+            </div>
+            <span class="status-pill ok">Valid</span>
+          </div>
+          <div class="meta-row">
+            <div><div class="l">Licence #</div><div class="v mono">KS-22-038-014</div></div>
+            <div><div class="l">Valid through</div><div class="v mono">31.12.2026</div></div>
+            <div><div class="l">Category</div><div class="v">Elite Women</div></div>
+            <div><div class="l">Issued</div><div class="v mono">14.01.2026</div></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-ghost btn-sm">Download PDF</button>
+            <button class="btn btn-ghost btn-sm">Replace file</button>
+          </div>
+        </div>
+
+        <!-- ID -->
+        <div class="doc-card">
+          <div class="head">
+            <div style="display:flex;gap:14px;">
+              <div class="icon-wrap">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="var(--ink-2)" stroke-width="1.5"/><circle cx="8" cy="9" r="2" stroke="var(--ink-2)" stroke-width="1.5"/><path d="M5 16c.5-1.5 2-2.5 3-2.5s2.5 1 3 2.5M13 8h2M13 11h2" stroke="var(--ink-2)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div>
+                <div class="title">ID / Passport scan</div>
+                <div class="req">REQUIRED · ENCRYPTED STORAGE</div>
+              </div>
+            </div>
+            <span class="status-pill ok">Verified</span>
+          </div>
+          <div class="meta-row">
+            <div><div class="l">Type</div><div class="v">Kosovo ID card</div></div>
+            <div><div class="l">Number</div><div class="v mono">123••••890</div></div>
+            <div><div class="l">Expires</div><div class="v mono">14.08.2029</div></div>
+            <div><div class="l">Uploaded</div><div class="v mono">22.09.2022</div></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-ghost btn-sm">View securely</button>
+            <button class="btn btn-ghost btn-sm">Replace</button>
+          </div>
+        </div>
+
+        <!-- Liability waiver -->
+        <div class="doc-card">
+          <div class="head">
+            <div style="display:flex;gap:14px;">
+              <div class="icon-wrap">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 3h7l4 4v10a0 0 0 010 0H5a0 0 0 010 0V3z" stroke="var(--ink-2)" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 3v4h4M8 11h6M8 14h4" stroke="var(--ink-2)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div>
+                <div class="title">Liability waiver</div>
+                <div class="req">REQUIRED · SIGNED ANNUALLY</div>
+              </div>
+            </div>
+            <span class="status-pill ok">Signed</span>
+          </div>
+          <div class="meta-row">
+            <div><div class="l">Version</div><div class="v">2026.v2 (FÇK template)</div></div>
+            <div><div class="l">Signed</div><div class="v mono">14.01.2026</div></div>
+            <div><div class="l">Method</div><div class="v">Electronic signature</div></div>
+            <div><div class="l">Expires</div><div class="v mono">31.12.2026</div></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-ghost btn-sm">Download signed PDF</button>
+          </div>
+        </div>
+
+        <!-- Photo consent -->
+        <div class="doc-card missing">
+          <div class="head">
+            <div style="display:flex;gap:14px;">
+              <div class="icon-wrap" style="background: color-mix(in oklab, var(--ember) 14%, var(--white)); border-color: color-mix(in oklab, var(--ember) 26%, transparent);">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="2" stroke="var(--ember-deep)" stroke-width="1.5"/><circle cx="7" cy="9" r="1.5" stroke="var(--ember-deep)" stroke-width="1.5"/><path d="M2 13l4-3 4 3 3-3 5 4" stroke="var(--ember-deep)" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              </div>
+              <div>
+                <div class="title">Photo & media consent</div>
+                <div class="req">REQUIRED · GDPR · ONE-TIME</div>
+              </div>
+            </div>
+            <span class="status-pill err">Missing</span>
+          </div>
+          <p style="font-size: 13px; color: var(--ink-2); margin: 0;">We need your consent to use race photos on the website, social media, and sponsor reports. You can revoke this any time.</p>
+          <div class="upload-zone">
+            <div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v10M5 9l5-5 5 5M4 17h12" stroke="var(--ember)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink);">Sign electronically</div>
+            <div style="font-size: 12px;">Takes 30 seconds · or upload signed paper</div>
+          </div>
+        </div>
+
+        <!-- Insurance -->
+        <div class="doc-card">
+          <div class="head">
+            <div style="display:flex;gap:14px;">
+              <div class="icon-wrap">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V5l7-3z" stroke="var(--ink-2)" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 10l2 2 4-4" stroke="var(--ink-2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div>
+                <div class="title">Insurance policy</div>
+                <div class="req">OPTIONAL · RACE OVERSEAS</div>
+              </div>
+            </div>
+            <span class="status-pill ok">Valid</span>
+          </div>
+          <div class="meta-row">
+            <div><div class="l">Provider</div><div class="v">Sigma Insurance</div></div>
+            <div><div class="l">Policy #</div><div class="v mono">SI-2026-44918</div></div>
+            <div><div class="l">Coverage</div><div class="v">Cycling · International</div></div>
+            <div><div class="l">Expires</div><div class="v mono">31.12.2026</div></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-ghost btn-sm">Download</button>
+            <button class="btn btn-ghost btn-sm">Replace</button>
+          </div>
+        </div>
+
+        <!-- Anti-doping -->
+        <div class="doc-card">
+          <div class="head">
+            <div style="display:flex;gap:14px;">
+              <div class="icon-wrap">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="var(--ink-2)" stroke-width="1.5"/><path d="M10 6v4l2 2M5.5 5.5l9 9" stroke="var(--ink-2)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div>
+                <div class="title">Anti-doping declaration</div>
+                <div class="req">REQUIRED · ANNUAL · UCI</div>
+              </div>
+            </div>
+            <span class="status-pill ok">Signed</span>
+          </div>
+          <div class="meta-row">
+            <div><div class="l">Form</div><div class="v">UCI Form 2026.v1</div></div>
+            <div><div class="l">Signed</div><div class="v mono">14.01.2026</div></div>
+            <div><div class="l">TUE on file</div><div class="v">None</div></div>
+            <div><div class="l">Expires</div><div class="v mono">31.12.2026</div></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-ghost btn-sm">Download signed PDF</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Other docs -->
+      <div class="pcard" style="margin-top: 20px;">
+        <h2>Other uploads</h2>
+        <p class="help">Personal documents you've added — race results PDFs, training plans, photos for your bio.</p>
+        <div style="display:flex;flex-direction:column;gap:2px;margin-top:14px;">
+          <div style="display:grid;grid-template-columns:24px 1fr 100px 90px;gap:14px;padding:10px 0;border-bottom:1px solid color-mix(in oklab, var(--ink) 7%, transparent);align-items:center;font-size:13.5px;">
+            <span>📄</span>
+            <div><div style="font-weight:500;">Granfondo Prizren 2025 — race report.pdf</div><div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-top:2px;">Uploaded by you</div></div>
+            <span class="mono" style="color:var(--ink-3);font-size:11.5px;">2.4 MB · PDF</span>
+            <span class="mono" style="color:var(--ink-3);font-size:11.5px;">12.04.2026</span>
+          </div>
+          <div style="display:grid;grid-template-columns:24px 1fr 100px 90px;gap:14px;padding:10px 0;border-bottom:1px solid color-mix(in oklab, var(--ink) 7%, transparent);align-items:center;font-size:13.5px;">
+            <span>📊</span>
+            <div><div style="font-weight:500;">FTP test results — March 2026.csv</div><div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-top:2px;">Shared with coach Albion</div></div>
+            <span class="mono" style="color:var(--ink-3);font-size:11.5px;">18 KB · CSV</span>
+            <span class="mono" style="color:var(--ink-3);font-size:11.5px;">22.03.2026</span>
+          </div>
+          <div style="display:grid;grid-template-columns:24px 1fr 100px 90px;gap:14px;padding:10px 0;align-items:center;font-size:13.5px;">
+            <span>🖼️</span>
+            <div><div style="font-weight:500;">Portrait — bio photo.jpg</div><div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-top:2px;">Used on the public team page</div></div>
+            <span class="mono" style="color:var(--ink-3);font-size:11.5px;">1.8 MB · JPG</span>
+            <span class="mono" style="color:var(--ink-3);font-size:11.5px;">22.03.2026</span>
+          </div>
+        </div>
+
+        <div class="upload-zone" style="margin-top: 16px;">
+          <div class="ic"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 4v10M6 9l5-5 5 5M4 18h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink);">Drop files or click to upload</div>
+          <div style="font-size: 12px;">PDF, JPG, PNG, CSV · max 20 MB · stored privately</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============== BIKES TAB ============== -->
+    <div class="tab-panel" data-panel="bikes">
+      <div class="pcard">
+        <h2>Registered bikes</h2>
+        <p class="help">Listed on race entry sheets. Required for FÇK race-day equipment checks.</p>
+
+        <div class="bike-card">
+          <div class="ic-bike">
+            <svg width="32" height="22" viewBox="0 0 32 22" fill="none"><circle cx="7" cy="16" r="5" stroke="currentColor" stroke-width="1.5"/><circle cx="25" cy="16" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M7 16l6-10h8l4 10M13 6L10 2M25 16l-4-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <div class="nm">Cannondale SuperSix EVO · 2024</div>
+            <div class="meta">ROAD · 51cm · SHIMANO ULTEGRA Di2 · SN: SS-EVO-44918 · Weight: 7.1kg</div>
+          </div>
+          <button class="btn btn-ghost btn-sm">Edit</button>
+        </div>
+
+        <div class="bike-card">
+          <div class="ic-bike">
+            <svg width="32" height="22" viewBox="0 0 32 22" fill="none"><circle cx="7" cy="16" r="5" stroke="currentColor" stroke-width="1.5"/><circle cx="25" cy="16" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M7 16l6-10h8l4 10M13 6L10 2M25 16l-4-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <div class="nm">Cervélo P5 · 2022 · TT</div>
+            <div class="meta">TIME TRIAL · 51cm · SHIMANO DURA-ACE · SN: P5-22-9128 · Weight: 8.4kg</div>
+          </div>
+          <button class="btn btn-ghost btn-sm">Edit</button>
+        </div>
+
+        <div class="upload-zone" style="margin-top: 16px;">
+          <div class="ic"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 5v12M5 11h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink);">Add a bike</div>
+          <div style="font-size: 12px;">Required for race entries</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== EMERGENCY TAB ============== -->
+    <div class="tab-panel" data-panel="emergency">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+        <div class="pcard">
+          <h2>Emergency contact</h2>
+          <p class="help">Used by race medics and the team manager.</p>
+          <div class="field"><label>Full name</label><input type="text" value="Arta Hoxha" /></div>
+          <div class="field" style="margin-top: 14px;"><label>Relationship</label><select><option>Motër (sister)</option><option>Prind</option><option>Bashkëshort/e</option><option>Tjetër</option></select></div>
+          <div class="field" style="margin-top: 14px;"><label>Phone</label><input type="tel" value="+383 44 999 111" /></div>
+          <div class="field" style="margin-top: 14px;"><label>Speaks English</label><select><option>Yes</option><option>Basic</option><option>No</option></select></div>
+        </div>
+
+        <div class="pcard">
+          <h2>Medical info</h2>
+          <p class="help">Visible only to coaches and medics. Encrypted.</p>
+          <div class="field"><label>Blood type</label><select><option>A+</option><option>O+</option><option>B+</option><option>AB+</option><option selected>A-</option></select></div>
+          <div class="field" style="margin-top: 14px;"><label>Allergies</label><input type="text" value="Penicillin · pollen (seasonal)" /></div>
+          <div class="field" style="margin-top: 14px;"><label>Current medications</label><input type="text" value="None" /></div>
+          <div class="field" style="margin-top: 14px;"><label>Notes for medics</label><textarea rows="3" placeholder="e.g. previous fractures, asthma, anything race medics should know">Mild seasonal asthma — inhaler in jersey pocket for race day.</textarea></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============== NOTIFICATIONS TAB ============== -->
+    <div class="tab-panel" data-panel="prefs">
+      <div class="pcard">
+        <h2>Notifications</h2>
+        <p class="help">Choose what you hear about and how.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 130px 130px;gap:16px;padding-bottom: 12px; border-bottom: 1px solid var(--line-strong); font-family:var(--font-mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3);">
+          <span>What</span>
+          <span style="text-align:center;">Email</span>
+          <span style="text-align:center;">SMS</span>
+        </div>
+
+        <div class="notif-row">
+          <div><div class="nm">Training reminders</div><div class="desc">Day-before reminder for scheduled sessions</div></div>
+          <div class="toggle on"></div>
+          <div class="toggle"></div>
+        </div>
+        <div class="notif-row">
+          <div><div class="nm">Race confirmations</div><div class="desc">When you're entered, results posted, podium</div></div>
+          <div class="toggle on"></div>
+          <div class="toggle on"></div>
+        </div>
+        <div class="notif-row">
+          <div><div class="nm">Document expiry</div><div class="desc">30 days before any required document expires</div></div>
+          <div class="toggle on"></div>
+          <div class="toggle on"></div>
+        </div>
+        <div class="notif-row">
+          <div><div class="nm">Dues & payments</div><div class="desc">Monthly invoice, late notices, receipts</div></div>
+          <div class="toggle on"></div>
+          <div class="toggle"></div>
+        </div>
+        <div class="notif-row">
+          <div><div class="nm">Club news</div><div class="desc">New posts on the public site, sponsor announcements</div></div>
+          <div class="toggle on"></div>
+          <div class="toggle"></div>
+        </div>
+        <div class="notif-row">
+          <div><div class="nm">Open rides & social</div><div class="desc">Weekly rides open to all members</div></div>
+          <div class="toggle"></div>
+          <div class="toggle"></div>
+        </div>
+      </div>
+
+      <div class="pcard" style="margin-top: 20px;">
+        <h2>Privacy</h2>
+        <p class="help">Who sees what.</p>
+        <div class="notif-row" style="grid-template-columns:1fr 130px;">
+          <div><div class="nm">Show me on the public roster</div><div class="desc">Name, photo and category appear on the team page</div></div>
+          <div class="toggle on"></div>
+        </div>
+        <div class="notif-row" style="grid-template-columns:1fr 130px;">
+          <div><div class="nm">Share results publicly</div><div class="desc">Your race results show on the homepage table</div></div>
+          <div class="toggle on"></div>
+        </div>
+        <div class="notif-row" style="grid-template-columns:1fr 130px;">
+          <div><div class="nm">Share training data with coach</div><div class="desc">Strava + Garmin Connect feed visible to Albion</div></div>
+          <div class="toggle on"></div>
+        </div>
+        <div class="notif-row" style="grid-template-columns:1fr 130px;">
+          <div><div class="nm">Show in members directory</div><div class="desc">Other members can find you in the internal directory</div></div>
+          <div class="toggle"></div>
+        </div>
+      </div>
+
+      <div class="pcard" style="margin-top: 20px; border-color: color-mix(in oklab, var(--err) 22%, transparent);">
+        <h2 style="color: var(--err);">Danger zone</h2>
+        <p class="help">Account control. These can't be undone.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm">Change password</button>
+          <button class="btn btn-ghost btn-sm">Download my data (GDPR)</button>
+          <button class="btn btn-ghost btn-sm" style="color: var(--err); border-color: color-mix(in oklab, var(--err) 30%, transparent);">Leave the club</button>
+          <button class="btn btn-ghost btn-sm" style="color: var(--err); border-color: color-mix(in oklab, var(--err) 30%, transparent);">Delete account</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Tab switching
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    b.addEventListener("click", () => {
+      const t = b.dataset.tab;
+      document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`.tab-panel[data-panel="${t}"]`).classList.add("active");
+    });
+  });
+  // Toggles
+  document.querySelectorAll(".toggle").forEach(t => {
+    t.addEventListener("click", () => t.classList.toggle("on"));
+  });
+</script>
+</body>
+</html>

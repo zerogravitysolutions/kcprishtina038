@@ -6,8 +6,35 @@
 
 ## Status
 
-Phase: II | Step: II.3 (committing) | Status: IN PROGRESS
+Phase: II | Step: II.4 (user-action handoff) | Status: AWAITING USER
 Last verified: 2026-05-17
+
+All steps implementable by Claude are DONE. Initial commit: `ce7153a`. Step II.4 (Vercel connect) requires the user to do:
+
+1. Create a GitHub repo and push:
+   ```bash
+   # Option A — via gh (not installed on this machine):
+   gh repo create kcprishtina038 --public --source=. --remote=origin
+   git push -u origin main
+
+   # Option B — manually:
+   # 1. Create empty public repo "kcprishtina038" at github.com/new
+   # 2. git remote add origin https://github.com/<user>/kcprishtina038.git
+   # 3. git push -u origin main
+   ```
+2. In Vercel dashboard (vercel.com/new):
+   - Import the `kcprishtina038` GitHub repo.
+   - Framework Preset: **Other** (Vercel auto-detects static).
+   - Build / Output / Install commands: **leave empty**.
+   - Deploy.
+3. After first deploy succeeds:
+   - Verify all 6 routes work at `https://<assigned>.vercel.app/{,/about,/sections,/section-mtb,/events,/join}`.
+   - DevTools Network tab: no 404s.
+4. Configure custom domain `prishtina038.cc` in Vercel → Project Settings → Domains. Vercel will provide DNS records to add at the registrar.
+5. Once DNS resolves, verify:
+   - `curl -I https://prishtina038.cc/about` returns 200 (not 308).
+   - `curl -I https://prishtina038.cc/assets/styles.css` shows `Cache-Control: public, max-age=31536000, immutable`.
+   - Lighthouse: ≥95 Performance / ≥95 Accessibility / ≥95 Best Practices / ≥90 SEO on desktop.
 
 ## Locked-in Decisions (from Open Questions)
 
@@ -29,11 +56,24 @@ Last verified: 2026-05-17
 
 | Step | Date | Status | Plan Ref | Commit | Summary |
 |------|------|--------|----------|--------|---------|
-| I.1 | 2026-05-17 | DONE | §Phase I.1 | (deferred to II.3) | Copied `project/about.html` → `about.html` (17636 B, byte-identical) |
-| I.2 | 2026-05-17 | DONE | §Phase I.2 | (deferred to II.3) | Copied `project/sections.html` → `sections.html` (16114 B); 5 anchor IDs verified |
-| I.3 | 2026-05-17 | DONE | §Phase I.3 | (deferred to II.3) | Copied `project/section-mtb.html` → `section-mtb.html` (23992 B) |
-| I.4 | 2026-05-17 | DONE | §Phase I.4 | (deferred to II.3) | Copied `project/events.html` → `events.html` (17640 B); `startCountdown` call confirmed |
-| I.5 | 2026-05-17 | DONE | §Phase I.5 | (deferred to II.3) | Copied `project/join.html` → `join.html` (20267 B) |
+| I.1 | 2026-05-17 | DONE | §Phase I.1 | ce7153a | Copied `project/about.html` → `about.html` (17636 B, byte-identical) |
+| I.2 | 2026-05-17 | DONE | §Phase I.2 | ce7153a | Copied `project/sections.html` → `sections.html` (16114 B); 5 anchor IDs verified |
+| I.3 | 2026-05-17 | DONE | §Phase I.3 | ce7153a | Copied `project/section-mtb.html` → `section-mtb.html` (23992 B) |
+| I.4 | 2026-05-17 | DONE | §Phase I.4 | ce7153a | Copied `project/events.html` → `events.html` (17640 B); `startCountdown` call confirmed |
+| I.5 | 2026-05-17 | DONE | §Phase I.5 | ce7153a | Copied `project/join.html` → `join.html` (20267 B) |
+| II.1 | 2026-05-17 | DONE | §Phase II.1 | ce7153a | `vercel.json` — cleanUrls, security headers, asset cache |
+| II.2 | 2026-05-17 | DONE | §Phase II.2 | ce7153a | `.gitignore` — macOS, vercel, node, editor caches |
+| III.1 | 2026-05-17 | DONE | §Phase III.1 | ce7153a | Per-page canonical + OG + Twitter meta on all 6 pages |
+| III.2 | 2026-05-17 | DONE | §Phase III.2 | ce7153a | `assets/og-default.jpg` — 1200×630, 43 KB, Pillow-generated stopgap |
+| III.3 | 2026-05-17 | DONE | §Phase III.3 | ce7153a | `robots.txt` |
+| III.4 | 2026-05-17 | DONE | §Phase III.4 | ce7153a | `sitemap.xml` — 6 entries, valid XML |
+| IV.1 | 2026-05-17 | DONE | §Phase IV.1 | ce7153a | `assets/photos/` directory + naming-convention README |
+| IV.2 | 2026-05-17 | DONE | §Phase IV.2 | ce7153a | Join form wired to `mailto:`; 7 named fields, 5 required, honeypot, slugified options |
+| IV.3 | 2026-05-17 | DONE | §Phase IV.3 | ce7153a | Local link smoke test: 13 routes 200, 18 internal hrefs 200 |
+| V.1 | 2026-05-17 | DONE | §Phase V.1 | ce7153a | README.md rewritten; original moved to `project/HANDOFF.md` |
+| V.2 | 2026-05-17 | DONE | §Phase V.2 | ce7153a | `.vercelignore` hides `project/` + `docs/` from prod |
+| II.3 | 2026-05-17 | DONE | §Phase II.3 | ce7153a | `git init`, initial commit, README content verified in commit |
+| II.4 | 2026-05-17 | AWAITING USER | §Phase II.4 | — | GitHub push + Vercel dashboard import (instructions in Status section above) |
 
 ## Phase I — Lift remaining prototype pages to root
 

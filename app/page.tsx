@@ -1,13 +1,12 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
 import { Countdown } from "@/components/landing/Countdown";
+import { NewsCard } from "@/components/ui/NewsCard";
 import { createClient } from "@/lib/supabase/server";
-import {
-  getRecentNews, getFbPhotos, mediaUrl,
-  newsCardTitle, newsCardExcerpt, formatNewsDate,
-} from "@/lib/supabase/fb";
+import { getRecentNews, getFbPhotos, mediaUrl } from "@/lib/supabase/fb";
 
 type NextRace = {
   title_sq: string; start_at: string; location: string | null;
@@ -125,16 +124,17 @@ export default async function Home() {
                 const photo = heroSlots[i];
                 if (photo.url) {
                   return (
-                    <div
-                      key={slot}
-                      className={`slot ${slot}`}
-                      style={{
-                        backgroundImage: `url(${photo.url})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }}
-                      aria-label={photo.alt || "KÇ Prishtina 038 photo"}
-                    />
+                    <div key={slot} className={`slot ${slot}`} style={{ position: "relative", overflow: "hidden" }}>
+                      <Image
+                        src={photo.url}
+                        alt={photo.alt || "KÇ Prishtina 038"}
+                        fill
+                        sizes="(max-width: 900px) 50vw, 25vw"
+                        priority={i === 0}
+                        quality={80}
+                        style={{ objectFit: "cover" }}
+                      />
+                    </div>
                   );
                 }
                 const labels = ["Team riding · hero photo", "Race · portrait", "Training · landscape"] as const;
@@ -238,40 +238,9 @@ export default async function Home() {
               </Link>
             </div>
             <div className="news-grid">
-              {news.map((n) => {
-                const imgUrl = mediaUrl(n.cover?.storage_path ?? null);
-                const title = newsCardTitle(n);
-                const excerpt = newsCardExcerpt(n);
-                const tag = n.tags?.[0]?.toUpperCase() || (n.source === "facebook" ? "FACEBOOK" : "LAJME");
-                return (
-                  <Link
-                    key={n.slug}
-                    href={`/news/${n.slug}` as never}
-                    className="news-card"
-                    style={{ textDecoration: "none", color: "inherit" }}
-                  >
-                    {imgUrl ? (
-                      <div
-                        className="ph"
-                        style={{
-                          backgroundImage: `url(${imgUrl})`,
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                        }}
-                      />
-                    ) : (
-                      <div className="ph"><span className="ph-label">FOTO</span><span className="ph-corner">JPG · 4:3</span></div>
-                    )}
-                    <span className="date mono">
-                      {formatNewsDate(n.published_at)} · {tag}
-                    </span>
-                    <h3>{title || "KÇ Prishtina 038"}</h3>
-                    {excerpt && (
-                      <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>{excerpt}</p>
-                    )}
-                  </Link>
-                );
-              })}
+              {news.map((n) => (
+                <NewsCard key={n.slug} news={n} />
+              ))}
             </div>
           </div>
         </section>

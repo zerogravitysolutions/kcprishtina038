@@ -1,11 +1,14 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
+import { PhotoGallery, type GalleryPhoto } from "@/components/ui/PhotoGallery";
+import { NewsCard } from "@/components/ui/NewsCard";
 import {
-  getNewsBySlug, getMediaPaths, mediaUrl, formatNewsDate,
+  getNewsBySlug, getRecentNews, getMediaPaths, mediaUrl, formatNewsDate,
 } from "@/lib/supabase/fb";
 
 type Params = Promise<{ slug: string }>;
@@ -33,142 +36,210 @@ export default async function NewsArticlePage({ params }: { params: Params }) {
   if (!article) notFound();
 
   // Resolve gallery media paths (preserving order). Filter out the cover
-  // from the gallery to avoid showing the same image twice.
+  // from the gallery so the same image doesn't appear twice.
   const galleryRows = await getMediaPaths(article.gallery_media_ids);
   const coverPath = article.cover?.storage_path ?? null;
-  const gallery = galleryRows.filter((g) => g.storage_path !== coverPath);
+  const galleryPhotos: GalleryPhoto[] = galleryRows
+    .filter((g) => g.storage_path !== coverPath)
+    .map((g) => {
+      const url = mediaUrl(g.storage_path)!;
+      return { src: url, alt: article.title_sq };
+    });
+
+  // "More from the club" — sibling article cards.
+  const related = (await getRecentNews(4)).filter((r) => r.slug !== article.slug).slice(0, 3);
 
   const coverUrl = mediaUrl(coverPath);
   const tag = article.tags?.[0]?.toUpperCase()
     || (article.source === "facebook" ? "FACEBOOK" : "LAJME");
-
-  // FB posts don't have real titles — title_sq is derived from the first
-  // line of body. Showing it as an H1 above the body duplicates content.
-  // For source='facebook', show the body only (with the eyebrow date as
-  // a heading). For source='manual', the editor authored a proper title
-  // so we show it as the H1.
   const showH1 = article.source === "manual";
+  const dateLabel = formatNewsDate(article.published_at);
 
   return (
     <>
       <PublicNav />
 
-      <article style={{ paddingTop: 96, paddingBottom: 64 }}>
-        <div className="container" style={{ maxWidth: 780 }}>
-          <Link
-            href="/news"
-            className="mono"
-            style={{
-              fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase",
-              color: "var(--ink-2)", textDecoration: "none",
-            }}
-          >
-            {t("news.backToList")}
-          </Link>
-
-          <div className="eyebrow" style={{ marginTop: 32 }}>
-            <span>
-              {formatNewsDate(article.published_at)} · {tag}
-            </span>
-          </div>
-
-          {showH1 && (
-            <h1
-              className="display display-l"
-              style={{ marginTop: 16, lineHeight: 1.1 }}
-            >
-              {article.title_sq}
-            </h1>
-          )}
-        </div>
-
-        {coverUrl && (
-          <div className="container" style={{ maxWidth: 1080, marginTop: 40 }}>
-            <div
-              aria-label={article.title_sq}
+      <article>
+        {/* ============ Header strip ============ */}
+        <header style={{ paddingTop: 96, paddingBottom: 32 }}>
+          <div className="container" style={{ maxWidth: 820 }}>
+            <Link
+              href="/news"
+              className="mono"
               style={{
-                backgroundImage: `url(${coverUrl})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                aspectRatio: "16 / 9",
-                borderRadius: 4,
+                display: "inline-flex", alignItems: "center", gap: 8,
+                fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase",
+                color: "var(--ink-2)", textDecoration: "none",
+                opacity: 0.7, transition: "opacity .15s",
               }}
-            />
+            >
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M11 11 L3 3 M3 3 H9 M3 3 V9" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+              <span>{t("news.backToList")}</span>
+            </Link>
+
+            <div
+              className="mono"
+              style={{
+                marginTop: 32,
+                fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase",
+                color: "var(--ember)",
+              }}
+            >
+              {dateLabel} <span style={{ color: "var(--ink-3)" }}>·</span> {tag}
+            </div>
+
+            {showH1 ? (
+              <h1
+                className="display"
+                style={{
+                  marginTop: 16,
+                  fontSize: "clamp(36px, 5vw, 64px)",
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.05,
+                }}
+              >
+                {article.title_sq}
+              </h1>
+            ) : (
+              // FB-sourced: lead with first sentence at display weight, then
+              // the rest of the body in article copy below.
+              <h1
+                className="display"
+                style={{
+                  marginTop: 16,
+                  fontSize: "clamp(28px, 4vw, 44px)",
+                  letterSpacing: "-0.015em",
+                  lineHeight: 1.15,
+                  fontWeight: 700,
+                  maxWidth: "32ch",
+                }}
+              >
+                {article.title_sq}
+              </h1>
+            )}
+          </div>
+        </header>
+
+        {/* ============ Hero cover ============ */}
+        {coverUrl && (
+          <div className="container" style={{ maxWidth: 1240, marginTop: 8 }}>
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                aspectRatio: "16 / 9",
+                borderRadius: 12,
+                overflow: "hidden",
+                background: "var(--paper-2)",
+              }}
+            >
+              <Image
+                src={coverUrl}
+                alt={article.title_sq}
+                fill
+                sizes="(max-width: 1240px) 100vw, 1240px"
+                priority
+                quality={85}
+                style={{ objectFit: "cover" }}
+              />
+            </div>
           </div>
         )}
 
-        <div className="container" style={{ maxWidth: 720, marginTop: 40 }}>
-          {article.body_sq && (
+        {/* ============ Body copy ============ */}
+        {article.body_sq && (
+          <div className="container" style={{ maxWidth: 720, marginTop: 56 }}>
             <div
               style={{
-                fontSize: 17, lineHeight: 1.65, color: "var(--ink)",
+                fontFamily: "var(--font-body)",
+                fontSize: "clamp(17px, 1.15vw, 19px)",
+                lineHeight: 1.7,
+                color: "var(--ink)",
                 whiteSpace: "pre-wrap",
               }}
             >
               {article.body_sq}
             </div>
-          )}
+          </div>
+        )}
 
-          {gallery.length > 0 && (
-            <section style={{ marginTop: 56 }}>
-              <div className="eyebrow"><span>{t("news.gallery")}</span></div>
-              <div
-                style={{
-                  marginTop: 16,
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                {gallery.map((g) => {
-                  const url = mediaUrl(g.storage_path);
-                  if (!url) return null;
-                  return (
-                    <a
-                      key={g.id}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Photo"
-                      style={{
-                        display: "block",
-                        backgroundImage: `url(${url})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        aspectRatio: "4 / 3",
-                        borderRadius: 4,
-                      }}
-                    />
-                  );
-                })}
+        {/* ============ Gallery ============ */}
+        {galleryPhotos.length > 0 && (
+          <section style={{ marginTop: 72, paddingBottom: 32 }}>
+            <div className="container" style={{ maxWidth: 1240 }}>
+              <div className="eyebrow" style={{ marginBottom: 20 }}>
+                <span>{t("news.gallery")}</span>
+                <span
+                  className="mono"
+                  style={{ marginLeft: 8, color: "var(--ink-3)", fontSize: 11 }}
+                >
+                  · {galleryPhotos.length}
+                </span>
               </div>
-            </section>
-          )}
+              <PhotoGallery photos={galleryPhotos} />
+            </div>
+          </section>
+        )}
 
-          {article.source === "facebook" && article.external_url && (
-            <div
+        {/* ============ Original on Facebook ============ */}
+        {article.source === "facebook" && article.external_url && (
+          <div
+            className="container"
+            style={{
+              maxWidth: 720,
+              marginTop: 56,
+              paddingTop: 24,
+              borderTop: "1px solid var(--rule, rgba(15, 26, 46, 0.08))",
+            }}
+          >
+            <a
+              href={article.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mono"
               style={{
-                marginTop: 56,
-                paddingTop: 24,
-                borderTop: "1px solid var(--rule)",
+                display: "inline-flex", alignItems: "center", gap: 8,
+                fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase",
+                color: "var(--ember)", textDecoration: "none",
               }}
             >
-              <a
-                href={article.external_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mono"
-                style={{
-                  fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase",
-                  color: "var(--ember)",
-                }}
-              >
-                {t("news.originalOnFb")} →
-              </a>
-            </div>
-          )}
-        </div>
+              <span>{t("news.originalOnFb")}</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            </a>
+          </div>
+        )}
       </article>
+
+      {/* ============ More from the club ============ */}
+      {related.length > 0 && (
+        <section style={{ marginTop: 96, paddingTop: 56, paddingBottom: 80, background: "var(--paper-2)" }}>
+          <div className="container">
+            <div className="section-head" style={{ marginBottom: 32 }}>
+              <div>
+                <div className="eyebrow"><span>{t("news.eyebrow")}</span></div>
+                <h2 className="display display-m" style={{ marginTop: 12 }}>
+                  {t("news.title")}
+                </h2>
+              </div>
+              <Link href={"/news" as never} className="btn btn-ghost" style={{ justifySelf: "start" }}>
+                <span>{t("news.cta")}</span>
+                <svg className="arrow" viewBox="0 0 14 14" fill="none">
+                  <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+              </Link>
+            </div>
+            <div className="news-grid">
+              {related.map((n) => (
+                <NewsCard key={n.slug} news={n} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <Footer />
     </>

@@ -8,6 +8,18 @@ const nextConfig = {
   // Re-enable in Phase VII once all routes exist in app/.
   typedRoutes: false,
 
+  images: {
+    // Supabase Storage serves our media/ bucket here.
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "xutklvcsdgzmhxzexisb.supabase.co",
+        pathname: "/storage/v1/object/public/media/**",
+      },
+    ],
+    formats: ["image/avif", "image/webp"],
+  },
+
   async redirects() {
     return [
       // Legacy URL kept reachable after the Next.js route was nested under /sections/.

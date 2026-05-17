@@ -3,10 +3,8 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
-import {
-  getNewsPage, mediaUrl,
-  newsCardTitle, newsCardExcerpt, formatNewsDate,
-} from "@/lib/supabase/fb";
+import { NewsCard } from "@/components/ui/NewsCard";
+import { getNewsPage } from "@/lib/supabase/fb";
 
 const PAGE_SIZE = 12;
 
@@ -34,10 +32,22 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
       <section style={{ paddingTop: 96, paddingBottom: 32 }}>
         <div className="container">
           <div className="eyebrow"><span>{t("news.eyebrow")}</span></div>
-          <h1 className="display display-l" style={{ marginTop: 16 }}>
+          <h1
+            className="display"
+            style={{
+              marginTop: 16,
+              fontSize: "clamp(40px, 6vw, 72px)",
+              letterSpacing: "-0.025em",
+              lineHeight: 1.02,
+              maxWidth: "18ch",
+            }}
+          >
             {t("news.pageTitle")}
           </h1>
-          <p className="lede" style={{ marginTop: 16, maxWidth: "60ch" }}>
+          <p
+            className="lede"
+            style={{ marginTop: 24, maxWidth: "60ch", color: "var(--ink-2)" }}
+          >
             {t("news.pageLede")}
           </p>
         </div>
@@ -50,54 +60,25 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
             <p style={{ color: "var(--ink-2)", fontSize: 16 }}>{t("news.empty")}</p>
           ) : (
             <div className="news-grid">
-              {rows.map((n) => {
-                const imgUrl = mediaUrl(n.cover?.storage_path ?? null);
-                const title = newsCardTitle(n);
-                const excerpt = newsCardExcerpt(n);
-                const tag = n.tags?.[0]?.toUpperCase() || (n.source === "facebook" ? "FACEBOOK" : "LAJME");
-                return (
-                  <Link
-                    key={n.slug}
-                    href={`/news/${n.slug}` as never}
-                    className="news-card"
-                    style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column" }}
-                  >
-                    {imgUrl ? (
-                      <div
-                        className="ph"
-                        style={{
-                          backgroundImage: `url(${imgUrl})`,
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                        }}
-                      />
-                    ) : (
-                      <div className="ph"><span className="ph-label">FOTO</span><span className="ph-corner">JPG · 4:3</span></div>
-                    )}
-                    <span className="date mono">
-                      {formatNewsDate(n.published_at)} · {tag}
-                    </span>
-                    <h3>{title || "KÇ Prishtina 038"}</h3>
-                    {excerpt && (
-                      <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>{excerpt}</p>
-                    )}
-                  </Link>
-                );
-              })}
+              {rows.map((n, i) => (
+                // First 3 cards above the fold → priority load
+                <NewsCard key={n.slug} news={n} priority={i < 3} />
+              ))}
             </div>
           )}
 
           {/* Pager */}
           {totalPages > 1 && (
-            <div
+            <nav
               className="mono"
+              aria-label="News pagination"
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginTop: 48,
-                paddingTop: 24,
-                borderTop: "1px solid var(--rule)",
+                marginTop: 64,
+                paddingTop: 32,
+                borderTop: "1px solid rgba(15, 26, 46, 0.08)",
                 fontSize: 12,
                 letterSpacing: ".14em",
                 textTransform: "uppercase",
@@ -126,12 +107,12 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
               ) : (
                 <span />
               )}
-            </div>
+            </nav>
           )}
         </div>
       </section>
 
-      <div style={{ paddingBottom: 64 }} />
+      <div style={{ paddingBottom: 80 }} />
 
       <Footer />
     </>

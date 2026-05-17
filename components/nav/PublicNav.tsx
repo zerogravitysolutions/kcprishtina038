@@ -39,6 +39,7 @@ export async function PublicNav() {
           <Link href="/about">{t("nav.about")}</Link>
           <Link href="/sections">{t("nav.sections")}</Link>
           <Link href="/events">{t("nav.events")}</Link>
+          <Link href={"/news" as never}>{t("nav.news")}</Link>
           <Link href="/join">{t("nav.join")}</Link>
         </div>
         <div className="nav-right">

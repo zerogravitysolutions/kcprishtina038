@@ -4,6 +4,7 @@ import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
 import { Countdown } from "@/components/landing/Countdown";
 import { createClient } from "@/lib/supabase/server";
+import { getRecentFbPosts, getFbPhotos, mediaUrl, postTitle, postBody, formatPostDate } from "@/lib/supabase/fb";
 
 type NextRace = {
   title_sq: string; start_at: string; location: string | null;
@@ -17,7 +18,7 @@ async function fetchHomeData() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
 
-  const [nextRace, sections, news, sponsors] = await Promise.all([
+  const [nextRace, sections, news, sponsors, fbPhotos, fbPosts] = await Promise.all([
     supabase.from("events")
       .select("title_sq, start_at, location, distance_km, elevation_m, description_sq")
       .eq("type", "race").eq("status", "published")
@@ -34,6 +35,8 @@ async function fetchHomeData() {
     supabase.from("sponsors")
       .select("name, tier, role_sq, body_sq, website_url, display_order")
       .eq("active", true).order("display_order"),
+    getFbPhotos(3),
+    getRecentFbPosts(3),
   ]);
 
   return {
@@ -41,12 +44,22 @@ async function fetchHomeData() {
     sections: (sections.data as SectionRow[] | null) ?? [],
     news: (news.data as NewsRow[] | null) ?? [],
     sponsors: (sponsors.data as SponsorRow[] | null) ?? [],
+    fbPhotos,
+    fbPosts,
   };
 }
 
 export default async function Home() {
   const t = await getTranslations();
-  const { nextRace, sections, news, sponsors } = await fetchHomeData();
+  const { nextRace, sections, news, sponsors, fbPhotos, fbPosts } = await fetchHomeData();
+  // Hero collage uses real FB photos when available; otherwise the labeled
+  // placeholder boxes remain (existing behavior preserved).
+  const heroSlots: Array<{ url: string | null; alt: string }> = [0, 1, 2].map(i => {
+    const p = fbPhotos[i];
+    return { url: mediaUrl(p?.media?.storage_path ?? null), alt: p?.alt_text ?? "" };
+  });
+  // News strip: native news first, fall back to FB posts to fill empty slots.
+  const newsHasNative = news.length > 0;
 
   // Race target: DB-driven if a future published race exists, else fallback.
   const raceTargetIso = nextRace?.start_at ?? "2026-05-17T09:00:00";
@@ -113,9 +126,25 @@ export default async function Home() {
 
             <div className="collage">
               <span className="badge">SEZONI 2026 · LIVE</span>
-              <div className="slot s1"><span>Team riding · hero photo</span></div>
-              <div className="slot s2"><span>Race · portrait</span></div>
-              <div className="slot s3"><span>Training · landscape</span></div>
+              {(["s1", "s2", "s3"] as const).map((slot, i) => {
+                const photo = heroSlots[i];
+                if (photo.url) {
+                  return (
+                    <div
+                      key={slot}
+                      className={`slot ${slot}`}
+                      style={{
+                        backgroundImage: `url(${photo.url})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                      aria-label={photo.alt || "KÇ Prishtina 038 photo"}
+                    />
+                  );
+                }
+                const labels = ["Team riding · hero photo", "Race · portrait", "Training · landscape"] as const;
+                return <div key={slot} className={`slot ${slot}`}><span>{labels[i]}</span></div>;
+              })}
               <div className="stamp">
                 <span>EKIPI · 2026</span>
                 <strong>47 ÇIKLISTË</strong>
@@ -200,7 +229,7 @@ export default async function Home() {
       </section>
 
       {/* ============ NEWS ============ */}
-      {news.length > 0 && (
+      {(newsHasNative || fbPosts.length > 0) && (
         <section id="news">
           <div className="container">
             <div className="section-head">
@@ -208,21 +237,60 @@ export default async function Home() {
                 <div className="eyebrow"><span>{t("news.eyebrow")}</span></div>
                 <h2 className="display display-m" style={{ marginTop: 16 }}>{t("news.title")}</h2>
               </div>
+              <Link href={"/news" as never} className="btn btn-ghost" style={{ justifySelf: "start" }}>
+                <span>{t("news.cta")}</span>
+                <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
+              </Link>
             </div>
             <div className="news-grid">
-              {news.map((n) => (
-                <article key={n.slug} className="news-card">
-                  <div className="ph"><span className="ph-label">FOTO</span><span className="ph-corner">JPG · 4:3</span></div>
-                  <span className="date mono">
-                    {n.published_at ? new Date(n.published_at).toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" }) : ""}
-                    {n.tags?.[0] ? " · " + n.tags[0].toUpperCase() : ""}
-                  </span>
-                  <h3>{n.title_sq}</h3>
-                  <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>
-                    {(n.body_sq || "").replace(/\s+/g, " ").slice(0, 200)}{(n.body_sq || "").length > 200 ? "…" : ""}
-                  </p>
-                </article>
-              ))}
+              {newsHasNative
+                ? news.map((n) => (
+                    <article key={n.slug} className="news-card">
+                      <div className="ph"><span className="ph-label">FOTO</span><span className="ph-corner">JPG · 4:3</span></div>
+                      <span className="date mono">
+                        {n.published_at ? new Date(n.published_at).toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" }) : ""}
+                        {n.tags?.[0] ? " · " + n.tags[0].toUpperCase() : ""}
+                      </span>
+                      <h3>{n.title_sq}</h3>
+                      <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>
+                        {(n.body_sq || "").replace(/\s+/g, " ").slice(0, 200)}{(n.body_sq || "").length > 200 ? "…" : ""}
+                      </p>
+                    </article>
+                  ))
+                : fbPosts.map((p) => {
+                    const imgUrl = mediaUrl(p.cover?.storage_path ?? null);
+                    const title = postTitle(p);
+                    const body = postBody(p);
+                    const Wrapper = (props: { children: React.ReactNode }) =>
+                      p.permalink_url ? (
+                        <a href={p.permalink_url} target="_blank" rel="noopener noreferrer" className="news-card" style={{ textDecoration: "none", color: "inherit" }}>
+                          {props.children}
+                        </a>
+                      ) : (
+                        <article className="news-card">{props.children}</article>
+                      );
+                    return (
+                      <Wrapper key={p.id}>
+                        {imgUrl ? (
+                          <div
+                            className="ph"
+                            style={{
+                              backgroundImage: `url(${imgUrl})`,
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }}
+                          />
+                        ) : (
+                          <div className="ph"><span className="ph-label">FACEBOOK</span><span className="ph-corner">POST</span></div>
+                        )}
+                        <span className="date mono">{formatPostDate(p.created_time)} · FACEBOOK</span>
+                        <h3>{title || "KÇ Prishtina 038"}</h3>
+                        {body && (
+                          <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>{body}</p>
+                        )}
+                      </Wrapper>
+                    );
+                  })}
             </div>
           </div>
         </section>

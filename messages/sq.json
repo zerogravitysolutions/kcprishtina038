@@ -182,7 +182,14 @@
   "news": {
     "eyebrow": "Lajme",
     "title": "Nga klubi.",
-    "cta": "Të gjitha lajmet"
+    "cta": "Të gjitha lajmet",
+    "pageTitle": "Lajmet e fundit nga klubi.",
+    "pageLede": "Postime, foto dhe lajme direkt nga faqja jonë në Facebook.",
+    "viewOnFb": "Shiko në Facebook",
+    "older": "Më të vjetra →",
+    "newer": "← Më të reja",
+    "empty": "Nuk ka lajme për momentin.",
+    "loading": "Duke ngarkuar..."
   },
   "gallery": {
     "eyebrow": "Galeria",

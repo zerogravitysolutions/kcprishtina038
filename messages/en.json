@@ -182,7 +182,14 @@
   "news": {
     "eyebrow": "News",
     "title": "From the club.",
-    "cta": "All news"
+    "cta": "All news",
+    "pageTitle": "Latest news from the club.",
+    "pageLede": "Posts, photos and updates straight from our Facebook page.",
+    "viewOnFb": "View on Facebook",
+    "older": "Older →",
+    "newer": "← Newer",
+    "empty": "No news yet.",
+    "loading": "Loading..."
   },
   "gallery": {
     "eyebrow": "Gallery",

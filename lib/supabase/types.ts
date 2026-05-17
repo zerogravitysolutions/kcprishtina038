@@ -141,9 +141,54 @@ export interface Database {
           mime_type: string | null; width: number | null; height: number | null;
           byte_size: number | null; alt: string | null; caption: string | null;
           uploaded_by: string | null; created_at: string;
+          source: "upload" | "facebook";
+          external_id: string | null; external_url: string | null;
         };
         Insert: { storage_path: string; filename: string; mime_type?: string | null; byte_size?: number | null; alt?: string | null; caption?: string | null };
         Update: Partial<Database["public"]["Tables"]["media"]["Row"]>;
+      };
+      fb_pages: {
+        Row: {
+          id: string; username: string | null; name: string | null;
+          about: string | null; bio: string | null; category: string | null;
+          website: string | null; fan_count: number | null;
+          picture_media_id: string | null; cover_media_id: string | null;
+          last_synced_at: string | null; created_at: string; updated_at: string;
+        };
+        Insert: { id: string };
+        Update: Partial<Database["public"]["Tables"]["fb_pages"]["Row"]>;
+      };
+      fb_posts: {
+        Row: {
+          id: string; page_id: string; message: string | null;
+          permalink_url: string | null; story: string | null;
+          status_type: string | null; created_time: string;
+          cover_media_id: string | null; attachments: unknown;
+          is_published: boolean; hidden: boolean;
+          raw: unknown; fetched_at: string;
+        };
+        Insert: { id: string; page_id: string; created_time: string };
+        Update: Partial<Database["public"]["Tables"]["fb_posts"]["Row"]>;
+      };
+      fb_albums: {
+        Row: {
+          id: string; page_id: string; name: string | null;
+          description: string | null; cover_media_id: string | null;
+          count: number | null; created_time: string | null;
+          updated_time: string | null; fetched_at: string;
+        };
+        Insert: { id: string; page_id: string };
+        Update: Partial<Database["public"]["Tables"]["fb_albums"]["Row"]>;
+      };
+      fb_photos: {
+        Row: {
+          id: string; page_id: string; album_id: string | null;
+          post_id: string | null; media_id: string;
+          alt_text: string | null; width: number | null; height: number | null;
+          created_time: string | null; fetched_at: string;
+        };
+        Insert: { id: string; page_id: string; media_id: string };
+        Update: Partial<Database["public"]["Tables"]["fb_photos"]["Row"]>;
       };
       news: {
         Row: {

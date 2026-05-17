@@ -1,5 +1,6 @@
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
+import { FbFollowBand } from "@/components/fb/FbFollowBand";
 import { getLegacyBody } from "@/lib/legacy";
 import type { Metadata } from "next";
 
@@ -15,6 +16,8 @@ export default async function EventsPage() {
     <>
       <PublicNav />
       <div dangerouslySetInnerHTML={{ __html: body }} />
+      {/* FB Events appear here once the page has any upcoming ones (sync auto-runs hourly). */}
+      <FbFollowBand path="/events" />
       <Footer />
     </>
   );

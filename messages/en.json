@@ -86,7 +86,12 @@
         "role": "Founder · Women's program"
       }
     },
-    "link": "Read the full story"
+    "link": "Read the full story",
+    "fbStripEyebrow": "Official page",
+    "fbStripTitle": "Follow us on Facebook.",
+    "fbStripBody": "We post race news, photos and camp announcements there — they sync automatically into this site.",
+    "fbStripCta": "Open on Facebook",
+    "fbFans": "followers"
   },
   "disc": {
     "eyebrow": "Sections",

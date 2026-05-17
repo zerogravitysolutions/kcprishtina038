@@ -86,7 +86,12 @@
         "role": "Themelueze · Programe të femrave"
       }
     },
-    "link": "Lexo historinë e plotë"
+    "link": "Lexo historinë e plotë",
+    "fbStripEyebrow": "Faqja zyrtare",
+    "fbStripTitle": "Na ndiq në Facebook.",
+    "fbStripBody": "Aty publikojmë lajmet, fotot e garave dhe njoftimet për kampe — të gjitha këto sinkronizohen automatikisht me këtë faqe.",
+    "fbStripCta": "Hape në Facebook",
+    "fbFans": "ndjekës"
   },
   "disc": {
     "eyebrow": "Seksionet",

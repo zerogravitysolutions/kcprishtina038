@@ -1,5 +1,6 @@
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
+import { FbFollowBand } from "@/components/fb/FbFollowBand";
 import { getLegacyBody } from "@/lib/legacy";
 import type { Metadata } from "next";
 
@@ -15,6 +16,7 @@ export default async function AboutPage() {
     <>
       <PublicNav />
       <div dangerouslySetInnerHTML={{ __html: body }} />
+      <FbFollowBand />
       <Footer />
     </>
   );

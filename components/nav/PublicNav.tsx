@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { getProfile } from "@/lib/supabase/server";
 import { LangToggle } from "./LangToggle";
+import { MobileMenu } from "./MobileMenu";
 
 export async function PublicNav() {
   const t = await getTranslations();
@@ -25,31 +26,49 @@ export async function PublicNav() {
     }
   }
 
+  const links = [
+    { href: "/about",    label: t("nav.about") },
+    { href: "/sections", label: t("nav.sections") },
+    { href: "/events",   label: t("nav.events") },
+    { href: "/news",     label: t("nav.news") },
+    { href: "/join",     label: t("nav.join") },
+  ];
+
   return (
     <nav className="nav">
       <div className="container nav-inner">
         <Link href="/" className="brand">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/assets/logo.jpg" alt="KÇ Prishtina 038" />
           <div className="brand-text">
             <span className="kc">{t("brand.kc")}</span>
             <span className="sub">{t("brand.sub")}</span>
           </div>
         </Link>
+
         <div className="nav-links">
-          <Link href="/about">{t("nav.about")}</Link>
-          <Link href="/sections">{t("nav.sections")}</Link>
-          <Link href="/events">{t("nav.events")}</Link>
-          <Link href={"/news" as never}>{t("nav.news")}</Link>
-          <Link href="/join">{t("nav.join")}</Link>
+          {links.map((l) => (
+            <Link key={l.href} href={l.href as never}>{l.label}</Link>
+          ))}
         </div>
+
         <div className="nav-right">
           <LangToggle current={locale} />
-          <Link href={signinHref as never} className={`nav-signin ${isAuthed ? "is-authed" : ""}`}>
+          <Link
+            href={signinHref as never}
+            className={`nav-signin nav-signin--desktop ${isAuthed ? "is-authed" : ""}`}
+          >
             {signinLabel}
           </Link>
-          <Link href="/join" className="btn btn-sm btn-ember">
+          <Link href="/join" className="btn btn-sm btn-ember nav-cta--desktop">
             {t("hero.cta.primary")}
           </Link>
+          <MobileMenu
+            links={links}
+            signin={{ href: signinHref, label: signinLabel, authed: isAuthed }}
+            ctaLabel={t("hero.cta.primary")}
+            ctaHref="/join"
+          />
         </div>
       </div>
     </nav>

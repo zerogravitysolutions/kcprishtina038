@@ -297,11 +297,15 @@ button { font-family: inherit; }
   background: var(--white);
   border: 1px solid var(--line);
   border-radius: 12px;
-  overflow: hidden;
+  /* Horizontal scroll on small viewports rather than clipping columns. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 table.t {
   width: 100%; border-collapse: collapse;
   font-size: 13.5px;
+  /* Prevent column crush on small phones — force horizontal scroll. */
+  min-width: 640px;
 }
 table.t th, table.t td {
   padding: 12px 16px;

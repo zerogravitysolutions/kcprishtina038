@@ -196,8 +196,104 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--font-display); letter-spacing: -0
 }
 @media (max-width: 880px) {
   .nav-links { display: none; }
-  .nav-inner { height: 64px; }
+  .nav-inner { height: 60px; gap: 12px; }
+  .nav-signin--desktop, .nav-cta--desktop { display: none; }
+  .lang-pill { padding: 3px; }
+  .lang-pill button { padding: 6px 8px; font-size: 10.5px; }
 }
+@media (min-width: 881px) {
+  .nav-mobile-trigger, .nav-mobile-sheet { display: none !important; }
+}
+
+/* ---------- Mobile burger trigger ---------- */
+.nav-mobile-trigger {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px; height: 44px;
+  background: transparent;
+  border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.nav-mobile-trigger:active { transform: scale(.96); }
+.nav-burger {
+  display: inline-flex; flex-direction: column; gap: 5px;
+  width: 18px; height: 14px;
+}
+.nav-burger span {
+  display: block; height: 1.8px; background: currentColor;
+  border-radius: 2px; transition: transform .2s, opacity .2s;
+}
+.nav-burger.is-open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-burger.is-open span:nth-child(2) { opacity: 0; }
+.nav-burger.is-open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ---------- Mobile drawer sheet ---------- */
+.nav-mobile-sheet {
+  position: fixed; inset: 0; z-index: 60;
+  pointer-events: none;
+}
+.nav-mobile-sheet.is-open { pointer-events: auto; }
+.nav-mobile-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(15, 26, 46, 0);
+  border: 0; padding: 0; cursor: pointer;
+  transition: background .2s;
+}
+.nav-mobile-sheet.is-open .nav-mobile-backdrop {
+  background: rgba(15, 26, 46, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.nav-mobile-panel {
+  position: absolute;
+  top: 0; right: 0;
+  width: min(360px, 88vw);
+  height: 100dvh;
+  background: var(--paper);
+  border-left: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+  padding: 88px 28px 32px;
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.2,.7,.2,1);
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.nav-mobile-sheet.is-open .nav-mobile-panel { transform: translateX(0); }
+.nav-mobile-panel ul {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.nav-mobile-panel li a {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px; letter-spacing: -0.01em;
+  color: var(--ink);
+  padding: 14px 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--ink) 6%, transparent);
+  text-decoration: none;
+}
+.nav-mobile-panel li a:active { color: var(--ember); }
+.nav-mobile-footer {
+  margin-top: auto; padding-top: 28px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.nav-mobile-signin {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 48px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--ink) 18%, transparent);
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink); text-decoration: none;
+}
+.nav-mobile-signin.is-authed {
+  background: var(--ink); color: var(--paper); border-color: var(--ink);
+}
+.nav-mobile-cta { justify-content: center; min-height: 52px; }
 .nav-signin {
   font-family: var(--font-mono); font-size: 11px;
   letter-spacing: 0.16em; text-transform: uppercase;
@@ -1079,3 +1175,173 @@ footer.foot {
   @keyframes kc-blink {
     0%, 100% { opacity: 1; } 50% { opacity: 0.2; }
   }
+
+/* ============================================================
+ * Mobile polish — single block at the bottom so overrides land last.
+ * Targets: 44px tappable targets, content-stacking, no horizontal
+ * overflow, comfortable font sizes on small viewports.
+ * ============================================================ */
+
+@media (max-width: 600px) {
+  /* Buttons — ensure >=44px tappable target everywhere. */
+  .btn          { padding: 14px 22px; font-size: 14px; min-height: 44px; }
+  .btn-sm       { padding: 11px 16px; font-size: 12.5px; min-height: 40px; }
+
+  /* Tighter typography on tiny screens */
+  .display-l    { font-size: clamp(32px, 9vw, 56px) !important; }
+  .display-m    { font-size: clamp(26px, 7.5vw, 42px) !important; }
+  .lede         { font-size: 16px; line-height: 1.55; }
+
+  /* Footer: stack to 1 column under the 800px breakpoint */
+  .foot-grid    { grid-template-columns: 1fr !important; gap: 32px; }
+  .foot-bottom  { flex-direction: column; gap: 12px; align-items: flex-start; font-size: 11px; }
+
+  /* Stats strip 1 col on very small screens (was 2 at <=700px) */
+  .stats-strip  { grid-template-columns: 1fr !important; gap: 24px; }
+
+  /* Section heads (eyebrow + title + lede) — stack the lede under the
+     title rather than side-by-side which crowds at small widths. */
+  .section-head { grid-template-columns: 1fr; gap: 16px; }
+
+  /* Hero v2 collage on mobile — keep 3 slots but in a row (small thumbs)
+     so the hero text stays the focus. */
+  .hero-v2 .collage {
+    grid-template-columns: repeat(3, 1fr) !important;
+    grid-auto-rows: 96px !important;
+    gap: 8px;
+  }
+  .hero-v2 .collage .stamp { display: none; }
+  .hero-v2 .badge { font-size: 9.5px; padding: 4px 10px; }
+
+  /* Gallery: 1 column at tiny widths is too sparse. Force 2 cols. */
+  .gallery {
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-auto-rows: 120px !important;
+    gap: 8px;
+  }
+
+  /* News-card title — slightly smaller heading on phones */
+  .news-card h3 { font-size: 17px; }
+
+  /* Reduce horizontal pad so content has more room */
+  :root { --pad-x: 16px; }
+
+  /* Container max — keep tight at 100% w/ pad */
+  .container { padding-inline: var(--pad-x); }
+
+  /* Disable horizontal page overflow caused by any rogue children */
+  html, body { overflow-x: hidden; }
+
+  /* Hero v2 ticker — already hidden globally via display:none rule; ensure */
+  .hero-v2 .hero-ticker { display: none; }
+}
+
+/* Make sure ALL anchor/button hit areas meet 44x44 minimum on touch */
+@media (hover: none) and (pointer: coarse) {
+  .btn, .nav-mobile-trigger, .nav-mobile-signin,
+  .lang-pill button, .news-card {
+    min-height: 44px;
+  }
+  a, button { touch-action: manipulation; }
+}
+
+/* ============================================================
+ * Auth layout (/login, /auth/reset-password)
+ * Two-column on desktop, stacked on mobile.
+ * ============================================================ */
+.auth-layout {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 768px) {
+  .auth-layout { grid-template-columns: 1fr; }
+}
+
+.auth-side {
+  background: var(--ink);
+  color: var(--paper);
+  padding: clamp(28px, 5vw, 64px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  min-height: 240px;
+}
+.auth-brand {
+  display: inline-flex; align-items: center; gap: 12px;
+  color: var(--paper); text-decoration: none;
+}
+.auth-brand img { width: 40px; height: 40px; border-radius: 999px; }
+.auth-brand .kc {
+  font-family: var(--font-display); font-weight: 700; font-size: 16px;
+}
+.auth-brand .sub {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--slate); margin-top: 3px;
+}
+.auth-eyebrow {
+  font-family: var(--font-mono); font-size: 10.5px;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--ember);
+}
+.auth-title {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(28px, 4.2vw, 48px);
+  letter-spacing: -0.03em; line-height: 1.05;
+  color: var(--paper);
+  margin: 20px 0 0;
+}
+.auth-title em {
+  font-style: italic; font-variation-settings: 'wdth' 75; color: var(--ember);
+}
+
+.auth-form-side {
+  position: relative;
+  padding: clamp(28px, 5vw, 48px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--paper);
+}
+.auth-back {
+  position: absolute;
+  top: clamp(16px, 3vw, 24px);
+  right: clamp(16px, 3vw, 24px);
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3); text-decoration: none;
+}
+.auth-card {
+  max-width: 400px; width: 100%;
+  margin: 0 auto;
+}
+.auth-card-title {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -0.03em; margin: 0;
+}
+.auth-card-lede {
+  margin-top: 12px;
+  font-size: 15px; color: var(--ink-2);
+}
+.auth-card-foot {
+  margin-top: 32px;
+  text-align: center;
+  font-size: 13.5px; color: var(--ink-2);
+}
+.auth-link {
+  color: var(--ember-deep);
+  border-bottom: 1px solid color-mix(in oklab, var(--ember) 40%, transparent);
+}
+
+@media (max-width: 768px) {
+  .auth-side {
+    /* Compact on mobile so the form is reachable without scrolling. */
+    padding: 24px 20px;
+    gap: 16px;
+    min-height: auto;
+  }
+  .auth-side-cta { display: none; } /* drop the tagline to save space */
+}

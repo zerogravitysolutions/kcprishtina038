@@ -222,6 +222,16 @@ async function syncPosts(
       if (!id) continue;
       counts.seen++;
 
+      // ----- Filter 1: skip posts reshared from other pages -----
+      // These have status_type='shared_story' or an attachments[0].type='share'.
+      // We never want them as our own news; the original page owns them.
+      const statusType = (post["status_type"] as string | undefined) ?? null;
+      const attRoot = post["attachments"] as { data?: unknown[] } | undefined;
+      const firstAttType =
+        ((attRoot?.data?.[0] as { type?: string } | undefined)?.type) ?? null;
+      const isReshare = statusType === "shared_story" || firstAttType === "share";
+      if (isReshare) continue;
+
       try {
         const { data: existing } = await supa
           .from("fb_posts")
@@ -296,9 +306,29 @@ async function syncPosts(
   return counts;
 }
 
+// Derive a clean short title for a card heading. Takes the first line of
+// the message (line-break-delimited), trims, and truncates at a word
+// boundary near `max`. Falls back to a date label when the post has no
+// usable text at all.
+function buildNewsTitle(message: string | null, createdTime: string, max = 80): string {
+  const cleaned = (message ?? "").replace(/\r\n/g, "\n").trim();
+  if (!cleaned) {
+    return `Postim ${createdTime.slice(0, 10)}`;
+  }
+  const firstLine = cleaned.split("\n")[0].trim();
+  const src = firstLine.length >= 12 ? firstLine : cleaned.replace(/\s+/g, " ");
+  if (src.length <= max) return src;
+  // Truncate at word boundary <= max-1 (leaving room for the ellipsis).
+  const cut = src.slice(0, max - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  const at = lastSpace > max * 0.6 ? lastSpace : max - 1;
+  return src.slice(0, at).replace(/[\s.,;:!?\-—]+$/, "") + "…";
+}
+
 // Create a public.news row for a fresh FB post. Insert-only: if a news
-// row already exists with this fb_post_id (or the same auto-slug), we
-// don't touch it — editor changes stay sticky.
+// row already exists with this fb_post_id, we don't touch it — editor
+// changes stay sticky. Skips posts that have neither message text NOR
+// images (pure "X updated their status" system events).
 async function upsertNewsFromPost(
   supa: SupabaseClient,
   post: Record<string, unknown>,
@@ -306,14 +336,20 @@ async function upsertNewsFromPost(
   coverMediaId: string | null,
   photoRows: Array<{ id: string; media_id: string }>,
 ): Promise<void> {
-  const message = (post["message"] as string | undefined) ?? null;
+  const message = ((post["message"] as string | undefined) ?? "").trim() || null;
   const story = (post["story"] as string | undefined) ?? null;
   const permalink = (post["permalink_url"] as string | undefined) ?? null;
   const createdTime = post["created_time"] as string;
 
-  const titleSource = (message ?? story ?? "KÇ Prishtina 038").trim();
-  const title = titleSource.length > 120 ? titleSource.slice(0, 117) + "..." : titleSource;
-  const body = (message ?? story ?? "").trim();
+  // ----- Filter 2: skip empty posts -----
+  // No actual content (no message) AND no images? Pure FB system event
+  // (e.g. "KÇ Prishtina 038 updated their status."). Not news.
+  if (!message && photoRows.length === 0) {
+    return;
+  }
+
+  const title = buildNewsTitle(message, createdTime, 80);
+  const body = message ?? story ?? "";
   const slug = `fb-${postId.split("_").pop() ?? postId}`;
 
   // Idempotent — `news_fb_post_idx` unique-by-fb_post_id blocks duplicates.

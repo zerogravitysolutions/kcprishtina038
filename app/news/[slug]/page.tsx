@@ -42,6 +42,13 @@ export default async function NewsArticlePage({ params }: { params: Params }) {
   const tag = article.tags?.[0]?.toUpperCase()
     || (article.source === "facebook" ? "FACEBOOK" : "LAJME");
 
+  // FB posts don't have real titles — title_sq is derived from the first
+  // line of body. Showing it as an H1 above the body duplicates content.
+  // For source='facebook', show the body only (with the eyebrow date as
+  // a heading). For source='manual', the editor authored a proper title
+  // so we show it as the H1.
+  const showH1 = article.source === "manual";
+
   return (
     <>
       <PublicNav />
@@ -65,12 +72,14 @@ export default async function NewsArticlePage({ params }: { params: Params }) {
             </span>
           </div>
 
-          <h1
-            className="display display-l"
-            style={{ marginTop: 16, lineHeight: 1.1 }}
-          >
-            {article.title_sq}
-          </h1>
+          {showH1 && (
+            <h1
+              className="display display-l"
+              style={{ marginTop: 16, lineHeight: 1.1 }}
+            >
+              {article.title_sq}
+            </h1>
+          )}
         </div>
 
         {coverUrl && (

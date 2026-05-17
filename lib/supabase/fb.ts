@@ -178,17 +178,27 @@ export async function getMediaPaths(
 // ============================================================
 
 export function newsCardTitle(n: { title_sq: string }, max = 80): string {
+  // Trim and collapse newlines so cards don't render multi-line headlines.
   const s = (n.title_sq || "").replace(/\s+/g, " ").trim();
-  return s.length > max ? s.slice(0, max - 1) + "…" : s;
+  if (s.length <= max) return s;
+  // Truncate at word boundary near `max` to avoid mid-word cuts.
+  const cut = s.slice(0, max - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  const at = lastSpace > max * 0.6 ? lastSpace : max - 1;
+  return cut.slice(0, at).replace(/[\s.,;:!?\-—]+$/, "") + "…";
 }
 
 export function newsCardExcerpt(n: { body_sq: string; title_sq: string }, max = 200): string {
-  const title = (n.title_sq || "").trim();
+  const title = (n.title_sq || "").replace(/…+$/, "").replace(/\s+/g, " ").trim();
   const body = (n.body_sq || "").replace(/\s+/g, " ").trim();
   if (!body) return "";
-  // Skip what's already in the title. Title for FB posts is the first
-  // ~120 chars of the body, so we slice past that.
-  const after = body.startsWith(title) ? body.slice(title.length).trim() : body;
+  // If the body starts with the title's text (FB posts: title is derived
+  // from body's first line), skip ahead so the excerpt shows NEW content.
+  const titlePrefix = title.length >= 12 ? title.slice(0, Math.min(title.length, 60)) : "";
+  let after = body;
+  if (titlePrefix && body.startsWith(titlePrefix)) {
+    after = body.slice(title.length).trim();
+  }
   if (!after) return "";
   return after.length > max ? after.slice(0, max - 1) + "…" : after;
 }

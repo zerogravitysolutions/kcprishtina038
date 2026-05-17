@@ -15,11 +15,13 @@ type NextRace = {
 type SectionRow = { slug: string; name_sq: string; description_sq: string | null };
 type SponsorRow = { name: string; tier: string; role_sq: string | null; body_sq: string | null };
 
+const FOUNDING_YEAR = 2022;
+
 async function fetchHomeData() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
 
-  const [nextRace, sections, news, sponsors, fbPhotos] = await Promise.all([
+  const [nextRace, sections, news, sponsors, fbPhotos, riderC, raceEventC] = await Promise.all([
     supabase.from("events")
       .select("title_sq, start_at, location, distance_km, elevation_m, description_sq")
       .eq("type", "race").eq("status", "published")
@@ -34,7 +36,16 @@ async function fetchHomeData() {
       .select("name, tier, role_sq, body_sq, website_url, display_order")
       .eq("active", true).order("display_order"),
     getHeroPhotos(3),
+    // Active riders only (members with the 'rider' position).
+    supabase.from("team_members")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "active").contains("positions", ["rider"]),
+    // Distinct race events from the curated race_events catalog.
+    supabase.from("race_events")
+      .select("id", { count: "exact", head: true }),
   ]);
+
+  const yearsOnCalendar = new Date().getFullYear() - FOUNDING_YEAR;
 
   return {
     nextRace: (nextRace.data as NextRace | null) ?? null,
@@ -42,12 +53,19 @@ async function fetchHomeData() {
     news,
     sponsors: (sponsors.data as SponsorRow[] | null) ?? [],
     fbPhotos,
+    stats: {
+      activeRiders: riderC.count ?? 0,
+      sectionsActive: (sections.data as SectionRow[] | null)?.length ?? 0,
+      raceEvents: raceEventC.count ?? 0,
+      yearsOnCalendar,
+    },
   };
 }
 
 export default async function Home() {
   const t = await getTranslations();
-  const { nextRace, sections, news, sponsors, fbPhotos } = await fetchHomeData();
+  const { nextRace, sections, news, sponsors, fbPhotos, stats } = await fetchHomeData();
+  const pad2 = (n: number) => n.toString().padStart(2, "0");
   // Hero collage uses real FB photos when available; otherwise the labeled
   // placeholder boxes remain (existing behavior preserved).
   const heroSlots: Array<{ url: string | null; alt: string }> = [0, 1, 2].map(i => {
@@ -141,32 +159,32 @@ export default async function Home() {
                 return <div key={slot} className={`slot ${slot}`}><span>{labels[i]}</span></div>;
               })}
               <div className="stamp">
-                <span>EKIPI · 2026</span>
-                <strong>47 ÇIKLISTË</strong>
+                <span>EKIPI · {new Date().getFullYear()}</span>
+                <strong>{stats.activeRiders} ÇIKLISTË</strong>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ============ STATS STRIP ============ */}
+      {/* ============ STATS STRIP — live counts from DB ============ */}
       <div className="container">
         <div className="stats-strip">
           <div className="stat">
-            <div className="num mono">{t("stats.km.num")}</div>
-            <div className="label">{t("stats.km.label")}</div>
+            <div className="num mono">{pad2(stats.activeRiders)}</div>
+            <div className="label">Çiklistë aktivë</div>
           </div>
           <div className="stat">
-            <div className="num mono">{t("stats.podium.num")}</div>
-            <div className="label">{t("stats.podium.label")}</div>
+            <div className="num mono">{stats.raceEvents}</div>
+            <div className="label">Garat e regjistruara</div>
           </div>
           <div className="stat">
-            <div className="num mono">{t("stats.juniors.num")}</div>
-            <div className="label">{t("stats.juniors.label")}</div>
+            <div className="num mono">{pad2(stats.sectionsActive)}</div>
+            <div className="label">Disiplina aktive</div>
           </div>
           <div className="stat">
-            <div className="num mono">{t("stats.years.num")}</div>
-            <div className="label">{t("stats.years.label")}</div>
+            <div className="num mono">{pad2(stats.yearsOnCalendar)}</div>
+            <div className="label">Vite në kalendar</div>
           </div>
         </div>
       </div>

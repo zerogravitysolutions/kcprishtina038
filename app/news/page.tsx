@@ -6,7 +6,7 @@ import { Footer } from "@/components/public/Footer";
 import { NewsCard } from "@/components/ui/NewsCard";
 import { getNewsPage } from "@/lib/supabase/fb";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 24;
 
 export const metadata: Metadata = {
   title: "Lajme",

@@ -284,6 +284,23 @@ export interface Database {
           display_order?: number;
         };
       };
+      race_events: {
+        Row: {
+          id: string; slug: string; name: string;
+          race_date: string;
+          location: string | null;
+          race_type: "road"|"mtb"|"tt"|"stage"|"gravel"|"cyclocross"|null;
+          organizer: string | null;
+          description: string | null;
+          result_summary: string | null;
+          cover_media_id: string | null;
+          external_url: string | null;
+          display_order: number;
+          created_at: string; updated_at: string;
+        };
+        Insert: { slug: string; name: string; race_date: string };
+        Update: Partial<Database["public"]["Tables"]["race_events"]["Row"]>;
+      };
       documents: {
         Row: {
           id: string; slug: string; title: string;

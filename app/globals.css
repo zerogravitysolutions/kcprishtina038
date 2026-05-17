@@ -1546,3 +1546,56 @@ footer.foot {
 .races-year-chip[data-active="true"] {
   background: var(--ink); color: var(--paper); border-color: var(--ink);
 }
+
+/* ============================================================
+ * Race events (/races and /races/[slug])
+ * ============================================================ */
+.race-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+@media (max-width: 1000px) { .race-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width:  600px) { .race-grid { grid-template-columns: 1fr; } }
+
+.race-card {
+  display: flex; flex-direction: column;
+  text-decoration: none; color: inherit;
+  transition: transform .25s cubic-bezier(.2,.7,.2,1);
+}
+.race-card:hover { transform: translateY(-3px); }
+.race-card__photo {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--paper-2);
+  display: grid; place-items: center;
+}
+.race-card__photo img {
+  transition: transform .5s cubic-bezier(.2,.7,.2,1);
+}
+.race-card:hover .race-card__photo img { transform: scale(1.03); }
+.race-card__placeholder {
+  font-family: var(--font-mono);
+  font-size: 14px; letter-spacing: .24em;
+  color: color-mix(in oklab, var(--ink) 30%, transparent);
+}
+.race-card__body {
+  margin-top: 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.race-card__date {
+  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ember);
+}
+.race-card__name {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 19px; letter-spacing: -0.015em; line-height: 1.25;
+  color: var(--ink);
+}
+.race-card__meta {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-3);
+}

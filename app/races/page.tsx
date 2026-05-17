@@ -1,9 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
-import { NewsCard } from "@/components/ui/NewsCard";
-import { getRacesPage } from "@/lib/supabase/fb";
+import { getRaceEvents, mediaUrl, raceTypeLabel, type RaceEvent } from "@/lib/supabase/fb";
 
 export const metadata: Metadata = {
   title: "Garat",
@@ -11,32 +11,23 @@ export const metadata: Metadata = {
   alternates: { canonical: "/races" },
 };
 
-const PAGE_SIZE = 60;
-
-type SearchParams = Promise<{ page?: string; year?: string }>;
+type SearchParams = Promise<{ year?: string }>;
 
 export default async function RacesPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
-  const pageNum = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
-  const offset = (pageNum - 1) * PAGE_SIZE;
-  const { rows, total } = await getRacesPage({ offset, limit: PAGE_SIZE });
-
-  // Group by year for visual hierarchy.
   const yearFilter = (sp.year ?? "").trim();
-  const filtered = yearFilter
-    ? rows.filter((r) => (r.published_at ?? "").startsWith(yearFilter))
-    : rows;
-  const years = Array.from(new Set(
-    rows.map((r) => (r.published_at ?? "").slice(0, 4)).filter(Boolean)
-  )).sort().reverse();
-  const grouped = new Map<string, typeof filtered>();
+
+  const all = await getRaceEvents();
+  const years = Array.from(new Set(all.map((r) => r.race_date.slice(0, 4)))).sort().reverse();
+
+  const filtered = yearFilter ? all.filter((r) => r.race_date.startsWith(yearFilter)) : all;
+  const grouped = new Map<string, RaceEvent[]>();
   for (const r of filtered) {
-    const y = (r.published_at ?? "").slice(0, 4) || "—";
+    const y = r.race_date.slice(0, 4);
     if (!grouped.has(y)) grouped.set(y, []);
     grouped.get(y)!.push(r);
   }
   const orderedYears = Array.from(grouped.keys()).sort().reverse();
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -58,7 +49,7 @@ export default async function RacesPage({ searchParams }: { searchParams: Search
             Kronologjia e garave.
           </h1>
           <p className="lede" style={{ marginTop: 24, maxWidth: "60ch", color: "var(--ink-2)" }}>
-            {total} ngjarje të identifikuara nga publikimet tona në Facebook — Granfondo, Tour of Kosova, Kampionatet kombëtare, Sharr Cup dhe gara të tjera.
+            {all.length} ngjarje të katalogizuara — kampionate kombëtare, gara rrugore, MTB, dhe etapa ndërkombëtare.
           </p>
 
           {years.length > 1 && (
@@ -101,12 +92,10 @@ export default async function RacesPage({ searchParams }: { searchParams: Search
             orderedYears.map((y) => (
               <div key={y} style={{ marginBottom: 48 }}>
                 <div
-                  className="races-year-band mono"
+                  className="races-year-band"
                   style={{
                     display: "flex", alignItems: "baseline", gap: 12,
                     marginBottom: 16,
-                    fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase",
-                    color: "var(--ink-3)",
                   }}
                 >
                   <span style={{
@@ -116,51 +105,18 @@ export default async function RacesPage({ searchParams }: { searchParams: Search
                     color: "var(--ink)",
                   }}>{y}</span>
                   <span style={{ borderTop: "1px solid color-mix(in oklab, var(--ink) 18%, transparent)", flex: 1, height: 1 }} />
-                  <span>{grouped.get(y)!.length} gar{grouped.get(y)!.length === 1 ? "ë" : "a"}</span>
+                  <span className="mono" style={{
+                    fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase",
+                    color: "var(--ink-3)",
+                  }}>
+                    {grouped.get(y)!.length} gar{grouped.get(y)!.length === 1 ? "ë" : "a"}
+                  </span>
                 </div>
-                <div className="news-grid">
-                  {grouped.get(y)!.map((n) => (
-                    <NewsCard key={n.slug} news={n} />
-                  ))}
+                <div className="race-grid">
+                  {grouped.get(y)!.map((r) => <RaceCard key={r.id} race={r} />)}
                 </div>
               </div>
             ))
-          )}
-
-          {totalPages > 1 && !yearFilter && (
-            <nav
-              className="mono"
-              aria-label="Race pagination"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginTop: 32,
-                paddingTop: 32,
-                borderTop: "1px solid rgba(15, 26, 46, 0.08)",
-                fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase",
-              }}
-            >
-              {pageNum > 1 ? (
-                <Link
-                  href={(pageNum === 2 ? "/races" : `/races?page=${pageNum - 1}`) as never}
-                  className="btn btn-ghost btn-sm"
-                >
-                  ← Më të reja
-                </Link>
-              ) : <span />}
-              <span style={{ color: "var(--ink-2)" }}>
-                {pageNum} / {totalPages} · {total}
-              </span>
-              {pageNum < totalPages ? (
-                <Link
-                  href={(`/races?page=${pageNum + 1}`) as never}
-                  className="btn btn-ghost btn-sm"
-                >
-                  Më të vjetra →
-                </Link>
-              ) : <span />}
-            </nav>
           )}
         </div>
       </section>
@@ -168,5 +124,40 @@ export default async function RacesPage({ searchParams }: { searchParams: Search
       <div style={{ paddingBottom: 80 }} />
       <Footer />
     </>
+  );
+}
+
+function RaceCard({ race: r }: { race: RaceEvent }) {
+  const cover = mediaUrl(r.cover?.storage_path ?? null);
+  const dateLabel = new Date(r.race_date).toLocaleDateString("sq", {
+    day: "2-digit", month: "long", year: "numeric",
+  });
+  return (
+    <Link href={`/races/${r.slug}` as never} className="race-card" aria-label={r.name}>
+      <div className="race-card__photo">
+        {cover ? (
+          <Image
+            src={cover}
+            alt={r.name}
+            fill
+            sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 33vw"
+            quality={70}
+            style={{ objectFit: "cover" }}
+          />
+        ) : (
+          <span className="race-card__placeholder" aria-hidden="true">
+            {r.race_type === "mtb" ? "MTB" : r.race_type === "stage" ? "TOUR" : "GARË"}
+          </span>
+        )}
+      </div>
+      <div className="race-card__body">
+        <span className="race-card__date mono">{dateLabel}</span>
+        <h3 className="race-card__name">{r.name}</h3>
+        <div className="race-card__meta mono">
+          {r.location && <span>{r.location}</span>}
+          {r.race_type && <span>{raceTypeLabel(r.race_type)}</span>}
+        </div>
+      </div>
+    </Link>
   );
 }

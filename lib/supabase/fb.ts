@@ -180,26 +180,76 @@ export async function getNewsPage({
   };
 }
 
-// Subset of news rows that have been tagged 'race'. Same shape as a card.
-export async function getRacesPage({
-  offset = 0,
-  limit = 24,
-}: { offset?: number; limit?: number } = {}): Promise<{
-  rows: NewsCard[];
-  total: number;
-}> {
+// ============================================================
+// Race events — curated catalog. Replaces the auto-tagged news.tags 'race'
+// path. Each event groups one or more news posts.
+// ============================================================
+
+export type RaceType = "road" | "mtb" | "tt" | "stage" | "gravel" | "cyclocross";
+
+export type RaceEvent = {
+  id: string;
+  slug: string;
+  name: string;
+  race_date: string;          // ISO date
+  location: string | null;
+  race_type: RaceType | null;
+  organizer: string | null;
+  description: string | null;
+  result_summary: string | null;
+  external_url: string | null;
+  cover: { storage_path: string } | null;
+  /** Count of related news posts, returned only when needed. */
+  post_count?: number;
+};
+
+const RACE_EVENT_SELECT =
+  "id, slug, name, race_date, location, race_type, organizer, " +
+  "description, result_summary, external_url, " +
+  "cover:media!cover_media_id(storage_path)";
+
+export async function getRaceEvents(): Promise<RaceEvent[]> {
   const supabase = await createClient();
-  const { data, count } = await supabase
+  const { data } = await supabase
+    .from("race_events")
+    .select(RACE_EVENT_SELECT)
+    .order("race_date", { ascending: false });
+  return (data as unknown as RaceEvent[] | null) ?? [];
+}
+
+export async function getRaceEventBySlug(slug: string): Promise<RaceEvent | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("race_events")
+    .select(RACE_EVENT_SELECT)
+    .eq("slug", slug)
+    .maybeSingle();
+  return (data as unknown as RaceEvent | null) ?? null;
+}
+
+// All news posts linked to a given race event. Used on /races/[slug].
+export async function getNewsForRaceEvent(raceEventId: string): Promise<NewsCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
     .from("news")
-    .select(NEWS_CARD_SELECT, { count: "exact" })
+    .select(NEWS_CARD_SELECT)
+    .eq("race_event_id", raceEventId)
     .eq("status", "published")
-    .contains("tags", ["race"])
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .range(offset, offset + limit - 1);
-  return {
-    rows: (data as unknown as NewsCard[] | null) ?? [],
-    total: count ?? 0,
-  };
+    .order("published_at", { ascending: true });
+  return (data as unknown as NewsCard[] | null) ?? [];
+}
+
+// Albanian display label for a race_type code.
+export function raceTypeLabel(t: RaceType | null | undefined): string {
+  switch (t) {
+    case "road":       return "Rrugore";
+    case "mtb":        return "MTB · XCO";
+    case "tt":         return "Kronometer";
+    case "stage":      return "Etapore";
+    case "gravel":     return "Gravel";
+    case "cyclocross": return "Cyclocross";
+    default:           return "—";
+  }
 }
 
 export async function getNewsBySlug(slug: string): Promise<NewsDetail | null> {

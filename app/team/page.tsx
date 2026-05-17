@@ -105,9 +105,6 @@ function TeamSection({
         <div className="section-head" style={{ marginBottom: 24 }}>
           <div>
             <div className="eyebrow"><span>{title}</span></div>
-            <h2 className="display display-m" style={{ marginTop: 12 }}>
-              {members.length} {members.length === 1 ? "person" : "persona"}.
-            </h2>
           </div>
           {subtitle && (
             <p className="lede" style={{ color: "var(--ink-2)" }}>{subtitle}</p>

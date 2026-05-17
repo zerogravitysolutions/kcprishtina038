@@ -878,7 +878,6 @@ import { supa, requireAuth, signOut } from "./assets/supabase.js";
 const profile = await requireAuth();
 if (!profile) throw new Error("redirected");
 
-// Sidebar identity
 const initials = (profile.full_name || "?").split(/\s+/).slice(0,2).map(s => s[0] || "").join("").toUpperCase() || "?";
 document.querySelectorAll('[data-bind="avatar-initials"]').forEach(el => el.textContent = initials);
 const fullNameEl = document.querySelector('[data-bind="full-name"]');
@@ -895,51 +894,77 @@ if (roleSpan) {
 
 document.getElementById("signout-link")?.addEventListener("click", (e) => { e.preventDefault(); signOut(); });
 
-// Hydrate the form with persisted profile fields.
-// Many design fields (address, ID, social handles, equipment, emergency contact)
-// are NOT yet in the schema and stay as static demo values; expand schema later
-// if/when the user asks for them to persist.
+// Fetch the row again so we get `metadata`.
+const { data: full } = await supa.from("profiles")
+  .select("full_name, email, phone, dob, bio, metadata")
+  .eq("id", profile.id).maybeSingle();
+const meta = (full && full.metadata) || {};
+
+// Hydrate.
 const setVal = (name, value) => {
   const el = document.querySelector(`[name="${name}"]`);
   if (el && value !== null && value !== undefined) el.value = value;
 };
-
-const fullName = (profile.full_name || "").trim();
+const fullName = (full?.full_name || profile.full_name || "").trim();
 const parts = fullName.split(/\s+/);
-const firstName = parts[0] || "";
-const lastName  = parts.slice(1).join(" ") || "";
+setVal("first_name", parts[0] || "");
+setVal("last_name",  parts.slice(1).join(" ") || "");
+setVal("dob",        full?.dob || "");
+setVal("email",      full?.email || profile.email);
+setVal("phone",      full?.phone || "");
+setVal("bio",        full?.bio  || "");
 
-setVal("first_name", firstName);
-setVal("last_name",  lastName);
-setVal("dob",        profile.dob || "");
-setVal("email",      profile.email);
-setVal("phone",      profile.phone || "");
-setVal("bio",        profile.bio  || "");
+// Persist unmapped design fields by giving each a name= attribute, then
+// hydrating + saving from meta. We probe known design field labels and
+// attach name attributes on the fly so the design HTML stays unchanged.
+const labelToKey = {
+  "gender":     "gender",
+  "address":    "address",
+  "city":       "city",
+  "postal":     "postal_code",
+  "nationality":"nationality",
+  "id / passport number": "id_number",
+  "shoe (eu)":  "shoe_eu",
+  "height (cm)":"height_cm",
+  "weight (kg)":"weight_kg",
+  "strava handle": "strava",
+  "instagram":  "instagram",
+};
+document.querySelectorAll(".field label").forEach(lab => {
+  const key = labelToKey[lab.textContent.trim().toLowerCase()];
+  if (!key) return;
+  const input = lab.parentElement.querySelector("input, select, textarea");
+  if (!input || input.name) return;
+  input.name = "meta_" + key;
+  if (meta[key] !== undefined) input.value = meta[key];
+});
 
-// Save handler — writes the fields the profiles schema actually has.
+// Save handler.
 const status = document.getElementById("profile-save-status");
 document.getElementById("profile-save-btn")?.addEventListener("click", async () => {
-  status.textContent = "Po ruan…";
-  status.style.color = "var(--ink-3)";
-
+  status.textContent = "Po ruan…"; status.style.color = "var(--ink-3)";
   const fn = document.querySelector('[name="first_name"]').value.trim();
   const ln = document.querySelector('[name="last_name"]').value.trim();
+  // Gather meta_* inputs.
+  const newMeta = { ...meta };
+  document.querySelectorAll('[name^="meta_"]').forEach(el => {
+    const k = el.name.slice("meta_".length);
+    const v = el.value.trim();
+    if (v === "") delete newMeta[k]; else newMeta[k] = v;
+  });
   const payload = {
-    full_name: [fn, ln].filter(Boolean).join(" ") || profile.full_name,
+    full_name: [fn, ln].filter(Boolean).join(" ") || full?.full_name || profile.full_name,
     phone:     document.querySelector('[name="phone"]').value.trim() || null,
     dob:       document.querySelector('[name="dob"]').value || null,
     bio:       document.querySelector('[name="bio"]').value.trim() || null,
+    metadata:  newMeta,
   };
-
   const { error } = await supa.from("profiles").update(payload).eq("id", profile.id);
-  if (error) {
-    status.textContent = "Gabim: " + error.message;
-    status.style.color = "var(--ember-deep)";
-    return;
-  }
+  if (error) { status.textContent = "Gabim: " + error.message; status.style.color = "var(--ember-deep)"; return; }
   status.textContent = "Ruajtur · " + new Date().toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit" });
   status.style.color = "var(--ok, #2f8a4e)";
 });
+
 </script>
 </body>
 </html>

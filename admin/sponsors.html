@@ -227,25 +227,76 @@
   });
 </script>
 <script type="module">
-import { supa, boot, escapeHtml } from "./admin.js";
+import { supa, boot, escapeHtml, openModal, toast } from "./admin.js";
 await boot(["admin","editor"]);
-const tbody = document.getElementById("sponsors-tbody") || document.querySelector("tbody");
-const { data, error } = await supa.from("sponsors").select("*").order("display_order").limit(50);
-if (tbody) {
-  if (error) { tbody.innerHTML = `<tr><td colspan="5" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; }
-  else if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka sponsorë.</td></tr>'; }
-  else {
-    tbody.innerHTML = data.map(s => `
-      <tr>
-        <td>${escapeHtml(s.name)}</td>
-        <td><span class="badge-st">${escapeHtml(s.tier)}</span></td>
-        <td>${escapeHtml(s.role_sq || "—")}</td>
-        <td class="mono">${s.contract_end ? new Date(s.contract_end).toLocaleDateString("sq") : "—"}</td>
-        <td><span class="badge-st ${s.active ? "ok" : "err"}">${s.active ? "active" : "inactive"}</span></td>
-      </tr>
-    `).join("");
-  }
+
+const head = document.querySelector(".page-head");
+if (head && !document.getElementById("new-sponsor-btn")) {
+  const right = document.createElement("div");
+  right.style.cssText = "display:flex;gap:8px;";
+  right.innerHTML = `<button id="new-sponsor-btn" class="btn btn-ember">+ New sponsor</button>`;
+  head.appendChild(right);
+  document.getElementById("new-sponsor-btn").addEventListener("click", () => openSponsorModal());
 }
+
+const tbody = document.getElementById("sponsors-tbody") || document.querySelector("tbody");
+async function load() {
+  const { data, error } = await supa.from("sponsors").select("*").order("display_order");
+  if (!tbody) return;
+  if (error) { tbody.innerHTML = `<tr><td colspan="5" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; return; }
+  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka sponsorë.</td></tr>'; return; }
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td>${escapeHtml(s.name)}</td>
+      <td><span class="badge-st">${escapeHtml(s.tier)}</span></td>
+      <td>${escapeHtml(s.role_sq || "—")}</td>
+      <td class="mono">${s.contract_end ? new Date(s.contract_end).toLocaleDateString("sq") : "—"}</td>
+      <td class="right actions">
+        <span class="badge-st ${s.active ? "ok" : "err"}" style="margin-right:8px;">${s.active ? "active" : "inactive"}</span>
+        <button class="btn btn-sm btn-ghost" data-edit="${escapeHtml(s.id)}">Edit</button>
+      </td>
+    </tr>
+  `).join("");
+  tbody.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const s = data.find(x => x.id === btn.dataset.edit);
+      if (s) openSponsorModal(s);
+    });
+  });
+}
+
+function openSponsorModal(initial = null) {
+  openModal({
+    title: initial ? "Edit sponsor" : "New sponsor",
+    fields: [
+      { name: "name", label: "Name", type: "text", required: true },
+      { name: "tier", label: "Tier", type: "select", required: true,
+        options: [["title","Title"],["technical","Technical"],["partner","Partner"],["supporter","Supporter"]] },
+      { name: "role_sq", label: "Role (SQ)", type: "text" },
+      { name: "role_en", label: "Role (EN)", type: "text" },
+      { name: "body_sq", label: "Body (SQ)", type: "textarea", rows: 3 },
+      { name: "body_en", label: "Body (EN)", type: "textarea", rows: 3 },
+      { name: "website_url", label: "Website URL", type: "url" },
+      { name: "contract_start", label: "Contract start", type: "date" },
+      { name: "contract_end", label: "Contract end", type: "date" },
+      { name: "display_order", label: "Display order", type: "number" },
+      { name: "active", label: "Active", type: "select",
+        options: [["true","Yes"],["false","No"]] },
+    ],
+    initial: initial ? { ...initial, active: String(initial.active) } : { tier: "partner", active: "true", display_order: 100 },
+    onSubmit: async (values) => {
+      values.active = values.active === "true";
+      const res = initial
+        ? await supa.from("sponsors").update(values).eq("id", initial.id)
+        : await supa.from("sponsors").insert(values);
+      if (res.error) throw res.error;
+      toast(initial ? "Updated." : "Created.");
+      await load();
+    },
+  });
+}
+
+await load();
 
 </script>
 </body>

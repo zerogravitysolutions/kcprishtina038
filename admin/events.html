@@ -81,7 +81,7 @@
 <body>
 
 <div id="page-content">
-  <div class="page-head">
+  <div class="page-head" data-actions="events">
     <div>
       <h1>Events</h1>
       <div class="sub">14 in 2026 calendar · 6 races · 5 rides · 3 camps</div>
@@ -334,28 +334,94 @@
   });
 </script>
 <script type="module">
-import { supa, boot, escapeHtml } from "./admin.js";
+import { supa, boot, escapeHtml, openModal, toast } from "./admin.js";
 const profile = await boot(["admin","editor","coach"]);
-const tbody = document.getElementById("events-tbody") || document.querySelector("tbody");
-const { data, error } = await supa.from("events")
-  .select("id, title_sq, type, status, start_at, location, section:sections(name_sq)")
-  .order("start_at", { ascending: false }).limit(50);
-if (tbody) {
-  if (error) { tbody.innerHTML = `<tr><td colspan="6" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; }
-  else if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka eventet — krijoni një të ri.</td></tr>'; }
-  else {
-    tbody.innerHTML = data.map(ev => `
-      <tr>
-        <td>${escapeHtml(ev.title_sq)}<small style="display:block;color:var(--ink-3);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;margin-top:2px;">${escapeHtml(ev.location || "—")}</small></td>
-        <td class="mono">${escapeHtml(ev.type)}</td>
-        <td>${escapeHtml(ev.section?.name_sq || "—")}</td>
-        <td class="mono">${new Date(ev.start_at).toLocaleDateString("sq")}</td>
-        <td><span class="badge-st ${ev.status === 'published' ? 'ok' : ev.status === 'draft' ? 'warn' : 'err'}">${escapeHtml(ev.status)}</span></td>
-        <td class="right actions"><a class="btn btn-sm btn-ghost" href="#">Edit</a></td>
-      </tr>
-    `).join("");
-  }
+
+// Section pick-list (for the form)
+const { data: sections } = await supa.from("sections").select("id, slug, name_sq").order("display_order");
+
+// Add "New event" button into the page head.
+const head = document.querySelector(".page-head");
+if (head && !document.getElementById("new-event-btn")) {
+  const right = document.createElement("div");
+  right.style.cssText = "display:flex;gap:8px;";
+  right.innerHTML = `<button id="new-event-btn" class="btn btn-ember"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> New event</button>`;
+  head.appendChild(right);
+  document.getElementById("new-event-btn").addEventListener("click", () => openEventModal());
 }
+
+const tbody = document.getElementById("events-tbody") || document.querySelector("tbody");
+async function load() {
+  const { data, error } = await supa.from("events")
+    .select("id, title_sq, title_en, type, status, start_at, end_at, location, distance_km, elevation_m, description_sq, section_id, section:sections(name_sq)")
+    .order("start_at", { ascending: false }).limit(100);
+  if (!tbody) return;
+  if (error) { tbody.innerHTML = `<tr><td colspan="6" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; return; }
+  if (!data || !data.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka eventet — krijoni një të ri.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(ev => `
+    <tr data-id="${escapeHtml(ev.id)}">
+      <td>${escapeHtml(ev.title_sq)}<small style="display:block;color:var(--ink-3);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;margin-top:2px;">${escapeHtml(ev.location || "—")}</small></td>
+      <td class="mono">${escapeHtml(ev.type)}</td>
+      <td>${escapeHtml(ev.section?.name_sq || "—")}</td>
+      <td class="mono">${new Date(ev.start_at).toLocaleDateString("sq")}</td>
+      <td><span class="badge-st ${ev.status === 'published' ? 'ok' : ev.status === 'draft' ? 'warn' : 'err'}">${escapeHtml(ev.status)}</span></td>
+      <td class="right actions"><button class="btn btn-sm btn-ghost" data-edit="${escapeHtml(ev.id)}">Edit</button></td>
+    </tr>
+  `).join("");
+  tbody.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.edit;
+      const ev = data.find(x => x.id === id);
+      if (ev) openEventModal(ev);
+    });
+  });
+}
+
+function openEventModal(initial = null) {
+  const fields = [
+    { name: "title_sq", label: "Title (SQ)", type: "text", required: true },
+    { name: "title_en", label: "Title (EN)", type: "text" },
+    { name: "type",     label: "Type",       type: "select", required: true,
+      options: [["race","Race"],["ride","Ride"],["camp","Camp"],["training","Training"]] },
+    { name: "section_id", label: "Section",  type: "select",
+      options: [["","—"], ...sections.map(s => [s.id, s.name_sq])] },
+    { name: "start_at", label: "Start (ISO)", type: "datetime-local", required: true },
+    { name: "end_at",   label: "End (ISO)",   type: "datetime-local" },
+    { name: "location", label: "Location",   type: "text" },
+    { name: "distance_km", label: "Distance (km)", type: "number" },
+    { name: "elevation_m", label: "Elevation (m)", type: "number" },
+    { name: "description_sq", label: "Description (SQ)", type: "textarea", rows: 4 },
+    { name: "status",   label: "Status", type: "select", required: true,
+      options: [["draft","Draft"],["published","Published"],["cancelled","Cancelled"],["done","Done"]] },
+  ];
+  // datetime-local needs trimmed ISO without trailing Z.
+  const init = initial ? { ...initial,
+    start_at: initial.start_at ? initial.start_at.slice(0, 16) : "",
+    end_at:   initial.end_at   ? initial.end_at.slice(0, 16)   : "",
+  } : { status: "draft", type: "race" };
+  openModal({
+    title: initial ? "Edit event" : "New event",
+    fields,
+    initial: init,
+    onSubmit: async (values) => {
+      // Convert datetime-local back to ISO.
+      if (values.start_at && !values.start_at.endsWith("Z")) values.start_at = new Date(values.start_at).toISOString();
+      if (values.end_at   && !values.end_at.endsWith("Z"))   values.end_at   = new Date(values.end_at).toISOString();
+      values.created_by = profile.id;
+      const res = initial
+        ? await supa.from("events").update(values).eq("id", initial.id)
+        : await supa.from("events").insert(values);
+      if (res.error) throw res.error;
+      toast(initial ? "Updated." : "Created.");
+      await load();
+    },
+  });
+}
+
+await load();
 
 </script>
 </body>

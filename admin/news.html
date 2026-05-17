@@ -251,27 +251,70 @@
   });
 </script>
 <script type="module">
-import { supa, boot, escapeHtml, fmtRelative } from "./admin.js";
-await boot(["admin","editor"]);
-const tbody = document.getElementById("news-tbody") || document.querySelector("tbody");
-const { data, error } = await supa.from("news")
-  .select("id, title_sq, slug, status, published_at, updated_at, author:profiles!author_id(full_name)")
-  .order("updated_at", { ascending: false }).limit(50);
-if (tbody) {
-  if (error) { tbody.innerHTML = `<tr><td colspan="5" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; }
-  else if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka artikuj — krijoni një draft të ri.</td></tr>'; }
-  else {
-    tbody.innerHTML = data.map(n => `
-      <tr>
-        <td>${escapeHtml(n.title_sq)}<small style="display:block;color:var(--ink-3);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;margin-top:2px;">/${escapeHtml(n.slug)}</small></td>
-        <td>${escapeHtml(n.author?.full_name || "—")}</td>
-        <td><span class="badge-st ${n.status === 'published' ? 'ok' : n.status === 'draft' ? 'warn' : 'err'}">${escapeHtml(n.status)}</span></td>
-        <td class="mono">${fmtRelative(n.updated_at)}</td>
-        <td class="right actions"><a class="btn btn-sm btn-ghost" href="#">Edit</a></td>
-      </tr>
-    `).join("");
-  }
+import { supa, boot, escapeHtml, fmtRelative, openModal, toast } from "./admin.js";
+const profile = await boot(["admin","editor"]);
+
+const head = document.querySelector(".page-head");
+if (head && !document.getElementById("new-news-btn")) {
+  const right = document.createElement("div");
+  right.style.cssText = "display:flex;gap:8px;";
+  right.innerHTML = `<button id="new-news-btn" class="btn btn-ember">+ New post</button>`;
+  head.appendChild(right);
+  document.getElementById("new-news-btn").addEventListener("click", () => openNewsModal());
 }
+
+const tbody = document.getElementById("news-tbody") || document.querySelector("tbody");
+async function load() {
+  const { data, error } = await supa.from("news")
+    .select("id, slug, title_sq, title_en, body_sq, body_en, status, tags, published_at, updated_at, author:profiles!author_id(full_name)")
+    .order("updated_at", { ascending: false }).limit(100);
+  if (!tbody) return;
+  if (error) { tbody.innerHTML = `<tr><td colspan="5" style="padding:16px;color:#9B4220;">${escapeHtml(error.message)}</td></tr>`; return; }
+  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--ink-3);font-family:var(--font-mono);font-size:12px;">Nuk ka artikuj — krijoni një draft.</td></tr>'; return; }
+  tbody.innerHTML = data.map(n => `
+    <tr>
+      <td>${escapeHtml(n.title_sq)}<small style="display:block;color:var(--ink-3);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;margin-top:2px;">/${escapeHtml(n.slug)}</small></td>
+      <td>${escapeHtml(n.author?.full_name || "—")}</td>
+      <td><span class="badge-st ${n.status === 'published' ? 'ok' : n.status === 'draft' ? 'warn' : 'err'}">${escapeHtml(n.status)}</span></td>
+      <td class="mono">${fmtRelative(n.updated_at)}</td>
+      <td class="right actions"><button class="btn btn-sm btn-ghost" data-edit="${escapeHtml(n.id)}">Edit</button></td>
+    </tr>
+  `).join("");
+  tbody.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const n = data.find(x => x.id === btn.dataset.edit);
+      if (n) openNewsModal(n);
+    });
+  });
+}
+
+function openNewsModal(initial = null) {
+  openModal({
+    title: initial ? "Edit news post" : "New news post",
+    fields: [
+      { name: "slug",     label: "Slug (URL)",    type: "text", required: true },
+      { name: "title_sq", label: "Title (SQ)",    type: "text", required: true },
+      { name: "title_en", label: "Title (EN)",    type: "text" },
+      { name: "body_sq",  label: "Body (SQ)",     type: "textarea", rows: 8, required: true },
+      { name: "body_en",  label: "Body (EN)",     type: "textarea", rows: 6 },
+      { name: "status",   label: "Status",        type: "select", required: true,
+        options: [["draft","Draft"],["published","Published"],["archived","Archived"]] },
+    ],
+    initial: initial || { status: "draft" },
+    onSubmit: async (values) => {
+      values.author_id = profile.id;
+      if (values.status === "published" && !values.published_at) values.published_at = new Date().toISOString();
+      const res = initial
+        ? await supa.from("news").update(values).eq("id", initial.id)
+        : await supa.from("news").insert(values);
+      if (res.error) throw res.error;
+      toast(initial ? "Updated." : "Created.");
+      await load();
+    },
+  });
+}
+
+await load();
 
 </script>
 </body>

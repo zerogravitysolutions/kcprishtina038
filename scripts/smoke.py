@@ -73,12 +73,65 @@ def check_supabase():
     return []
 
 
+def check_supabase_published_filter():
+    """Anon SELECT on `events` must only return rows where status='published'."""
+    url = f"{SUPABASE_URL}/rest/v1/events?select=id,status&limit=50"
+    req = urllib.request.Request(url, headers={
+        "apikey": SUPABASE_PUBLISHABLE,
+        "Authorization": f"Bearer {SUPABASE_PUBLISHABLE}",
+        "Accept": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            body = json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        # 404 = no rows yet; that's fine (empty events table)
+        if e.code == 404: return []
+        return [f"events RLS probe: HTTP {e.code}"]
+    except Exception as e:
+        return [f"events RLS probe: {e!r}"]
+    leaked = [r for r in body if r.get("status") != "published"]
+    if leaked:
+        return [f"events RLS probe: anon saw {len(leaked)} non-published events — RLS leak"]
+    return []
+
+
+def check_supabase_admin_only_tables():
+    """Anon SELECT on `audit_log` and `settings` must return 0 rows or 404."""
+    fails = []
+    for tbl in ("audit_log", "settings"):
+        url = f"{SUPABASE_URL}/rest/v1/{tbl}?select=*&limit=1"
+        req = urllib.request.Request(url, headers={
+            "apikey": SUPABASE_PUBLISHABLE,
+            "Authorization": f"Bearer {SUPABASE_PUBLISHABLE}",
+            "Accept": "application/json",
+        })
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                body = json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code in (404, 401, 403):
+                continue
+            fails.append(f"{tbl} RLS probe: HTTP {e.code}")
+            continue
+        except Exception as e:
+            fails.append(f"{tbl} RLS probe: {e!r}")
+            continue
+        if isinstance(body, list) and len(body) > 0:
+            fails.append(f"{tbl} RLS probe: anon saw {len(body)} rows — RLS leak!")
+    return fails
+
+
 def main():
     fails = []
     print(f"=== HTTP routes ({len(PUBLIC_ROUTES)}) ===")
     fails += check_public_routes()
-    print(f"=== Supabase ===")
+    print(f"=== Supabase reachable + sections seed ===")
     fails += check_supabase()
+    print(f"=== RLS: anon sees only published events ===")
+    fails += check_supabase_published_filter()
+    print(f"=== RLS: anon cannot read audit_log / settings ===")
+    fails += check_supabase_admin_only_tables()
     if fails:
         print(f"\n{len(fails)} failure(s):")
         for f in fails:

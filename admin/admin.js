@@ -103,6 +103,121 @@ export function patchSidebarIdentity(profile) {
   }
 }
 
+// =====================================================================
+// Generic create/edit modal.
+//
+// openModal({
+//   title: "New event",
+//   fields: [
+//     { name: "title_sq", label: "Title (SQ)", type: "text", required: true },
+//     { name: "type",     label: "Type",       type: "select", options: ["race","ride","camp","training"], required: true },
+//     { name: "start_at", label: "Start",      type: "datetime-local", required: true },
+//     { name: "description_sq", label: "Description", type: "textarea" },
+//   ],
+//   initial: existingRow,   // optional — pre-fills for edit
+//   onSubmit: async (values) => { ... }
+// })
+//
+// Returns a promise that resolves once the modal closes.
+// =====================================================================
+export function openModal({ title, fields, initial = {}, onSubmit, submitLabel = "Save" }) {
+  return new Promise((resolve) => {
+    // Backdrop
+    const back = document.createElement("div");
+    back.style.cssText = `
+      position:fixed;inset:0;background:rgba(15,26,46,.55);z-index:200;
+      display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;
+      overflow-y:auto;
+    `;
+
+    // Card
+    const card = document.createElement("div");
+    card.style.cssText = `
+      background:#F4F2EC;border-radius:14px;max-width:640px;width:100%;
+      padding:28px 32px 24px;box-shadow:0 24px 60px rgba(15,26,46,.4);
+      font-family:'Manrope',sans-serif;
+    `;
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:22px;letter-spacing:-0.02em;margin:0;">${escapeHtml(title)}</h2>
+        <button id="modal-x" style="background:transparent;border:0;font-size:22px;cursor:pointer;color:#2A3858;line-height:1;padding:0 4px;">×</button>
+      </div>
+      <form id="modal-form">
+        ${fields.map(f => fieldHtml(f, initial[f.name])).join("")}
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;border-top:1px solid rgba(15,26,46,.1);padding-top:16px;">
+          <button type="button" id="modal-cancel" class="btn btn-ghost btn-sm">Cancel</button>
+          <button type="submit" class="btn btn-ember btn-sm">${escapeHtml(submitLabel)}</button>
+        </div>
+        <div id="modal-err" style="display:none;margin-top:14px;padding:10px 12px;border-radius:8px;background:color-mix(in oklab,#C25A2D 12%,white);color:#9B4220;border:1px solid color-mix(in oklab,#C25A2D 28%,transparent);font-size:13px;"></div>
+      </form>
+    `;
+    back.appendChild(card);
+    document.body.appendChild(back);
+
+    const close = () => { back.remove(); resolve(null); };
+    card.querySelector("#modal-x").addEventListener("click", close);
+    card.querySelector("#modal-cancel").addEventListener("click", close);
+    back.addEventListener("click", (e) => { if (e.target === back) close(); });
+
+    card.querySelector("#modal-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const values = {};
+      for (const f of fields) {
+        let v = fd.get(f.name);
+        if (v === null) v = "";
+        v = String(v).trim();
+        if (f.type === "number" || f.type === "int")  v = v === "" ? null : Number(v);
+        else if (f.type === "json")                    { if (v === "") v = null; else { try { v = JSON.parse(v); } catch { showErr("JSON i pavlefshëm te `" + f.label + "`"); return; } } }
+        else if (v === "")                              v = null;
+        values[f.name] = v;
+      }
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      const oldLabel = submitBtn.textContent; submitBtn.textContent = "Po ruan…";
+      try {
+        await onSubmit(values);
+        back.remove();
+        resolve(values);
+      } catch (err) {
+        submitBtn.disabled = false; submitBtn.textContent = oldLabel;
+        showErr(err.message || String(err));
+      }
+    });
+
+    function showErr(msg) {
+      const e = card.querySelector("#modal-err");
+      e.textContent = msg; e.style.display = "block";
+    }
+  });
+}
+
+function fieldHtml(f, initial) {
+  const v = initial === undefined || initial === null ? "" : initial;
+  const label = `<label style="display:block;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#2A3858;margin-bottom:6px;">${escapeHtml(f.label)}${f.required ? ' <span style="color:#C25A2D;">*</span>' : ''}</label>`;
+  const required = f.required ? "required" : "";
+  const baseInput = `width:100%;font-family:'Manrope',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;border:1px solid rgba(15,26,46,.18);background:white;color:#0F1A2E;`;
+  let input;
+  if (f.type === "textarea") {
+    input = `<textarea name="${escapeHtml(f.name)}" rows="${f.rows || 4}" ${required} style="${baseInput}resize:vertical;">${escapeHtml(v)}</textarea>`;
+  } else if (f.type === "select") {
+    const opts = (f.options || []).map(o => {
+      const [val, lbl] = Array.isArray(o) ? o : [o, o];
+      return `<option value="${escapeHtml(val)}" ${String(v) === String(val) ? "selected" : ""}>${escapeHtml(lbl)}</option>`;
+    }).join("");
+    input = `<select name="${escapeHtml(f.name)}" ${required} style="${baseInput}">${f.required ? "" : '<option value=""></option>'}${opts}</select>`;
+  } else if (f.type === "json") {
+    const vs = typeof v === "object" && v !== null ? JSON.stringify(v, null, 2) : v;
+    input = `<textarea name="${escapeHtml(f.name)}" rows="${f.rows || 4}" style="${baseInput}resize:vertical;font-family:'JetBrains Mono',monospace;font-size:12px;">${escapeHtml(vs)}</textarea>`;
+  } else {
+    const inputType = f.type || "text";
+    const extra = f.min !== undefined ? `min="${f.min}"` : "";
+    const extra2 = f.max !== undefined ? `max="${f.max}"` : "";
+    input = `<input type="${inputType}" name="${escapeHtml(f.name)}" value="${escapeHtml(v)}" ${required} ${extra} ${extra2} style="${baseInput}" />`;
+  }
+  return `<div style="margin-bottom:14px;">${label}${input}</div>`;
+}
+
 // Show a transient toast at the bottom-right.
 export function toast(message, kind = "ok") {
   let host = $("#admin-toast");

@@ -583,20 +583,66 @@
   });
 </script>
 <script type="module">
-import { supa, boot, escapeHtml, fmtDate } from "./admin.js";
+import { supa, boot, escapeHtml, fmtDate, openModal, toast } from "./admin.js";
 const profile = await boot(["admin","editor","staff","coach"]);
 const id = new URLSearchParams(location.search).get("id");
 if (!id) { document.body.innerHTML = "<p style=\"padding:32px;\">Missing ?id= in URL.</p>"; throw new Error("no id"); }
 
-const { data: m, error } = await supa.from("profiles")
-  .select("id, full_name, email, phone, dob, role, status, joined_at, bio, section:sections(slug, name_sq)")
-  .eq("id", id).maybeSingle();
-if (error || !m) { document.body.innerHTML = "<p style=\"padding:32px;\">Anëtari nuk u gjet.</p>"; throw new Error("not found"); }
+async function loadMember() {
+  const { data: m, error } = await supa.from("profiles")
+    .select("id, full_name, email, phone, dob, role, status, joined_at, bio, section_id, section:sections(slug, name_sq), metadata")
+    .eq("id", id).maybeSingle();
+  if (error || !m) { document.body.innerHTML = "<p style=\"padding:32px;\">Anëtari nuk u gjet.</p>"; throw new Error("not found"); }
+  return m;
+}
+
+const m = await loadMember();
 
 const h1 = document.querySelector(".page-head h1"); if (h1) h1.textContent = m.full_name;
 const sub = document.querySelector(".page-head .sub"); if (sub) sub.textContent =
   [m.section?.name_sq || "—", m.role, m.status, m.joined_at ? "joined " + new Date(m.joined_at).getFullYear() : ""]
   .filter(Boolean).join(" · ");
+
+// Add "Edit" action.
+const head = document.querySelector(".page-head");
+if (head && !document.getElementById("edit-member-btn") && (profile.role === "admin" || profile.role === "staff")) {
+  const right = document.createElement("div");
+  right.style.cssText = "display:flex;gap:8px;";
+  right.innerHTML = `<button id="edit-member-btn" class="btn btn-ember">Edit member</button>`;
+  head.appendChild(right);
+  document.getElementById("edit-member-btn").addEventListener("click", async () => {
+    const { data: sections } = await supa.from("sections").select("id, name_sq").order("display_order");
+    openModal({
+      title: "Edit member",
+      fields: [
+        { name: "full_name", label: "Full name", type: "text", required: true },
+        { name: "phone", label: "Phone", type: "tel" },
+        { name: "dob", label: "Date of birth", type: "date" },
+        { name: "section_id", label: "Section", type: "select",
+          options: [["", "—"], ...sections.map(s => [s.id, s.name_sq])] },
+        { name: "role", label: "Role", type: "select", required: true,
+          options: ["member","coach","staff","editor","admin"].map(r => [r, r]) },
+        { name: "status", label: "Status", type: "select", required: true,
+          options: ["active","inactive","suspended","pending"].map(r => [r, r]) },
+        { name: "bio", label: "Bio", type: "textarea", rows: 3 },
+      ],
+      initial: m,
+      onSubmit: async (values) => {
+        // Role change goes via RPC for audit; everything else via direct UPDATE.
+        if (values.role !== m.role) {
+          if (profile.role !== "admin") throw new Error("Only admins can change roles.");
+          const { error } = await supa.rpc("set_user_role", { target_id: m.id, new_role: values.role });
+          if (error) throw error;
+        }
+        delete values.role;
+        const { error } = await supa.from("profiles").update(values).eq("id", m.id);
+        if (error) throw error;
+        toast("Updated.");
+        setTimeout(() => location.reload(), 600);
+      },
+    });
+  });
+}
 
 // Dues
 const { data: dues } = await supa.from("dues").select("period, amount_eur, status, paid_at").eq("member_id", id).order("period", { ascending: false }).limit(12);

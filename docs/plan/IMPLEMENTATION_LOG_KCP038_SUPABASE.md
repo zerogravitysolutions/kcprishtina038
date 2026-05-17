@@ -6,7 +6,7 @@
 
 ## Status
 
-Phase: III | Step: III.* (writing migration SQL) | Status: IN PROGRESS
+Phase: IV | Step: IV.* complete; awaiting Supabase migration apply + admin verification | Status: IN PROGRESS
 Last verified: 2026-05-17
 
 ## Locked-in Decisions
@@ -52,5 +52,11 @@ Last verified: 2026-05-17
 | III.8 | 2026-05-17 | DONE | §III.8 | (pending push) | 0007 seed: 6 sections + 7 default `settings` keys |
 | V.2 (RPC half) | 2026-05-17 | DONE | §V.2 | (pending push) | 0008 SECURITY DEFINER RPCs: `approve_application`, `reject_application`, `set_user_role` (all audit-logged) |
 | V.10 (policies) | 2026-05-17 | DONE | §V.10 | (pending push) | 0009 storage bucket policies for `media`, `avatars`, `documents` — owner-scoped private bucket pattern for documents |
-| I.3 | 2026-05-17 | PENDING | §I.3 | — | Nav "Sign in" link not yet added to public pages (chose to defer to Phase IV to batch with auth-aware UI swap) |
-| II.3 | 2026-05-17 | PENDING | §II.3 | — | nav-signin runtime hook (depends on I.3) |
+| I.3 | 2026-05-17 | DONE | §I.3 | (pending push) | Nav "Sign in" pill on all 6 public pages + `.nav-signin` CSS + SQ/EN i18n keys |
+| II.3 | 2026-05-17 | DONE | §II.3 | (pending push) | `app.js` runtime hook swaps pill → "Llogaria ime" / "Admin" based on `profile.role` |
+| III.10 (new) | 2026-05-17 | DONE | (new) | (pending push) | Migration 0010 — idempotent promotion of `qendrim.pllanna@gmail.com` to admin role + active status |
+| IV.1 | 2026-05-17 | DONE | §IV.1 | (pending push) | `login.html` wired: real `signInWithPassword`, error display, redirect-if-already-authed, profile-status gate, role-based landing redirect, Google OAuth button hooked |
+| IV.2 | 2026-05-17 | DONE | §IV.2 | (pending push) | Forgot-password prompt via `resetPasswordForEmail`; new `reset-password.html` handles the recovery callback and calls `updateUser({password})` |
+| IV.3 | 2026-05-17 | DONE | §IV.3 | (pending push) | `join.html` form action removed from `mailto:`; POSTs to Supabase `applications` table via JS client; user-facing success/error message bar; honeypot preserved |
+| IV.4 | 2026-05-17 | DONE | §IV.4 | (pending push) | `member-portal.html` wired: requireAuth, sidebar identity, next-race card from event_registrations, dues pill from unpaid totals, weekly attendance count |
+| IV.5 | 2026-05-17 | DONE (minimal) | §IV.5 | (pending push) | `member-profile.html` wired: requireAuth, sidebar identity, hydrate + save full_name/dob/phone/bio. Unmapped design fields (address, ID, equipment, social handles, emergency contact, medical) stay static — schema doesn't model them. |

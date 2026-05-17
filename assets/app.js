@@ -11,6 +11,9 @@ const I18N = {
     "nav.join": "Bashkohu",
     "nav.news": "Lajme",
     "nav.contact": "Kontakti",
+    "nav.signin": "Identifikohu",
+    "nav.account": "Llogaria ime",
+    "nav.admin": "Admin",
 
     // Brand block
     "brand.kc": "KÇ Prishtina 038",
@@ -271,6 +274,9 @@ const I18N = {
     "nav.join": "Join",
     "nav.news": "News",
     "nav.contact": "Contact",
+    "nav.signin": "Sign in",
+    "nav.account": "My account",
+    "nav.admin": "Admin",
 
     "brand.kc": "KÇ Prishtina 038",
     "brand.sub": "Cycling Club · Prishtina",
@@ -603,3 +609,26 @@ function startCountdown(targetIso, elPrefix) {
   tick();
   setInterval(tick, 1000);
 }
+
+/* ----- Nav sign-in pill (auth-aware) -----
+   Swaps "Identifikohu" → "Llogaria ime" / "Admin" + redirects to the right
+   landing area once we know who's signed in. Runs only on pages that have the
+   pill in their nav; silently no-ops otherwise. */
+(async function navSigninState() {
+  const link = document.getElementById("nav-signin");
+  if (!link) return;
+  try {
+    const mod = await import("./supabase.js");
+    const profile = await mod.getProfile();
+    if (!profile || profile.status !== "active") return;
+    link.classList.add("is-authed");
+    const isMember = profile.role === "member";
+    link.href = isMember ? "member-portal.html" : "admin/dashboard.html";
+    const key = isMember ? "nav.account" : "nav.admin";
+    link.setAttribute("data-i18n", key);
+    const dict = (typeof I18N !== "undefined") ? I18N[localStorage.getItem("kc038_lang") || "sq"] : null;
+    if (dict && dict[key]) link.textContent = dict[key];
+  } catch (e) {
+    // Supabase unreachable / offline → leave default sign-in link.
+  }
+})();

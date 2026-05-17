@@ -329,13 +329,13 @@
     <a class="nav-item" href="sections.html">Sections</a>
 
     <div class="group">Account</div>
-    <a class="nav-item" href="#">Profile & kit</a>
-    <a class="nav-item" href="#">Settings</a>
-    <a class="nav-item" href="login.html" style="color: var(--err);">Sign out →</a>
+    <a class="nav-item" href="member-profile.html">Profile & kit</a>
+    <a class="nav-item" href="member-profile.html#settings">Settings</a>
+    <a class="nav-item" href="#" id="signout-link" style="color: var(--err);">Sign out →</a>
 
     <div class="me">
-      <div class="avatar">EH</div>
-      <div class="who">Era Hoxha<span>Elite Women · Road</span></div>
+      <div class="avatar" data-bind="avatar-initials">EH</div>
+      <div class="who" data-bind="full-name">Era Hoxha<span data-bind="role-line">Elite Women · Road</span></div>
     </div>
   </aside>
 
@@ -344,12 +344,12 @@
 
     <div class="portal-top">
       <div>
-        <h1>Mirë se erdhe, <em>Era</em>.</h1>
-        <div class="sub">E djelë, 17 maj · 6 ditë deri te Granfondo Sharri · Ke 2 stërvitje këtë javë</div>
+        <h1>Mirë se erdhe, <em data-bind="first-name">Era</em>.</h1>
+        <div class="sub" data-bind="welcome-sub">E djelë, 17 maj · Ke 0 stërvitje të planifikuara këtë javë</div>
       </div>
       <div style="display:flex;gap:10px;">
-        <button class="btn btn-ghost" style="padding: 10px 14px;font-size: 13px;">Pay dues · €25</button>
-        <button class="btn btn-ember" style="padding: 10px 14px;font-size: 13px;">RSVP next ride</button>
+        <a class="btn btn-ghost" id="pay-dues-link" style="padding: 10px 14px;font-size: 13px;" href="#">Pay dues</a>
+        <a class="btn btn-ember" id="rsvp-link" style="padding: 10px 14px;font-size: 13px;" href="events.html">RSVP next ride</a>
       </div>
     </div>
 
@@ -357,21 +357,21 @@
     <div class="pcols">
 
       <!-- Next race card -->
-      <div class="pcard">
+      <div class="pcard" data-bind="next-race-card">
         <div class="pcard-head">
           <h2>Gara jote e ardhshme</h2>
-          <span class="kicker">Konfirmuar</span>
+          <span class="kicker" data-bind="next-race-status">—</span>
         </div>
 
         <div class="race-card">
           <div class="countdown">
-            <div class="n">06</div>
+            <div class="n" data-bind="next-race-days">—</div>
             <div class="l">days</div>
           </div>
           <div class="info">
-            <h3>Granfondo Sharri 2026</h3>
-            <div class="meta">17 MAJ · Brezovicë → Prizren · 142 km · 2 600 m</div>
-            <span class="ub">● Regjistrimi konfirmuar · Elite Women</span>
+            <h3 data-bind="next-race-title">Asnjë garë e regjistruar</h3>
+            <div class="meta" data-bind="next-race-meta">Shfletoni kalendarin për të regjistruar një garë</div>
+            <span class="ub" data-bind="next-race-pill" style="display:none;"></span>
           </div>
         </div>
 
@@ -581,5 +581,103 @@
   </main>
 </div>
 
+<script type="module">
+import { supa, requireAuth, signOut } from "./assets/supabase.js";
+
+const profile = await requireAuth({ roles: ["member","admin","editor","staff","coach"] });
+if (!profile) throw new Error("redirected");
+
+// ============ Sidebar identity ============
+const set = (k, v) => document.querySelectorAll(`[data-bind="${k}"]`).forEach(el => el.textContent = v);
+
+const initials = (profile.full_name || "?").split(/\s+/).slice(0,2).map(s => s[0] || "").join("").toUpperCase() || "?";
+set("avatar-initials", initials);
+set("first-name", (profile.full_name || "").split(" ")[0] || "Anëtar");
+
+// Sidebar name + role line
+const fullNameEl = document.querySelector('[data-bind="full-name"]');
+const roleSpan   = document.querySelector('[data-bind="role-line"]');
+if (fullNameEl) fullNameEl.firstChild.textContent = profile.full_name + " ";
+if (roleSpan) {
+  let line = profile.role === "member" ? "Anëtar" : profile.role[0].toUpperCase() + profile.role.slice(1);
+  if (profile.section_id) {
+    const { data: section } = await supa.from("sections").select("name_sq").eq("id", profile.section_id).maybeSingle();
+    if (section) line = `${line} · ${section.name_sq}`;
+  }
+  roleSpan.textContent = line;
+}
+
+// ============ Sign out ============
+document.getElementById("signout-link")?.addEventListener("click", (e) => { e.preventDefault(); signOut(); });
+
+// ============ Next race ============
+const nowIso = new Date().toISOString();
+const { data: nextReg } = await supa
+  .from("event_registrations")
+  .select("status, category:event_categories(name), event:events!inner(id, title_sq, start_at, location, distance_km, elevation_m)")
+  .eq("member_id", profile.id)
+  .gte("event.start_at", nowIso)
+  .order("event(start_at)", { ascending: true })
+  .limit(1);
+
+if (nextReg && nextReg.length && nextReg[0].event) {
+  const r = nextReg[0];
+  const ev = r.event;
+  const days = Math.max(0, Math.ceil((new Date(ev.start_at) - Date.now()) / 86400_000));
+  set("next-race-days", String(days).padStart(2,"0"));
+  set("next-race-title", ev.title_sq);
+  const dateStr = new Date(ev.start_at).toLocaleDateString("sq", { day: "2-digit", month: "short" }).toUpperCase();
+  const parts = [dateStr];
+  if (ev.location)    parts.push(ev.location);
+  if (ev.distance_km) parts.push(`${ev.distance_km} km`);
+  if (ev.elevation_m) parts.push(`${ev.elevation_m} m`);
+  set("next-race-meta", parts.join(" · "));
+  set("next-race-status", r.status === "registered" ? "Konfirmuar" : r.status);
+  const pill = document.querySelector('[data-bind="next-race-pill"]');
+  if (pill) {
+    pill.style.display = "inline-flex";
+    pill.textContent = `● Regjistrimi ${r.status} ${r.category?.name ? "· " + r.category.name : ""}`;
+  }
+  document.getElementById("rsvp-link").href = `events.html#${ev.id}`;
+} else {
+  set("next-race-days", "—");
+  set("next-race-status", "—");
+  document.querySelector('[data-bind="next-race-pill"]').style.display = "none";
+}
+
+// ============ Dues — current unpaid amount ============
+const { data: dues } = await supa
+  .from("dues")
+  .select("amount_eur, status, period")
+  .eq("member_id", profile.id)
+  .in("status", ["unpaid","overdue"])
+  .order("period", { ascending: true });
+
+const unpaidTotal = (dues || []).reduce((s, d) => s + Number(d.amount_eur), 0);
+const payLink = document.getElementById("pay-dues-link");
+if (unpaidTotal > 0) {
+  payLink.textContent = `Pay dues · €${unpaidTotal.toFixed(2).replace(/\.00$/, "")}`;
+  // Pull the payment instructions URL from settings.
+  const { data: setting } = await supa.from("settings").select("value").eq("key", "payments.instructions_url").maybeSingle();
+  if (setting?.value) payLink.href = setting.value;
+} else {
+  payLink.textContent = "Dues paguar ✓";
+  payLink.style.opacity = "0.6";
+  payLink.style.pointerEvents = "none";
+}
+
+// ============ Welcome subline: count weekly training sessions ============
+const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); weekStart.setHours(0,0,0,0);
+const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
+const { count: weekSessions } = await supa
+  .from("attendance")
+  .select("id", { count: "exact", head: true })
+  .eq("member_id", profile.id)
+  .gte("session_date", weekStart.toISOString().slice(0,10))
+  .lt("session_date",  weekEnd.toISOString().slice(0,10));
+
+const today = new Date().toLocaleDateString("sq", { weekday: "long", day: "numeric", month: "long" });
+set("welcome-sub", `${today} · Ke ${weekSessions || 0} stërvitje këtë javë`);
+</script>
 </body>
 </html>

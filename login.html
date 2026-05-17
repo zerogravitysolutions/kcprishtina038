@@ -343,6 +343,8 @@
       Hyr si anëtar për të parë dues, kalendarin personal, dhe rezultatet e tua.
     </div>
 
+    <div id="login-error" style="display:none;margin:0 0 14px;padding:10px 12px;border-radius:8px;font-size:13px;background:color-mix(in oklab,var(--ember) 12%,var(--white));color:var(--ember-deep);border:1px solid color-mix(in oklab,var(--ember) 28%,transparent);"></div>
+
     <form onsubmit="event.preventDefault(); handleLogin();">
       <div class="field">
         <label>Email</label>
@@ -456,13 +458,90 @@
   // Re-apply when language switches
   if (window.LangState) LangState.onChange(updateRoleUI);
 
-  function handleLogin() {
-    if (activeRole === "staff") {
-      window.location.href = "admin/dashboard.html";
-    } else {
-      window.location.href = "member-portal.html";
-    }
+  // handleLogin is defined in the module script below; this stub keeps the inline
+  // onsubmit handler valid until the module loads.
+  window.handleLogin = window.handleLogin || function () {};
+</script>
+<script type="module">
+import { supa, getProfile } from "./assets/supabase.js";
+
+const errBox = document.getElementById("login-error");
+const btn    = document.getElementById("login-btn");
+
+function showError(text) {
+  errBox.textContent = text;
+  errBox.style.display = "block";
+}
+function clearError() {
+  errBox.style.display = "none";
+}
+
+// If already signed in, redirect by role.
+(async () => {
+  const profile = await getProfile();
+  if (!profile) return;
+  if (profile.status !== "active") return;  // stay on login with error below if user retries
+  window.location.replace(profile.role === "member" ? "member-portal.html" : "admin/dashboard.html");
+})();
+
+window.handleLogin = async function () {
+  clearError();
+  const email    = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  btn.disabled = true;
+  const labelSpan = btn.firstChild;
+  const originalLabel = labelSpan.textContent;
+  labelSpan.textContent = "Po hyn… ";
+
+  const { data, error } = await supa.auth.signInWithPassword({ email, password });
+  if (error) {
+    btn.disabled = false; labelSpan.textContent = originalLabel;
+    showError(error.message === "Invalid login credentials"
+      ? "Email-i ose fjalëkalimi nuk është i saktë."
+      : error.message);
+    return;
   }
+
+  // Block sign-in for non-active accounts so we don't deep-link to a portal that won't load.
+  const profile = await getProfile();
+  if (!profile) {
+    btn.disabled = false; labelSpan.textContent = originalLabel;
+    showError("Profili juaj nuk u gjet. Kontaktoni klubin.");
+    await supa.auth.signOut();
+    return;
+  }
+  if (profile.status !== "active") {
+    btn.disabled = false; labelSpan.textContent = originalLabel;
+    showError("Llogaria juaj është ende në pritje aprovimi.");
+    await supa.auth.signOut();
+    return;
+  }
+
+  window.location.href = profile.role === "member" ? "member-portal.html" : "admin/dashboard.html";
+};
+
+// Forgot-password link.
+document.querySelectorAll(".field a[href='#'][tabindex='-1']").forEach(a => {
+  a.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const email = prompt("Email-i juaj?");
+    if (!email) return;
+    const { error } = await supa.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${location.origin}/reset-password.html`,
+    });
+    alert(error ? "Gabim: " + error.message
+                : "Email për resetim u dërgua. Kontrolloni inboxin.");
+  });
+});
+
+// Google OAuth button (Phase IV.5 — only fires if Google provider is enabled in Supabase).
+document.querySelector(".sso-btn")?.addEventListener("click", async () => {
+  const { error } = await supa.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${location.origin}/login.html` }
+  });
+  if (error) showError(error.message);
+});
 </script>
 </body>
 </html>

@@ -365,12 +365,12 @@
     <a class="nav-item" href="#">My dues</a>
     <div class="group">Account</div>
     <a class="nav-item active" href="member-profile.html">Profile & docs</a>
-    <a class="nav-item" href="#">Settings</a>
-    <a class="nav-item" href="login.html" style="color: var(--err);">Sign out →</a>
+    <a class="nav-item" href="#settings">Settings</a>
+    <a class="nav-item" href="#" id="signout-link" style="color: var(--err);">Sign out →</a>
 
     <div class="me">
-      <div class="avatar">EH</div>
-      <div class="who">Era Hoxha<span>Elite Women · Road</span></div>
+      <div class="avatar" data-bind="avatar-initials">EH</div>
+      <div class="who" data-bind="full-name">Era Hoxha<span data-bind="role-line">Elite Women · Road</span></div>
     </div>
   </aside>
 
@@ -420,16 +420,16 @@
           <p class="help">Your contact details. Used by your section coach and for race registrations.</p>
 
           <div class="row2">
-            <div class="field"><label>First name</label><input type="text" value="Era" /></div>
-            <div class="field"><label>Last name</label><input type="text" value="Hoxha" /></div>
+            <div class="field"><label>First name</label><input type="text" name="first_name" /></div>
+            <div class="field"><label>Last name</label><input type="text" name="last_name" /></div>
           </div>
           <div class="row2" style="margin-top: 14px;">
-            <div class="field"><label>Date of birth</label><input type="date" value="2001-08-12" /></div>
-            <div class="field"><label>Gender</label><select><option>Femër</option><option>Mashkull</option><option>Tjetër</option></select></div>
+            <div class="field"><label>Date of birth</label><input type="date" name="dob" /></div>
+            <div class="field"><label>Gender</label><select name="gender"><option>Femër</option><option>Mashkull</option><option>Tjetër</option></select></div>
           </div>
           <div class="row2" style="margin-top: 14px;">
-            <div class="field"><label>Email</label><input type="email" value="era.hoxha@uni-pr.edu" /></div>
-            <div class="field"><label>Phone</label><input type="tel" value="+383 44 567 890" /></div>
+            <div class="field"><label>Email</label><input type="email" name="email" disabled style="background:color-mix(in oklab,var(--ink) 4%,var(--white));color:var(--ink-3);" /></div>
+            <div class="field"><label>Phone</label><input type="tel" name="phone" /></div>
           </div>
           <div class="row3" style="margin-top: 14px;">
             <div class="field"><label>Address</label><input type="text" value="Rruga e Bjeshkëve 22" /></div>
@@ -444,17 +444,13 @@
           <h2 style="margin-top: 32px;">About you</h2>
           <p class="help">Optional. Shown on the team page if you're a public roster rider.</p>
           <div class="field">
-            <label>Short bio · SQ</label>
-            <textarea rows="3">Çikliste Elite Women në Rrugë. Kampione e Granfondo Prizren 2024 dhe 2025. Studente në UP, anëtare e klubit që nga shtatori 2022.</textarea>
-          </div>
-          <div class="field" style="margin-top: 14px;">
-            <label>Short bio · EN</label>
-            <textarea rows="3">Elite Women road racer. Winner of Granfondo Prizren 2024 and 2025. UP student, club member since September 2022.</textarea>
+            <label>Short bio</label>
+            <textarea name="bio" rows="3"></textarea>
           </div>
 
           <div class="save-bar">
-            <span class="mono" style="font-size:11px;color:var(--ink-3);letter-spacing:.04em;">Last edited 2 weeks ago · auto-saves enabled</span>
-            <button class="btn btn-ember">Save changes</button>
+            <span class="mono" id="profile-save-status" style="font-size:11px;color:var(--ink-3);letter-spacing:.04em;">—</span>
+            <button class="btn btn-ember" id="profile-save-btn" type="button">Save changes</button>
           </div>
         </div>
 
@@ -875,6 +871,75 @@
   document.querySelectorAll(".toggle").forEach(t => {
     t.addEventListener("click", () => t.classList.toggle("on"));
   });
+</script>
+<script type="module">
+import { supa, requireAuth, signOut } from "./assets/supabase.js";
+
+const profile = await requireAuth();
+if (!profile) throw new Error("redirected");
+
+// Sidebar identity
+const initials = (profile.full_name || "?").split(/\s+/).slice(0,2).map(s => s[0] || "").join("").toUpperCase() || "?";
+document.querySelectorAll('[data-bind="avatar-initials"]').forEach(el => el.textContent = initials);
+const fullNameEl = document.querySelector('[data-bind="full-name"]');
+if (fullNameEl) fullNameEl.firstChild.textContent = profile.full_name + " ";
+const roleSpan = document.querySelector('[data-bind="role-line"]');
+if (roleSpan) {
+  let line = profile.role === "member" ? "Anëtar" : profile.role[0].toUpperCase() + profile.role.slice(1);
+  if (profile.section_id) {
+    const { data: section } = await supa.from("sections").select("name_sq").eq("id", profile.section_id).maybeSingle();
+    if (section) line += " · " + section.name_sq;
+  }
+  roleSpan.textContent = line;
+}
+
+document.getElementById("signout-link")?.addEventListener("click", (e) => { e.preventDefault(); signOut(); });
+
+// Hydrate the form with persisted profile fields.
+// Many design fields (address, ID, social handles, equipment, emergency contact)
+// are NOT yet in the schema and stay as static demo values; expand schema later
+// if/when the user asks for them to persist.
+const setVal = (name, value) => {
+  const el = document.querySelector(`[name="${name}"]`);
+  if (el && value !== null && value !== undefined) el.value = value;
+};
+
+const fullName = (profile.full_name || "").trim();
+const parts = fullName.split(/\s+/);
+const firstName = parts[0] || "";
+const lastName  = parts.slice(1).join(" ") || "";
+
+setVal("first_name", firstName);
+setVal("last_name",  lastName);
+setVal("dob",        profile.dob || "");
+setVal("email",      profile.email);
+setVal("phone",      profile.phone || "");
+setVal("bio",        profile.bio  || "");
+
+// Save handler — writes the fields the profiles schema actually has.
+const status = document.getElementById("profile-save-status");
+document.getElementById("profile-save-btn")?.addEventListener("click", async () => {
+  status.textContent = "Po ruan…";
+  status.style.color = "var(--ink-3)";
+
+  const fn = document.querySelector('[name="first_name"]').value.trim();
+  const ln = document.querySelector('[name="last_name"]').value.trim();
+  const payload = {
+    full_name: [fn, ln].filter(Boolean).join(" ") || profile.full_name,
+    phone:     document.querySelector('[name="phone"]').value.trim() || null,
+    dob:       document.querySelector('[name="dob"]').value || null,
+    bio:       document.querySelector('[name="bio"]').value.trim() || null,
+  };
+
+  const { error } = await supa.from("profiles").update(payload).eq("id", profile.id);
+  if (error) {
+    status.textContent = "Gabim: " + error.message;
+    status.style.color = "var(--ember-deep)";
+    return;
+  }
+  status.textContent = "Ruajtur · " + new Date().toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit" });
+  status.style.color = "var(--ok, #2f8a4e)";
+});
 </script>
 </body>
 </html>

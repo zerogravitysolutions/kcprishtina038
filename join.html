@@ -142,6 +142,7 @@
         <button data-lang="sq" class="active">SQ</button>
         <button data-lang="en">EN</button>
       </div>
+      <a class="nav-signin" id="nav-signin" href="login.html" data-i18n="nav.signin">Identifikohu</a>
       <a class="btn btn-sm btn-ember" href="#form" data-i18n="hero.cta.primary">Bëhu pjesë e klubit</a>
     </div>
   </div>
@@ -266,8 +267,9 @@
         <div class="eyebrow"><span>Formulari i aplikimit</span></div>
         <h2 class="display display-s" style="margin-top: 12px;">Plotëso, dhe ne të kontaktojmë.</h2>
 
-        <form action="mailto:info@prishtina038.cc" method="POST" enctype="text/plain" style="margin-top: 32px;">
+        <form id="join-form" style="margin-top: 32px;">
           <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px;" />
+          <div id="join-form-msg" style="display:none;margin-bottom:16px;padding:12px 14px;border-radius:8px;font-size:13.5px;"></div>
           <div class="form-row">
             <div class="field">
               <label for="f-name" data-i18n="jp.form.name">Emri dhe mbiemri</label>
@@ -441,5 +443,59 @@
 </footer>
 
 <script src="assets/app.js"></script>
+<script type="module">
+import { supa, getSectionBySlug } from "./assets/supabase.js";
+
+const form = document.getElementById("join-form");
+const msg  = document.getElementById("join-form-msg");
+const submitBtn = form.querySelector('button[type="submit"]');
+
+function showMsg(text, kind) {
+  msg.textContent = text;
+  msg.style.display = "block";
+  if (kind === "ok") {
+    msg.style.background = "color-mix(in oklab, #6FAAA8 18%, white)";
+    msg.style.color = "#0F1A2E";
+    msg.style.border = "1px solid color-mix(in oklab, #6FAAA8 36%, transparent)";
+  } else {
+    msg.style.background = "color-mix(in oklab, #C25A2D 12%, white)";
+    msg.style.color = "#9B4220";
+    msg.style.border = "1px solid color-mix(in oklab, #C25A2D 30%, transparent)";
+  }
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (form._gotcha.value) return; // honeypot
+
+  submitBtn.disabled = true;
+  const original = submitBtn.querySelector("span").textContent;
+  submitBtn.querySelector("span").textContent = "Po dërgon…";
+
+  const fd = new FormData(form);
+  const sectionSlug = fd.get("section");
+  const section = sectionSlug === "unsure" ? null : await getSectionBySlug(sectionSlug);
+
+  const { error } = await supa.from("applications").insert({
+    full_name:  String(fd.get("name")  || "").trim(),
+    email:      String(fd.get("email") || "").trim(),
+    phone:      String(fd.get("phone") || "").trim() || null,
+    age:        Number(fd.get("age")) || null,
+    section_id: section?.id ?? null,
+    experience: String(fd.get("experience") || ""),
+    notes:      String(fd.get("notes") || "").trim() || null,
+  });
+
+  submitBtn.disabled = false;
+  submitBtn.querySelector("span").textContent = original;
+
+  if (error) {
+    showMsg("Gabim: " + error.message, "err");
+    return;
+  }
+  showMsg("Faleminderit! Aplikimi u dërgua. Ju kontaktojmë brenda 5 ditëve pune.", "ok");
+  form.reset();
+});
+</script>
 </body>
 </html>

@@ -28,6 +28,7 @@ export async function PublicNav() {
 
   const links = [
     { href: "/about",    label: t("nav.about") },
+    { href: "/team",     label: t("nav.team") },
     { href: "/sections", label: t("nav.sections") },
     { href: "/events",   label: t("nav.events") },
     { href: "/news",     label: t("nav.news") },

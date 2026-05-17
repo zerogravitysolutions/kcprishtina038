@@ -1345,3 +1345,127 @@ footer.foot {
   }
   .auth-side-cta { display: none; } /* drop the tagline to save space */
 }
+
+/* ============================================================
+ * Team (/team and /team/[slug])
+ * ============================================================ */
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+@media (max-width: 1000px) { .team-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width:  700px) { .team-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
+
+.team-card {
+  display: flex; flex-direction: column;
+  text-decoration: none; color: inherit;
+  transition: transform .25s cubic-bezier(.2,.7,.2,1);
+}
+.team-card:hover { transform: translateY(-3px); }
+.team-card__photo {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--paper-2);
+  display: grid; place-items: center;
+}
+.team-card__photo img {
+  transition: transform .5s cubic-bezier(.2,.7,.2,1);
+}
+.team-card:hover .team-card__photo img { transform: scale(1.03); }
+.team-card__initials {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(36px, 5vw, 56px);
+  letter-spacing: -0.04em;
+  color: color-mix(in oklab, var(--ink) 30%, transparent);
+}
+.team-card__past-flag {
+  position: absolute; top: 12px; left: 12px;
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: .18em; text-transform: uppercase;
+  padding: 4px 10px;
+  background: rgba(15, 26, 46, 0.85);
+  color: var(--paper);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+.team-card__body {
+  margin-top: 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.team-card__name {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 17px; letter-spacing: -0.015em; line-height: 1.2;
+  color: var(--ink);
+}
+.team-card__roles {
+  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.team-card__cat {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in oklab, var(--ember) 38%, transparent);
+  color: var(--ember-deep);
+  border-radius: 999px;
+}
+
+/* ----- Member detail page ----- */
+.member-hero {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .member-hero { grid-template-columns: 1fr; gap: 32px; }
+}
+.member-hero__photo {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--paper-2);
+  display: grid; place-items: center;
+}
+.member-hero__initials {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(64px, 8vw, 96px);
+  letter-spacing: -0.04em;
+  color: color-mix(in oklab, var(--ink) 30%, transparent);
+}
+.member-hero__body {
+  padding-top: 4px;
+}
+.member-roles {
+  margin-top: 20px;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.member-role-chip {
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: 6px 12px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  border-radius: 999px;
+}
+.member-stats {
+  margin-top: 36px;
+  display: flex; flex-wrap: wrap; gap: 40px;
+  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.member-stat__num {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(28px, 3vw, 36px);
+  letter-spacing: -0.02em;
+  color: var(--ink); line-height: 1.1;
+}
+.member-stat__label { margin-top: 4px; }

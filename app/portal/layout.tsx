@@ -36,7 +36,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <Link className="nav-item" href="/portal/profile">Profile & docs</Link>
 
         <div className="group" style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--ink-3)", padding: "16px 8px 6px" }}>Club</div>
-        <Link className="nav-item" href="/events">All events</Link>
+        <Link className="nav-item" href={"/races" as never}>Garat</Link>
         <Link className="nav-item" href="/sections">Sections</Link>
 
         <form action={signOut} style={{ marginTop: "auto" }}>

@@ -64,7 +64,7 @@ export default async function PortalDashboard() {
           ) : (
             <span className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13, opacity: 0.6, pointerEvents: "none" }}>Dues paguar ✓</span>
           )}
-          <Link className="btn btn-ember" style={{ padding: "10px 14px", fontSize: 13 }} href="/events">RSVP next ride</Link>
+          <Link className="btn btn-ember" style={{ padding: "10px 14px", fontSize: 13 }} href={"/races" as never}>Garat e klubit</Link>
         </div>
       </div>
 

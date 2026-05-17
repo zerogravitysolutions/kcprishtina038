@@ -172,23 +172,27 @@ export default async function Home() {
       </div>
 
       {/* ============ COUNTDOWN ============ */}
-      <section>
-        <div className="container">
-          <div className="countdown-band">
-            <div>
-              <div className="cd-status"><span className="cd-dot"></span><span>{t("cd.status")}</span></div>
-              <h2 className="display display-l" style={{ color: "var(--paper)", marginTop: 16 }}>{raceTitle}</h2>
-              <p className="mono" style={{ fontSize: 13, letterSpacing: ".06em", color: "var(--slate)", marginTop: 16 }}>{raceSubtitle}</p>
-              <p className="mono" style={{ fontSize: 11, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--slate-2)", marginTop: 24 }}>{t("cd.detail")}</p>
-              <Link href="/events" className="btn btn-ember" style={{ marginTop: 28 }}>
-                <span>{t("cd.cta")}</span>
-                <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
-              </Link>
+      {/* Only renders when a real future event exists in the DB. Otherwise
+          we'd be showing a stale placeholder date — drop the band entirely. */}
+      {nextRace && (
+        <section>
+          <div className="container">
+            <div className="countdown-band">
+              <div>
+                <div className="cd-status"><span className="cd-dot"></span><span>{t("cd.status")}</span></div>
+                <h2 className="display display-l" style={{ color: "var(--paper)", marginTop: 16 }}>{raceTitle}</h2>
+                <p className="mono" style={{ fontSize: 13, letterSpacing: ".06em", color: "var(--slate)", marginTop: 16 }}>{raceSubtitle}</p>
+                <p className="mono" style={{ fontSize: 11, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--slate-2)", marginTop: 24 }}>{t("cd.detail")}</p>
+                <Link href={"/races" as never} className="btn btn-ember" style={{ marginTop: 28 }}>
+                  <span>{t("cd.cta")}</span>
+                  <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
+                </Link>
+              </div>
+              <Countdown targetIso={raceTargetIso} />
             </div>
-            <Countdown targetIso={raceTargetIso} />
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ============ DISCIPLINES ============ */}
       <section style={{ background: "var(--paper-2)" }}>

@@ -333,5 +333,27 @@
 </footer>
 
 <script src="assets/app.js"></script>
+<script type="module">
+import { supa } from "./assets/supabase.js";
+try {
+  const { data } = await supa.from("sections")
+    .select("slug, name_sq, name_en, description_sq, description_en, coach:coach_id(full_name)")
+    .order("display_order");
+  if (data && data.length) {
+    data.forEach(s => {
+      const row = document.getElementById(s.slug); if (!row) return;
+      const h3 = row.querySelector("h3");
+      const desc = row.querySelector("p.body");
+      if (h3)   { h3.textContent = s.name_sq; h3.removeAttribute("data-i18n"); }
+      if (desc) { desc.textContent = s.description_sq; desc.removeAttribute("data-i18n"); }
+      // Patch the TRAJNER spec if coach name is in DB.
+      if (s.coach?.full_name) {
+        const trainerSpec = Array.from(row.querySelectorAll(".specs div")).find(d => /TRAJNER/.test(d.textContent));
+        if (trainerSpec) trainerSpec.innerHTML = '<span>TRAJNER</span> ' + s.coach.full_name;
+      }
+    });
+  }
+} catch (e) { /* keep static */ }
+</script>
 </body>
 </html>

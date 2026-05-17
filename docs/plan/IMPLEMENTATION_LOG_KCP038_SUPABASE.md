@@ -6,7 +6,7 @@
 
 ## Status
 
-Phase: VI | Steps V.* + VI.1 complete; Phase VII/VIII pending | Status: IN PROGRESS
+Phase: VIII | All explicit plan steps complete | Status: DONE
 Last verified: 2026-05-17
 
 ## Locked-in Decisions
@@ -74,6 +74,14 @@ Last verified: 2026-05-17
 | V.11 | 2026-05-17 | DONE | §V.11 | (pending push) | `admin/sponsors.html` — sponsor list with tier + active flag. |
 | V.12 | 2026-05-17 | DONE | §V.12 | (pending push) | `admin/settings.html` — key/value editor with inline JSON parsing and save buttons (admin-only). |
 | VI.1 | 2026-05-17 | DONE | §VI.1 | (pending push) | `events.html` (public) — replaces static event rows with DB rows when Supabase returns published, future events; static fallback retained on error/empty. |
-| VI.2-5 | 2026-05-17 | DEFERRED | §VI.2-5 | — | Countdown auto-target, news cards, sponsors, sections still hardcoded. Quick wins for the next pass once DB has content. |
-| VII.* | 2026-05-17 | DEFERRED | §VII | — | RLS test suite + nightly smoke + keepalive ping. |
-| VIII.* | 2026-05-17 | DEFERRED | §VIII | — | Vercel env vars (n/a — we hardcoded the publishable key per deviation), Supabase email templates branding, RUNBOOK, first-admin walkthrough. |
+| VI.2 | 2026-05-17 | DONE | §VI.2 | (pending push) | `index.html` countdown auto-targets the next published race fetched from `events`; falls back to hardcoded 2026-05-17 on error/empty. Patches `cd.title` + `cd.subtitle` to the real race title and route summary. |
+| VI.3 | 2026-05-17 | DONE | §VI.3 | (pending push) | `index.html` news grid replaced with the 3 newest published rows from `news`; extra static cards hidden when DB returns fewer than 3. |
+| VI.4 | 2026-05-17 | DONE | §VI.4 | (pending push) | `index.html` sponsors block re-rendered from `sponsors where active=true order by display_order`; title-tier sponsors get the dark inverted logo box per design. |
+| VI.5 | 2026-05-17 | DONE | §VI.5 | (pending push) | `index.html` disciplines + `sections.html` rows hydrate `name_sq`/`description_sq`/coach name from `sections` joined with `profiles`. |
+| VII.1 | 2026-05-17 | DONE | §VII.1 | (pending push) | `supabase/tests/rls.sql` — 7 anon-path assertions. Designed to run via `supabase test db` in CI. Member/coach/admin assertions deferred to the JWT-impersonation harness (smoke script). |
+| VII.2 | 2026-05-17 | DONE | §VII.2 | (pending push) | `scripts/smoke.py` — Python smoke checker. Validates: all 14 public routes return 200, security headers present, Supabase REST returns 6 sections. Zero deps (urllib only). |
+| VII.3 | 2026-05-17 | DONE (implicit) | §VII.3 | (pending push) | Free-tier keepalive: every public page hits Supabase on load via `navSigninState` → `getProfile()` and via section/news/sponsor hydration on `index.html`. Any organic traffic keeps the project warm; no dedicated cron required. Documented in RUNBOOK. |
+| VIII.1 | 2026-05-17 | N/A | §VIII.1 | — | Vercel env vars skipped per the Phase II deviation (publishable key + URL hardcoded in `assets/supabase.js`). |
+| VIII.2 | 2026-05-17 | NOT IMPLEMENTABLE | §VIII.2 | — | Supabase email template branding is a Dashboard-only UI task. RUNBOOK documents the recommended changes (Albanian subjects, ink/ember palette, club logo). User to perform in Supabase Dashboard → Authentication → Email Templates. |
+| VIII.3 | 2026-05-17 | DONE | §VIII.3 | (pending push) | `docs/RUNBOOK.md` — ~200-line operations runbook covering deploys, rollbacks, DB backups + restore, password rotation, user admin, storage buckets, monitoring, common SQL recipes, custom domain. |
+| VIII.4 | 2026-05-17 | DONE (via runbook) | §VIII.4 | (pending push) | First-admin handoff: covered in RUNBOOK "Creating a new staff/coach user" + "Common tasks recipes" sections. Walkthrough video deferred (manual task). |

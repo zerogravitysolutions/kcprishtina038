@@ -984,7 +984,104 @@
 
 <script src="assets/app.js"></script>
 <script>
+  // Hardcoded fallback target if Supabase is unreachable / empty.
   startCountdown("2026-05-17T09:00:00", "cd");
+</script>
+<script type="module">
+// ============ Phase VI.2-5: hydrate landing-page sections from Supabase ============
+// On error/empty the static design stays — every block has a sensible fallback.
+import { supa } from "./assets/supabase.js";
+
+// ---------- VI.2 — Countdown auto-targets next published race ----------
+try {
+  const { data } = await supa.from("events")
+    .select("title_sq, title_en, start_at, location, distance_km, elevation_m, description_sq")
+    .eq("type", "race")
+    .eq("status", "published")
+    .gte("start_at", new Date().toISOString())
+    .order("start_at", { ascending: true })
+    .limit(1);
+  if (data && data.length) {
+    const ev = data[0];
+    // Re-run the countdown against the real ISO start_at.
+    if (typeof startCountdown === "function") startCountdown(ev.start_at, "cd");
+    // Patch the countdown card text.
+    const titleEl = document.querySelector('[data-i18n="cd.title"]');
+    if (titleEl) { titleEl.textContent = ev.title_sq; titleEl.removeAttribute("data-i18n"); }
+    const subEl = document.querySelector('[data-i18n="cd.subtitle"]');
+    if (subEl) {
+      const bits = [ev.location, ev.distance_km ? `${ev.distance_km} km` : null, ev.elevation_m ? `${ev.elevation_m} m ngritje` : null].filter(Boolean);
+      if (bits.length) { subEl.textContent = bits.join(" · "); subEl.removeAttribute("data-i18n"); }
+    }
+  }
+} catch (e) { /* fallback to static target */ }
+
+// ---------- VI.3 — News: 3 newest published ----------
+try {
+  const { data } = await supa.from("news")
+    .select("slug, title_sq, body_sq, published_at, tags")
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(3);
+  if (data && data.length) {
+    const cards = document.querySelectorAll(".news-grid .news-card");
+    data.forEach((n, i) => {
+      const card = cards[i]; if (!card) return;
+      const dateEl  = card.querySelector(".date");
+      const titleEl = card.querySelector("h3");
+      const bodyEl  = card.querySelector("p");
+      const tagLabel = (n.tags && n.tags[0]) ? n.tags[0].toUpperCase() : "LAJME";
+      if (dateEl)  dateEl.textContent  = `${new Date(n.published_at).toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" })} · ${tagLabel}`;
+      if (titleEl) titleEl.textContent = n.title_sq;
+      if (bodyEl)  bodyEl.textContent  = (n.body_sq || "").replace(/\s+/g, " ").slice(0, 200) + ((n.body_sq || "").length > 200 ? "…" : "");
+    });
+    // Hide any extra static cards beyond what DB returned.
+    for (let i = data.length; i < cards.length; i++) cards[i].style.display = "none";
+  }
+} catch (e) { /* keep static news */ }
+
+// ---------- VI.4 — Sponsors: active list, ordered by display_order ----------
+try {
+  const { data } = await supa.from("sponsors")
+    .select("name, tier, role_sq, body_sq, website_url, display_order")
+    .eq("active", true)
+    .order("display_order", { ascending: true });
+  if (data && data.length) {
+    const host = document.querySelector(".sponsors");
+    if (host) {
+      host.innerHTML = data.map(s => `
+        <div class="sponsor">
+          <div class="logo-box" style="${s.tier === 'title' ? 'background:var(--ink);color:var(--paper);border-color:var(--ink);' : ''}">${s.name}</div>
+          <div>
+            <div class="name">${s.name}</div>
+            <div class="role">${(s.role_sq || s.tier || '').replace(/[<>]/g, '')}</div>
+            <p>${(s.body_sq || '').replace(/[<>]/g, '')}</p>
+          </div>
+        </div>
+      `).join("");
+    }
+  }
+} catch (e) { /* keep static sponsors */ }
+
+// ---------- VI.5 — Disciplines cards meta from sections table ----------
+try {
+  const { data } = await supa.from("sections").select("slug, name_sq, name_en, description_sq, description_en, active").order("display_order");
+  if (data && data.length) {
+    const slugToCard = {};
+    document.querySelectorAll(".disc-card").forEach(c => {
+      const href = c.getAttribute("href") || "";
+      const slug = (href.match(/#(\w+)/) || ["",""])[1] || (href.includes("section-mtb") ? "mtb" : "");
+      if (slug) slugToCard[slug] = c;
+    });
+    data.forEach(sec => {
+      const card = slugToCard[sec.slug]; if (!card) return;
+      const h3 = card.querySelector("h3");
+      const p  = card.querySelector("p");
+      if (h3) { h3.textContent = sec.name_sq; h3.removeAttribute("data-i18n"); }
+      if (p)  { p.textContent  = sec.description_sq; p.removeAttribute("data-i18n"); }
+    });
+  }
+} catch (e) { /* keep static */ }
 </script>
 </body>
 </html>

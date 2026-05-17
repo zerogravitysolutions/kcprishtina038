@@ -19,9 +19,9 @@ SUPABASE_URL = "https://xutklvcsdgzmhxzexisb.supabase.co"
 SUPABASE_PUBLISHABLE = "sb_publishable_cB3Hl2_07OqDyV-U5exvbQ_WiTjKx6M"
 
 PUBLIC_ROUTES = [
-    "/", "/about", "/sections", "/section-mtb", "/events", "/join",
-    "/login", "/robots.txt", "/sitemap.xml",
-    "/assets/styles.css", "/assets/app.js", "/assets/supabase.js",
+    "/", "/about", "/sections", "/sections/mtb", "/events", "/join",
+    "/login", "/auth/reset-password",
+    "/robots.txt", "/sitemap.xml",
     "/assets/logo.jpg", "/assets/og-default.jpg",
 ]
 

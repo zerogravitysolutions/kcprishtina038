@@ -8,6 +8,13 @@ const nextConfig = {
   // Re-enable in Phase VII once all routes exist in app/.
   typedRoutes: false,
 
+  async redirects() {
+    return [
+      // Legacy URL kept reachable after the Next.js route was nested under /sections/.
+      { source: "/section-mtb", destination: "/sections/mtb", permanent: true },
+    ];
+  },
+
   async headers() {
     return [
       {

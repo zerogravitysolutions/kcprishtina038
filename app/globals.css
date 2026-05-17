@@ -1531,3 +1531,18 @@ footer.foot {
   .docs-item__cta { grid-column: 1 / -1; padding-left: 42px; padding-top: 4px; }
   .docs-item__title { font-size: 15px; }
 }
+
+/* Race year-filter chips on /races */
+.races-year-chip {
+  display: inline-flex; align-items: center;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+  border-radius: 999px;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.races-year-chip:hover { background: var(--paper-2); color: var(--ink); }
+.races-year-chip[data-active="true"] {
+  background: var(--ink); color: var(--paper); border-color: var(--ink);
+}

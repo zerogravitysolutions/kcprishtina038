@@ -352,6 +352,13 @@ async function upsertNewsFromPost(
   const body = message ?? story ?? "";
   const slug = `fb-${postId.split("_").pop() ?? postId}`;
 
+  // Auto-tag as 'race' if the body matches race-related keywords. The
+  // SQL helper public.fb_news_race_tags() applies the same rule on
+  // existing rows; this keeps fresh syncs in sync.
+  const tags: string[] = ["facebook"];
+  const RACE_RE = /(gar[aë]|granfondo|tour\s+of\s+kosov|kampionat|maraton|sharr\s+cup|kup[aë]\s+pri|rezultatet|kronomet|krono|XCO|UCI\s+(1|2)\.|podium|fitor|sprint|championship|race(\s|$)|stage|etap)/i;
+  if (body && RACE_RE.test(body)) tags.push("race");
+
   // Idempotent — `news_fb_post_idx` unique-by-fb_post_id blocks duplicates.
   // ON CONFLICT DO NOTHING means once a row exists, the editor owns it.
   const { error } = await supa.from("news").upsert(
@@ -362,7 +369,7 @@ async function upsertNewsFromPost(
       cover_media_id: coverMediaId,
       status: "published",
       published_at: createdTime,
-      tags: ["facebook"],
+      tags,
       source: "facebook",
       fb_post_id: postId,
       external_url: permalink,

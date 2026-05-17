@@ -31,6 +31,7 @@ export async function PublicNav() {
     { href: "/team",      label: t("nav.team") },
     { href: "/sections",  label: t("nav.sections") },
     { href: "/events",    label: t("nav.events") },
+    { href: "/races",     label: t("nav.races") },
     { href: "/news",      label: t("nav.news") },
     { href: "/documents", label: t("nav.documents") },
     { href: "/join",      label: t("nav.join") },

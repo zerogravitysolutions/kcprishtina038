@@ -136,6 +136,28 @@ export async function getNewsPage({
   };
 }
 
+// Subset of news rows that have been tagged 'race'. Same shape as a card.
+export async function getRacesPage({
+  offset = 0,
+  limit = 24,
+}: { offset?: number; limit?: number } = {}): Promise<{
+  rows: NewsCard[];
+  total: number;
+}> {
+  const supabase = await createClient();
+  const { data, count } = await supabase
+    .from("news")
+    .select(NEWS_CARD_SELECT, { count: "exact" })
+    .eq("status", "published")
+    .contains("tags", ["race"])
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .range(offset, offset + limit - 1);
+  return {
+    rows: (data as unknown as NewsCard[] | null) ?? [],
+    total: count ?? 0,
+  };
+}
+
 export async function getNewsBySlug(slug: string): Promise<NewsDetail | null> {
   const supabase = await createClient();
   const { data } = await supabase

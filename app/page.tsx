@@ -6,7 +6,7 @@ import { Footer } from "@/components/public/Footer";
 import { Countdown } from "@/components/landing/Countdown";
 import { NewsCard } from "@/components/ui/NewsCard";
 import { createClient } from "@/lib/supabase/server";
-import { getRecentNews, getFbPhotos, mediaUrl } from "@/lib/supabase/fb";
+import { getRecentNews, getHeroPhotos, mediaUrl } from "@/lib/supabase/fb";
 
 type NextRace = {
   title_sq: string; start_at: string; location: string | null;
@@ -33,7 +33,7 @@ async function fetchHomeData() {
     supabase.from("sponsors")
       .select("name, tier, role_sq, body_sq, website_url, display_order")
       .eq("active", true).order("display_order"),
-    getFbPhotos(3),
+    getHeroPhotos(3),
   ]);
 
   return {

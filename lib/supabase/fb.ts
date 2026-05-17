@@ -95,6 +95,50 @@ export async function getFbPhotos(limit = 12): Promise<FbPhotoCard[]> {
   return (data as unknown as FbPhotoCard[] | null) ?? [];
 }
 
+// Curated photos for the landing hero collage — editor-managed via
+// the media.featured_in_hero flag. Falls back to recent FB photos
+// when fewer than `limit` photos are featured, so the hero is never
+// empty during the early days of curation.
+export async function getHeroPhotos(limit = 3): Promise<FbPhotoCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("media")
+    .select("id, storage_path, alt, width, height")
+    .eq("featured_in_hero", true)
+    .order("featured_order")
+    .limit(limit);
+  const featured = (data as unknown as Array<{
+    id: string;
+    storage_path: string;
+    alt: string | null;
+    width: number | null;
+    height: number | null;
+  }> | null) ?? [];
+  const out: FbPhotoCard[] = featured.map((m) => ({
+    id: m.id,
+    alt_text: m.alt,
+    width: m.width,
+    height: m.height,
+    created_time: null,
+    media: { storage_path: m.storage_path },
+  }));
+  if (out.length >= limit) return out.slice(0, limit);
+
+  // Top up with recent FB photos so the hero is never sparse.
+  const fillNeeded = limit - out.length;
+  const used = new Set(out.map((p) => p.media?.storage_path));
+  const recent = await getFbPhotos(limit + 3); // a few extra in case of overlap
+  for (const p of recent) {
+    if (out.length >= limit) break;
+    const path = p.media?.storage_path;
+    if (path && !used.has(path)) {
+      out.push(p);
+      used.add(path);
+    }
+  }
+  return out.slice(0, limit);
+}
+
 // ============================================================
 // News — single source of truth for /news + landing strip.
 // FB-sourced rows arrive via sync; manual rows arrive via /admin/news.

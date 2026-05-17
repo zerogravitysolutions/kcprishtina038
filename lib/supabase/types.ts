@@ -246,6 +246,79 @@ export interface Database {
         Insert: { actor_id?: string | null; action: string; entity_type: string; entity_id?: string | null; before?: unknown; after?: unknown };
         Update: never;
       };
+      team_members: {
+        Row: {
+          id: string; slug: string;
+          full_name: string; first_name: string; last_name: string;
+          dob: string | null;
+          gender: "m" | "f" | null;
+          positions: Array<"president"|"commissaire"|"coach"|"rider"|"mechanic"|"physio"|"staff">;
+          section_slug: string | null;
+          photo_media_id: string | null;
+          external_photo_url: string | null;
+          status: "active" | "past";
+          ended_at: string | null;
+          bio: string | null;
+          profile_id: string | null;
+          display_order: number;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          slug: string; full_name: string; first_name: string; last_name: string;
+          positions: string[];
+          dob?: string | null; gender?: "m"|"f"|null;
+          section_slug?: string | null;
+          photo_media_id?: string | null; external_photo_url?: string | null;
+          status?: "active"|"past"; ended_at?: string | null;
+          bio?: string | null; profile_id?: string | null;
+          display_order?: number;
+        };
+        Update: {
+          slug?: string; full_name?: string; first_name?: string; last_name?: string;
+          dob?: string | null; gender?: "m"|"f"|null;
+          positions?: string[];
+          section_slug?: string | null;
+          photo_media_id?: string | null; external_photo_url?: string | null;
+          status?: "active"|"past"; ended_at?: string | null;
+          bio?: string | null; profile_id?: string | null;
+          display_order?: number;
+        };
+      };
+      documents: {
+        Row: {
+          id: string; slug: string; title: string;
+          category: "regulations"|"decisions"|"minutes"|"declarations"|"certificates"|"other";
+          storage_path: string; filename: string;
+          mime_type: string; byte_size: number | null; page_count: number | null;
+          description: string | null;
+          effective_date: string | null;
+          display_order: number;
+          visibility: "public" | "members" | "admin";
+          uploaded_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          slug: string; title: string;
+          category: "regulations"|"decisions"|"minutes"|"declarations"|"certificates"|"other";
+          storage_path: string; filename: string;
+          mime_type?: string; byte_size?: number | null; page_count?: number | null;
+          description?: string | null;
+          effective_date?: string | null;
+          display_order?: number;
+          visibility?: "public"|"members"|"admin";
+          uploaded_by?: string | null;
+        };
+        Update: {
+          slug?: string; title?: string;
+          category?: "regulations"|"decisions"|"minutes"|"declarations"|"certificates"|"other";
+          storage_path?: string; filename?: string;
+          mime_type?: string; byte_size?: number | null; page_count?: number | null;
+          description?: string | null;
+          effective_date?: string | null;
+          display_order?: number;
+          visibility?: "public"|"members"|"admin";
+        };
+      };
     };
     Functions: {
       approve_application: { Args: { app_id: string }; Returns: string };

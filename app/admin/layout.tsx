@@ -33,6 +33,7 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
     items: [
       { id: "news", label: "News", href: "/admin/news", allow: ["admin", "editor"] },
       { id: "media", label: "Media library", href: "/admin/media", allow: ["admin", "editor"] },
+      { id: "documents", label: "Documents", href: "/admin/documents", allow: ["admin", "editor"] },
       { id: "sponsors", label: "Sponsors", href: "/admin/sponsors", allow: ["admin", "editor"] },
     ],
   },

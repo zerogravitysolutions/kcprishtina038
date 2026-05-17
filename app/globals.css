@@ -1469,3 +1469,65 @@ footer.foot {
   color: var(--ink); line-height: 1.1;
 }
 .member-stat__label { margin-top: 4px; }
+
+/* ============================================================
+ * Documents (/documents) — clean list with PDF icons and metadata.
+ * ============================================================ */
+
+.docs-section-head { margin-bottom: 16px; }
+.docs-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  border-top: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+}
+.docs-item { margin: 0; padding: 0; }
+.docs-item__inner {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 20px 12px;
+  border-bottom: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+  text-decoration: none; color: inherit;
+  transition: background .15s, transform .18s;
+  border-radius: 4px;
+}
+.docs-item__inner:hover {
+  background: var(--paper-2);
+  transform: translateX(4px);
+}
+.docs-icon {
+  color: var(--ember);
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+}
+.docs-item__body {
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 0;
+}
+.docs-item__title {
+  font-family: var(--font-display);
+  font-weight: 600; font-size: 16px;
+  letter-spacing: -0.005em; line-height: 1.35;
+  color: var(--ink);
+}
+.docs-item__meta {
+  display: flex; flex-wrap: wrap; gap: 16px;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.docs-item__desc {
+  font-size: 13.5px; color: var(--ink-2);
+  margin-top: 2px;
+}
+.docs-item__cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ember);
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .docs-item__inner { grid-template-columns: 28px 1fr; padding: 16px 8px; gap: 14px; }
+  .docs-item__cta { grid-column: 1 / -1; padding-left: 42px; padding-top: 4px; }
+  .docs-item__title { font-size: 15px; }
+}

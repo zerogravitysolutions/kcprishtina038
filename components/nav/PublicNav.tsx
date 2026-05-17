@@ -27,12 +27,13 @@ export async function PublicNav() {
   }
 
   const links = [
-    { href: "/about",    label: t("nav.about") },
-    { href: "/team",     label: t("nav.team") },
-    { href: "/sections", label: t("nav.sections") },
-    { href: "/events",   label: t("nav.events") },
-    { href: "/news",     label: t("nav.news") },
-    { href: "/join",     label: t("nav.join") },
+    { href: "/about",     label: t("nav.about") },
+    { href: "/team",      label: t("nav.team") },
+    { href: "/sections",  label: t("nav.sections") },
+    { href: "/events",    label: t("nav.events") },
+    { href: "/news",      label: t("nav.news") },
+    { href: "/documents", label: t("nav.documents") },
+    { href: "/join",      label: t("nav.join") },
   ];
 
   return (

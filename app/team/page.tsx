@@ -16,13 +16,19 @@ export default async function TeamPage() {
     getTeamMembers("past"),
   ]);
 
+  // Albanian-aware alphabetical sort by first name (for the riders list).
+  const collator = new Intl.Collator("sq", { sensitivity: "base" });
+  const byFirstName = (a: typeof active[number], b: typeof active[number]) =>
+    collator.compare(a.first_name, b.first_name);
+
   // Group active members by role bucket for visual hierarchy.
+  // A person who holds multiple roles (e.g. Qëndrim = president + commissaire
+  // + rider) appears in EACH bucket — the buckets are lenses on the same
+  // person, not exclusive partitions.
   const board     = active.filter((m) => m.positions.includes("president"));
-  const coaches   = active.filter((m) => m.positions.includes("coach") && !m.positions.includes("president"));
-  const officials = active.filter((m) => m.positions.includes("commissaire") && !m.positions.includes("president") && !m.positions.includes("coach"));
-  const ridersSet = new Set(active.filter((m) => m.positions.includes("rider")).map((m) => m.id));
-  const placedIds = new Set([...board, ...coaches, ...officials].map((m) => m.id));
-  const riders    = active.filter((m) => ridersSet.has(m.id) && !placedIds.has(m.id));
+  const coaches   = active.filter((m) => m.positions.includes("coach"));
+  const officials = active.filter((m) => m.positions.includes("commissaire"));
+  const riders    = active.filter((m) => m.positions.includes("rider")).sort(byFirstName);
 
   return (
     <>
@@ -66,7 +72,6 @@ export default async function TeamPage() {
       {past.length > 0 && (
         <TeamSection
           title="Anëtarët e mëparshëm"
-          subtitle="Pjesë e klubit deri më 31 dhjetor 2025."
           members={past}
           tone="muted"
         />

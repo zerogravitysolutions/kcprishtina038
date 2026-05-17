@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/races" },
 };
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 60;
 
 type SearchParams = Promise<{ page?: string; year?: string }>;
 

@@ -212,7 +212,11 @@ async function syncPosts(
       limit: "25",
     },
     token,
-    5,
+    // Raised from 5 → 20 so a from-empty first run can reach back ~3
+    // years (20 × 25 = 500 posts). Steady-state runs still short-circuit
+    // at the first known post id, so this only costs more pages when
+    // backfilling or recovering from a DB wipe.
+    20,
   )) {
     let stopAfterPage = false;
 

@@ -28,6 +28,7 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
     items: [
       { id: "events", label: "Events", href: "/admin/events" },
       { id: "results", label: "Results", href: "/admin/results" },
+      { id: "races", label: "Garat (katalogu)", href: "/admin/races", allow: ["admin", "editor"] },
     ],
   },
   {

@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
+import { PageHero } from "@/components/public/PageHero";
 import { JoinForm } from "./JoinForm";
 import type { Metadata } from "next";
 
@@ -17,15 +18,14 @@ export default async function JoinPage() {
     <>
       <PublicNav />
 
-      <section className="hero" style={{ paddingBottom: 32 }}>
-        <div className="container">
-          <div className="eyebrow"><span>{t("join.eyebrow")}</span></div>
-          <h1 className="display display-l" style={{ marginTop: 20, maxWidth: "16ch" }}>
-            {t("jp.title")}
-          </h1>
-          <p className="lede" style={{ marginTop: 32 }}>{t("jp.lede")}</p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow={t("join.eyebrow")}
+        title={t("jp.title")}
+        subtitle={t("jp.lede")}
+        pickerKey="join"
+      />
+
+      <div style={{ height: 32 }} />
 
       <section id="form">
         <div className="container">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
+import { PageHero } from "@/components/public/PageHero";
 import {
   getDocumentsGrouped, categoryLabel, documentUrl, formatBytes,
   CATEGORY_ORDER, type DocumentRow,
@@ -21,27 +22,14 @@ export default async function DocumentsPage() {
     <>
       <PublicNav />
 
-      {/* Hero */}
-      <section style={{ paddingTop: 96, paddingBottom: 32 }}>
-        <div className="container">
-          <div className="eyebrow"><span>Dokumentet</span></div>
-          <h1
-            className="display"
-            style={{
-              marginTop: 16,
-              fontSize: "clamp(40px, 6vw, 72px)",
-              letterSpacing: "-0.025em",
-              lineHeight: 1.02,
-              maxWidth: "16ch",
-            }}
-          >
-            Dokumentet zyrtare të klubit.
-          </h1>
-          <p className="lede" style={{ marginTop: 24, maxWidth: "60ch", color: "var(--ink-2)" }}>
-            Statuti, vendimet e bordit, procesverbalet, deklaratat dhe vërtetimet. {total} dokumente në {Array.from(grouped.values()).filter(a => a.length > 0).length} kategori.
-          </p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow="Dokumentet"
+        title="Dokumentet zyrtare të klubit."
+        subtitle={`Statuti, vendimet e bordit, procesverbalet, deklaratat dhe vërtetimet. ${total} dokumente në ${Array.from(grouped.values()).filter(a => a.length > 0).length} kategori.`}
+        imageStoragePath={null}
+      />
+
+      <div style={{ height: 32 }} />
 
       {total === 0 && (
         <section>

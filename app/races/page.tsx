@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
+import { PageHero } from "@/components/public/PageHero";
 import { getRaceEvents, mediaUrl, raceTypeLabel, type RaceEvent } from "@/lib/supabase/fb";
 
 export const metadata: Metadata = {
@@ -33,25 +34,15 @@ export default async function RacesPage({ searchParams }: { searchParams: Search
     <>
       <PublicNav />
 
-      <section style={{ paddingTop: 96, paddingBottom: 32 }}>
-        <div className="container">
-          <div className="eyebrow"><span>Garat</span></div>
-          <h1
-            className="display"
-            style={{
-              marginTop: 16,
-              fontSize: "clamp(40px, 6vw, 72px)",
-              letterSpacing: "-0.025em",
-              lineHeight: 1.02,
-              maxWidth: "16ch",
-            }}
-          >
-            Kronologjia e garave.
-          </h1>
-          <p className="lede" style={{ marginTop: 24, maxWidth: "60ch", color: "var(--ink-2)" }}>
-            {all.length} ngjarje të katalogizuara — kampionate kombëtare, gara rrugore, MTB, dhe etapa ndërkombëtare.
-          </p>
+      <PageHero
+        eyebrow="Garat"
+        title="Kronologjia e garave."
+        subtitle={`${all.length} ngjarje të katalogizuara — kampionate kombëtare, gara rrugore, MTB, dhe etapa ndërkombëtare.`}
+        pickerKey="races"
+      />
 
+      <section style={{ paddingTop: 48, paddingBottom: 32 }}>
+        <div className="container">
           {years.length > 1 && (
             <div
               className="mono"

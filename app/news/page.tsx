@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
+import { PageHero } from "@/components/public/PageHero";
 import { NewsCard } from "@/components/ui/NewsCard";
 import { getNewsPage } from "@/lib/supabase/fb";
 
@@ -28,33 +29,15 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
     <>
       <PublicNav />
 
-      {/* Page hero */}
-      <section style={{ paddingTop: 96, paddingBottom: 32 }}>
-        <div className="container">
-          <div className="eyebrow"><span>{t("news.eyebrow")}</span></div>
-          <h1
-            className="display"
-            style={{
-              marginTop: 16,
-              fontSize: "clamp(40px, 6vw, 72px)",
-              letterSpacing: "-0.025em",
-              lineHeight: 1.02,
-              maxWidth: "18ch",
-            }}
-          >
-            {t("news.pageTitle")}
-          </h1>
-          <p
-            className="lede"
-            style={{ marginTop: 24, maxWidth: "60ch", color: "var(--ink-2)" }}
-          >
-            {t("news.pageLede")}
-          </p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow={t("news.eyebrow")}
+        title={t("news.pageTitle")}
+        subtitle={t("news.pageLede")}
+        pickerKey="news"
+      />
 
       {/* Feed grid */}
-      <section>
+      <section style={{ paddingTop: 48 }}>
         <div className="container">
           {rows.length === 0 ? (
             <p style={{ color: "var(--ink-2)", fontSize: 16 }}>{t("news.empty")}</p>

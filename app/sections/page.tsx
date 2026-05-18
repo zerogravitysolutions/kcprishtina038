@@ -1,5 +1,6 @@
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
+import { PageHero } from "@/components/public/PageHero";
 import { FbPhotoStrip } from "@/components/fb/FbPhotoStrip";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -93,17 +94,15 @@ export default async function SectionsPage() {
     <>
       <PublicNav />
 
-      {/* Hero */}
-      <section className="sections-hero">
-        <div className="container">
-          <div className="eyebrow"><span>{t("secs.eyebrow")}</span></div>
-          <h1 className="display display-l" style={{ marginTop: 16 }}>{t("secs.title")}</h1>
-          <p className="lede" style={{ marginTop: 20, maxWidth: 60 + "ch" }}>{t("secs.lede")}</p>
-        </div>
-      </section>
+      <PageHero
+        eyebrow={t("secs.eyebrow")}
+        title={t("secs.title")}
+        subtitle={t("secs.lede")}
+        pickerKey="sections"
+      />
 
       {/* Sections list */}
-      <section style={{ padding: "8px 0 64px" }}>
+      <section style={{ padding: "48px 0 64px" }}>
         <div className="container">
           <div className="secs-list">
             {SECTIONS.map(sec => (

@@ -1971,6 +1971,64 @@ footer.foot::before {
 .sec-card__cta .btn { padding: 10px 18px; }
 
 /* ============================================================
+ * Shared page hero (banner used at the top of every public page
+ * except the landing, which has its own .hero-v2)
+ * ============================================================ */
+.page-hero {
+  position: relative;
+  background: var(--ink);
+  color: var(--paper);
+  padding: clamp(72px, 8vw, 120px) 0 clamp(56px, 6vw, 88px);
+  overflow: hidden;
+  isolation: isolate;
+}
+.page-hero--plain { background: var(--ink); }
+.page-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.page-hero__bg img { object-position: center 35%; }
+.page-hero__veil {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(15,26,46,.82) 0%, rgba(15,26,46,.72) 60%, rgba(15,26,46,.86) 100%);
+}
+.page-hero--photo .page-hero__veil + * { /* nothing — placeholder for future */ }
+.page-hero__inner {
+  position: relative;
+  display: flex; flex-direction: column;
+  gap: 12px;
+  max-width: 920px;
+}
+.page-hero__eyebrow {
+  color: var(--ember);
+}
+.page-hero__eyebrow:before {
+  background: var(--ember);
+}
+.page-hero__title {
+  margin: 6px 0 0;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(36px, 5.4vw, 80px);
+  letter-spacing: -0.025em; line-height: 1.02;
+  color: var(--paper);
+  max-width: 18ch;
+}
+.page-hero__lede {
+  margin: 18px 0 0;
+  font-size: clamp(15px, 1.2vw, 19px);
+  line-height: 1.55;
+  color: color-mix(in oklab, var(--paper) 85%, transparent);
+  max-width: 52ch;
+}
+@media (max-width: 600px) {
+  .page-hero { padding: 48px 0 36px; }
+  .page-hero__title { font-size: clamp(28px, 8vw, 44px); }
+  .page-hero__lede { font-size: 15px; }
+}
+
+/* ============================================================
  * /join — profile photo field
  * ============================================================ */
 .join-photo {

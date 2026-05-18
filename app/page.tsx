@@ -10,11 +10,24 @@ import { getRecentNews, getHeroPhotos, mediaUrl } from "@/lib/supabase/fb";
 import { memberInitials, memberPhotoUrl, type TeamMemberCard } from "@/lib/supabase/team";
 
 type NextRace = {
-  title_sq: string; start_at: string; location: string | null;
-  distance_km: number | null; elevation_m: number | null; description_sq: string | null;
+  slug: string | null;
+  title_sq: string;
+  start_at: string;
+  location: string | null;
+  distance_km: number | null;
+  elevation_m: number | null;
+  description_sq: string | null;
+  cover: { storage_path: string } | null;
 };
 type SectionRow = { slug: string; name_sq: string; description_sq: string | null };
-type SponsorRow = { name: string; tier: string; role_sq: string | null; body_sq: string | null };
+type SponsorRow = {
+  name: string;
+  tier: string;
+  role_sq: string | null;
+  body_sq: string | null;
+  website_url: string | null;
+  logo: { storage_path: string } | null;
+};
 
 const FOUNDING_YEAR = 2022;
 
@@ -37,19 +50,19 @@ async function fetchHomeData() {
     "shqiponja-osmani-pllana": "Themelueze · Programe të femrave",
   };
 
-  const [nextRace, sections, news, sponsors, fbPhotos, riderC, raceEventC, foundersRaw] = await Promise.all([
+  const [upcomingRaces, sections, news, sponsors, fbPhotos, riderC, raceEventC, foundersRaw] = await Promise.all([
     supabase.from("events")
-      .select("title_sq, start_at, location, distance_km, elevation_m, description_sq")
+      .select("slug, title_sq, start_at, location, distance_km, elevation_m, description_sq, cover:media!cover_media_id(storage_path)")
       .eq("type", "race").eq("status", "published")
       .gte("start_at", nowIso)
       .order("start_at", { ascending: true })
-      .limit(1).maybeSingle(),
+      .limit(6),
     supabase.from("sections")
       .select("slug, name_sq, description_sq")
       .eq("active", true).order("display_order"),
     getRecentNews(3),
     supabase.from("sponsors")
-      .select("name, tier, role_sq, body_sq, website_url, display_order")
+      .select("name, tier, role_sq, body_sq, website_url, display_order, logo:media!logo_media_id(storage_path)")
       .eq("active", true).order("display_order"),
     getHeroPhotos(3),
     // Active riders only (members with the 'rider' position).
@@ -77,8 +90,11 @@ async function fetchHomeData() {
 
   const yearsOnCalendar = new Date().getFullYear() - FOUNDING_YEAR;
 
+  const races = (upcomingRaces.data as NextRace[] | null) ?? [];
+
   return {
-    nextRace: (nextRace.data as NextRace | null) ?? null,
+    nextRace: races[0] ?? null,
+    otherRaces: races.slice(1),
     sections: (sections.data as SectionRow[] | null) ?? [],
     news,
     sponsors: (sponsors.data as SponsorRow[] | null) ?? [],
@@ -95,7 +111,7 @@ async function fetchHomeData() {
 
 export default async function Home() {
   const t = await getTranslations();
-  const { nextRace, sections, news, sponsors, fbPhotos, founders, stats } = await fetchHomeData();
+  const { nextRace, otherRaces, sections, news, sponsors, fbPhotos, founders, stats } = await fetchHomeData();
   const pad2 = (n: number) => n.toString().padStart(2, "0");
   // Hero collage uses real FB photos when available; otherwise the labeled
   // placeholder boxes remain (existing behavior preserved).
@@ -232,12 +248,126 @@ export default async function Home() {
                 <h2 className="display display-l" style={{ color: "var(--paper)", marginTop: 16 }}>{raceTitle}</h2>
                 <p className="mono" style={{ fontSize: 13, letterSpacing: ".06em", color: "var(--slate)", marginTop: 16 }}>{raceSubtitle}</p>
                 <p className="mono" style={{ fontSize: 11, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--slate-2)", marginTop: 24 }}>{t("cd.detail")}</p>
-                <Link href={"/races" as never} className="btn btn-ember" style={{ marginTop: 28 }}>
+                <Link
+                  href={(nextRace?.slug ? `/events/${nextRace.slug}` : "/races") as never}
+                  className="btn btn-ember"
+                  style={{ marginTop: 28 }}
+                >
                   <span>{t("cd.cta")}</span>
                   <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
                 </Link>
               </div>
               <Countdown targetIso={raceTargetIso} />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ============ UPCOMING RACES STRIP ============ */}
+      {otherRaces.length > 0 && (
+        <section style={{ paddingTop: 0 }}>
+          <div className="container">
+            <div className="eyebrow" style={{ marginBottom: 20 }}>
+              <span>Edhe më shumë gara</span>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: 16,
+              }}
+            >
+              {otherRaces.map((r, i) => {
+                const d = new Date(r.start_at);
+                const dd = d.toLocaleDateString("sq-AL", { day: "2-digit", month: "short", year: "numeric" });
+                const tt = d.toLocaleTimeString("sq-AL", { hour: "2-digit", minute: "2-digit" });
+                const sub = [
+                  r.location,
+                  r.distance_km ? `${r.distance_km} km` : null,
+                  r.elevation_m ? `${r.elevation_m} m` : null,
+                ].filter(Boolean).join(" · ");
+                const coverUrl = mediaUrl(r.cover?.storage_path ?? null);
+                const Wrap = ({ children }: { children: React.ReactNode }) =>
+                  r.slug ? (
+                    <Link
+                      href={`/events/${r.slug}` as never}
+                      style={{ textDecoration: "none", color: "inherit", display: "block" }}
+                    >
+                      {children}
+                    </Link>
+                  ) : (
+                    <div>{children}</div>
+                  );
+                return (
+                  <Wrap key={r.slug ?? `${r.start_at}-${i}`}>
+                    <article
+                      style={{
+                        background: "var(--paper)",
+                        border: "1px solid var(--line)",
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        display: "flex",
+                        flexDirection: "column",
+                        transition: "transform .25s, box-shadow .25s",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "relative",
+                          width: "100%",
+                          aspectRatio: "16 / 9",
+                          background: "var(--paper-2)",
+                        }}
+                      >
+                        {coverUrl ? (
+                          <Image
+                            src={coverUrl}
+                            alt={r.title_sq}
+                            fill
+                            sizes="(max-width: 900px) 100vw, 33vw"
+                            quality={75}
+                            style={{ objectFit: "cover" }}
+                          />
+                        ) : (
+                          <span
+                            className="mono"
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "var(--ink-3)",
+                              fontSize: 11,
+                              letterSpacing: ".14em",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Pa kopertinë
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div
+                          className="mono"
+                          style={{
+                            fontSize: 11,
+                            letterSpacing: ".12em",
+                            textTransform: "uppercase",
+                            color: "var(--ember)",
+                          }}
+                        >
+                          {dd} · {tt}
+                        </div>
+                        <h3 style={{ fontSize: 18, lineHeight: 1.25, margin: 0 }}>{r.title_sq}</h3>
+                        {sub && (
+                          <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>{sub}</div>
+                        )}
+                      </div>
+                    </article>
+                  </Wrap>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -398,32 +528,213 @@ export default async function Home() {
       )}
 
       {/* ============ SPONSORS ============ */}
-      {sponsors.length > 0 && (
-        <section>
-          <div className="container">
-            <div className="section-head">
-              <div>
-                <div className="eyebrow"><span>{t("sponsors.eyebrow")}</span></div>
-                <h2 className="display display-m" style={{ marginTop: 16 }}>{t("sponsors.title")}</h2>
-              </div>
+      {sponsors.length > 0 && (() => {
+        const tierLabel = (t: string) => {
+          if (t === "title") return "Title sponsor";
+          if (t === "technical") return "Technical partner";
+          if (t === "partner") return "Partner";
+          if (t === "supporter") return "Supporter";
+          return t;
+        };
+        const tierOrder: Record<string, number> = { title: 0, technical: 1, partner: 2, supporter: 3 };
+        const ordered = [...sponsors].sort(
+          (a, b) => (tierOrder[a.tier] ?? 9) - (tierOrder[b.tier] ?? 9),
+        );
+        const title = ordered.filter(s => s.tier === "title");
+        const rest = ordered.filter(s => s.tier !== "title");
+
+        const renderLogo = (s: SponsorRow, height = 56) => {
+          const url = mediaUrl(s.logo?.storage_path ?? null);
+          return url ? (
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                height,
+                background: "transparent",
+              }}
+            >
+              <Image
+                src={url}
+                alt={s.name}
+                fill
+                sizes="(max-width: 700px) 50vw, 240px"
+                quality={85}
+                style={{ objectFit: "contain", objectPosition: "left center" }}
+              />
             </div>
-            <div className="sponsors">
-              {sponsors.map((s) => (
-                <div key={s.name} className="sponsor">
-                  <div className="logo-box" style={s.tier === "title" ? { background: "var(--ink)", color: "var(--paper)", borderColor: "var(--ink)" } : undefined}>
-                    {s.name}
-                  </div>
-                  <div>
-                    <div className="name">{s.name}</div>
-                    <div className="role">{s.role_sq || s.tier}</div>
-                    <p>{s.body_sq}</p>
-                  </div>
+          ) : (
+            <div
+              className="display"
+              style={{
+                fontSize: Math.round(height * 0.55),
+                lineHeight: 1,
+                letterSpacing: "-0.02em",
+                color: "var(--ink)",
+              }}
+            >
+              {s.name}
+            </div>
+          );
+        };
+
+        const TileWrap = ({ href, children }: { href: string | null; children: React.ReactNode }) =>
+          href ? (
+            <a href={href} target="_blank" rel="noopener noreferrer"
+               style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              {children}
+            </a>
+          ) : (
+            <div>{children}</div>
+          );
+
+        return (
+          <section style={{ background: "var(--paper-2)" }}>
+            <div className="container">
+              <div className="section-head">
+                <div>
+                  <div className="eyebrow"><span>{t("sponsors.eyebrow")}</span></div>
+                  <h2 className="display display-m" style={{ marginTop: 16 }}>{t("sponsors.title")}</h2>
                 </div>
-              ))}
+                <p className="lede">
+                  Partnerët që e mbajnë rrotullimin tonë — pajisje, logjistikë,
+                  dhe besimi që na lejon të garojmë sezon pas sezoni.
+                </p>
+              </div>
+
+              {/* Featured title sponsor(s) */}
+              {title.length > 0 && (
+                <div style={{ display: "grid", gap: 16, marginBottom: rest.length ? 32 : 0 }}>
+                  {title.map((s) => (
+                    <TileWrap key={s.name} href={s.website_url}>
+                      <div
+                        style={{
+                          background: "var(--ink)",
+                          color: "var(--paper)",
+                          borderRadius: 16,
+                          padding: "40px 48px",
+                          display: "grid",
+                          gridTemplateColumns: "minmax(160px, 280px) 1fr",
+                          alignItems: "center",
+                          gap: 48,
+                        }}
+                      >
+                        <div style={{ filter: "brightness(0) invert(1)" }}>
+                          {renderLogo(s, 88)}
+                        </div>
+                        <div>
+                          <div
+                            className="mono"
+                            style={{
+                              fontSize: 11,
+                              letterSpacing: ".16em",
+                              textTransform: "uppercase",
+                              color: "var(--ember)",
+                              marginBottom: 12,
+                            }}
+                          >
+                            {tierLabel(s.tier)}
+                          </div>
+                          <div
+                            className="display"
+                            style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: "-0.02em" }}
+                          >
+                            {s.name}
+                          </div>
+                          {s.role_sq && (
+                            <div style={{ marginTop: 10, color: "var(--slate)", fontSize: 14 }}>
+                              {s.role_sq}
+                            </div>
+                          )}
+                          {s.body_sq && (
+                            <p style={{ marginTop: 16, color: "var(--slate-2)", maxWidth: "60ch", lineHeight: 1.6 }}>
+                              {s.body_sq}
+                            </p>
+                          )}
+                          {s.website_url && (
+                            <span
+                              className="mono"
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 8,
+                                marginTop: 20,
+                                fontSize: 11,
+                                letterSpacing: ".14em",
+                                textTransform: "uppercase",
+                                color: "var(--ember)",
+                              }}
+                            >
+                              <span>Vizito</span>
+                              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                                <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </TileWrap>
+                  ))}
+                </div>
+              )}
+
+              {/* Other tiers — logo wall */}
+              {rest.length > 0 && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {rest.map((s) => (
+                    <TileWrap key={s.name} href={s.website_url}>
+                      <div
+                        style={{
+                          background: "var(--paper)",
+                          border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)",
+                          borderRadius: 12,
+                          padding: "24px 24px 20px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 16,
+                          minHeight: 168,
+                          transition: "transform .25s, box-shadow .25s",
+                        }}
+                      >
+                        <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
+                          {renderLogo(s, 56)}
+                        </div>
+                        <div>
+                          <div
+                            className="mono"
+                            style={{
+                              fontSize: 10,
+                              letterSpacing: ".16em",
+                              textTransform: "uppercase",
+                              color: "var(--ember)",
+                            }}
+                          >
+                            {tierLabel(s.tier)}
+                          </div>
+                          <div style={{ fontWeight: 600, fontSize: 16, marginTop: 6, color: "var(--ink)" }}>
+                            {s.name}
+                          </div>
+                          {s.role_sq && (
+                            <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
+                              {s.role_sq}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </TileWrap>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       {/* ============ JOIN BAND ============ */}
       <section>

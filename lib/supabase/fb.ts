@@ -64,6 +64,21 @@ export function mediaUrl(storagePath: string | null | undefined): string | null 
   return `${base}/storage/v1/object/public/media/${storagePath}`;
 }
 
+// Build a clean FB permalink from a compound post id ("{page_id}_{post_id}").
+// We avoid news.external_url because some permalinks FB returns use a
+// non-canonical owner id that triggers a JS redirect stub — that stub
+// breaks on mobile browsers (the user lands on a blank/login screen).
+// Constructing the URL from page_id + post_id renders the post directly.
+export function fbPermalink(
+  fbPostId: string | null | undefined,
+  fallback: string | null | undefined = null,
+): string | null {
+  if (!fbPostId) return fallback ?? null;
+  const parts = fbPostId.split("_");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return fallback ?? null;
+  return `https://www.facebook.com/${parts[0]}/posts/${parts[1]}`;
+}
+
 // ============================================================
 // Page profile + photo strip (still read directly from fb_* tables)
 // ============================================================

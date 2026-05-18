@@ -27,17 +27,34 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
   const name       = String(form.get("name")       ?? "").trim();
   const email      = String(form.get("email")      ?? "").trim();
   const phone      = String(form.get("phone")      ?? "").trim();
-  const ageRaw     = form.get("age");
-  const age        = ageRaw === null || String(ageRaw).trim() === "" ? null : Number(ageRaw);
+  const dobRaw     = String(form.get("dob") ?? "").trim();
   const section    = String(form.get("section")    ?? "").trim();
   const experience = String(form.get("experience") ?? "").trim();
   const notes      = String(form.get("notes")      ?? "").trim();
 
+  // Derive age (in full years) from DOB so the existing `applications.age`
+  // column keeps a numeric value for filtering / federation forms.
+  let age: number | null = null;
+  let dob: string | null = null;
+  if (dobRaw) {
+    const d = new Date(dobRaw);
+    if (Number.isNaN(d.getTime())) {
+      return { ok: false, error: "Data e lindjes nuk është e vlefshme." };
+    }
+    const today = new Date();
+    let yrs = today.getFullYear() - d.getFullYear();
+    const m = today.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < d.getDate())) yrs--;
+    if (yrs < 9 || yrs > 80) {
+      return { ok: false, error: "Mosha (e llogaritur nga data e lindjes) duhet të jetë midis 9 dhe 80 vjeç." };
+    }
+    age = yrs;
+    dob = dobRaw;
+  }
+
   if (!name) return { ok: false, error: "Emri është i detyrueshëm." };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Email-i nuk është i vlefshëm." };
-  if (age !== null && (Number.isNaN(age) || age < 9 || age > 80)) {
-    return { ok: false, error: "Mosha duhet të jetë midis 9 dhe 80." };
-  }
+  if (!dob) return { ok: false, error: "Data e lindjes është e detyrueshme." };
 
   const supabase = await createClient();
 
@@ -69,19 +86,20 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
     photoStoragePath = path;
   }
 
-  const insertFn = supabase.from("applications").insert as unknown as (
-    row: Record<string, unknown>
-  ) => Promise<{ error: { message: string } | null }>;
-  const { error } = await insertFn({
+  const row: Record<string, unknown> = {
     full_name: name,
     email,
     phone: phone || null,
     age,
+    dob,
     section_id: sectionId,
     experience: (EXP as readonly string[]).includes(experience) ? experience : null,
     notes: notes || null,
     photo_storage_path: photoStoragePath,
-  });
+  };
+  const { error } = await supabase
+    .from("applications")
+    .insert(row as never);
   if (error) {
     // If the row insert failed but we already uploaded a photo, try to clean it up
     if (photoStoragePath) {

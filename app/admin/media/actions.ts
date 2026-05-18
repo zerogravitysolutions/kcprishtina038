@@ -52,18 +52,22 @@ export async function uploadMediaFiles(form: FormData): Promise<UploadResult> {
         .upload(path, buf, { contentType: file.type, upsert: false });
       if (upErr) { lastErr = upErr.message; skipped++; continue; }
 
-      const insertRow = supabase.from("media").insert as unknown as (
-        row: Record<string, unknown>
-      ) => { select: (cols: string) => { single: () => Promise<{ data: { id: string } | null; error: { message: string } | null }> } };
-
-      const { data: row, error: dbErr } = await insertRow({
+      const row: Record<string, unknown> = {
         storage_path: path,
         filename: file.name || `${crypto.randomUUID()}.${extFor(file.type)}`,
         mime_type: file.type,
         byte_size: file.size,
         source: "upload",
         uploaded_by: me.id,
-      }).select("id").single();
+      };
+      const { data: inserted, error: dbErr } = await supabase
+        .from("media")
+        // Cast through unknown: generated Database types don't cover the
+        // `media` table since it's outside the typed surface, but the row
+        // shape above is correct.
+        .insert(row as never)
+        .select("id")
+        .single<{ id: string }>();
 
       if (dbErr) {
         // Roll back the storage object if the row failed.
@@ -72,7 +76,7 @@ export async function uploadMediaFiles(form: FormData): Promise<UploadResult> {
         skipped++;
         continue;
       }
-      if (row?.id) ids.push(row.id);
+      if (inserted?.id) ids.push(inserted.id);
     }
 
     if (ids.length === 0 && lastErr) {

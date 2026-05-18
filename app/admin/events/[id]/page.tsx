@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { updateEvent } from "../actions";
@@ -49,9 +50,20 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
 
   const bound = updateEvent.bind(null, row.id);
 
+  // Quick signups count for the header chip.
+  const { count: signupCount } = await supabase
+    .from("event_signups")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", row.id);
+
   return (
     <>
-      <div className="page-head"><div><h1>Edit: {row.title_sq}</h1></div></div>
+      <div className="page-head">
+        <div><h1>Edit: {row.title_sq}</h1></div>
+        <Link className="btn btn-ember btn-sm" href={`/admin/events/${row.id}/signups`}>
+          Regjistrimet ({signupCount ?? 0}) →
+        </Link>
+      </div>
       <EventForm action={bound} sections={sections} media={media} initial={row} submitLabel="Ruaj ndryshimet" />
       <div style={{ marginTop: 40 }}>
         <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, letterSpacing: "-0.015em", margin: "0 0 16px 0" }}>

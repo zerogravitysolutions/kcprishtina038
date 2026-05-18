@@ -49,8 +49,15 @@ export function JoinForm() {
           <input id="f-name" name="name" type="text" placeholder="P.sh. Albion Ymeri" required />
         </div>
         <div className="field">
-          <label htmlFor="f-age">{t("jp.form.age")}</label>
-          <input id="f-age" name="age" type="number" placeholder="P.sh. 28" min={9} max={80} required />
+          <label htmlFor="f-dob">Data e lindjes</label>
+          <input
+            id="f-dob"
+            name="dob"
+            type="date"
+            required
+            max={new Date().toISOString().slice(0, 10)}
+            min="1930-01-01"
+          />
         </div>
       </div>
       <div className="form-row">

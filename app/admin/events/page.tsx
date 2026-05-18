@@ -43,6 +43,7 @@ export default async function EventsAdminPage() {
                   <td><span className={`badge-st ${r.status === "published" ? "ok" : r.status === "draft" ? "warn" : "err"}`}>{r.status}</span></td>
                   <td className="actions">
                     <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}`}>Edit</Link>
+                    <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}/signups`}>Regjistrimet</Link>
                     <DeleteButton id={r.id} title={r.title_sq} />
                   </td>
                 </tr>

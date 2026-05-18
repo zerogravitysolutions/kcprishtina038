@@ -9,6 +9,7 @@ import { PhotoGallery, type GalleryPhoto } from "@/components/ui/PhotoGallery";
 import { NewsCard } from "@/components/ui/NewsCard";
 import {
   getNewsBySlug, getRecentNews, getMediaPaths, mediaUrl, formatNewsDate,
+  fbPermalink,
 } from "@/lib/supabase/fb";
 
 type Params = Promise<{ slug: string }>;
@@ -184,7 +185,7 @@ export default async function NewsArticlePage({ params }: { params: Params }) {
         )}
 
         {/* ============ Original on Facebook ============ */}
-        {article.source === "facebook" && article.external_url && (
+        {article.source === "facebook" && (fbPermalink(article.fb_post_id, article.external_url)) && (
           <div
             className="container"
             style={{
@@ -195,7 +196,7 @@ export default async function NewsArticlePage({ params }: { params: Params }) {
             }}
           >
             <a
-              href={article.external_url}
+              href={fbPermalink(article.fb_post_id, article.external_url)!}
               target="_blank"
               rel="noopener noreferrer"
               className="mono"

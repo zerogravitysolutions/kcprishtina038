@@ -650,6 +650,7 @@ table.t .person .nm small {
     gap: 8px;
   }
   .top .crumbs { font-size: 12px; }
+  .top .crumbs a { padding: 14px 4px; display: inline-block; min-height: 44px; }
   .top .actions { gap: 4px; }
   .top .public-link { padding: 10px 8px; min-height: 44px; display: inline-flex; align-items: center; }
   .mobile-nav-toggle { display: inline-flex; }

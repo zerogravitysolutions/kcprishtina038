@@ -27,7 +27,11 @@ const SECTIONS: Section[] = [
     name: "Rrugë",
     short: "Sezoni i pranverës–vjeshtës. Garat kombëtare të FÇK, Granfondo, dhe etapat rajonale.",
     long:
-      "Seksioni themelor i klubit. Garojmë në Tour of Kosovo, kampionatet kombëtare të FÇK në rrugë dhe krono, Granfondo Sharri, Granfondo Prizren, dhe disa Cup të hapura në Shqipëri dhe Maqedoni të Veriut. Programi i stërvitjes bazohet në metodologjinë e USAC-së dhe FCI, me blloqe sezonale: bazë (Shkurt–Mars), ngritje (Prill–Maj), garë (Qershor–Tetor).",
+      "Seksioni themelor i klubit, i themeluar në vitin 2022 dhe i drejtuar nga Albion Ymeri. " +
+      "Ekipi numëron sot 12 çiklistë në kategoritë Elite, U23 dhe Masters. " +
+      "Stërvitja zhvillohet tri herë në javë — të hënë, të mërkurë dhe të premte në orën 17:30 — me dalje më të gjata grupore çdo të shtunë. " +
+      "Garojmë në Tour of Kosovo, në kampionatet kombëtare të FÇK në rrugë dhe krono, në Granfondo Sharri dhe Granfondo Prizren, si dhe në disa Cup të hapura në Shqipëri dhe Maqedoni të Veriut. " +
+      "Programi i stërvitjes bazohet në metodologjinë e USAC dhe FCI, i ndarë në blloqe sezonale: bazë (Shkurt–Mars), ngritje (Prill–Maj) dhe garë (Qershor–Tetor).",
     cta: { href: "/join", label: "Apliko për Rrugë" },
   },
   {
@@ -36,7 +40,11 @@ const SECTIONS: Section[] = [
     name: "MTB",
     short: "Cross-country mbi Germinë, Sharrin dhe Prokletijet. Format XCO dhe maratonë.",
     long:
-      "Seksioni i dytë më i madh i klubit. Stërvitemi në shtigjet e Germisë, Sharrit dhe Prokletijeve dhe garojmë në kalendarin XCO të FÇK, plus në maratonat rajonale. Sezoni: Prill–Tetor. Anëtarësia: 25 €/muaj (zbritur për U23). Seksioni mban edhe një grup të hapur \"Germi Saturday\" për ride pa gara, çdo të shtunë.",
+      "Seksioni i dytë më i madh i klubit, i drejtuar nga Dorant Haxhidauti. " +
+      "Stërvitja zhvillohet të martën në orën 18:00 dhe të shtunën në orën 09:00, kryesisht në shtigjet e Germisë, me dalje periodike në Sharr dhe Prokletije. " +
+      "Garojmë në kalendarin XCO të FÇK dhe në maratonat rajonale; formati kryesor është cross-country olimpik, me kalim te formatet maratonë gjatë verës. " +
+      "Sezoni shtrihet nga Prilli në Tetor. Anëtarësia kushton 25 €/muaj, me zbritje për kategorinë U23. " +
+      "Seksioni mban edhe grupin e hapur „Germi Saturday\" për ride pa gara — çdo të shtunë, i hapur për çiklistë jashtë klubit.",
     cta: { href: "/sections/mtb", label: "Hape faqen e MTB" },
   },
   {
@@ -45,7 +53,10 @@ const SECTIONS: Section[] = [
     name: "Gravel",
     short: "E reja e klubit. Gara aventureske dhe ekspedita të hapura në rrugët dytësore të Kosovës.",
     long:
-      "Seksioni më i ri i klubit, themeluar në 2024. Filozofia: më pak garë, më shumë eksplorim. Rrugët dytësore të Kosovës dhe rajonit ofrojnë qindra kilometra të pashkelura nga klubet tjera. Bashkëpunojmë me Velo Tirana për një kalendar të përbashkët gravel race serie që fillon sezonin 2026 me 4 etapa.",
+      "Seksioni më i ri i klubit, themeluar në vitin 2024 dhe i koordinuar nga Qëndrim Pllana. " +
+      "Filozofia: më pak garë, më shumë eksplorim. Rrugët dytësore të Kosovës dhe rajonit ofrojnë qindra kilometra të pashkelura nga klubet tjera. " +
+      "Grupi numëron sot tetë çiklistë dhe stërvitet të shtunën në orën 08:00 — pika e takimit rrotullohet midis fshatrave përreth Prishtinës. " +
+      "Formati kryesor është ride i gjatë 80–180 km, me përgatitje për një gravel race serie të përbashkët me Velo Tirana — sezoni i parë fillon në vitin 2026 me katër etapa.",
     cta: { href: "/join", label: "Apliko për Gravel" },
   },
   {
@@ -54,7 +65,12 @@ const SECTIONS: Section[] = [
     name: "Akademia e të rinjve",
     short: "Çiklistët e ardhshëm të Kosovës — moshat 9–17 vjeç. Stërvitje çdo të shtunë.",
     long:
-      "Misioni më i rëndësishëm i klubit. Programi përfshin: aftësi themelore të biçikletës, siguri në trafik, mekanikë bazë, gara të vogla brenda klubit, dhe udhëtime në kampe verore. Pajisjet bazë (helmetë, doreza) sigurohen nga klubi për tre muajt e parë. Akademia është krenare që ka tashmë dy çiklistë në ekipin kombëtar U17.",
+      "Misioni më i rëndësishëm i klubit, i drejtuar nga Shqiponja Osmani Pllana. " +
+      "Akademia mbledh sot 18 çiklistë — 9 vajza dhe 9 djem — të cilët stërviten çdo të shtunë në orën 10:00 në Park-Pyllin e Germisë. " +
+      "Programi përfshin aftësi themelore mbi biçikletë, siguri në trafik, mekanikë bazë, gara të vogla brenda klubit dhe udhëtime në kampe verore. " +
+      "Pajisjet bazë — helmetë dhe doreza — sigurohen nga klubi për tre muajt e parë. " +
+      "Çmimi: falas për çiklistët nën 14 vjeç, dhe 10 €/muaj për moshat 14–17. " +
+      "Akademia është krenare që ka tashmë dy çiklistë në ekipin kombëtar U17.",
     cta: { href: "/join", label: "Apliko për fëmijën tuaj" },
   },
   {
@@ -63,7 +79,9 @@ const SECTIONS: Section[] = [
     name: "Femra",
     short: "Programi i çiklizmit të femrave — gara, ride të hapura, dhe mentorim ndër-gjenerata.",
     long:
-      "Më shumë se një seksion — një rrjet. Çiklistet janë anëtare të seksioneve të rregullta (Rrugë, MTB, Gravel) por marrin pjesë në një program shtesë mentorimi që e drejton Shqiponja. Çdo të diel në mëngjes, klubi organizon një ride të hapur për çdo grua që do të provojë çiklizmin — me biçikleta për qira nga BikePlus.",
+      "Më shumë se një seksion — një rrjet. Programi numëron sot 11 çiklistë në të gjitha disiplinat dhe drejtohet nga Shqiponja Osmani Pllana. " +
+      "Çiklistet janë anëtare të seksioneve të rregullta (Rrugë, MTB, Gravel) dhe stërviten sipas seksionit primar, por marrin pjesë në një program shtesë mentorimi që e drejton Shqiponja. " +
+      "Çdo të diel në orën 09:00, klubi organizon një ride të hapur nga Lakna e Sahatkullës — për çdo grua që do të provojë çiklizmin për herë të parë, me biçikleta për qira nga BikePlus.",
     cta: { href: "/join", label: "Apliko për programin" },
   },
 ];

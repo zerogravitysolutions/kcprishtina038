@@ -17,6 +17,7 @@ type Row = {
   status: string;
   reviewed_at: string | null;
   created_at: string;
+  photo_storage_path: string | null;
   section: { name_sq: string } | null;
   reviewer: { full_name: string } | null;
 };
@@ -35,7 +36,7 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
   const { id } = await params;
   const supabase = await createClient();
   const { data } = await supabase.from("applications")
-    .select("id, full_name, email, phone, age, experience, notes, status, reviewed_at, created_at, section:sections(name_sq), reviewer:profiles!reviewed_by(full_name)")
+    .select("id, full_name, email, phone, age, experience, notes, status, reviewed_at, created_at, photo_storage_path, section:sections(name_sq), reviewer:profiles!reviewed_by(full_name)")
     .eq("id", id).maybeSingle();
   const row = data as unknown as Row | null;
   if (!row) notFound();
@@ -65,6 +66,20 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
       <div className="cols">
         <div className="card">
           <div className="card-head"><h3>Detajet e aplikimit</h3></div>
+
+          {row.photo_storage_path && (
+            <div style={{ marginBottom: 18, display: "flex", gap: 16, alignItems: "flex-start" }}>
+              <img
+                src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${row.photo_storage_path}`}
+                alt={`Foto profili e ${row.full_name}`}
+                style={{ width: 140, height: 175, objectFit: "cover", borderRadius: 8, border: "1px solid var(--line)" }}
+              />
+              <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: ".12em", textTransform: "uppercase", marginTop: 6 }}>
+                Foto profili<br />
+                <a href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${row.photo_storage_path}`} target="_blank" rel="noopener" style={{ color: "var(--ember)", letterSpacing: ".06em", textTransform: "none", fontSize: 12 }}>Hape në madhësi të plotë ↗</a>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 16, fontSize: 14 }}>
             <div className="mono" style={{ color: "var(--ink-3)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase" }}>Email</div>

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { submitApplication, type JoinResult } from "./actions";
 
@@ -7,24 +7,25 @@ export function JoinForm() {
   const t = useTranslations();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) { setPreview(null); return; }
+    const url = URL.createObjectURL(f);
+    setPreview(url);
+  };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     start(async () => {
-      const result: JoinResult = await submitApplication({
-        name: String(fd.get("name") ?? ""),
-        email: String(fd.get("email") ?? ""),
-        phone: String(fd.get("phone") ?? ""),
-        age: fd.get("age") ? Number(fd.get("age")) : null,
-        section: String(fd.get("section") ?? ""),
-        experience: String(fd.get("experience") ?? ""),
-        notes: String(fd.get("notes") ?? ""),
-        gotcha: String(fd.get("_gotcha") ?? ""),
-      });
+      const result: JoinResult = await submitApplication(fd);
       if (result.ok) {
         setMsg({ kind: "ok", text: "Faleminderit! Aplikimi u dërgua. Ju kontaktojmë brenda 5 ditëve pune." });
         (e.target as HTMLFormElement).reset();
+        setPreview(null);
       } else {
         setMsg({ kind: "err", text: "Gabim: " + result.error });
       }
@@ -87,6 +88,31 @@ export function JoinForm() {
       <div className="field">
         <label htmlFor="f-notes">{t("jp.form.notes")}</label>
         <textarea id="f-notes" name="notes" rows={4} placeholder="Disiplinat tjera, biçikleta që ke, garat ku ke marrë pjesë, etj." />
+      </div>
+
+      {/* Profile photo — used for the federation license number */}
+      <div className="field">
+        <label htmlFor="f-photo">Foto profili</label>
+        <div className="join-photo">
+          <div className="join-photo__preview" aria-hidden="true">
+            {preview
+              ? <img src={preview} alt="" />
+              : <span>Foto e portretit</span>}
+          </div>
+          <div className="join-photo__controls">
+            <input
+              id="f-photo"
+              ref={fileRef}
+              name="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={onFile}
+            />
+            <p className="join-photo__hint">
+              Foto e qartë e fytyrës, sfond i njëtrajtshëm. Përdoret për gjenerimin e numrit të licencës pas miratimit të aplikimit. Madhësia max 5 MB · JPG, PNG ose WebP.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 12, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>

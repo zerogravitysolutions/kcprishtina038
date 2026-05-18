@@ -1958,11 +1958,60 @@ footer.foot::before {
 }
 
 .sec-card__body {
-  font-size: 15px; line-height: 1.65;
+  font-size: 15px; line-height: 1.7;
   color: var(--ink-2);
   padding-top: 20px;
   border-top: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+  /* Constrain measure on wide screens so the paragraph reads as a paragraph
+     instead of a long single line stretched across 1100px. */
+  max-width: 78ch;
 }
 
 .sec-card__cta { margin-top: 4px; }
 .sec-card__cta .btn { padding: 10px 18px; }
+
+/* ============================================================
+ * /join — profile photo field
+ * ============================================================ */
+.join-photo {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  margin-top: 6px;
+}
+.join-photo__preview {
+  width: 120px;
+  height: 150px;
+  flex-shrink: 0;
+  background: var(--paper);
+  border: 1px dashed color-mix(in oklab, var(--ink) 22%, transparent);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 8px;
+}
+.join-photo__preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.join-photo__controls {
+  flex: 1; display: flex; flex-direction: column; gap: 8px;
+  justify-content: center;
+}
+.join-photo__controls input[type="file"] {
+  font-family: var(--font-body); font-size: 13.5px;
+  padding: 8px 0;
+  color: var(--ink);
+}
+.join-photo__hint {
+  margin: 0;
+  font-size: 12.5px; line-height: 1.55;
+  color: var(--ink-3);
+}
+@media (max-width: 600px) {
+  .join-photo { flex-direction: column; }
+  .join-photo__preview { width: 100%; height: 200px; }
+}

@@ -4,7 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import { updateEvent } from "../actions";
 import { EventForm } from "../EventForm";
 import { CategoriesEditor } from "../CategoriesEditor";
-import { EventSponsorsPicker, type SponsorOption } from "../EventSponsorsPicker";
+import { EventSponsorsPanel, type EventSponsor } from "../EventSponsorsPanel";
 import type { MediaOption } from "@/components/admin/MediaPicker";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +41,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
     { data: secs },
     { data: mediaData },
     { data: cats },
-    { data: allSponsors },
-    { data: linkedSponsors },
+    { data: eventSponsors },
   ] = await Promise.all([
     supabase.from("events")
       .select("id, title_sq, title_en, type, status, section_id, start_at, end_at, location, distance_km, elevation_m, description_sq, description_en, cover_media_id, strava_url")
@@ -50,16 +49,17 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
     supabase.from("sections").select("id, name_sq").eq("active", true).order("display_order"),
     supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),
     supabase.from("event_categories").select("id, name, max_riders, display_order").eq("event_id", id).order("display_order"),
-    supabase.from("sponsors").select("id, name, tier").eq("active", true).order("display_order"),
-    supabase.from("event_sponsors").select("sponsor_id, display_order").eq("event_id", id).order("display_order"),
+    supabase.from("sponsors")
+      .select("id, name, tier, role_sq, body_sq, website_url, display_order, active, logo_media_id, logo:media!logo_media_id(storage_path)")
+      .eq("event_id", id)
+      .order("display_order"),
   ]);
   const row = ev as Row | null;
   if (!row) notFound();
   const sections = (secs as { id: string; name_sq: string }[] | null) ?? [];
   const media = (mediaData as MediaOption[] | null) ?? [];
   const categories = (cats as Category[] | null) ?? [];
-  const sponsorOptions = (allSponsors as SponsorOption[] | null) ?? [];
-  const linkedSponsorIds = ((linkedSponsors as { sponsor_id: string }[] | null) ?? []).map((r) => r.sponsor_id);
+  const eventSponsorsTyped = (eventSponsors as unknown as EventSponsor[] | null) ?? [];
 
   const bound = updateEvent.bind(null, row.id);
 
@@ -91,12 +91,12 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
           Sponsorët e garës
         </h2>
         <div className="sub" style={{ marginBottom: 18, color: "var(--ink-3)", fontSize: 13 }}>
-          Lidh sponsorët që do të shfaqen në faqen publike të kësaj gare. Renditja kontrollohet me ↑ / ↓.
+          Sponsorët e shtuar këtu shfaqen vetëm në faqen publike të kësaj gare. Të dhënat ruhen në të njëjtën tabelë me sponsorët globalë, me <span className="mono">event_id</span> të caktuar.
         </div>
-        <EventSponsorsPicker
+        <EventSponsorsPanel
           eventId={row.id}
-          sponsors={sponsorOptions}
-          initialSelected={linkedSponsorIds}
+          sponsors={eventSponsorsTyped}
+          mediaOptions={media}
         />
       </div>
     </>

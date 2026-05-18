@@ -34,15 +34,12 @@ type EventRow = {
 };
 
 type EventSponsorRow = {
-  display_order: number;
-  sponsor: {
-    id: string;
-    name: string;
-    tier: string;
-    role_sq: string | null;
-    website_url: string | null;
-    logo: { storage_path: string } | null;
-  } | null;
+  id: string;
+  name: string;
+  tier: string;
+  role_sq: string | null;
+  website_url: string | null;
+  logo: { storage_path: string } | null;
 };
 
 const EVENT_SELECT =
@@ -72,15 +69,12 @@ async function getEvent(slug: string): Promise<EventRow | null> {
 async function getEventSponsors(eventId: string) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("event_sponsors")
-    .select(
-      "display_order, sponsor:sponsors(id, name, tier, role_sq, website_url, logo:media!logo_media_id(storage_path))",
-    )
+    .from("sponsors")
+    .select("id, name, tier, role_sq, website_url, logo:media!logo_media_id(storage_path)")
     .eq("event_id", eventId)
+    .eq("active", true)
     .order("display_order");
-  return ((data as unknown as EventSponsorRow[] | null) ?? [])
-    .map((r) => r.sponsor)
-    .filter((s): s is NonNullable<EventSponsorRow["sponsor"]> => s !== null);
+  return (data as unknown as EventSponsorRow[] | null) ?? [];
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {

@@ -63,7 +63,9 @@ async function fetchHomeData() {
     getRecentNews(3),
     supabase.from("sponsors")
       .select("name, tier, role_sq, body_sq, website_url, display_order, logo:media!logo_media_id(storage_path)")
-      .eq("active", true).order("display_order"),
+      .eq("active", true)
+      .is("event_id", null)
+      .order("display_order"),
     getHeroPhotos(3),
     // Active riders only (members with the 'rider' position).
     supabase.from("team_members")

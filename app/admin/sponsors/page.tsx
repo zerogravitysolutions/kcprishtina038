@@ -13,8 +13,12 @@ export default async function SponsorsAdminPage() {
   if (!profile) redirect("/login");
   if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
+  // Global / club-wide sponsors only — per-event ones are managed inside
+  // each event's edit page (sponsors.event_id IS NOT NULL).
   const { data } = await supabase.from("sponsors")
-    .select("id, name, tier, role_sq, website_url, contract_end, active").order("display_order");
+    .select("id, name, tier, role_sq, website_url, contract_end, active")
+    .is("event_id", null)
+    .order("display_order");
   const rows = (data as Row[] | null) ?? [];
 
   return (

@@ -286,17 +286,28 @@ export default async function Home() {
               {founders.map(({ member, role }) => {
                 const photo = memberPhotoUrl(member);
                 return (
-                  <Link key={member.slug} href={`/team/${member.slug}` as never} className="founder-card">
-                    <div className="founder-photo">
-                      {photo ? (
+                  <Link
+                    key={member.slug}
+                    href={`/team/${member.slug}` as never}
+                    className={`founder-card ${photo ? "" : "founder-card--noimg"}`}
+                  >
+                    {photo ? (
+                      <div className="founder-photo">
                         <Image src={photo} alt={member.full_name} fill sizes="(max-width: 900px) 100vw, 33vw" quality={80} style={{ objectFit: "cover" }} />
-                      ) : (
+                      </div>
+                    ) : (
+                      <div className="founder-photo">
                         <span className="founder-initials">{memberInitials(member)}</span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                     <div className="founder-meta">
                       <div className="founder-name">{member.full_name}</div>
                       <div className="founder-role">{role}</div>
+                      <span className="founder-go" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
+                        </svg>
+                      </span>
                     </div>
                   </Link>
                 );

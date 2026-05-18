@@ -9,10 +9,15 @@ export async function adminSignOut() {
   redirect("/login");
 }
 
+// Call RPC inline on the supabase client. Extracting `supabase.rpc` into a
+// local const breaks `this` binding — supabase-js's rpc() implementation
+// accesses `this.rest`, so the detached call throws
+// "Cannot read properties of undefined (reading 'rest')".
+type RpcAny = (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+
 export async function approveApplication(appId: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
-  const { error } = await rpc("approve_application", { app_id: appId });
+  const { error } = await (supabase.rpc as unknown as RpcAny).call(supabase, "approve_application", { app_id: appId });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/applications");
   revalidatePath("/admin/dashboard");
@@ -21,8 +26,7 @@ export async function approveApplication(appId: string): Promise<{ ok: boolean; 
 
 export async function rejectApplication(appId: string, reason: string | null): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
-  const { error } = await rpc("reject_application", { app_id: appId, reason: reason ?? null });
+  const { error } = await (supabase.rpc as unknown as RpcAny).call(supabase, "reject_application", { app_id: appId, reason: reason ?? null });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/applications");
   revalidatePath("/admin/dashboard");
@@ -31,8 +35,7 @@ export async function rejectApplication(appId: string, reason: string | null): P
 
 export async function setUserRole(targetId: string, newRole: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
-  const { error } = await rpc("set_user_role", { target_id: targetId, new_role: newRole });
+  const { error } = await (supabase.rpc as unknown as RpcAny).call(supabase, "set_user_role", { target_id: targetId, new_role: newRole });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/members");
   revalidatePath("/admin/staff");

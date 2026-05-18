@@ -677,13 +677,13 @@ export default async function Home() {
                 </div>
               )}
 
-              {/* Other tiers — logo wall */}
+              {/* Other tiers — full-detail cards */}
               {rest.length > 0 && (
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                    gap: 12,
+                    gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+                    gap: 20,
                   }}
                 >
                   {rest.map((s) => (
@@ -692,37 +692,90 @@ export default async function Home() {
                         style={{
                           background: "var(--paper)",
                           border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)",
-                          borderRadius: 12,
-                          padding: "24px 24px 20px",
+                          borderRadius: 14,
+                          padding: "32px 32px 28px",
                           display: "flex",
                           flexDirection: "column",
-                          gap: 16,
-                          minHeight: 168,
+                          gap: 20,
+                          minHeight: 340,
+                          height: "100%",
                           transition: "transform .25s, box-shadow .25s",
                         }}
                       >
-                        <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-                          {renderLogo(s, 56)}
+                        <div
+                          style={{
+                            height: 96,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-start",
+                            paddingBottom: 16,
+                            borderBottom: "1px solid color-mix(in oklab, var(--ink) 6%, transparent)",
+                          }}
+                        >
+                          {renderLogo(s, 96)}
                         </div>
-                        <div>
+                        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                           <div
                             className="mono"
                             style={{
                               fontSize: 10,
-                              letterSpacing: ".16em",
+                              letterSpacing: ".18em",
                               textTransform: "uppercase",
                               color: "var(--ember)",
                             }}
                           >
                             {tierLabel(s.tier)}
                           </div>
-                          <div style={{ fontWeight: 600, fontSize: 16, marginTop: 6, color: "var(--ink)" }}>
+                          <div
+                            className="display"
+                            style={{
+                              fontWeight: 700,
+                              fontSize: 22,
+                              lineHeight: 1.15,
+                              letterSpacing: "-0.015em",
+                              marginTop: 8,
+                              color: "var(--ink)",
+                            }}
+                          >
                             {s.name}
                           </div>
                           {s.role_sq && (
-                            <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
+                            <div style={{ fontSize: 13, color: "var(--ink-3)", marginTop: 4 }}>
                               {s.role_sq}
                             </div>
+                          )}
+                          {s.body_sq && (
+                            <p
+                              style={{
+                                fontSize: 14,
+                                color: "var(--ink-2)",
+                                lineHeight: 1.6,
+                                marginTop: 14,
+                              }}
+                            >
+                              {s.body_sq}
+                            </p>
+                          )}
+                          {s.website_url && (
+                            <span
+                              className="mono"
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 8,
+                                marginTop: "auto",
+                                paddingTop: 16,
+                                fontSize: 11,
+                                letterSpacing: ".14em",
+                                textTransform: "uppercase",
+                                color: "var(--ember)",
+                              }}
+                            >
+                              <span>Vizito</span>
+                              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                                <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
+                              </svg>
+                            </span>
                           )}
                         </div>
                       </div>

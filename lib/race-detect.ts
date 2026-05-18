@@ -7,14 +7,21 @@
 // suggestions don't pollute /races.
 
 const STRONG_PHRASES = [
-  // Albanian
+  // Albanian — competition names
   "kampionat", "kampionati", "kampionatit",
   "kupa ", "kupës", "kupën", "kupa e",
   "trofeu", "trofeun", "trofeut",
-  "garë", "gara", "garën", "garën ndërkombëtare", "garën rrugore",
+  // Race / racer noun stems — both diacritic + stripped-ASCII forms
+  // so posts typed without ë still match.
+  "garë", "gara", "gare", "garën",
+  "garën ndërkombëtare", "garën rrugore",
+  "garues",           // catches garues, garuesi, garuesit, garuesin
+  // Stages
+  "etap",             // catches etapa, etapë, etapën, etapave
+  // Time-trial vocabulary
   "kronometër", "kronometr", "krono individu",
+  // External / format
   "tour of", "grand prix",
-  // Format hints
   "cross country", "xco", "maratonë",
   // Results signals
   "vendi i parë", "vendi i dytë", "vendi i tretë",

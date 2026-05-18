@@ -3,14 +3,15 @@
 
 export type Gender = "m" | "f" | "other";
 
+// Categories are unisex — gender is captured separately on the signup form
+// (so an "Elite" startlist is then split into M / F for ranking purposes).
 export const CATEGORIES = [
-  { v: "elite_m",  label: "Elite M",   gender: "m" as const, min: 19, max: null },
-  { v: "elite_w",  label: "Elite W",   gender: "f" as const, min: 19, max: null },
-  { v: "u23",      label: "U23",       gender: null,         min: 19, max: 22 },
-  { v: "junior",   label: "Junior",    gender: null,         min: 17, max: 18 },
-  { v: "youth",    label: "Youth/Kadet", gender: null,       min: 13, max: 16 },
-  { v: "masters",  label: "Masters",   gender: null,         min: 30, max: null },
-  { v: "amateur",  label: "Amator",    gender: null,         min: null, max: null },
+  { v: "elite",    label: "Elite",       gender: null, min: 19, max: null },
+  { v: "u23",      label: "U23",         gender: null, min: 19, max: 22 },
+  { v: "junior",   label: "Junior",      gender: null, min: 17, max: 18 },
+  { v: "youth",    label: "Youth/Kadet", gender: null, min: 13, max: 16 },
+  { v: "masters",  label: "Masters",     gender: null, min: 30, max: null },
+  { v: "amateur",  label: "Amator",      gender: null, min: null, max: null },
 ] as const;
 
 export type CategoryDef = (typeof CATEGORIES)[number];

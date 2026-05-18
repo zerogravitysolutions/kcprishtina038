@@ -352,13 +352,13 @@ export default async function Home() {
             </div>
             <div className="history-step">
               <div className="history-year mono">2024</div>
-              <h3>Hapi rajonal</h3>
-              <p>Valon Binakaj zgjidhet në përfaqësuesen kosovare për Tour of Albania. Klubi garon në Kupën e Prizrenit, në Kampionatin e Kosovës dhe në Kupën e Anamoravës. Nënshkruhet partneriteti me Ram Airlines.</p>
+              <h3>Dy tituj kombëtarë</h3>
+              <p>Në Kampionatin e Kosovës (qershor), klubi merr dy medalje ari: Albion Ymeri kampion në krono Elite dhe Festim Kurti kampion në rrugë Kadetë. Albioni fiton edhe argjendin në rrugë. Valon Binakaj zgjidhet në përfaqësuesen kosovare për Tour of Albania. Nënshkruhet partneriteti me Ram Airlines.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">2025</div>
-              <h3>Sezon i ngjeshur</h3>
-              <p>Sezoni hapet me Trofeu 26 Marsi dhe vazhdon me Kampionatin e Kosovës në krono dhe rrugë (qershor) dhe Sharr Cup në MTB (gusht).</p>
+              <h3>Festim Kurti, kampion i dyfishtë</h3>
+              <p>Në Kampionatin e Kosovës (qershor), Festim Kurti — 16 vjeç — fiton si krono ashtu edhe rrugën në kategorinë Junior, me kohën e tretë më të shpejtë në krono mes të gjitha kategorive. Albion Ymeri merr argjendin në krono Elite dhe bronzin në rrugë.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">Tetor 2025</div>

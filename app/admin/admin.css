@@ -561,9 +561,135 @@ table.t .person .nm small {
 .muted { color: var(--ink-3); }
 .mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
 
-/* ---------- Mobile ---------- */
+/* ---------- Mobile hamburger nav ---------- */
+.mobile-nav-toggle {
+  display: none;
+  width: 44px; height: 44px;
+  padding: 0;
+  background: transparent; border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  align-items: center; justify-content: center;
+  margin-right: 4px;
+}
+.mobile-nav-toggle:hover { background: var(--white); border-radius: 6px; }
+.mobile-nav-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(15, 26, 46, 0.5);
+  z-index: 80;
+}
+.mobile-nav-drawer {
+  position: fixed; inset: 0 auto 0 0;
+  width: min(86vw, 320px);
+  background: var(--ink);
+  color: var(--paper);
+  z-index: 90;
+  padding: 16px 12px 24px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 4px;
+  animation: drawerIn .22s ease-out;
+}
+@keyframes drawerIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+.mobile-nav-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 8px 14px;
+  border-bottom: 1px solid rgba(244,242,236,.10);
+  margin-bottom: 6px;
+}
+.mobile-nav-head .who .nm {
+  font-family: var(--font-display); font-weight: 700; font-size: 15px;
+  color: var(--paper);
+}
+.mobile-nav-head .who .rl {
+  font-family: var(--font-mono); font-size: 10.5px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--slate);
+  margin-top: 3px;
+}
+.mobile-nav-close {
+  width: 44px; height: 44px; padding: 0;
+  background: transparent; color: var(--paper); border: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.mobile-nav-list { display: flex; flex-direction: column; gap: 2px; }
+.mobile-nav-group {
+  font-family: var(--font-mono);
+  font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--slate); padding: 14px 12px 6px;
+}
+.mobile-nav-item {
+  display: block;
+  padding: 12px 12px;
+  border-radius: 8px;
+  color: color-mix(in oklab, var(--paper) 80%, transparent);
+  font-size: 14.5px;
+  min-height: 44px;
+}
+.mobile-nav-item:hover, .mobile-nav-item.active {
+  background: rgba(244,242,236,.10); color: var(--paper);
+}
+.mobile-signout { display: none; }
+
+/* ---------- Mobile shell + table fixes ---------- */
 @media (max-width: 800px) {
-  .app { grid-template-columns: 1fr; grid-template-areas: "top" "main"; }
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "top"
+      "main";
+  }
   .side { display: none; }
-  .main { padding: 20px; }
+  .top {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .top .crumbs { font-size: 12px; }
+  .top .actions { gap: 4px; }
+  .top .public-link { padding: 10px 8px; min-height: 44px; display: inline-flex; align-items: center; }
+  .mobile-nav-toggle { display: inline-flex; }
+  .mobile-signout { display: block; }
+  .main { padding: 16px 12px; }
+
+  /* Tables: horizontal scroll instead of wrapping each cell vertically */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t { min-width: 640px; }
+  table.t th, table.t td { padding: 10px 12px; }
+  table.t .person { min-width: 180px; }
+
+  /* page-head: stack the title and the action button */
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding-bottom: 18px;
+    margin-bottom: 18px;
+  }
+  .page-head h1 { font-size: 24px; line-height: 1.1; }
+  .page-head .sub { font-size: 12.5px; }
+
+  /* All inline form grids that hard-code multi-column → stack on mobile */
+  form > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+  form { max-width: 100% !important; }
+
+  /* KPI tiles → 1 column on the narrowest screens */
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi { padding: 14px 16px; }
+  .kpi .val { font-size: 30px; }
+
+  /* Filter chip strip — wrap nicely */
+  .filter-bar { padding: 10px 12px; gap: 6px; }
+  .chip { padding: 8px 12px; }
+
+  /* MediaPicker grid — keep usable on mobile */
+  .field input[type="search"] { width: 100% !important; min-height: 44px; }
+
+  /* Hide the YTD revenue / etc. — already in dashboard cards, just keep them readable */
+  .card { padding: 16px; }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .top .public-link { font-size: 10.5px; padding: 10px 6px; }
 }

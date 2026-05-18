@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/supabase/server";
 import { adminSignOut } from "./actions";
 import type { UserRole } from "@/lib/supabase/types";
+import { MobileNav, type MobileNavGroup } from "./MobileNav";
 
 const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: string; href: string; allow?: UserRole[] }> }> = [
   {
@@ -55,6 +56,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const staffRoles: UserRole[] = ["admin", "editor", "staff", "coach"];
   if (!staffRoles.includes(profile.role)) redirect("/portal");
 
+  const mobileGroups: MobileNavGroup[] = NAV_GROUPS.map(g => ({
+    group: g.group,
+    items: g.items.filter(it => !it.allow || it.allow.includes(profile.role)).map(it => ({ id: it.id, label: it.label, href: it.href })),
+  })).filter(g => g.items.length > 0);
+
   return (
     <div className="app">
       <aside className="side">
@@ -93,11 +99,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </aside>
       <header className="top">
+        <MobileNav groups={mobileGroups} profileName={profile.full_name} profileRole={profile.role} />
         <div className="crumbs">
           <Link href="/admin/dashboard">Admin</Link>
         </div>
         <div className="actions">
           <Link className="public-link" href="/" target="_blank">View site ↗</Link>
+          <form action={adminSignOut} className="mobile-signout">
+            <button type="submit" aria-label="Sign out" className="public-link">Sign out</button>
+          </form>
         </div>
       </header>
       <main className="main">{children}</main>

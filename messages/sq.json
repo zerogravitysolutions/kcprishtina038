@@ -97,23 +97,23 @@
     "lede": "Çdo disiplinë ka trajnerin e vet, kalendarin e vet dhe shtigjet e veta. Por kemi një logo dhe një frymë.",
     "road": {
       "name": "Rrugë",
-      "desc": "Sezoni i pranverës–vjeshtës. Garat kombëtare të FÇK, Granfondo, dhe etapat rajonale."
+      "desc": "Seksioni i parë i klubit. Tre stërvitje në javë me trajnerin Albion Ymerin; kalendar i plotë FÇK, Granfondo i Sharrit dhe Prizrenit, plus etapat rajonale në Shqipëri e Maqedoninë e Veriut."
     },
     "mtb": {
       "name": "MTB",
-      "desc": "Cross-country mbi Germinë, Sharrin dhe Prokletijet. Format XCO dhe maratonë."
+      "desc": "Cross-country në shtigjet e Germisë, Sharrit dhe Prokletijeve, me trajnerin Dorant Haxhidautin. Garojmë në kalendarin XCO të FÇK dhe në maratonat rajonale; çdo të shtunë grupi i hapur Germi Saturday."
     },
     "gravel": {
       "name": "Gravel",
-      "desc": "E reja e klubit. Gara aventureske dhe ekspedita të hapura në rrugët dytësore të Kosovës."
+      "desc": "Seksioni më i ri, themeluar 2024. Më pak garë, më shumë eksplorim — ride 80–180 km nëpër rrugët dytësore të Kosovës dhe rajonit, me gravel race serie të përbashkët me Velo Tirana në 2026."
     },
     "youth": {
       "name": "Akademia e të rinjve",
-      "desc": "Çiklistët e ardhshëm të Kosovës — moshat 9–17 vjeç. Stërvitje çdo të shtunë."
+      "desc": "Misioni më i rëndësishëm i klubit. 18 fëmijë midis 9 dhe 17 vjeç stërviten të shtunën në Germi, me dy tashmë në ekipin kombëtar U17. Gratis për moshat nën 14 vjeç."
     },
     "women": {
       "name": "Femra",
-      "desc": "Programi i çiklizmit të femrave — gara, ride të hapura, dhe mentorim ndër-gjenerata."
+      "desc": "Më shumë se një seksion — një rrjet. 11 çiklistë nëpër të gjitha disiplinat, me program mentorimi nga Shqiponja Osmani Pllana. Çdo të diel ride i hapur, me biçikleta për qira nga BikePlus."
     },
     "go": "Hape seksionin"
   },

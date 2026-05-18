@@ -353,12 +353,12 @@ export default async function Home() {
             <div className="history-step">
               <div className="history-year mono">2024</div>
               <h3>Dy tituj kombëtarë</h3>
-              <p>Në Kampionatin e Kosovës (qershor), klubi merr dy medalje ari: Albion Ymeri kampion në krono Elite dhe Festim Kurti kampion në rrugë Kadetë. Albioni fiton edhe argjendin në rrugë. Valon Binakaj zgjidhet në përfaqësuesen kosovare për Tour of Albania. Nënshkruhet partneriteti me Ram Airlines.</p>
+              <p>Në Kampionatin e Kosovës (qershor), klubi merr dy medalje ari: Albion Ymeri kampion në krono Elite dhe Festim Kurti kampion në rrugë Kadetë. Albioni argjend në rrugë, Genc Isufi bronz në U23 si në krono ashtu edhe në rrugë. Valon Binakaj zgjidhet në përfaqësuesen kosovare për Tour of Albania. Nënshkruhet partneriteti me Ram Airlines.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">2025</div>
               <h3>Festim Kurti, kampion i dyfishtë</h3>
-              <p>Në Kampionatin e Kosovës (qershor), Festim Kurti — 16 vjeç — fiton si krono ashtu edhe rrugën në kategorinë Junior, me kohën e tretë më të shpejtë në krono mes të gjitha kategorive. Albion Ymeri merr argjendin në krono Elite dhe bronzin në rrugë.</p>
+              <p>Në Kampionatin e Kosovës (qershor), Festim Kurti — 16 vjeç — fiton si krono ashtu edhe rrugën në kategorinë Junior, me kohën e tretë më të shpejtë në krono mes të gjitha kategorive. Albion Ymeri merr argjendin në krono Elite dhe bronzin në rrugë; Genc Isufi argjend në krono U23 dhe bronz në rrugë.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">Tetor 2025</div>

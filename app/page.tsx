@@ -358,7 +358,7 @@ export default async function Home() {
             <div className="history-step">
               <div className="history-year mono">2025</div>
               <h3>Sezon i ngjeshur</h3>
-              <p>Sezoni hapet me Trofeu 26 Marsi dhe vazhdon me Kampionatin e Kosovës në krono dhe rrugë (qershor) dhe Sharr Cup në MTB (gusht). Lirika Deva i bashkohet seksionit të femrave.</p>
+              <p>Sezoni hapet me Trofeu 26 Marsi dhe vazhdon me Kampionatin e Kosovës në krono dhe rrugë (qershor) dhe Sharr Cup në MTB (gusht).</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">Tetor 2025</div>

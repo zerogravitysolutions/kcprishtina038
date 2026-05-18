@@ -234,9 +234,16 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--font-display); letter-spacing: -0
 /* ---------- Mobile drawer sheet ---------- */
 .nav-mobile-sheet {
   position: fixed; inset: 0; z-index: 60;
-  pointer-events: none;
+  /* When closed, fully remove from layout. The panel's transform-translateX
+     trick puts the panel off-screen visually but its transformed bounding
+     box still contributes to document.scrollWidth, which causes a giant
+     empty band on the right in screenshots/scroll. display:none kills it. */
+  display: none;
 }
-.nav-mobile-sheet.is-open { pointer-events: auto; }
+.nav-mobile-sheet.is-open {
+  display: block;
+  pointer-events: auto;
+}
 .nav-mobile-backdrop {
   position: absolute; inset: 0;
   background: rgba(15, 26, 46, 0);

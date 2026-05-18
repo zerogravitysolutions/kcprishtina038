@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { uploadMediaFiles } from "@/app/admin/media/actions";
 
 export type MediaOption = {
   id: string;
@@ -15,36 +17,28 @@ type SingleProps = {
   options: MediaOption[];
   initial?: string | null;
   label?: string;
-  /** Single-select mode (default). Stores one media.id in the hidden input. */
   multiple?: false;
 };
 
 type MultiProps = {
   name: string;
   options: MediaOption[];
-  /** Initial selection — uuid[]. */
   initial?: string[] | null;
   label?: string;
-  /** Multi-select mode. Stores comma-separated uuids in the hidden input. */
   multiple: true;
 };
 
 type Props = SingleProps | MultiProps;
 
-/**
- * Unified media picker. Use `multiple={true}` for galleries; default is
- * single-select for cover/logo fields.
- *
- * Form contract:
- *   - single: hidden input named `name`, value = the picked id (or "")
- *   - multi:  hidden input named `name`, value = comma-separated ids
- *
- * Selection is shown by an ember ring + ✓ badge on the picked tile(s).
- * No separate "selected" strip — keeps the UI to one grid.
- */
+const TILE_SIZE = 112;
+
 export function MediaPicker(props: Props) {
   const isMulti = props.multiple === true;
   const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const router = useRouter();
+  const [pendingUpload, startUpload] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const [single, setSingle] = useState<string>(
     !isMulti && typeof props.initial === "string" ? props.initial : "",
   );
@@ -53,14 +47,30 @@ export function MediaPicker(props: Props) {
   );
   const [filter, setFilter] = useState("");
   const [showCount, setShowCount] = useState(80);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadInfo, setUploadInfo] = useState<string | null>(null);
+
+  // Newly-uploaded media that's not yet in props.options (until router.refresh
+  // re-fetches the parent server component). We splice them in locally so the
+  // tile appears immediately.
+  const [extras, setExtras] = useState<MediaOption[]>([]);
 
   const sorted = useMemo(() => {
-    return [...props.options].sort((a, b) => {
-      const ta = a.created_at ? Date.parse(a.created_at) : 0;
-      const tb = b.created_at ? Date.parse(b.created_at) : 0;
+    const combined = [...extras, ...props.options];
+    // Dedupe by id (extras shadow props.options once refresh lands).
+    const seen = new Set<string>();
+    const out: MediaOption[] = [];
+    for (const o of combined) {
+      if (seen.has(o.id)) continue;
+      seen.add(o.id);
+      out.push(o);
+    }
+    return out.sort((a, b) => {
+      const ta = a.created_at ? Date.parse(a.created_at) : Number.MAX_SAFE_INTEGER;
+      const tb = b.created_at ? Date.parse(b.created_at) : Number.MAX_SAFE_INTEGER;
       return tb - ta;
     });
-  }, [props.options]);
+  }, [extras, props.options]);
 
   const filtered = useMemo(() => {
     const f = filter.trim().toLowerCase();
@@ -90,6 +100,44 @@ export function MediaPicker(props: Props) {
     else setSingle("");
   }
 
+  function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploadError(null);
+    setUploadInfo(null);
+    const fd = new FormData();
+    for (const f of Array.from(files)) fd.append("files", f);
+    startUpload(async () => {
+      const result = await uploadMediaFiles(fd);
+      if (!result.ok) { setUploadError(result.error); return; }
+
+      // Optimistically add stubs for the new media so they appear in the
+      // grid before the router refresh lands. We don't have storage_path
+      // back, but we can show a placeholder by reading the freshly-inserted
+      // row from the parent on refresh. For now use a created_at=now stub
+      // and let the refresh replace it.
+      const now = new Date().toISOString();
+      setExtras((prev) => [
+        ...result.ids.map<MediaOption>((id) => ({
+          id, storage_path: "", filename: "Uploaded", alt: null, created_at: now,
+        })),
+        ...prev,
+      ]);
+
+      // Auto-select uploaded items for the picker
+      if (isMulti) setMulti((prev) => [...prev, ...result.ids]);
+      else if (result.ids.length === 1) setSingle(result.ids[0]);
+
+      setUploadInfo(
+        `${result.ids.length} ${result.ids.length === 1 ? "foto u ngarkua" : "foto u ngarkuan"}` +
+        (result.skipped ? ` · ${result.skipped} u kapërcyen` : ""),
+      );
+      // Pull fresh options from the parent (with real storage_path).
+      router.refresh();
+      // Reset file input so the same file can be re-picked if needed.
+      if (fileRef.current) fileRef.current.value = "";
+    });
+  }
+
   const selectedCount = isMulti ? multi.length : single ? 1 : 0;
   const label = props.label ?? (isMulti ? "Galeria" : "Imazh");
   const hiddenValue = isMulti ? multi.join(",") : single;
@@ -110,6 +158,22 @@ export function MediaPicker(props: Props) {
           onChange={(e) => { setFilter(e.target.value); setShowCount(80); }}
           style={{ flex: "1 1 240px", minWidth: 240 }}
         />
+        <button
+          type="button"
+          className="btn btn-ember btn-sm"
+          onClick={() => fileRef.current?.click()}
+          disabled={pendingUpload}
+        >
+          {pendingUpload ? "Duke ngarkuar…" : "+ Ngarko foto"}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          multiple={isMulti}
+          style={{ display: "none" }}
+          onChange={(e) => handleFiles(e.target.files)}
+        />
         {selectedCount > 0 && (
           <button
             type="button"
@@ -122,16 +186,23 @@ export function MediaPicker(props: Props) {
         )}
       </div>
 
+      {uploadError && <div style={{ color: "var(--err)", fontSize: 12, marginBottom: 8 }}>Gabim: {uploadError}</div>}
+      {uploadInfo && <div style={{ color: "var(--ok)", fontSize: 12, marginBottom: 8 }}>{uploadInfo}</div>}
+
       <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", letterSpacing: ".06em", marginBottom: 8 }}>
         {filter
           ? `${visible.length}/${filtered.length} rezultate · më të rejat më parë`
-          : `Më të rejat ${visible.length}/${props.options.length} · radhitur sipas datës`}
+          : `Më të rejat ${visible.length}/${sorted.length} · radhitur sipas datës`}
       </div>
 
+      {/* Critical: grid-auto-rows pinned to TILE_SIZE so rows can't stretch.
+          Buttons are also explicitly width:100% height:TILE_SIZE so the
+          browser doesn't get confused by aspect-ratio + auto rows. */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+          gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`,
+          gridAutoRows: `${TILE_SIZE}px`,
           gap: 10,
           maxHeight: 480,
           overflowY: "auto",
@@ -143,6 +214,7 @@ export function MediaPicker(props: Props) {
       >
         {visible.map((o) => {
           const selected = isSelected(o.id);
+          const src = o.storage_path ? `${supaUrl}/storage/v1/object/public/media/${o.storage_path}` : "";
           return (
             <button
               key={o.id}
@@ -151,32 +223,37 @@ export function MediaPicker(props: Props) {
               title={o.alt || o.filename}
               style={{
                 position: "relative",
-                aspectRatio: "1 / 1",
+                width: "100%",
+                height: "100%",
                 padding: 0,
                 background: "var(--paper-2)",
                 border: selected ? "3px solid var(--ember)" : "1px solid var(--line)",
                 borderRadius: 8,
                 overflow: "hidden",
                 cursor: "pointer",
-                transition: "transform .15s",
+                display: "block",
               }}
             >
-              {/* The img must be absolutely positioned so the parent's
-                  aspect-ratio actually constrains the box (without this
-                  the img's natural size can stretch the row). */}
-              <img
-                src={`${supaUrl}/storage/v1/object/public/media/${o.storage_path}`}
-                alt=""
-                loading="lazy"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  display: "block",
-                }}
-              />
+              {src && (
+                <img
+                  src={src}
+                  alt=""
+                  loading="lazy"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              )}
+              {!src && (
+                <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--ink-3)", fontFamily: "var(--font-mono)", letterSpacing: ".12em" }}>
+                  Po ngarkohet…
+                </span>
+              )}
               {selected && (
                 <span
                   style={{
@@ -214,7 +291,7 @@ export function MediaPicker(props: Props) {
       )}
 
       <p className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6 }}>
-        Kliko foton për ta {isMulti ? "shtuar ose hequr nga galeria" : "zgjedhur"}.
+        Kliko foton për ta {isMulti ? "shtuar ose hequr nga galeria" : "zgjedhur"} · ngarko të rejat me butonin më lart.
       </p>
     </div>
   );

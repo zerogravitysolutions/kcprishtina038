@@ -1654,46 +1654,8 @@ footer.foot {
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
-@media (max-width: 900px) { .founders-grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 600px) {
-  .founders-grid { grid-template-columns: 1fr; }
-  .founder-card {
-    flex-direction: row;
-    align-items: stretch;
-    min-height: 112px;
-  }
-  .founder-photo {
-    width: 112px;
-    height: auto;
-    aspect-ratio: auto;
-    flex-shrink: 0;
-    background: var(--paper-2);
-  }
-  .founder-initials { font-size: 36px; color: var(--ink); opacity: 0.5; }
-  .founder-meta {
-    flex: 1;
-    padding: 14px 18px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    position: relative;
-  }
-  .founder-name { font-size: 18px; }
-  .founder-card .founder-go {
-    position: absolute;
-    right: 14px; top: 50%; transform: translateY(-50%);
-    color: var(--ember);
-    opacity: 0.85;
-  }
-  /* When there's no photo, drop the photo column entirely so the meta
-     fills the card and the empty right-side gap disappears. */
-  .founder-card--noimg .founder-photo { display: none; }
-}
-
-/* On larger screens, hide the small arrow indicator (cards are vertical). */
-@media (min-width: 601px) {
-  .founder-card .founder-go { display: none; }
-}
+/* Hide the mobile-only arrow indicator on desktop (cards are vertical). */
+.founder-card .founder-go { display: none; }
 
 .founder-card {
   display: flex; flex-direction: column;
@@ -1734,6 +1696,43 @@ footer.foot {
   font-family: var(--font-mono);
   font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
   color: var(--ember);
+}
+
+/* Mobile founder cards — must come AFTER base rules so the cascade
+   actually applies the row layout instead of being overridden. */
+@media (max-width: 900px) { .founders-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) {
+  .founders-grid { grid-template-columns: 1fr; }
+  .founder-card {
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 112px;
+  }
+  .founder-photo {
+    width: 112px;
+    height: auto;
+    aspect-ratio: auto;
+    flex-shrink: 0;
+    background: var(--paper-2);
+  }
+  .founder-initials { font-size: 36px; color: var(--ink); opacity: 0.5; }
+  .founder-meta {
+    flex: 1;
+    padding: 14px 48px 14px 18px;
+    justify-content: center;
+    position: relative;
+  }
+  .founder-meta { display: flex; flex-direction: column; }
+  .founder-name { font-size: 17px; }
+  .founder-card .founder-go {
+    display: inline-flex;
+    position: absolute;
+    right: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--ember);
+    opacity: 0.85;
+  }
+  /* When there's no photo, drop the photo tile so the meta fills the card. */
+  .founder-card--noimg .founder-photo { display: none; }
 }
 
 /* ---------- History timeline (landing page) ---------- */

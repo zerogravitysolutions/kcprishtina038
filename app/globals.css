@@ -1344,11 +1344,17 @@ footer.foot {
 }
 
 @media (max-width: 768px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+    /* Brand bar sized to its content; form section fills remaining viewport. */
+    grid-template-rows: auto 1fr;
+  }
   .auth-side {
     /* Compact brand bar on mobile so the form sits above the fold. */
     padding: 14px 16px;
     gap: 8px;
     min-height: auto;
+    justify-content: flex-start;
   }
   .auth-side-cta { display: none; } /* drop the tagline to save space */
   .auth-brand img { width: 32px; height: 32px; }

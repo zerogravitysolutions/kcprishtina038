@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 
 const POSITIONS = [
-  "president", "secretary_general", "secretary_organizational",
+  "president", "board_member",
+  "secretary_general", "secretary_organizational",
   "commissaire", "coach", "rider", "mechanic", "physio", "staff",
 ] as const;
 type Position = (typeof POSITIONS)[number];

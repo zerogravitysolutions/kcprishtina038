@@ -6,7 +6,8 @@ import { createClient } from "./server";
 import { mediaUrl } from "./fb";
 
 export type TeamPosition =
-  | "president" | "secretary_general" | "secretary_organizational"
+  | "president" | "board_member"
+  | "secretary_general" | "secretary_organizational"
   | "commissaire" | "coach"
   | "rider" | "mechanic" | "physio" | "staff";
 
@@ -63,6 +64,7 @@ export async function getTeamMemberBySlug(slug: string): Promise<TeamMemberCard 
 export function positionLabel(pos: TeamPosition, gender: TeamGender | null = "m"): string {
   switch (pos) {
     case "president":                return "Kryetar";
+    case "board_member":             return "Anëtar Bordi";
     case "secretary_general":        return "Sekretar i Përgjithshëm";
     case "secretary_organizational": return "Sekretar Organizativ";
     case "commissaire":              return "Komisar";

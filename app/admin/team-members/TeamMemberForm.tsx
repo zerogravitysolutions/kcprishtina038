@@ -26,6 +26,7 @@ type Profile = { id: string; full_name: string; role: string };
 
 const POSITIONS: { value: string; label: string }[] = [
   { value: "president", label: "Kryetar" },
+  { value: "board_member", label: "Anëtar Bordi" },
   { value: "secretary_general", label: "Sekretar i Përgjithshëm" },
   { value: "secretary_organizational", label: "Sekretar Organizativ" },
   { value: "commissaire", label: "Komisar" },

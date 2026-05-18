@@ -26,11 +26,13 @@ export default async function TeamPage() {
   // A person who holds multiple roles (e.g. Qëndrim = president + commissaire
   // + rider) appears in EACH bucket — the buckets are lenses on the same
   // person, not exclusive partitions.
-  const BOARD_ROLES = ["president", "secretary_general", "secretary_organizational"] as const;
-  const board     = active.filter((m) => m.positions.some((p) => (BOARD_ROLES as readonly string[]).includes(p)));
-  const coaches   = active.filter((m) => m.positions.includes("coach"));
-  const officials = active.filter((m) => m.positions.includes("commissaire"));
-  const riders    = active.filter((m) => m.positions.includes("rider")).sort(byFirstName);
+  const BOARD_ROLES = ["president", "board_member"] as const;
+  const SECRETARY_ROLES = ["secretary_general", "secretary_organizational"] as const;
+  const board       = active.filter((m) => m.positions.some((p) => (BOARD_ROLES as readonly string[]).includes(p)));
+  const secretaries = active.filter((m) => m.positions.some((p) => (SECRETARY_ROLES as readonly string[]).includes(p)));
+  const coaches     = active.filter((m) => m.positions.includes("coach"));
+  const officials   = active.filter((m) => m.positions.includes("commissaire"));
+  const riders      = active.filter((m) => m.positions.includes("rider")).sort(byFirstName);
 
   return (
     <>
@@ -47,6 +49,9 @@ export default async function TeamPage() {
 
       {board.length > 0 && (
         <TeamSection title="Bordi" members={board} />
+      )}
+      {secretaries.length > 0 && (
+        <TeamSection title="Sekretarët" members={secretaries} />
       )}
       {coaches.length > 0 && (
         <TeamSection title="Trajnerët" members={coaches} />

@@ -469,6 +469,14 @@ section { padding-block: clamp(72px, 8vw, 128px); }
 @media (max-width: 900px) {
   .countdown-band { grid-template-columns: 1fr; padding: 28px; }
 }
+
+/* Race-band stack on the landing — stacks the two columns + tightens padding
+   on phones so the cover photo behind the dark overlay still reads well. */
+.race-band > div > div { /* inner grid */
+}
+@media (max-width: 900px) {
+  .race-band > div { grid-template-columns: 1fr !important; padding: 24px !important; gap: 24px !important; }
+}
 .countdown-band h2 { font-size: clamp(32px, 4.4vw, 60px) !important; line-height: 1; letter-spacing: -0.028em; }
 .countdown-digits {
   display: grid;

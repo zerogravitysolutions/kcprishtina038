@@ -18,6 +18,7 @@ type Initial = {
   description_sq: string | null;
   description_en: string | null;
   cover_media_id: string | null;
+  strava_url: string | null;
 };
 
 type Section = { id: string; name_sq: string };
@@ -119,6 +120,19 @@ export function EventForm({ action, initial, sections, media, submitLabel }: { a
       <div className="field">
         <label>Description (EN)</label>
         <textarea name="description_en" rows={4} defaultValue={initial?.description_en ?? ""} />
+      </div>
+
+      <div className="field">
+        <label>Strava — URL e rrugës ose aktivitetit</label>
+        <input
+          name="strava_url"
+          type="url"
+          defaultValue={initial?.strava_url ?? ""}
+          placeholder="https://www.strava.com/routes/... ose /activities/..."
+        />
+        <small style={{ display: "block", marginTop: 4, color: "var(--ink-3)", fontSize: 11 }}>
+          E ngulim direkt si embed në faqen publike (vetëm për linke publike Strava).
+        </small>
       </div>
 
       <MediaPicker name="cover_media_id" options={media} initial={initial?.cover_media_id ?? null} label="Imazh kopertine" />

@@ -1,25 +1,37 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState } from "react";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { deleteEvent } from "./actions";
 
 export function DeleteButton({ id, title }: { id: string; title: string }) {
-  const [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
   return (
-    <button
-      type="button"
-      className="btn btn-ghost btn-sm"
-      disabled={pending}
-      onClick={() => {
-        if (!confirm(`Fshi eventin "${title}"? Regjistrimet dhe rezultatet do të fshihen.`)) return;
-        start(async () => {
+    <>
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        onClick={() => setOpen(true)}
+        style={{ color: "var(--err)" }}
+      >
+        Fshi
+      </button>
+      <ConfirmModal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Fshi eventin"
+        tone="danger"
+        confirmLabel="Fshi"
+        message={
+          <>
+            Sigurt që do ta fshish <strong>{title}</strong>? Regjistrimet dhe rezultatet që e referojnë do të fshihen gjithashtu.
+          </>
+        }
+        onConfirm={async () => {
           const r = await deleteEvent(id);
-          if (!r.ok) alert(`Gabim: ${r.error ?? "i panjohur"}`);
-        });
-      }}
-      style={{ color: "var(--err)" }}
-    >
-      {pending ? "..." : "Fshi"}
-    </button>
+          return r.ok ? { ok: true } : { ok: false, error: r.error ?? "Gabim i panjohur" };
+        }}
+      />
+    </>
   );
 }

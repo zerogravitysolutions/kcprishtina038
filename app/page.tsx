@@ -93,8 +93,7 @@ async function fetchHomeData() {
   const races = (upcomingRaces.data as NextRace[] | null) ?? [];
 
   return {
-    nextRace: races[0] ?? null,
-    otherRaces: races.slice(1),
+    upcomingRaces: races,
     sections: (sections.data as SectionRow[] | null) ?? [],
     news,
     sponsors: (sponsors.data as SponsorRow[] | null) ?? [],
@@ -111,7 +110,9 @@ async function fetchHomeData() {
 
 export default async function Home() {
   const t = await getTranslations();
-  const { nextRace, otherRaces, sections, news, sponsors, fbPhotos, founders, stats } = await fetchHomeData();
+  const { upcomingRaces, sections, news, sponsors, fbPhotos, founders, stats } = await fetchHomeData();
+  // First upcoming race still drives metadata for the page header hero band.
+  const nextRace = upcomingRaces[0] ?? null;
   const pad2 = (n: number) => n.toString().padStart(2, "0");
   // Hero collage uses real FB photos when available; otherwise the labeled
   // placeholder boxes remain (existing behavior preserved).
@@ -120,15 +121,9 @@ export default async function Home() {
     return { url: mediaUrl(p?.media?.storage_path ?? null), alt: p?.alt_text ?? "" };
   });
 
-  // Race target: DB-driven if a future published race exists, else fallback.
-  const raceTargetIso = nextRace?.start_at ?? "2026-05-17T09:00:00";
-  const raceTitle = nextRace?.title_sq ?? t("cd.title");
-  const raceSubtitleParts = [
-    nextRace?.location,
-    nextRace?.distance_km ? `${nextRace.distance_km} km` : null,
-    nextRace?.elevation_m ? `${nextRace.elevation_m} m ngritje` : null,
-  ].filter(Boolean) as string[];
-  const raceSubtitle = raceSubtitleParts.length ? raceSubtitleParts.join(" · ") : t("cd.subtitle");
+  // Suppress an unused warning when no future race exists. The hero band's
+  // metadata (countdown / subtitle / cta) is derived per-card below.
+  void nextRace;
 
   return (
     <>
@@ -236,136 +231,138 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* ============ COUNTDOWN ============ */}
-      {/* Only renders when a real future event exists in the DB. Otherwise
-          we'd be showing a stale placeholder date — drop the band entirely. */}
-      {nextRace && (
+      {/* ============ UPCOMING RACES — countdown stack ============ */}
+      {upcomingRaces.length > 0 && (
         <section>
           <div className="container">
-            <div className="countdown-band">
-              <div>
-                <div className="cd-status"><span className="cd-dot"></span><span>{t("cd.status")}</span></div>
-                <h2 className="display display-l" style={{ color: "var(--paper)", marginTop: 16 }}>{raceTitle}</h2>
-                <p className="mono" style={{ fontSize: 13, letterSpacing: ".06em", color: "var(--slate)", marginTop: 16 }}>{raceSubtitle}</p>
-                <p className="mono" style={{ fontSize: 11, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--slate-2)", marginTop: 24 }}>{t("cd.detail")}</p>
-                <Link
-                  href={(nextRace?.slug ? `/events/${nextRace.slug}` : "/races") as never}
-                  className="btn btn-ember"
-                  style={{ marginTop: 28 }}
-                >
-                  <span>{t("cd.cta")}</span>
-                  <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
-                </Link>
-              </div>
-              <Countdown targetIso={raceTargetIso} />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ============ UPCOMING RACES STRIP ============ */}
-      {otherRaces.length > 0 && (
-        <section style={{ paddingTop: 0 }}>
-          <div className="container">
             <div className="eyebrow" style={{ marginBottom: 20 }}>
-              <span>Edhe më shumë gara</span>
+              <span>{t("cd.status")}</span>
             </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                gap: 16,
-              }}
-            >
-              {otherRaces.map((r, i) => {
-                const d = new Date(r.start_at);
-                const dd = d.toLocaleDateString("sq-AL", { day: "2-digit", month: "short", year: "numeric" });
-                const tt = d.toLocaleTimeString("sq-AL", { hour: "2-digit", minute: "2-digit" });
+            <div style={{ display: "grid", gap: 20 }}>
+              {upcomingRaces.map((r, idx) => {
                 const sub = [
                   r.location,
                   r.distance_km ? `${r.distance_km} km` : null,
-                  r.elevation_m ? `${r.elevation_m} m` : null,
-                ].filter(Boolean).join(" · ");
+                  r.elevation_m ? `${r.elevation_m} m ngritje` : null,
+                ].filter(Boolean) as string[];
                 const coverUrl = mediaUrl(r.cover?.storage_path ?? null);
-                const Wrap = ({ children }: { children: React.ReactNode }) =>
-                  r.slug ? (
-                    <Link
-                      href={`/events/${r.slug}` as never}
-                      style={{ textDecoration: "none", color: "inherit", display: "block" }}
-                    >
-                      {children}
-                    </Link>
-                  ) : (
-                    <div>{children}</div>
-                  );
+                const titleSize = idx === 0 ? "clamp(32px, 4.4vw, 60px)" : "clamp(24px, 3vw, 40px)";
+                const minHeight = idx === 0 ? 380 : 260;
                 return (
-                  <Wrap key={r.slug ?? `${r.start_at}-${i}`}>
-                    <article
+                  <article
+                    key={r.slug ?? `${r.start_at}-${idx}`}
+                    className="race-band"
+                    style={{
+                      position: "relative",
+                      borderRadius: 18,
+                      overflow: "hidden",
+                      background: "var(--ink)",
+                      color: "var(--paper)",
+                      minHeight,
+                    }}
+                  >
+                    {coverUrl && (
+                      <Image
+                        src={coverUrl}
+                        alt={r.title_sq}
+                        fill
+                        sizes="(max-width: 1240px) 100vw, 1240px"
+                        priority={idx === 0}
+                        quality={80}
+                        style={{
+                          objectFit: "cover",
+                          opacity: 0.35,
+                        }}
+                      />
+                    )}
+                    {/* Top-to-right dark gradient so the right-hand countdown
+                        column has guaranteed contrast even with a busy cover. */}
+                    <div
+                      aria-hidden="true"
                       style={{
-                        background: "var(--paper)",
-                        border: "1px solid var(--line)",
-                        borderRadius: 10,
-                        overflow: "hidden",
-                        display: "flex",
-                        flexDirection: "column",
-                        transition: "transform .25s, box-shadow .25s",
+                        position: "absolute",
+                        inset: 0,
+                        background:
+                          "linear-gradient(95deg, rgba(15,26,46,0.92) 0%, rgba(15,26,46,0.78) 45%, rgba(15,26,46,0.62) 100%)",
+                      }}
+                    />
+                    <div
+                      style={{
+                        position: "relative",
+                        zIndex: 1,
+                        padding: idx === 0 ? "40px 40px" : "28px 32px",
+                        display: "grid",
+                        gridTemplateColumns: "1.2fr 1.4fr",
+                        gap: 40,
+                        alignItems: "center",
                       }}
                     >
-                      <div
-                        style={{
-                          position: "relative",
-                          width: "100%",
-                          aspectRatio: "16 / 9",
-                          background: "var(--paper-2)",
-                        }}
-                      >
-                        {coverUrl ? (
-                          <Image
-                            src={coverUrl}
-                            alt={r.title_sq}
-                            fill
-                            sizes="(max-width: 900px) 100vw, 33vw"
-                            quality={75}
-                            style={{ objectFit: "cover" }}
-                          />
-                        ) : (
-                          <span
+                      <div>
+                        <div className="cd-status">
+                          <span className="cd-dot"></span>
+                          <span>{idx === 0 ? "Gara e radhës" : "Edhe më shumë"}</span>
+                        </div>
+                        <h2
+                          className="display"
+                          style={{
+                            color: "var(--paper)",
+                            marginTop: 16,
+                            fontSize: titleSize,
+                            lineHeight: 1.02,
+                            letterSpacing: "-0.025em",
+                          }}
+                        >
+                          {r.title_sq}
+                        </h2>
+                        {sub.length > 0 && (
+                          <p
                             className="mono"
                             style={{
-                              position: "absolute",
-                              inset: 0,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "var(--ink-3)",
-                              fontSize: 11,
-                              letterSpacing: ".14em",
-                              textTransform: "uppercase",
+                              fontSize: 13,
+                              letterSpacing: ".06em",
+                              color: "var(--slate)",
+                              marginTop: 14,
                             }}
                           >
-                            Pa kopertinë
-                          </span>
+                            {sub.join(" · ")}
+                          </p>
                         )}
-                      </div>
-                      <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div
+                        <p
                           className="mono"
                           style={{
                             fontSize: 11,
-                            letterSpacing: ".12em",
+                            letterSpacing: ".16em",
                             textTransform: "uppercase",
-                            color: "var(--ember)",
+                            color: "var(--slate-2)",
+                            marginTop: 20,
                           }}
                         >
-                          {dd} · {tt}
-                        </div>
-                        <h3 style={{ fontSize: 18, lineHeight: 1.25, margin: 0 }}>{r.title_sq}</h3>
-                        {sub && (
-                          <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>{sub}</div>
-                        )}
+                          {new Date(r.start_at).toLocaleDateString("sq-AL", {
+                            weekday: "long",
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                          {" · "}
+                          {new Date(r.start_at).toLocaleTimeString("sq-AL", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                        <Link
+                          href={(r.slug ? `/events/${r.slug}` : "/races") as never}
+                          className="btn btn-ember"
+                          style={{ marginTop: 24 }}
+                        >
+                          <span>{idx === 0 ? t("cd.cta") : "Detajet"}</span>
+                          <svg className="arrow" viewBox="0 0 14 14" fill="none">
+                            <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
+                          </svg>
+                        </Link>
                       </div>
-                    </article>
-                  </Wrap>
+                      <Countdown targetIso={r.start_at} />
+                    </div>
+                  </article>
                 );
               })}
             </div>

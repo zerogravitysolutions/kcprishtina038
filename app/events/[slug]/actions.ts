@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { validateCategoryChoice, type Gender } from "@/lib/race-category";
 
 export type RegisterResult = { ok: true } | { ok: false; error: string };
 
@@ -13,6 +14,7 @@ export async function registerForEvent(slug: string, form: FormData): Promise<Re
   const email     = String(form.get("email") ?? "").trim().toLowerCase();
   const phone     = String(form.get("phone") ?? "").trim();
   const dobRaw    = String(form.get("dob") ?? "").trim();
+  const genderRaw = String(form.get("gender") ?? "").trim().toLowerCase();
   const category  = String(form.get("category") ?? "").trim();
   const club      = String(form.get("club") ?? "").trim();
   const notes     = String(form.get("notes") ?? "").trim();
@@ -30,16 +32,21 @@ export async function registerForEvent(slug: string, form: FormData): Promise<Re
     }
     dob = dobRaw;
   }
+  if (!dob) return { ok: false, error: "Data e lindjes është e detyrueshme." };
+
+  const gender: Gender | null =
+    genderRaw === "m" || genderRaw === "f" || genderRaw === "other" ? (genderRaw as Gender) : null;
+  if (!gender) return { ok: false, error: "Gjinia është e detyrueshme." };
 
   const supabase = await createClient();
 
   // Resolve the event id by slug (only published events can be signed up for).
   const { data: ev } = await supabase
     .from("events")
-    .select("id, status, registration_close_at")
+    .select("id, status, start_at, registration_close_at")
     .eq("slug", slug)
     .maybeSingle();
-  const event = ev as { id: string; status: string; registration_close_at: string | null } | null;
+  const event = ev as { id: string; status: string; start_at: string; registration_close_at: string | null } | null;
   if (!event) return { ok: false, error: "Gara nuk u gjet." };
   if (event.status !== "published") {
     return { ok: false, error: "Regjistrimi për këtë garë nuk është i hapur." };
@@ -48,12 +55,19 @@ export async function registerForEvent(slug: string, form: FormData): Promise<Re
     return { ok: false, error: "Regjistrimi për këtë garë është mbyllur." };
   }
 
+  // Server-side category guard against the chosen DOB + gender.
+  const cv = validateCategoryChoice({
+    category, dobIso: dob, raceIso: event.start_at, gender,
+  });
+  if (!cv.ok) return cv;
+
   const row: Record<string, unknown> = {
     event_id: event.id,
     full_name,
     email,
     phone: phone || null,
     dob,
+    gender,
     category: category || null,
     club: club || null,
     notes: notes || null,

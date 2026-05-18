@@ -34,7 +34,42 @@ function parsePayload(form: FormData): Record<string, unknown> {
   const ds  = form.get("description_sq"); if (ds !== null) patch.description_sq = String(ds).trim() || null;
   const de  = form.get("description_en"); if (de !== null) patch.description_en = String(de).trim() || null;
   const cov = form.get("cover_media_id"); if (cov !== null) { const v = String(cov).trim(); patch.cover_media_id = v === "" ? null : v; }
+  const sv  = form.get("strava_url");     if (sv  !== null) { const v = String(sv).trim();  patch.strava_url     = v === "" ? null : v; }
   return patch;
+}
+
+// ----- Per-event sponsors -------------------------------------------------
+
+export async function setEventSponsors(
+  eventId: string,
+  sponsorIds: string[],
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await assertEditor();
+    const supabase = await createClient();
+    // Replace the full set: delete existing, insert the new (ordered) list.
+    const { error: delErr } = await supabase
+      .from("event_sponsors")
+      .delete()
+      .eq("event_id", eventId);
+    if (delErr) return { ok: false, error: delErr.message };
+
+    if (sponsorIds.length > 0) {
+      const rows = sponsorIds.map((sid, i) => ({
+        event_id: eventId,
+        sponsor_id: sid,
+        display_order: i,
+      }));
+      const { error: insErr } = await supabase
+        .from("event_sponsors")
+        .insert(rows as never);
+      if (insErr) return { ok: false, error: insErr.message };
+    }
+    revalidatePath(`/admin/events/${eventId}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export async function createEvent(form: FormData): Promise<void> {

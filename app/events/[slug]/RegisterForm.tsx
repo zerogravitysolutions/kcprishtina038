@@ -1,11 +1,37 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { registerForEvent } from "./actions";
+import {
+  CATEGORIES, categoryAge, eligibleCategories, validateCategoryChoice,
+  type Gender,
+} from "@/lib/race-category";
 
-export function RegisterForm({ slug }: { slug: string }) {
+export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStartIso: string }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState<Gender | "">("");
+  const [category, setCategory] = useState("");
+
+  const age = dob ? categoryAge(dob, eventStartIso) : null;
+  const allowed = useMemo(
+    () => eligibleCategories(dob || null, eventStartIso, gender || null),
+    [dob, gender, eventStartIso],
+  );
+  const allowedSet = useMemo(() => new Set(allowed.map((c) => c.v)), [allowed]);
+
+  // Live hint for the currently-picked category.
+  const liveCheck =
+    category
+      ? validateCategoryChoice({
+          category,
+          dobIso: dob || null,
+          raceIso: eventStartIso,
+          gender: gender || null,
+        })
+      : { ok: true as const };
 
   return (
     <form
@@ -18,6 +44,7 @@ export function RegisterForm({ slug }: { slug: string }) {
           if (r.ok) {
             setMsg({ ok: true, text: "U regjistrove! Të dhënat tua i ke dërguar te klubi — të kontaktojmë me detajet." });
             (e.target as HTMLFormElement).reset();
+            setDob(""); setGender(""); setCategory("");
           } else {
             setMsg({ ok: false, text: r.error });
           }
@@ -54,8 +81,22 @@ export function RegisterForm({ slug }: { slug: string }) {
           <input id="r-name" name="full_name" type="text" required placeholder="P.sh. Albion Ymeri" />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label htmlFor="r-dob">Data e lindjes</label>
-          <input id="r-dob" name="dob" type="date" max={new Date().toISOString().slice(0, 10)} />
+          <label htmlFor="r-dob">Data e lindjes *</label>
+          <input
+            id="r-dob"
+            name="dob"
+            type="date"
+            required
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
+            min="1930-01-01"
+          />
+          {age != null && (
+            <small className="mono" style={{ display: "block", marginTop: 4, color: "var(--ink-3)", fontSize: 11, letterSpacing: ".08em" }}>
+              Mosha e kategorisë: {age} vjeç (në vitin e garës)
+            </small>
+          )}
         </div>
       </div>
 
@@ -70,23 +111,73 @@ export function RegisterForm({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label htmlFor="r-category">Kategoria</label>
-          <select id="r-category" name="category" defaultValue="">
+          <label htmlFor="r-gender">Gjinia *</label>
+          <select
+            id="r-gender"
+            name="gender"
+            required
+            value={gender}
+            onChange={(e) => {
+              const g = e.target.value as Gender | "";
+              setGender(g);
+              // Drop the chosen category if the new gender disqualifies it.
+              if (category && g) {
+                const def = CATEGORIES.find((c) => c.v === category);
+                if (def?.gender && def.gender !== g) setCategory("");
+              }
+            }}
+          >
             <option value="">— Zgjedh —</option>
-            <option value="elite_m">Elite M</option>
-            <option value="elite_w">Elite W</option>
-            <option value="u23">U23</option>
-            <option value="junior">Junior</option>
-            <option value="masters">Masters</option>
-            <option value="amateur">Amator</option>
+            <option value="m">Mashkull</option>
+            <option value="f">Femër</option>
+            <option value="other">Tjetër</option>
           </select>
         </div>
+        <div className="field" style={{ marginBottom: 0, gridColumn: "span 2" }}>
+          <label htmlFor="r-category">Kategoria</label>
+          <select
+            id="r-category"
+            name="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            disabled={!dob || !gender}
+          >
+            <option value="">
+              {!dob || !gender ? "— Plotëso datën e lindjes dhe gjininë —" : "— Zgjedh —"}
+            </option>
+            {CATEGORIES.map((c) => {
+              const ok = allowedSet.has(c.v);
+              const range =
+                c.min != null && c.max != null
+                  ? ` (${c.min}–${c.max})`
+                  : c.min != null
+                    ? ` (${c.min}+)`
+                    : "";
+              return (
+                <option key={c.v} value={c.v} disabled={!ok}>
+                  {c.label}
+                  {range}
+                  {!ok ? " · jo në kufi" : ""}
+                </option>
+              );
+            })}
+          </select>
+          {!liveCheck.ok && (
+            <small style={{ display: "block", marginTop: 6, color: "var(--err)", fontSize: 12 }}>
+              {liveCheck.error}
+            </small>
+          )}
+        </div>
+      </div>
+
+      <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div className="field" style={{ marginBottom: 0 }}>
           <label htmlFor="r-club">Klubi</label>
           <input id="r-club" name="club" type="text" placeholder="KÇ Prishtina 038" />
         </div>
+        <div className="field" style={{ marginBottom: 0 }} />
       </div>
 
       <div className="field" style={{ marginBottom: 0 }}>
@@ -95,7 +186,11 @@ export function RegisterForm({ slug }: { slug: string }) {
       </div>
 
       <div>
-        <button type="submit" className="btn btn-ember" disabled={pending}>
+        <button
+          type="submit"
+          className="btn btn-ember"
+          disabled={pending || !liveCheck.ok}
+        >
           <span>{pending ? "Duke regjistruar…" : "Regjistrohu për garën"}</span>
           {!pending && (
             <svg className="arrow" viewBox="0 0 14 14" fill="none">

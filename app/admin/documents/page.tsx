@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/supabase/server";
 import {
@@ -9,7 +8,7 @@ import {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { UploadForm } from "./UploadForm";
-import { DeleteButton } from "./DeleteButton";
+import { RowActions } from "./RowActions";
 
 export const metadata = { title: "Dokumentet" };
 
@@ -54,7 +53,7 @@ export default async function DocumentsAdminPage() {
               : rows.map((d) => (
                 <tr key={d.id}>
                   <td>
-                    <a href={documentUrl(d)} target="_blank" rel="noopener noreferrer">{d.title}</a>
+                    <span style={{ fontWeight: 600 }}>{d.title}</span>
                     <small style={{ display: "block", color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: ".06em", marginTop: 2 }}>/{d.slug}</small>
                   </td>
                   <td className="mono">{categoryLabel(d.category)}</td>
@@ -70,7 +69,18 @@ export default async function DocumentsAdminPage() {
                       : new Date(d.created_at).toLocaleDateString("sq")}
                   </td>
                   <td className="actions">
-                    <DeleteButton id={d.id} storagePath={d.storage_path} title={d.title} />
+                    <RowActions
+                      id={d.id}
+                      title={d.title}
+                      slug={d.slug}
+                      storagePath={d.storage_path}
+                      fileUrl={documentUrl(d)}
+                      category={d.category}
+                      visibility={d.visibility}
+                      description={d.description}
+                      effectiveDate={d.effective_date}
+                      displayOrder={d.display_order}
+                    />
                   </td>
                 </tr>
               ))}

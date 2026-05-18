@@ -73,9 +73,14 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
     <>
       <div className="page-head">
         <div><h1>Edit: {row.title_sq}</h1></div>
-        <Link className="btn btn-ember btn-sm" href={`/admin/events/${row.id}/signups`}>
-          Regjistrimet ({signupCount ?? 0}) →
-        </Link>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link className="btn btn-ghost btn-sm" href={`/admin/events/${row.id}/signups`}>
+            Regjistrimet ({signupCount ?? 0})
+          </Link>
+          <Link className="btn btn-ember btn-sm" href={`/admin/events/${row.id}/results`}>
+            Rezultatet →
+          </Link>
+        </div>
       </div>
       <EventForm
         action={bound}

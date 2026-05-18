@@ -44,6 +44,7 @@ export default async function EventsAdminPage() {
                   <td className="actions">
                     <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}`}>Edit</Link>
                     <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}/signups`}>Regjistrimet</Link>
+                    <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}/results`}>Rezultatet</Link>
                     <DeleteButton id={r.id} title={r.title_sq} />
                   </td>
                 </tr>

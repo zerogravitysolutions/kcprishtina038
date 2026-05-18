@@ -37,7 +37,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
         <div className="group" style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--ink-3)", padding: "16px 8px 6px" }}>Klubi</div>
         <Link className="nav-item" href={"/races" as never}>Garat</Link>
-        <Link className="nav-item" href="/sections">Seksionet</Link>
+        <Link className="nav-item" href={"/#disciplines" as never}>Seksionet</Link>
 
         <form action={signOut} style={{ marginTop: "auto" }}>
           <button type="submit" className="nav-item" style={{ color: "var(--err, #c25a2d)", width: "100%", textAlign: "left", background: "transparent", border: 0, cursor: "pointer" }}>

@@ -1,25 +1,33 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState } from "react";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { deleteTeamMember } from "./actions";
 
 export function DeleteButton({ id, name }: { id: string; name: string }) {
-  const [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
   return (
-    <button
-      type="button"
-      className="btn btn-ghost btn-sm"
-      disabled={pending}
-      onClick={() => {
-        if (!confirm(`Fshi anëtarin "${name}" nga ekipi?`)) return;
-        start(async () => {
+    <>
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        onClick={() => setOpen(true)}
+        style={{ color: "var(--err)" }}
+      >
+        Fshi
+      </button>
+      <ConfirmModal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Fshi nga ekipi"
+        tone="danger"
+        confirmLabel="Fshi"
+        message={<>Sigurt që do ta fshish <strong>{name}</strong> nga ekipi?</>}
+        onConfirm={async () => {
           const r = await deleteTeamMember(id);
-          if (!r.ok) alert(`Gabim: ${r.error ?? "i panjohur"}`);
-        });
-      }}
-      style={{ color: "var(--err)" }}
-    >
-      {pending ? "..." : "Fshi"}
-    </button>
+          return r.ok ? { ok: true } : { ok: false, error: r.error ?? "Gabim i panjohur" };
+        }}
+      />
+    </>
   );
 }

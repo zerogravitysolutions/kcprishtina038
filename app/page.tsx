@@ -176,7 +176,7 @@ export default async function Home() {
                   <span>{t("hero.cta.primary")}</span>
                   <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
                 </Link>
-                <Link href="/sections" className="btn btn-ghost">{t("hero.cta.ghost")}</Link>
+                <Link href={"/#disciplines" as never} className="btn btn-ghost">{t("hero.cta.ghost")}</Link>
               </div>
             </div>
 
@@ -382,25 +382,37 @@ export default async function Home() {
             </div>
             <p className="lede">{t("disc.lede")}</p>
           </div>
-          <div className="disc-grid">
-            {sections.map((sec, i) => (
-              <Link
-                key={sec.slug}
-                href={(sec.slug === "mtb" ? "/sections/mtb" : `/sections#${sec.slug}`) as never}
-                className="disc-card"
-              >
-                <div className="num">{String(i + 1).padStart(2, "0")} / {sec.name_sq.toUpperCase()}</div>
-                <h3>{sec.name_sq}</h3>
-                <p>{sec.description_sq}</p>
-                <div className="meta">
-                  <span></span>
-                  <span className="go">
-                    <span>{t("disc.go")}</span>
-                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
-                  </span>
+          <div className="disc-grid" id="disciplines">
+            {sections.map((sec, i) => {
+              const inner = (
+                <>
+                  <div className="num">{String(i + 1).padStart(2, "0")} / {sec.name_sq.toUpperCase()}</div>
+                  <h3>{sec.name_sq}</h3>
+                  <p>{sec.description_sq}</p>
+                  {sec.slug === "mtb" && (
+                    <div className="meta">
+                      <span></span>
+                      <span className="go">
+                        <span>{t("disc.go")}</span>
+                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
+                      </span>
+                    </div>
+                  )}
+                </>
+              );
+              if (sec.slug === "mtb") {
+                return (
+                  <Link key={sec.slug} href={"/sections/mtb" as never} className="disc-card">
+                    {inner}
+                  </Link>
+                );
+              }
+              return (
+                <div key={sec.slug} className="disc-card disc-card--static">
+                  {inner}
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

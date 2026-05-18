@@ -368,7 +368,7 @@ export default async function Home() {
             <div className="history-step">
               <div className="history-year mono">Nëntor 2025</div>
               <h3>Kupa e Prishtinës</h3>
-              <p>Klubi organizon edicionin e parë të „Kupës së Prishtinës" më 2 nëntor — gara e parë rrugore me organizim të plotë nga klubi ynë.</p>
+              <p>Klubi organizon edicionin e parë të Kupës së Prishtinës më 2 nëntor — gara e parë rrugore me organizim të plotë nga klubi ynë.</p>
             </div>
           </div>
         </div>

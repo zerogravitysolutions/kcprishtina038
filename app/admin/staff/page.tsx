@@ -15,7 +15,7 @@ export default async function StaffPage() {
   if (profile.role !== "admin") redirect("/admin/dashboard");
   const supabase = await createClient();
   const { data } = await supabase.from("profiles")
-    .select("id, full_name, email, role, status, section:sections(name_sq)")
+    .select("id, full_name, email, role, status, section:sections!section_id(name_sq)")
     .in("role", ["admin", "editor", "staff", "coach"])
     .order("role");
   const rows = (data as Row[] | null) ?? [];

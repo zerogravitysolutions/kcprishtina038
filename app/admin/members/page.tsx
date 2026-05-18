@@ -27,30 +27,14 @@ export default async function MembersPage() {
   if (!profile) redirect("/login");
   const canChangeRole = profile.role === "admin";
 
-  const { data, error } = await supabase.from("profiles")
-    .select("id, full_name, email, role, status, joined_at, section:sections(slug, name_sq)")
+  // Disambiguate the section embed: profiles has section_id → sections,
+  // but sections also has coach_id → profiles, so PostgREST can't pick a
+  // single relationship without the `!section_id` FK hint. Without it the
+  // entire query errors out with "more than one relationship was found".
+  const { data } = await supabase.from("profiles")
+    .select("id, full_name, email, role, status, joined_at, section:sections!section_id(slug, name_sq)")
     .order("joined_at", { ascending: false, nullsFirst: false }).limit(500);
   const rows = (data as Row[] | null) ?? [];
-  // Also call the RLS helpers directly so we can see what current_role/has_role
-  // evaluate to for this cookie-authenticated session.
-  const supabaseAny = supabase as unknown as { rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
-  const [{ data: curRole, error: errRole }, { data: isStaff, error: errStaff }, { data: noFilterCount }] = await Promise.all([
-    supabaseAny.rpc("current_role"),
-    supabaseAny.rpc("has_role", { roles: ["admin", "editor", "staff", "coach"] }),
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
-  ]);
-  const diag = {
-    user: user.id,
-    profileRole: profile.role,
-    rowCount: rows.length,
-    error: error?.message ?? null,
-    rpcCurrentRole: curRole,
-    rpcCurrentRoleErr: errRole?.message ?? null,
-    rpcHasRole: isStaff,
-    rpcHasRoleErr: errStaff?.message ?? null,
-    headCount: noFilterCount,
-  };
-  console.log("[admin/members]", diag);
 
   return (
     <>
@@ -60,9 +44,6 @@ export default async function MembersPage() {
           <div className="sub">{rows.length} në bazë · admin mund të ndryshojë rolin direkt këtu</div>
         </div>
       </div>
-      <pre style={{ fontSize: 11, background: "#fff", padding: 10, border: "1px solid #ccc", overflow: "auto", marginBottom: 16 }}>
-        DIAG: {JSON.stringify(diag, null, 2)}
-      </pre>
       <div className="table-wrap">
         <table className="t">
           <thead><tr><th>Rider</th><th>Section</th><th>Role</th><th>Joined</th><th>Status</th></tr></thead>

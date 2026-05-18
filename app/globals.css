@@ -1925,10 +1925,9 @@ footer.foot::before {
 }
 
 .sec-card {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 32px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   background: var(--white);
   border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
   border-radius: 18px;
@@ -1936,17 +1935,7 @@ footer.foot::before {
   scroll-margin-top: 96px;
 }
 @media (max-width: 800px) {
-  .sec-card { grid-template-columns: 1fr; gap: 18px; padding: 22px; border-radius: 14px; }
-}
-
-.sec-card__head { grid-column: 1; grid-row: 1; }
-.sec-card__specs { grid-column: 2; grid-row: 1; }
-.sec-card__body { grid-column: 1 / -1; grid-row: 2; }
-.sec-card__cta  { grid-column: 1 / -1; grid-row: 3; }
-@media (max-width: 800px) {
-  .sec-card__head, .sec-card__specs, .sec-card__body, .sec-card__cta {
-    grid-column: 1; grid-row: auto;
-  }
+  .sec-card { gap: 16px; padding: 22px; border-radius: 14px; }
 }
 
 .sec-card__num {
@@ -1965,45 +1954,15 @@ footer.foot::before {
   margin: 14px 0 0;
   font-size: 15px; line-height: 1.55;
   color: var(--ink-2);
-  max-width: 32ch;
-}
-
-.sec-card__specs {
-  display: grid; gap: 12px;
-  background: var(--paper);
-  border: 1px solid color-mix(in oklab, var(--ink) 6%, transparent);
-  border-radius: 12px;
-  padding: 18px 20px;
-}
-.sec-spec {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 16px;
-  align-items: baseline;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed color-mix(in oklab, var(--ink) 10%, transparent);
-}
-.sec-spec:last-child { border-bottom: 0; padding-bottom: 0; }
-.sec-spec__k {
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--ink-3);
-}
-.sec-spec__v {
-  font-size: 14px; color: var(--ink);
-  line-height: 1.4;
-}
-@media (max-width: 480px) {
-  .sec-spec { grid-template-columns: 1fr; gap: 2px; padding-bottom: 12px; }
+  max-width: 60ch;
 }
 
 .sec-card__body {
-  margin-top: 4px;
   font-size: 15px; line-height: 1.65;
   color: var(--ink-2);
   padding-top: 20px;
   border-top: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
 }
 
-.sec-card__cta { margin-top: 12px; }
+.sec-card__cta { margin-top: 4px; }
 .sec-card__cta .btn { padding: 10px 18px; }

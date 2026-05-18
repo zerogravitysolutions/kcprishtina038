@@ -1234,26 +1234,41 @@ footer.foot {
   .display-m    { font-size: clamp(26px, 7.5vw, 42px) !important; }
   .lede         { font-size: 16px; line-height: 1.55; }
 
-  /* Footer: stack to 1 column under the 800px breakpoint */
-  .foot-grid    { grid-template-columns: 1fr !important; gap: 32px; }
+  /* Footer: 2 columns on mobile (was 1) so the link lists pair up. */
+  .foot-grid    { grid-template-columns: 1fr 1fr !important; gap: 24px 20px; }
   .foot-bottom  { flex-direction: column; gap: 12px; align-items: flex-start; font-size: 11px; }
 
-  /* Stats strip 1 col on very small screens (was 2 at <=700px) */
-  .stats-strip  { grid-template-columns: 1fr !important; gap: 24px; }
+  /* Stats strip: 2 columns × 2 rows on mobile (was 1col) */
+  .stats-strip  { grid-template-columns: 1fr 1fr !important; gap: 16px 24px; }
 
   /* Section heads (eyebrow + title + lede) — stack the lede under the
      title rather than side-by-side which crowds at small widths. */
   .section-head { grid-template-columns: 1fr; gap: 16px; }
 
-  /* Hero v2 collage on mobile — keep 3 slots but in a row (small thumbs)
-     so the hero text stays the focus. */
+  /* Hero v2 collage on mobile — 2 columns side-by-side, full width within
+     the hero, with the "SEZONI 2026 · LIVE" badge sitting above the photos
+     (not floating outside the container). */
   .hero-v2 .collage {
-    grid-template-columns: repeat(3, 1fr) !important;
-    grid-auto-rows: 96px !important;
-    gap: 8px;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr !important;
+    grid-auto-rows: unset !important;
+    height: auto !important;
+    aspect-ratio: 2 / 1.4;
+    gap: 8px !important;
+    margin: 16px 0 0 !important;
+    padding-top: 36px; /* room for the badge to sit on top */
   }
+  .hero-v2 .collage .s1 { grid-column: 1 !important; grid-row: 1 !important; }
+  .hero-v2 .collage .s2 { grid-column: 2 !important; grid-row: 1 !important; }
+  .hero-v2 .collage .s3 { display: none !important; }
   .hero-v2 .collage .stamp { display: none; }
-  .hero-v2 .badge { font-size: 9.5px; padding: 4px 10px; }
+  .hero-v2 .badge {
+    position: absolute !important;
+    top: 0 !important; left: 0 !important;
+    right: auto !important;
+    font-size: 9.5px; padding: 5px 12px;
+    box-shadow: none;
+  }
 
   /* Gallery: 1 column at tiny widths is too sparse. Force 2 cols. */
   .gallery {

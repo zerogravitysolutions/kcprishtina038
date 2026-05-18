@@ -633,11 +633,16 @@ table.t .person .nm small {
 /* ---------- Mobile shell + table fixes ---------- */
 @media (max-width: 800px) {
   .app {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr) lets the column shrink below its content's intrinsic
+       min-width. Without this, a wide table inside .main would force
+       the entire grid (and the page) wider than the viewport. */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "top"
       "main";
   }
+  .main { min-width: 0; }
+  .top  { min-width: 0; }
   .side { display: none; }
   .top {
     padding: 0 12px;

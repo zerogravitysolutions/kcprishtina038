@@ -18,6 +18,14 @@ type SponsorRow = { name: string; tier: string; role_sq: string | null; body_sq:
 
 const FOUNDING_YEAR = 2022;
 
+// Short blurb per founder for the landing card — kept here so the page
+// stays self-contained without adding a column to team_members for it.
+const FOUNDER_BLURBS: Record<string, string> = {
+  "qendrim-pllana":           "Themeloi klubin si president dhe sot drejton zhvillimin sportiv, kalendarin garues dhe marrëdhëniet me FÇK.",
+  "albion-ymeri":             "Trajner kryesor dhe çiklist garues — fitues i Cross Country Prishtina 2023 dhe i Kampionatit të Triatlonit.",
+  "shqiponja-osmani-pllana":  "Drejton programet e femrave dhe akademinë e të rinjve, dy kolonat me të cilat klubi po e rikthen brezin e ri në biçikletë.",
+};
+
 async function fetchHomeData() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
@@ -270,7 +278,7 @@ export default async function Home() {
 
       {/* ============ THEMELUESIT ============ */}
       {founders.length > 0 && (
-        <section>
+        <section className="founders-section">
           <div className="container">
             <div className="section-head">
               <div>
@@ -283,27 +291,29 @@ export default async function Home() {
               </p>
             </div>
             <div className="founders-grid">
-              {founders.map(({ member, role }) => {
+              {founders.map(({ member, role }, idx) => {
                 const photo = memberPhotoUrl(member);
+                const blurb = FOUNDER_BLURBS[member.slug] ?? "";
                 return (
                   <Link
                     key={member.slug}
                     href={`/team/${member.slug}` as never}
                     className={`founder-card ${photo ? "" : "founder-card--noimg"}`}
                   >
-                    {photo ? (
-                      <div className="founder-photo">
+                    <div className="founder-photo">
+                      <span className="founder-index">{String(idx + 1).padStart(2, "0")} / 03</span>
+                      {photo ? (
                         <Image src={photo} alt={member.full_name} fill sizes="(max-width: 900px) 100vw, 33vw" quality={80} style={{ objectFit: "cover" }} />
-                      </div>
-                    ) : (
-                      <div className="founder-photo">
+                      ) : (
                         <span className="founder-initials">{memberInitials(member)}</span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                     <div className="founder-meta">
-                      <div className="founder-name">{member.full_name}</div>
                       <div className="founder-role">{role}</div>
+                      <div className="founder-name">{member.full_name}</div>
+                      {blurb && <p className="founder-blurb">{blurb}</p>}
                       <span className="founder-go" aria-hidden="true">
+                        <span>Lexo profilin</span>
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                           <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
                         </svg>

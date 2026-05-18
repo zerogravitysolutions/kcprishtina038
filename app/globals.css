@@ -1764,34 +1764,60 @@ footer.foot::before {
 }
 
 /* ---------- Founders (landing page) ---------- */
+.founders-section {
+  background: var(--paper-2);
+  padding: clamp(48px, 7vw, 96px) 0;
+}
 .founders-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 24px;
+  margin-top: 32px;
 }
-/* Hide the mobile-only arrow indicator on desktop (cards are vertical). */
-.founder-card .founder-go { display: none; }
 
 .founder-card {
   display: flex; flex-direction: column;
   background: var(--white);
-  border: 1px solid color-mix(in oklab, var(--ink) 7%, transparent);
-  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, var(--ink) 6%, transparent);
+  border-radius: 16px;
   overflow: hidden;
-  transition: transform .25s, box-shadow .25s;
+  transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s, border-color .2s;
   text-decoration: none;
   color: inherit;
 }
 .founder-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 36px -20px rgba(15,26,46,.18);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 44px -22px rgba(15,26,46,.22);
+  border-color: color-mix(in oklab, var(--ember) 22%, transparent);
 }
+
 .founder-photo {
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 5;
   background: var(--paper-2);
   overflow: hidden;
+}
+.founder-photo::after {
+  /* subtle bottom gradient so the index badge always reads on light photos */
+  content: "";
+  position: absolute; inset: auto 0 0 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(15,26,46,.35) 0%, transparent 100%);
+  pointer-events: none;
+}
+.founder-index {
+  position: absolute;
+  top: 14px; left: 14px;
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-size: 10.5px; letter-spacing: .2em;
+  background: rgba(255,255,255,.92);
+  color: var(--ink);
+  padding: 5px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
 }
 .founder-initials {
   position: absolute; inset: 0;
@@ -1800,53 +1826,70 @@ footer.foot::before {
   font-size: 84px; letter-spacing: -0.04em;
   color: color-mix(in oklab, var(--ink) 30%, transparent);
 }
-.founder-meta { padding: 20px 22px 24px; }
-.founder-name {
-  font-family: var(--font-display); font-weight: 700;
-  font-size: 22px; letter-spacing: -0.015em;
-  color: var(--ink);
+
+.founder-meta {
+  padding: 24px 24px 26px;
+  display: flex; flex-direction: column;
+  flex: 1;
 }
 .founder-role {
-  margin-top: 6px;
   font-family: var(--font-mono);
-  font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
   color: var(--ember);
 }
+.founder-name {
+  margin-top: 8px;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 22px; letter-spacing: -0.015em; line-height: 1.15;
+  color: var(--ink);
+}
+.founder-blurb {
+  margin: 14px 0 0;
+  font-size: 14px; line-height: 1.55;
+  color: var(--ink-2);
+}
+.founder-go {
+  margin-top: 20px;
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ember);
+}
+.founder-card:hover .founder-go { gap: 12px; }
 
-/* Mobile founder cards — must come AFTER base rules so the cascade
-   actually applies the row layout instead of being overridden. */
+/* Mobile founders — landscape-orientation cards, photo right at 40%,
+   meta on the left. Must come AFTER base rules. */
 @media (max-width: 900px) { .founders-grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 600px) {
-  .founders-grid { grid-template-columns: 1fr; }
+@media (max-width: 700px) {
+  .founders-grid { grid-template-columns: 1fr; gap: 14px; }
   .founder-card {
-    flex-direction: row;
+    flex-direction: row-reverse;
     align-items: stretch;
-    min-height: 112px;
   }
   .founder-photo {
-    width: 112px;
-    height: auto;
-    aspect-ratio: auto;
+    width: 38%;
     flex-shrink: 0;
-    background: var(--paper-2);
+    aspect-ratio: auto;
   }
-  .founder-initials { font-size: 36px; color: var(--ink); opacity: 0.5; }
-  .founder-meta {
-    flex: 1;
-    padding: 14px 48px 14px 18px;
-    justify-content: center;
-    position: relative;
+  .founder-photo::after { display: none; }
+  .founder-index {
+    top: 10px; left: 10px;
+    font-size: 9.5px; padding: 4px 8px;
   }
-  .founder-meta { display: flex; flex-direction: column; }
-  .founder-name { font-size: 17px; }
-  .founder-card .founder-go {
-    display: inline-flex;
-    position: absolute;
-    right: 14px; top: 50%; transform: translateY(-50%);
-    color: var(--ember);
-    opacity: 0.85;
+  .founder-initials { font-size: 40px; opacity: .55; }
+  .founder-meta { padding: 18px 20px; }
+  .founder-role { font-size: 10px; }
+  .founder-name { margin-top: 6px; font-size: 18px; }
+  .founder-blurb {
+    margin-top: 10px;
+    font-size: 13px; line-height: 1.5;
+    /* Limit to 3 lines on small screens so cards stay uniform height */
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden;
   }
-  /* When there's no photo, drop the photo tile so the meta fills the card. */
+  .founder-go { margin-top: 12px; font-size: 9.5px; }
+  /* When no photo, drop the column entirely so meta fills the card */
   .founder-card--noimg .founder-photo { display: none; }
 }
 
@@ -1889,3 +1932,104 @@ footer.foot::before {
   font-size: 14px; line-height: 1.6;
   color: var(--ink-2);
 }
+
+/* ============================================================
+ * /sections — hub page (replaces the legacy HTML inject)
+ * ============================================================ */
+
+.sections-hero {
+  padding: clamp(40px, 6vw, 80px) 0 clamp(28px, 4vw, 48px);
+  background: var(--paper);
+  border-bottom: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+}
+
+.secs-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  padding-top: 32px;
+}
+
+.sec-card {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 32px;
+  align-items: start;
+  background: var(--white);
+  border: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+  border-radius: 18px;
+  padding: 28px 28px 32px;
+  scroll-margin-top: 96px;
+}
+@media (max-width: 800px) {
+  .sec-card { grid-template-columns: 1fr; gap: 18px; padding: 22px; border-radius: 14px; }
+}
+
+.sec-card__head { grid-column: 1; grid-row: 1; }
+.sec-card__specs { grid-column: 2; grid-row: 1; }
+.sec-card__body { grid-column: 1 / -1; grid-row: 2; }
+.sec-card__cta  { grid-column: 1 / -1; grid-row: 3; }
+@media (max-width: 800px) {
+  .sec-card__head, .sec-card__specs, .sec-card__body, .sec-card__cta {
+    grid-column: 1; grid-row: auto;
+  }
+}
+
+.sec-card__num {
+  font-family: var(--font-mono);
+  font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--ember);
+}
+.sec-card__title {
+  margin: 10px 0 0;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(28px, 4.2vw, 44px);
+  letter-spacing: -0.025em; line-height: 1.05;
+  color: var(--ink);
+}
+.sec-card__short {
+  margin: 14px 0 0;
+  font-size: 15px; line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 32ch;
+}
+
+.sec-card__specs {
+  display: grid; gap: 12px;
+  background: var(--paper);
+  border: 1px solid color-mix(in oklab, var(--ink) 6%, transparent);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.sec-spec {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed color-mix(in oklab, var(--ink) 10%, transparent);
+}
+.sec-spec:last-child { border-bottom: 0; padding-bottom: 0; }
+.sec-spec__k {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.sec-spec__v {
+  font-size: 14px; color: var(--ink);
+  line-height: 1.4;
+}
+@media (max-width: 480px) {
+  .sec-spec { grid-template-columns: 1fr; gap: 2px; padding-bottom: 12px; }
+}
+
+.sec-card__body {
+  margin-top: 4px;
+  font-size: 15px; line-height: 1.65;
+  color: var(--ink-2);
+  padding-top: 20px;
+  border-top: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
+}
+
+.sec-card__cta { margin-top: 12px; }
+.sec-card__cta .btn { padding: 10px 18px; }

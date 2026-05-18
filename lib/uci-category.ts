@@ -3,19 +3,21 @@
 // category is consistent everywhere.
 //
 // Bracket (per Kosovan cycling convention, FÇK):
-//   <15        Kadet
-//   15–16      Junior
-//   17–18      U19
-//   19–22      U23
-//   23–29      Elite
-//   30+        Master
+//   <15    Kadet
+//   15–16  Junior
+//   17–18  U19
+//   19–22  U23
+//   23+    Elite
+//
+// Note: the club does not run a Masters category. Everyone 23 years and
+// older races in Elite.
 //
 // Category for season Y is determined by age the rider TURNS in Y
 // (calendar year, not the date of birth).
 // Women get a "Femra" suffix on the label. The code stays the same.
 
 export type UciCategoryCode =
-  | "Kadet" | "Junior" | "U19" | "U23" | "Elite" | "Master";
+  | "Kadet" | "Junior" | "U19" | "U23" | "Elite";
 
 export type Gender = "m" | "f";
 
@@ -23,9 +25,10 @@ export type UciCategory = {
   code: UciCategoryCode;
   /** Display label in Albanian, with Femra suffix when gender='f'. */
   label: string;
-  /** Age in the reference year (defaults to current calendar year). */
+  /** Age in the reference year (defaults to current calendar year).
+   *  Kept on the return value for admin-side use only — public pages
+   *  intentionally display the category label and never the age. */
   age: number;
-  isMaster: boolean;
 };
 
 function codeForAge(age: number): UciCategoryCode {
@@ -33,8 +36,7 @@ function codeForAge(age: number): UciCategoryCode {
   if (age < 17)  return "Junior";
   if (age < 19)  return "U19";
   if (age < 23)  return "U23";
-  if (age < 30)  return "Elite";
-  return "Master";
+  return "Elite";
 }
 
 /**
@@ -57,11 +59,11 @@ export function getUciCategory(
   const code = codeForAge(age);
   const label = gender === "f" ? `${code} Femra` : code;
 
-  return { code, label, age, isMaster: code === "Master" };
+  return { code, label, age };
 }
 
 /**
- * Just the short label (e.g. "Master", "Elite Femra"). Convenient
+ * Just the short label (e.g. "Elite", "U23 Femra"). Convenient
  * when you only need the string for badges/chips.
  */
 export function uciCategoryLabel(

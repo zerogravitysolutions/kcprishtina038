@@ -130,6 +130,7 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
           status: row.status,
           tags: row.tags ?? [],
           cover_media_id: row.cover_media_id,
+          gallery_media_ids: row.gallery_media_ids ?? [],
           slug: row.slug,
         }}
         submitLabel="Ruaj ndryshimet"

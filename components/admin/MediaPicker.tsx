@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export type MediaOption = {
   id: string;
@@ -10,100 +10,212 @@ export type MediaOption = {
   created_at?: string | null;
 };
 
-export function MediaPicker({
-  name,
-  options,
-  initial,
-  label = "Imazh",
-}: {
+type SingleProps = {
   name: string;
   options: MediaOption[];
   initial?: string | null;
   label?: string;
-}) {
+  /** Single-select mode (default). Stores one media.id in the hidden input. */
+  multiple?: false;
+};
+
+type MultiProps = {
+  name: string;
+  options: MediaOption[];
+  /** Initial selection — uuid[]. */
+  initial?: string[] | null;
+  label?: string;
+  /** Multi-select mode. Stores comma-separated uuids in the hidden input. */
+  multiple: true;
+};
+
+type Props = SingleProps | MultiProps;
+
+/**
+ * Unified media picker. Use `multiple={true}` for galleries; default is
+ * single-select for cover/logo fields.
+ *
+ * Form contract:
+ *   - single: hidden input named `name`, value = the picked id (or "")
+ *   - multi:  hidden input named `name`, value = comma-separated ids
+ *
+ * Selection is shown by an ember ring + ✓ badge on the picked tile(s).
+ * No separate "selected" strip — keeps the UI to one grid.
+ */
+export function MediaPicker(props: Props) {
+  const isMulti = props.multiple === true;
   const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  const [value, setValue] = useState<string>(initial ?? "");
+  const [single, setSingle] = useState<string>(
+    !isMulti && typeof props.initial === "string" ? props.initial : "",
+  );
+  const [multi, setMulti] = useState<string[]>(
+    isMulti && Array.isArray(props.initial) ? props.initial : [],
+  );
   const [filter, setFilter] = useState("");
   const [showCount, setShowCount] = useState(80);
 
-  // Sort newest first. Callers usually pass options already ordered, but
-  // do it again here so the picker is correct even when callers pass an
-  // unsorted list.
   const sorted = useMemo(() => {
-    return [...options].sort((a, b) => {
+    return [...props.options].sort((a, b) => {
       const ta = a.created_at ? Date.parse(a.created_at) : 0;
       const tb = b.created_at ? Date.parse(b.created_at) : 0;
       return tb - ta;
     });
-  }, [options]);
+  }, [props.options]);
 
   const filtered = useMemo(() => {
     const f = filter.trim().toLowerCase();
     if (!f) return sorted;
-    return sorted.filter(o => {
+    return sorted.filter((o) => {
       const hay = `${o.filename} ${o.alt ?? ""} ${o.storage_path}`.toLowerCase();
-      // Split filter on spaces so a multi-word query is AND'd.
-      return f.split(/\s+/).every(t => hay.includes(t));
+      return f.split(/\s+/).every((t) => hay.includes(t));
     });
   }, [filter, sorted]);
 
   const visible = filtered.slice(0, showCount);
-  const selected = options.find(o => o.id === value);
+
+  function isSelected(id: string): boolean {
+    return isMulti ? multi.includes(id) : single === id;
+  }
+
+  function toggle(id: string) {
+    if (isMulti) {
+      setMulti((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    } else {
+      setSingle((cur) => (cur === id ? "" : id));
+    }
+  }
+
+  function clearSelection() {
+    if (isMulti) setMulti([]);
+    else setSingle("");
+  }
+
+  const selectedCount = isMulti ? multi.length : single ? 1 : 0;
+  const label = props.label ?? (isMulti ? "Galeria" : "Imazh");
+  const hiddenValue = isMulti ? multi.join(",") : single;
 
   return (
     <div className="field">
-      <label>{label}</label>
-      <input type="hidden" name={name} value={value} />
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div style={{ width: 160, height: 160, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {selected
-            ? <img src={`${supaUrl}/storage/v1/object/public/media/${selected.storage_path}`} alt={selected.alt ?? selected.filename} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".12em" }}>Pa imazh</span>}
-        </div>
-        <div style={{ flex: 1, minWidth: 320, display: "flex", flexDirection: "column", gap: 8 }}>
-          <input
-            type="search"
-            placeholder="Kërko (emri, alt, ose data si '2025')..."
-            value={filter}
-            onChange={e => { setFilter(e.target.value); setShowCount(80); }}
-            style={{ width: "100%" }}
-          />
-          <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", letterSpacing: ".06em" }}>
-            {filter
-              ? `${visible.length}/${filtered.length} rezultate · më të rejat më parë`
-              : `Më të rejat ${visible.length}/${options.length} · radhitur sipas datës`}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 8, maxHeight: 360, overflowY: "auto", padding: 8, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 8 }}>
-            <button
-              type="button"
-              onClick={() => setValue("")}
-              style={{ aspectRatio: "1", border: value === "" ? "2px solid var(--ember)" : "1px dashed var(--line-strong)", borderRadius: 6, background: "var(--white)", color: "var(--ink-3)", fontSize: 11, fontFamily: "var(--font-mono)", letterSpacing: ".06em", cursor: "pointer" }}
-            >ASNJË</button>
-            {visible.map(o => {
-              const isSelected = value === o.id;
-              return (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => setValue(o.id)}
-                  title={o.alt || o.filename}
-                  style={{ aspectRatio: "1", padding: 0, border: isSelected ? "2px solid var(--ember)" : "1px solid var(--line)", borderRadius: 6, overflow: "hidden", background: "var(--paper-2)", cursor: "pointer", position: "relative" }}
-                >
-                  <img src={`${supaUrl}/storage/v1/object/public/media/${o.storage_path}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-                  {isSelected && (
-                    <span style={{ position: "absolute", top: 4, right: 4, background: "var(--ember)", color: "var(--paper)", width: 18, height: 18, borderRadius: 999, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          {filtered.length > visible.length && (
-            <button type="button" className="btn btn-ghost btn-sm" style={{ alignSelf: "flex-start" }} onClick={() => setShowCount(c => c + 80)}>
-              Ngarko {Math.min(80, filtered.length - visible.length)} të tjera ({filtered.length - visible.length} mbeten)
-            </button>
-          )}
-        </div>
+      <label>
+        {label}
+        {isMulti && <span style={{ marginLeft: 8, color: "var(--ember)", fontSize: 11 }}>({selectedCount})</span>}
+      </label>
+      <input type="hidden" name={props.name} value={hiddenValue} />
+
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
+        <input
+          type="search"
+          placeholder="Kërko (emri, alt, ose datë si '2025')..."
+          value={filter}
+          onChange={(e) => { setFilter(e.target.value); setShowCount(80); }}
+          style={{ flex: "1 1 240px", minWidth: 240 }}
+        />
+        {selectedCount > 0 && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={clearSelection}
+            title="Hiq të gjitha"
+          >
+            Pastro {isMulti ? `(${selectedCount})` : ""}
+          </button>
+        )}
       </div>
+
+      <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", letterSpacing: ".06em", marginBottom: 8 }}>
+        {filter
+          ? `${visible.length}/${filtered.length} rezultate · më të rejat më parë`
+          : `Më të rejat ${visible.length}/${props.options.length} · radhitur sipas datës`}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+          gap: 10,
+          maxHeight: 480,
+          overflowY: "auto",
+          padding: 10,
+          background: "var(--paper)",
+          border: "1px solid var(--line)",
+          borderRadius: 8,
+        }}
+      >
+        {visible.map((o) => {
+          const selected = isSelected(o.id);
+          return (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => toggle(o.id)}
+              title={o.alt || o.filename}
+              style={{
+                position: "relative",
+                aspectRatio: "1 / 1",
+                padding: 0,
+                background: "var(--paper-2)",
+                border: selected ? "3px solid var(--ember)" : "1px solid var(--line)",
+                borderRadius: 8,
+                overflow: "hidden",
+                cursor: "pointer",
+                transition: "transform .15s",
+              }}
+            >
+              {/* The img must be absolutely positioned so the parent's
+                  aspect-ratio actually constrains the box (without this
+                  the img's natural size can stretch the row). */}
+              <img
+                src={`${supaUrl}/storage/v1/object/public/media/${o.storage_path}`}
+                alt=""
+                loading="lazy"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+              {selected && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 6, right: 6,
+                    width: 22, height: 22,
+                    background: "var(--ember)",
+                    color: "var(--paper)",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 2px 6px rgba(0,0,0,.25)",
+                  }}
+                >
+                  ✓
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {filtered.length > visible.length && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          style={{ alignSelf: "flex-start", marginTop: 8 }}
+          onClick={() => setShowCount((c) => c + 80)}
+        >
+          Ngarko {Math.min(80, filtered.length - visible.length)} të tjera ({filtered.length - visible.length} mbeten)
+        </button>
+      )}
+
+      <p className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6 }}>
+        Kliko foton për ta {isMulti ? "shtuar ose hequr nga galeria" : "zgjedhur"}.
+      </p>
     </div>
   );
 }

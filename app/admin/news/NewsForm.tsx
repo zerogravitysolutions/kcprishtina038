@@ -15,6 +15,7 @@ type Props = {
     status: string;
     tags: string[];
     cover_media_id: string | null;
+    gallery_media_ids?: string[];
     slug?: string;
   };
   submitLabel: string;
@@ -68,6 +69,14 @@ export function NewsForm({ action, media, initial, submitLabel }: Props) {
       </div>
 
       <MediaPicker name="cover_media_id" options={media} initial={initial?.cover_media_id ?? null} label="Imazh kopertine" />
+
+      <MediaPicker
+        name="gallery_media_ids"
+        options={media}
+        initial={initial?.gallery_media_ids ?? []}
+        label="Galeria e lajmit"
+        multiple
+      />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>

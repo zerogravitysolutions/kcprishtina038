@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
 import { Countdown } from "@/components/landing/Countdown";
+import { StravaEmbed } from "@/components/public/StravaEmbed";
 import { createClient } from "@/lib/supabase/server";
 import { mediaUrl } from "@/lib/supabase/fb";
 import { RegisterForm } from "./RegisterForm";
@@ -48,11 +49,9 @@ const EVENT_SELECT =
   "registration_open_at, registration_close_at, external_url, strava_url, source, " +
   "cover:media!cover_media_id(storage_path)";
 
-function stravaEmbedSrc(url: string | null): string | null {
-  if (!url) return null;
-  const m = url.match(/strava\.com\/(routes|activities)\/(\d+)/i);
-  if (!m) return null;
-  return `https://www.strava.com/${m[1]}/${m[2]}/embed`;
+function isStravaUrl(url: string | null): boolean {
+  if (!url) return false;
+  return /strava\.com\/(routes|segments|activities)\/\d+/i.test(url);
 }
 
 async function getEvent(slug: string): Promise<EventRow | null> {
@@ -105,7 +104,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
   const sponsors = await getEventSponsors(ev.id);
 
   const coverUrl = mediaUrl(ev.cover?.storage_path ?? null);
-  const stravaSrc = stravaEmbedSrc(ev.strava_url);
+  const stravaOk = isStravaUrl(ev.strava_url);
   const now = new Date();
   const closeAt = ev.registration_close_at ? new Date(ev.registration_close_at) : null;
   const openAt = ev.registration_open_at ? new Date(ev.registration_open_at) : null;
@@ -289,63 +288,41 @@ export default async function EventDetailPage({ params }: { params: Params }) {
           </div>
         )}
 
-        {/* Strava route / activity */}
-        {(stravaSrc || ev.strava_url) && (
+        {/* Strava route / segment / activity */}
+        {ev.strava_url && (
           <div className="container" style={{ maxWidth: 1024, marginTop: 56 }}>
             <div className="eyebrow" style={{ marginBottom: 12 }}>
               <span>Rruga (Strava)</span>
             </div>
-            {stravaSrc ? (
-              <div
-                style={{
-                  position: "relative",
-                  width: "100%",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  border: "1px solid var(--line)",
-                  background: "var(--paper-2)",
-                  aspectRatio: "16 / 9",
-                }}
-              >
-                <iframe
-                  src={stravaSrc}
-                  title={`Strava — ${ev.title_sq}`}
-                  loading="lazy"
-                  allowTransparency
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    border: 0,
-                  }}
-                />
-              </div>
-            ) : null}
-            {ev.strava_url && (
-              <a
-                href={ev.strava_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mono"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginTop: 12,
-                  fontSize: 11,
-                  letterSpacing: ".14em",
-                  textTransform: "uppercase",
-                  color: "var(--ember)",
-                  textDecoration: "none",
-                }}
-              >
-                <span>Hap në Strava</span>
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                  <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
-                </svg>
-              </a>
+            {stravaOk ? (
+              <StravaEmbed url={ev.strava_url} />
+            ) : (
+              <p style={{ color: "var(--ink-3)", fontSize: 13 }}>
+                Linku i Strava-s nuk u njoh si rrugë, segment ose aktivitet — kontrollo URL-në në panelin e admin.
+              </p>
             )}
+            <a
+              href={ev.strava_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mono"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                marginTop: 12,
+                fontSize: 11,
+                letterSpacing: ".14em",
+                textTransform: "uppercase",
+                color: "var(--ember)",
+                textDecoration: "none",
+              }}
+            >
+              <span>Hap në Strava</span>
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            </a>
           </div>
         )}
 

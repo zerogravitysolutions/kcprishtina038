@@ -123,15 +123,18 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
       </div>
 
       <div className="field">
-        <label>Strava — URL e rrugës ose aktivitetit</label>
+        <label>Strava — URL e rrugës, segmentit ose aktivitetit</label>
         <input
           name="strava_url"
           type="url"
           defaultValue={initial?.strava_url ?? ""}
-          placeholder="https://www.strava.com/routes/... ose /activities/..."
+          placeholder="https://www.strava.com/routes/... · /segments/... · /activities/..."
         />
         <small style={{ display: "block", marginTop: 4, color: "var(--ink-3)", fontSize: 11 }}>
-          E ngulim direkt si embed në faqen publike (vetëm për linke publike Strava).
+          Mbështetet për <span className="mono">routes</span>,{" "}
+          <span className="mono">segments</span> dhe{" "}
+          <span className="mono">activities</span>. Përdorim widget-in zyrtar
+          të Strava-s në faqen publike (vetëm për linke publike).
         </small>
       </div>
 

@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
-import { SignupRow, type Signup } from "./SignupRow";
+import { ResultRow } from "./ResultRow";
+import type { Signup } from "../signups/SignupRow";
 import { CATEGORIES } from "@/lib/race-category";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function EventSignupsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EventResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
   if (!["admin", "editor"].includes(profile.role)) redirect("/admin/dashboard");
@@ -20,20 +21,26 @@ export default async function EventSignupsPage({ params }: { params: Promise<{ i
     supabase.from("event_signups")
       .select("id, full_name, email, phone, dob, gender, category, club, status, bib_number, result_place, result_time, result_notes, notes, created_at")
       .eq("event_id", id)
-      .order("created_at", { ascending: true }),
+      // Only confirmed riders show up in result entry (drafts/cancelled
+      // shouldn't appear in startlists).
+      .in("status", ["confirmed", "pending"])
+      .order("bib_number", { ascending: true, nullsFirst: false }),
   ]);
 
   const event = ev as { id: string; title_sq: string; slug: string | null; start_at: string; location: string | null } | null;
   if (!event) notFound();
   const rows = (signups as Signup[] | null) ?? [];
 
-  // Quick header stats
-  const byStatus = rows.reduce<Record<string, number>>((acc, r) => {
-    acc[r.status] = (acc[r.status] ?? 0) + 1;
-    return acc;
-  }, {});
+  // Sort: rows with a result_place come first (in order); the rest stay by bib.
+  rows.sort((a, b) => {
+    const ap = a.result_place ?? 9999;
+    const bp = b.result_place ?? 9999;
+    if (ap !== bp) return ap - bp;
+    const ab = a.bib_number ?? 99999;
+    const bb = b.bib_number ?? 99999;
+    return ab - bb;
+  });
 
-  // Build label map from the preset, then group rows by category.
   const labelByValue = new Map<string, string>();
   for (const c of CATEGORIES) labelByValue.set(c.v, c.label);
 
@@ -44,8 +51,6 @@ export default async function EventSignupsPage({ params }: { params: Promise<{ i
     byCat.get(key)!.push(r);
   }
 
-  // Render order: preset categories first (only those with signups), then any
-  // unknown categories, then the catch-all "no category" bucket last.
   const orderedKeys: string[] = [];
   for (const c of CATEGORIES) if (byCat.has(c.v)) orderedKeys.push(c.v);
   for (const k of byCat.keys()) {
@@ -54,23 +59,20 @@ export default async function EventSignupsPage({ params }: { params: Promise<{ i
   }
   if (byCat.has("_none")) orderedKeys.push("_none");
 
+  const withResults = rows.filter((r) => r.result_place != null).length;
+
   return (
     <>
       <div className="page-head">
         <div>
-          <h1>Regjistrimet</h1>
+          <h1>Rezultatet</h1>
           <div className="mono" style={{ color: "var(--ink-3)", fontSize: 12, letterSpacing: ".08em" }}>
             {event.title_sq} · {new Date(event.start_at).toLocaleDateString("sq-AL", { day: "2-digit", month: "long", year: "numeric" })}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <Link className="btn btn-ghost btn-sm" href={`/admin/events/${event.id}`}>← Te gara</Link>
-          <Link className="btn btn-ember btn-sm" href={`/admin/events/${event.id}/results`}>
-            Rezultatet →
-          </Link>
-          {event.slug && (
-            <Link className="btn btn-ghost btn-sm" href={`/events/${event.slug}`} target="_blank">Faqja publike ↗</Link>
-          )}
+          <Link className="btn btn-ghost btn-sm" href={`/admin/events/${event.id}/signups`}>← Regjistrimet</Link>
+          <Link className="btn btn-ghost btn-sm" href={`/admin/events/${event.id}`}>Te gara</Link>
         </div>
       </div>
 
@@ -85,25 +87,21 @@ export default async function EventSignupsPage({ params }: { params: Promise<{ i
           borderRadius: 8,
         }}
       >
-        <Stat label="Total" value={rows.length} />
-        <Stat label="Konfirmuar" value={byStatus.confirmed ?? 0} />
-        <Stat label="Në pritje" value={byStatus.pending ?? 0} />
-        <Stat label="Listë pritjeje" value={byStatus.waitlisted ?? 0} />
-        <Stat label="Anuluar" value={byStatus.cancelled ?? 0} />
+        <Stat label="Startlist" value={rows.length} />
+        <Stat label="Me rezultate" value={withResults} />
+        <Stat label="Të pa-regjistruara" value={rows.length - withResults} />
       </div>
 
       {rows.length === 0 ? (
         <p style={{ color: "var(--ink-3)", padding: "32px 0" }}>
-          Asnjë regjistrim ende. Shpërnda linkun publik për të nisur regjistrimet.
+          Asnjë pjesëmarrës i konfirmuar — kthehu te <Link href={`/admin/events/${event.id}/signups`} style={{ color: "var(--ember)" }}>Regjistrimet</Link> për të konfirmuar pjesëmarrësit.
         </p>
       ) : (
         <div style={{ display: "grid", gap: 32 }}>
           {orderedKeys.map((key) => {
             const list = byCat.get(key)!;
-            const label =
-              key === "_none"
-                ? "Pa kategori"
-                : labelByValue.get(key) ?? key;
+            const label = key === "_none" ? "Pa kategori" : labelByValue.get(key) ?? key;
+            const done = list.filter((r) => r.result_place != null).length;
             return (
               <section key={key}>
                 <div
@@ -123,7 +121,7 @@ export default async function EventSignupsPage({ params }: { params: Promise<{ i
                     {label}
                   </h2>
                   <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: ".12em" }}>
-                    {list.length} pjesëmarrës{list.length === 1 ? "" : "ë"}
+                    {done}/{list.length} të kompletuara
                   </span>
                 </div>
                 <div style={{ overflowX: "auto" }}>
@@ -131,19 +129,17 @@ export default async function EventSignupsPage({ params }: { params: Promise<{ i
                     <thead>
                       <tr style={{ textAlign: "left", borderBottom: "2px solid var(--ink)" }}>
                         <Th>#</Th>
-                        <Th>Pjesëmarrësi</Th>
-                        <Th>Gjinia</Th>
-                        <Th>Dita e lindjes</Th>
-                        <Th>Klubi</Th>
-                        <Th>Statusi</Th>
                         <Th>Bib</Th>
-                        <Th>Reg.</Th>
+                        <Th>Pjesëmarrësi</Th>
+                        <Th>Vendi</Th>
+                        <Th>Koha</Th>
+                        <Th>Shënim</Th>
                         <Th>Veprime</Th>
                       </tr>
                     </thead>
                     <tbody>
                       {list.map((s, i) => (
-                        <SignupRow key={s.id} eventId={event.id} s={s} index={i} />
+                        <ResultRow key={s.id} eventId={event.id} s={s} index={i} />
                       ))}
                     </tbody>
                   </table>

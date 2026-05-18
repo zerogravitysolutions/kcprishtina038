@@ -306,14 +306,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
           </div>
         )}
 
-        {/* Results — only when publicly published. Lives high up the page
-            (right under the cover) because the race is already over and the
-            ranking is the headline. */}
-        {ev.results_published && (
-          <ResultsBlock results={results} eventStartIso={ev.start_at} />
-        )}
-
-        {/* Description */}
+        {/* Description first — gives context for the results below. */}
         {ev.description_sq && (
           <div className="container" style={{ maxWidth: 720, marginTop: 56 }}>
             <div
@@ -328,6 +321,12 @@ export default async function EventDetailPage({ params }: { params: Params }) {
               {ev.description_sq}
             </div>
           </div>
+        )}
+
+        {/* Results — only when publicly published. Sits below the recap
+            description so visitors get context first. */}
+        {ev.results_published && (
+          <ResultsBlock results={results} eventStartIso={ev.start_at} />
         )}
 
         {/* Strava route / segment / activity — width matches the cover +
@@ -565,7 +564,7 @@ function ResultsBlock({
             Rezultatet janë publikuar por ende nuk ka të dhëna për t&apos;u shfaqur.
           </p>
         ) : (
-          <div style={{ display: "grid", gap: 40 }}>
+          <div style={{ display: "grid", gap: 24 }}>
             {orderedKeys.map((key) => {
               const list = byCat.get(key)!;
               const label = key === "_none" ? "Pa kategori" : labelByValue.get(key) ?? key;
@@ -577,8 +576,8 @@ function ResultsBlock({
                       display: "flex",
                       alignItems: "baseline",
                       gap: 12,
-                      marginBottom: 16,
-                      paddingBottom: 10,
+                      marginBottom: 12,
+                      paddingBottom: 8,
                       borderBottom: "1px solid var(--line)",
                     }}
                   >
@@ -593,14 +592,17 @@ function ResultsBlock({
                     </span>
                   </div>
 
-                  {/* Podium chips when we have ranked top-3 */}
-                  {podium.length > 0 && (
+                  {/* Podium chips — only when the category is big enough
+                      that the chips actually add info on top of the table
+                      below (≥4 entries). For 1–3 riders the table already
+                      shows everyone with their place. */}
+                  {list.length > 3 && podium.length > 0 && (
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: `repeat(${podium.length}, 1fr)`,
+                        gridTemplateColumns: `repeat(${Math.min(podium.length, 3)}, minmax(0, 1fr))`,
                         gap: 12,
-                        marginBottom: 18,
+                        marginBottom: 14,
                       }}
                     >
                       {podium.map((p) => (

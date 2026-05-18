@@ -173,6 +173,7 @@ button { font-family: inherit; }
   font-family: var(--font-mono); font-size: 11px;
   letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--ink-3); display: flex; align-items: center; gap: 6px;
+  background: transparent; border: 0; cursor: pointer; padding: 0;
 }
 .top .public-link:hover { color: var(--ink); }
 
@@ -655,11 +656,58 @@ table.t .person .nm small {
   .mobile-signout { display: block; }
   .main { padding: 16px 12px; }
 
-  /* Tables: horizontal scroll instead of wrapping each cell vertically */
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table.t { min-width: 640px; }
-  table.t th, table.t td { padding: 10px 12px; }
-  table.t .person { min-width: 180px; }
+  /* Tables → stacked cards on mobile.
+     Each tr becomes a self-contained card; thead is hidden. */
+  .table-wrap {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+  }
+  table.t {
+    display: block;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  table.t thead { display: none; }
+  table.t tbody { display: block; }
+  table.t tr {
+    display: block;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  table.t tr:hover { background: var(--white); }
+  table.t td {
+    display: block;
+    border: 0;
+    padding: 5px 0;
+  }
+  table.t td:first-child {
+    font-size: 15px;
+    padding-bottom: 8px;
+  }
+  table.t td.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 1px solid var(--line);
+  }
+  table.t td.actions .btn { padding: 8px 14px; font-size: 13px; min-height: 36px; }
+  /* Give cells implicit labels using the th text via data-label attr OR
+     a leading inline label generated from column type. We add labels to
+     the most common columns via class. */
+  table.t td.mono { font-size: 12px; color: var(--ink-3); }
+  table.t .person .avatar { width: 36px; height: 36px; font-size: 14px; }
+  table.t .person .nm { font-weight: 600; font-size: 15px; }
+  table.t .person .nm small { font-size: 10.5px; margin-top: 3px; }
+  /* Make row text links full-width tappable */
+  table.t td a:not(.btn) { display: inline-block; padding: 2px 0; min-height: 24px; }
+  table.t td:first-child a:not(.btn) { display: block; padding: 4px 0; min-height: 44px; }
 
   /* page-head: stack the title and the action button */
   .page-head {

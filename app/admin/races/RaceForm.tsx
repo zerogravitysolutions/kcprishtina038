@@ -14,6 +14,7 @@ type Initial = {
   result_summary: string | null;
   external_url: string | null;
   cover_media_id: string | null;
+  gallery_media_ids?: string[] | null;
   display_order: number;
 };
 
@@ -36,8 +37,22 @@ export function RaceForm({
   linkNewsId?: string;
   submitLabel: string;
 }) {
+  const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [galleryIds, setGalleryIds] = useState<string[]>(initial?.gallery_media_ids ?? []);
+  const [galleryFilter, setGalleryFilter] = useState("");
+
+  function toggleGallery(id: string) {
+    setGalleryIds((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+  }
+
+  const mediaById = new Map(media.map((m) => [m.id, m]));
+  const filteredMedia = (() => {
+    const f = galleryFilter.trim().toLowerCase();
+    if (!f) return media.slice(0, 60);
+    return media.filter((m) => m.filename.toLowerCase().includes(f) || m.storage_path.toLowerCase().includes(f)).slice(0, 60);
+  })();
 
   return (
     <form
@@ -107,6 +122,62 @@ export function RaceForm({
       </div>
 
       <MediaPicker name="cover_media_id" options={media} initial={initial?.cover_media_id ?? null} label="Imazh kopertine" />
+
+      {/* Gallery */}
+      <div className="field">
+        <label>Galeria ({galleryIds.length})</label>
+        <input type="hidden" name="gallery_media_ids" value={galleryIds.join(",")} />
+        {galleryIds.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: 6, background: "var(--paper-2)", border: "1px solid var(--line)", borderRadius: 6, marginBottom: 8 }}>
+            {galleryIds.map((id) => {
+              const m = mediaById.get(id);
+              if (!m) {
+                return (
+                  <button
+                    key={id} type="button" onClick={() => toggleGallery(id)}
+                    title="Hiq nga galeria"
+                    style={{ width: 56, height: 56, border: "1px dashed var(--line-strong)", borderRadius: 4, background: "var(--white)", color: "var(--ink-3)", fontSize: 9, fontFamily: "var(--font-mono)", cursor: "pointer" }}
+                  >FOTO?</button>
+                );
+              }
+              return (
+                <button
+                  key={id} type="button" onClick={() => toggleGallery(id)} title="Hiq nga galeria"
+                  style={{ width: 56, height: 56, padding: 0, border: "2px solid var(--ember)", borderRadius: 4, overflow: "hidden", background: "var(--paper-2)", cursor: "pointer", position: "relative" }}
+                >
+                  <img src={`${supaUrl}/storage/v1/object/public/media/${m.storage_path}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <input
+          type="search"
+          placeholder="Kërko për të shtuar foto..."
+          value={galleryFilter}
+          onChange={(e) => setGalleryFilter(e.target.value)}
+          style={{ width: "100%", marginBottom: 6 }}
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(56px, 1fr))", gap: 6, maxHeight: 200, overflowY: "auto", padding: 6, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 6 }}>
+          {filteredMedia.map((o) => {
+            const selected = galleryIds.includes(o.id);
+            return (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => toggleGallery(o.id)}
+                title={o.filename}
+                style={{ aspectRatio: "1", padding: 0, border: selected ? "2px solid var(--ember)" : "1px solid var(--line)", borderRadius: 4, overflow: "hidden", background: "var(--paper-2)", cursor: "pointer" }}
+              >
+                <img src={`${supaUrl}/storage/v1/object/public/media/${o.storage_path}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: selected ? 0.6 : 1 }} loading="lazy" />
+              </button>
+            );
+          })}
+        </div>
+        <p className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>
+          Kliko foton që të shtosh ose heqësh nga galeria. Galeria shfaqet në faqen publike <code>/races/&lt;slug&gt;</code>.
+        </p>
+      </div>
 
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}
 

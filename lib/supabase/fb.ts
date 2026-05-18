@@ -199,14 +199,30 @@ export type RaceEvent = {
   result_summary: string | null;
   external_url: string | null;
   cover: { storage_path: string } | null;
+  gallery_media_ids: string[];
   /** Count of related news posts, returned only when needed. */
   post_count?: number;
 };
 
 const RACE_EVENT_SELECT =
   "id, slug, name, race_date, location, race_type, organizer, " +
-  "description, result_summary, external_url, " +
+  "description, result_summary, external_url, gallery_media_ids, " +
   "cover:media!cover_media_id(storage_path)";
+
+/** Resolve a list of media IDs to {id, storage_path, alt, w, h}, in order. */
+export async function getMediaByIds(
+  ids: string[],
+): Promise<Array<{ id: string; storage_path: string; alt: string | null; width: number | null; height: number | null }>> {
+  if (!ids.length) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("media")
+    .select("id, storage_path, alt, width, height")
+    .in("id", ids);
+  const rows = (data as Array<{ id: string; storage_path: string; alt: string | null; width: number | null; height: number | null }> | null) ?? [];
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  return ids.map((id) => byId.get(id)).filter(Boolean) as typeof rows;
+}
 
 export async function getRaceEvents(): Promise<RaceEvent[]> {
   const supabase = await createClient();

@@ -19,6 +19,7 @@ type Row = {
   status: string;
   tags: string[];
   cover_media_id: string | null;
+  gallery_media_ids: string[];
   race_event_id: string | null;
   published_at: string | null;
   external_url: string | null;
@@ -33,7 +34,7 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
   const supabase = await createClient();
   const [{ data: rowData }, { data: mediaData }] = await Promise.all([
     supabase.from("news")
-      .select("id, slug, title_sq, title_en, body_sq, body_en, status, tags, cover_media_id, race_event_id, published_at, external_url, race_event:race_events(id, name, race_date)")
+      .select("id, slug, title_sq, title_en, body_sq, body_en, status, tags, cover_media_id, gallery_media_ids, race_event_id, published_at, external_url, race_event:race_events(id, name, race_date)")
       .eq("id", id).maybeSingle(),
     supabase.from("media").select("id, storage_path, filename").order("created_at", { ascending: false }).limit(500),
   ]);
@@ -52,6 +53,12 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
         description: row.body_sq.slice(0, 800),
         external_url: row.external_url ?? "",
         link_news_id: row.id,
+        // Carry the news cover + gallery into the race entry so the
+        // images don't have to be re-attached manually.
+        ...(row.cover_media_id ? { cover_media_id: row.cover_media_id } : {}),
+        ...(row.gallery_media_ids && row.gallery_media_ids.length > 0
+          ? { gallery: row.gallery_media_ids.join(",") }
+          : {}),
       }).toString()
     : null;
 

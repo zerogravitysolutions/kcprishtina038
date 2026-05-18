@@ -5,10 +5,12 @@ import type { Metadata } from "next";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
 import { NewsCard } from "@/components/ui/NewsCard";
+import { PhotoGallery, type GalleryPhoto } from "@/components/ui/PhotoGallery";
 import {
-  getRaceEventBySlug, getNewsForRaceEvent,
+  getRaceEventBySlug, getNewsForRaceEvent, getMediaByIds,
   mediaUrl, raceTypeLabel,
 } from "@/lib/supabase/fb";
+import { parseResults } from "@/lib/parse-results";
 
 type Params = Promise<{ slug: string }>;
 
@@ -36,6 +38,16 @@ export default async function RaceEventPage({ params }: { params: Params }) {
   const dateLabel = new Date(race.race_date).toLocaleDateString("sq", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
+  const parsedResults = parseResults(race.result_summary);
+  const galleryMedia = race.gallery_media_ids?.length
+    ? await getMediaByIds(race.gallery_media_ids)
+    : [];
+  const galleryPhotos: GalleryPhoto[] = galleryMedia.map((m) => ({
+    src: mediaUrl(m.storage_path)!,
+    alt: m.alt,
+    width: m.width,
+    height: m.height,
+  })).filter((p) => p.src);
 
   return (
     <>
@@ -140,17 +152,48 @@ export default async function RaceEventPage({ params }: { params: Params }) {
               {race.description}
             </p>
             {race.result_summary && (
-              <p style={{
-                marginTop: 24, padding: "16px 20px",
-                background: "color-mix(in oklab, var(--ember) 8%, transparent)",
-                borderLeft: "3px solid var(--ember)",
-                fontFamily: "var(--font-body)", fontSize: 15.5,
-                lineHeight: 1.55, color: "var(--ink)",
-              }}>
-                <strong>Rezultati:</strong> {race.result_summary}
-              </p>
+              <div className="race-results">
+                <div className="race-results__head">
+                  <span className="eyebrow"><span>Rezultati i klubit</span></span>
+                </div>
+                {parsedResults.length >= 2 ? (
+                  <ol className="race-results__list">
+                    {parsedResults
+                      .slice()
+                      .sort((a, b) => a.place - b.place)
+                      .map((r, i) => (
+                        <li key={`${r.name}-${i}`} className={`race-results__row ${r.place <= 3 ? `race-results__row--podium-${r.place}` : ""}`}>
+                          <span className="race-results__rank">
+                            {r.place === 1 ? "🥇" : r.place === 2 ? "🥈" : r.place === 3 ? "🥉" : `${r.label}.`}
+                          </span>
+                          <span className="race-results__name">{r.name}</span>
+                          <span className="race-results__place mono">vendi {r.label}</span>
+                        </li>
+                      ))}
+                  </ol>
+                ) : (
+                  <p className="race-results__text">{race.result_summary}</p>
+                )}
+              </div>
             )}
           </div>
+        )}
+
+        {/* Gallery */}
+        {galleryPhotos.length > 0 && (
+          <section style={{ marginTop: 64 }}>
+            <div className="container" style={{ maxWidth: 1240 }}>
+              <div className="section-head" style={{ marginBottom: 24 }}>
+                <div>
+                  <div className="eyebrow"><span>Galeria</span></div>
+                  <h2 className="display display-m" style={{ marginTop: 10 }}>
+                    {galleryPhotos.length === 1 ? "1 fotografi" : `${galleryPhotos.length} fotografi`}
+                  </h2>
+                </div>
+              </div>
+              <PhotoGallery photos={galleryPhotos} uniform={galleryPhotos.length > 6} />
+            </div>
+          </section>
         )}
 
         {/* Linked news posts */}

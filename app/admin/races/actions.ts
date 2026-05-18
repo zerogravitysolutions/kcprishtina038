@@ -31,6 +31,11 @@ function parsePayload(form: FormData): Record<string, unknown> {
   const ext         = form.get("external_url");                        if (ext !== null) patch.external_url = String(ext).trim() || null;
   const cov         = form.get("cover_media_id");
   if (cov !== null) { const v = String(cov).trim(); patch.cover_media_id = v === "" ? null : v; }
+  const gal         = form.get("gallery_media_ids");
+  if (gal !== null) {
+    // Stored as a comma-separated hidden input; parse into a uuid[].
+    patch.gallery_media_ids = String(gal).split(",").map((s) => s.trim()).filter(Boolean);
+  }
   const ord         = form.get("display_order");
   if (ord !== null && String(ord).trim() !== "") {
     const n = parseInt(String(ord), 10); if (!isNaN(n)) patch.display_order = n;

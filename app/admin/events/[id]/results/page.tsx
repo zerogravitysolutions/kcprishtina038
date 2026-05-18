@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { ResultRow } from "./ResultRow";
+import { PublishToggle } from "./PublishToggle";
 import type { Signup } from "../signups/SignupRow";
 import { CATEGORIES } from "@/lib/race-category";
 
@@ -17,7 +18,9 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
   const supabase = await createClient();
 
   const [{ data: ev }, { data: signups }] = await Promise.all([
-    supabase.from("events").select("id, title_sq, slug, start_at, location").eq("id", id).maybeSingle(),
+    supabase.from("events")
+      .select("id, title_sq, slug, start_at, location, results_published, results_published_at")
+      .eq("id", id).maybeSingle(),
     supabase.from("event_signups")
       .select("id, full_name, email, phone, dob, gender, category, club, status, bib_number, result_place, result_time, result_notes, notes, created_at")
       .eq("event_id", id)
@@ -27,7 +30,15 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
       .order("bib_number", { ascending: true, nullsFirst: false }),
   ]);
 
-  const event = ev as { id: string; title_sq: string; slug: string | null; start_at: string; location: string | null } | null;
+  const event = ev as {
+    id: string;
+    title_sq: string;
+    slug: string | null;
+    start_at: string;
+    location: string | null;
+    results_published: boolean;
+    results_published_at: string | null;
+  } | null;
   if (!event) notFound();
   const rows = (signups as Signup[] | null) ?? [];
 
@@ -75,6 +86,13 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
           <Link className="btn btn-ghost btn-sm" href={`/admin/events/${event.id}`}>Te gara</Link>
         </div>
       </div>
+
+      <PublishToggle
+        eventId={event.id}
+        initial={event.results_published}
+        eventSlug={event.slug}
+        publishedAt={event.results_published_at}
+      />
 
       <div
         style={{
@@ -134,7 +152,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
                         <Th>Vendi</Th>
                         <Th>Koha</Th>
                         <Th>Shënim</Th>
-                        <Th>Veprime</Th>
+                        <Th></Th>
                       </tr>
                     </thead>
                     <tbody>

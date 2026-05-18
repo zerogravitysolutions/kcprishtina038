@@ -13,6 +13,8 @@ type Row = {
   status: string;
   source: string | null;
   updated_at: string;
+  published_at: string | null;
+  created_at: string;
   author: { full_name: string } | null;
 };
 
@@ -21,9 +23,15 @@ export default async function NewsAdminPage() {
   if (!profile) redirect("/login");
   if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
+  // Latest first — published_at for published rows, falling back to
+  // created_at for drafts (so a brand-new draft doesn't disappear at the
+  // bottom of the list). updated_at is too noisy: any tag tweak would
+  // bubble an old article back to the top.
   const { data } = await supabase.from("news")
-    .select("id, slug, title_sq, status, source, updated_at, author:profiles!author_id(full_name)")
-    .order("updated_at", { ascending: false }).limit(200);
+    .select("id, slug, title_sq, status, source, updated_at, published_at, created_at, author:profiles!author_id(full_name)")
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(200);
   const rows = (data as Row[] | null) ?? [];
 
   return (
@@ -37,7 +45,7 @@ export default async function NewsAdminPage() {
       </div>
       <div className="table-wrap">
         <table className="t">
-          <thead><tr><th>Title</th><th>Source</th><th>Author</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Title</th><th>Source</th><th>Author</th><th>Status</th><th>Publikuar</th><th>Actions</th></tr></thead>
           <tbody>
             {rows.length === 0
               ? <tr><td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka artikuj — krijoni një draft.</td></tr>
@@ -50,7 +58,14 @@ export default async function NewsAdminPage() {
                   <td className="mono" style={{ textTransform: "uppercase", fontSize: 10.5, letterSpacing: ".1em" }}>{r.source ?? "manual"}</td>
                   <td>{r.author?.full_name ?? "—"}</td>
                   <td><span className={`badge-st ${r.status === "published" ? "ok" : r.status === "draft" ? "warn" : "err"}`}>{r.status}</span></td>
-                  <td className="mono">{new Date(r.updated_at).toLocaleDateString("sq")}</td>
+                  <td className="mono">
+                    {new Date(r.published_at ?? r.created_at).toLocaleDateString("sq")}
+                    {!r.published_at && (
+                      <small style={{ display: "block", color: "var(--ink-3)", fontSize: 10, letterSpacing: ".08em", marginTop: 2 }}>
+                        draft
+                      </small>
+                    )}
+                  </td>
                   <td className="actions">
                     <Link className="btn btn-ghost btn-sm" href={`/admin/news/${r.id}`}>Edit</Link>
                     <DeleteButton id={r.id} title={r.title_sq} />

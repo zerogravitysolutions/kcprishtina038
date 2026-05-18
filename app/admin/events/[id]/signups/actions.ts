@@ -71,6 +71,31 @@ export async function updateSignup(
   }
 }
 
+export async function toggleResultsPublished(
+  eventId: string,
+  published: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await assertEditor();
+    const supabase = await createClient();
+    const patch: Record<string, unknown> = {
+      results_published: published,
+      results_published_at: published ? new Date().toISOString() : null,
+    };
+    const { error } = await supabase
+      .from("events")
+      .update(patch as never)
+      .eq("id", eventId);
+    if (error) return { ok: false, error: error.message };
+    revalidatePath(`/admin/events/${eventId}/results`);
+    revalidatePath(`/admin/events/${eventId}/signups`);
+    revalidatePath(`/events`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 export async function deleteSignup(
   eventId: string,
   signupId: string,

@@ -1,8 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { updateSignup } from "../signups/actions";
 import type { Signup } from "../signups/SignupRow";
+
+const NOTE_OPTIONS = [
+  { v: "",    label: "—" },
+  { v: "DNF", label: "DNF — Nuk e mbaroi" },
+  { v: "DNS", label: "DNS — Nuk filloi" },
+  { v: "DSQ", label: "DSQ — Diskualifikuar" },
+  { v: "OTL", label: "OTL — Jashtë limitit" },
+  { v: "REL", label: "REL — Relegated" },
+  { v: "ABD", label: "ABD — Hoqi dorë" },
+] as const;
 
 export function ResultRow({ eventId, s, index }: { eventId: string; s: Signup; index: number }) {
   const [pending, start] = useTransition();
@@ -11,18 +21,27 @@ export function ResultRow({ eventId, s, index }: { eventId: string; s: Signup; i
   const [notes, setNotes] = useState(s.result_notes ?? "");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  function save() {
-    setMsg(null);
-    start(async () => {
-      const r = await updateSignup(eventId, s.id, {
-        result_place: place,
-        result_time: time,
-        result_notes: notes,
+  // Debounced autosave. Each change resets the timer; once 700ms passes
+  // without further edits we fire the patch.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    const t = setTimeout(() => {
+      setMsg(null);
+      start(async () => {
+        const r = await updateSignup(eventId, s.id, {
+          result_place: place, result_time: time, result_notes: notes,
+        });
+        setMsg(r.ok ? { ok: true, text: "✓" } : { ok: false, text: r.error });
+        if (r.ok) setTimeout(() => setMsg(null), 1200);
       });
-      setMsg(r.ok ? { ok: true, text: "✓" } : { ok: false, text: r.error });
-      if (r.ok) setTimeout(() => setMsg(null), 1500);
-    });
-  }
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [place, time, notes, eventId, s.id]);
 
   const gender = s.gender === "m" ? "M" : s.gender === "f" ? "F" : s.gender === "other" ? "Tj." : "—";
 
@@ -57,29 +76,24 @@ export function ResultRow({ eventId, s, index }: { eventId: string; s: Signup; i
         />
       </td>
       <td style={{ padding: "12px 8px", minWidth: 200 }}>
-        <input
+        <select
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="DNF, DNS, mekanik..."
           style={{ width: "100%" }}
-        />
+        >
+          {NOTE_OPTIONS.map((n) => (
+            <option key={n.v} value={n.v}>{n.label}</option>
+          ))}
+        </select>
       </td>
-      <td style={{ padding: "12px 8px", whiteSpace: "nowrap", width: 130 }}>
-        <button type="button" className="btn btn-ember btn-sm" onClick={save} disabled={pending}>
-          {pending ? "…" : "Ruaj"}
-        </button>
-        {msg && (
-          <span
-            className="mono"
-            style={{
-              marginLeft: 8,
-              fontSize: 11,
-              color: msg.ok ? "var(--ok)" : "var(--err)",
-            }}
-          >
-            {msg.text}
-          </span>
-        )}
+      <td
+        className="mono"
+        style={{
+          padding: "12px 8px", fontSize: 11, width: 60, textAlign: "right",
+          color: msg?.ok === false ? "var(--err)" : pending ? "var(--ink-3)" : "var(--ok)",
+        }}
+      >
+        {pending ? "…" : msg?.text ?? ""}
       </td>
     </tr>
   );

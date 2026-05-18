@@ -855,30 +855,101 @@ section { padding-block: clamp(72px, 8vw, 128px); }
 footer.foot {
   background: var(--ink);
   color: var(--paper);
-  padding: 80px 0 32px;
+  padding: 72px 0 28px;
   margin-top: 0;
+  position: relative;
 }
-.foot-grid {
-  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px;
+footer.foot::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ember) 0%, var(--ember) 22%, transparent 22%, transparent 100%);
 }
-@media (max-width: 800px) { .foot-grid { grid-template-columns: 1fr 1fr; } }
-.foot h4 {
+
+/* Brand row */
+.foot-brand {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 2fr;
+  gap: 48px;
+  align-items: end;
+  padding-bottom: 40px;
+  margin-bottom: 40px;
+  border-bottom: 1px solid color-mix(in oklab, var(--paper) 10%, transparent);
+}
+.foot-logo {
+  display: inline-flex; align-items: center; gap: 14px;
+  color: var(--paper); text-decoration: none;
+}
+.foot-logo img { width: 44px; height: 44px; border-radius: 999px; }
+.foot-logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+.foot-logo-text .kc {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 17px; letter-spacing: -0.01em; color: var(--paper);
+}
+.foot-logo-text .sub {
+  font-family: var(--font-mono); font-size: 10.5px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--slate-2); margin-top: 4px;
+}
+.foot-tagline {
+  margin: 0;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(22px, 2.2vw, 32px);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--paper);
+  max-width: 28ch;
+}
+
+/* Link columns */
+.foot-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr;
+  gap: 40px;
+}
+.foot-col h4 {
+  margin: 0 0 16px;
   font-family: var(--font-mono); font-size: 11px;
   letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--slate); margin-bottom: 18px;
+  color: var(--ember);
+  font-weight: 500;
 }
-.foot a, .foot li {
-  color: color-mix(in oklab, var(--paper) 85%, transparent);
-  font-size: 14px; padding: 4px 0;
+.foot-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.foot-col li {
+  font-size: 14.5px;
+  color: var(--paper);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+  line-height: 1.5;
 }
-.foot ul { list-style: none; padding: 0; margin: 0; }
+.foot-col li svg {
+  flex-shrink: 0;
+  color: var(--ember);
+  margin-top: 4px;
+}
+.foot-col a {
+  color: var(--paper);
+  text-decoration: none;
+  transition: color .15s;
+}
+.foot-col a:hover {
+  color: var(--ember);
+}
+
+/* Bottom row */
 .foot-bottom {
-  margin-top: 64px; padding-top: 24px;
-  border-top: 1px solid color-mix(in oklab, var(--paper) 14%, transparent);
-  display: flex; justify-content: space-between; gap: 24px;
+  margin-top: 56px; padding-top: 22px;
+  border-top: 1px solid color-mix(in oklab, var(--paper) 10%, transparent);
+  display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap;
   font-family: var(--font-mono); font-size: 11px;
-  letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--slate);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--slate-2);
+}
+.foot-bottom .foot-fed {
+  color: var(--slate-2);
 }
 
 /* ---------- Section detail page bits ---------- */
@@ -1234,17 +1305,31 @@ footer.foot {
   .display-m    { font-size: clamp(26px, 7.5vw, 42px) !important; }
   .lede         { font-size: 16px; line-height: 1.55; }
 
-  /* Footer on mobile: brand row full-width, KLUBI + DISIPLINAT side-by-side
-     in the same row, KONTAKTI full-width below. */
-  .foot-grid    {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 32px 20px;
+  /* Footer mobile layout:
+       row 1: brand + tagline (stacked)
+       row 2: KLUBI | DISIPLINAT (2-col)
+       row 3: KONTAKTI (full width)
+  */
+  footer.foot { padding: 48px 0 24px; }
+  .foot-brand {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding-bottom: 28px;
+    margin-bottom: 28px;
   }
-  .foot-grid > :nth-child(1) { grid-column: 1 / -1; }  /* brand */
-  .foot-grid > :nth-child(2) { grid-column: 1; }       /* klubi */
-  .foot-grid > :nth-child(3) { grid-column: 2; }       /* disiplinat */
-  .foot-grid > :nth-child(4) { grid-column: 1 / -1; }  /* kontakti */
-  .foot-bottom  { flex-direction: column; gap: 12px; align-items: flex-start; font-size: 11px; }
+  .foot-tagline { font-size: 22px; max-width: none; }
+  .foot-cols {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px 20px;
+  }
+  .foot-cols .foot-col:nth-child(3) { grid-column: 1 / -1; }
+  .foot-bottom {
+    flex-direction: column;
+    gap: 14px;
+    align-items: flex-start;
+    margin-top: 40px;
+    font-size: 10.5px;
+  }
 
   /* Stats strip: 2 columns × 2 rows on mobile (was 1col) */
   .stats-strip  { grid-template-columns: 1fr 1fr !important; gap: 16px 24px; }

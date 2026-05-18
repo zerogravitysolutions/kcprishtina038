@@ -332,7 +332,7 @@ export default async function Home() {
           <div className="section-head">
             <div>
               <div className="eyebrow"><span>Historia</span></div>
-              <h2 className="display display-m" style={{ marginTop: 16 }}>Katër vite në kalendar.</h2>
+              <h2 className="display display-m" style={{ marginTop: 16 }}>Nga viti 2022 deri sot.</h2>
             </div>
             <Link href={"/about" as never} className="btn btn-ghost" style={{ justifySelf: "start" }}>
               <span>Historia e plotë</span>
@@ -343,22 +343,32 @@ export default async function Home() {
             <div className="history-step">
               <div className="history-year mono">2022</div>
               <h3>Themelimi</h3>
-              <p>Klubi regjistrohet pranë FÇK. Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana hapin seksionin e parë — Rrugë.</p>
+              <p>Klubi regjistrohet pranë FÇK nga Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana. Hapet seksioni i parë — Rrugë.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">2023</div>
-              <h3>Triumfe të para</h3>
-              <p>Albion Ymeri triumfon në Cross Country Prishtina (Germi) dhe në Kampionatin e Triatlonit. Hapet seksioni i MTB-së.</p>
+              <h3>Triumfet e para</h3>
+              <p>Albion Ymeri fiton Cross Country Prishtina në Germi (qershor) dhe Kampionatin e Triatlonit (korrik). Klubi merr pjesë në Kupën e Mitrovicës dhe në Tour of Kosova. Betim Rexha e Valon Binakaj transferohen te klubi.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">2024</div>
-              <h3>Zgjerimi</h3>
-              <p>Klubi hap seksionet Gravel, Akademia e të rinjve dhe programi i femrave. Fillon bashkëpunimi me BikePlus dhe Novus.</p>
+              <h3>Hapi rajonal</h3>
+              <p>Valon Binakaj zgjidhet në përfaqësuesen kosovare për Tour of Albania. Klubi garon në Kupën e Prizrenit, në Kampionatin e Kosovës dhe në Kupën e Anamoravës. Nënshkruhet partneriteti me Ram Airlines.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">2025</div>
-              <h3>Kupa Prishtina</h3>
-              <p>Klubi organizon edicionin e parë të Kupës së Prishtinës. Sezoni mbyllet me 23 pozita në podium kombëtar.</p>
+              <h3>Sezon i ngjeshur</h3>
+              <p>Sezoni hapet me Trofeu 26 Marsi dhe vazhdon me Kampionatin e Kosovës në krono dhe rrugë (qershor) dhe Sharr Cup në MTB (gusht). Lirika Deva i bashkohet seksionit të femrave.</p>
+            </div>
+            <div className="history-step">
+              <div className="history-year mono">Tetor 2025</div>
+              <h3>Festim Kurti në Shkodër</h3>
+              <p>Festim Kurti fiton Trofeun Gilman Bakalli në Shkodër — pjesë e kalendarit ndërkufitar të federatës dhe rezultat i parë i klubit jashtë Kosovës.</p>
+            </div>
+            <div className="history-step">
+              <div className="history-year mono">Nëntor 2025</div>
+              <h3>Kupa e Prishtinës</h3>
+              <p>Klubi organizon edicionin e parë të „Kupës së Prishtinës" më 2 nëntor — gara e parë rrugore me organizim të plotë nga klubi ynë.</p>
             </div>
           </div>
         </div>

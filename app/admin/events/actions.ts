@@ -123,34 +123,37 @@ export async function deleteEvent(id: string): Promise<{ ok: boolean; error?: st
 }
 
 // ----- Event categories ---------------------------------------------------
+// Replaces the full set of categories tied to the event in one call. The
+// admin UI is a checkbox grid driven by lib/race-category.ts, so we
+// store the human-readable label as `name` (matches `event_signups.category`
+// values via CATEGORIES[].v / .label).
 
-export async function addCategory(eventId: string, form: FormData): Promise<{ ok: boolean; error?: string }> {
-  try {
-    await assertEditor();
-    const name = String(form.get("name") || "").trim();
-    if (!name) return { ok: false, error: "Emri i kategorisë mungon." };
-    const maxRaw = String(form.get("max_riders") || "").trim();
-    const orderRaw = String(form.get("display_order") || "").trim();
-    const max_riders = maxRaw ? parseInt(maxRaw, 10) : null;
-    const display_order = orderRaw ? parseInt(orderRaw, 10) : 0;
-    const supabase = await createClient();
-    const { error } = await supabase.from("event_categories").insert([{
-      event_id: eventId, name, max_riders, display_order,
-    }] as never);
-    if (error) return { ok: false, error: error.message };
-    revalidatePath(`/admin/events/${eventId}`);
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-export async function deleteCategory(eventId: string, categoryId: string): Promise<{ ok: boolean; error?: string }> {
+export async function setEventCategories(
+  eventId: string,
+  rows: { name: string; max_riders: number | null; display_order: number }[],
+): Promise<{ ok: boolean; error?: string }> {
   try {
     await assertEditor();
     const supabase = await createClient();
-    const { error } = await supabase.from("event_categories").delete().eq("id", categoryId);
-    if (error) return { ok: false, error: error.message };
+
+    const { error: delErr } = await supabase
+      .from("event_categories")
+      .delete()
+      .eq("event_id", eventId);
+    if (delErr) return { ok: false, error: delErr.message };
+
+    if (rows.length > 0) {
+      const payload = rows.map((r) => ({
+        event_id: eventId,
+        name: r.name,
+        max_riders: r.max_riders,
+        display_order: r.display_order,
+      }));
+      const { error: insErr } = await supabase
+        .from("event_categories")
+        .insert(payload as never);
+      if (insErr) return { ok: false, error: insErr.message };
+    }
     revalidatePath(`/admin/events/${eventId}`);
     return { ok: true };
   } catch (e) {

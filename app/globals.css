@@ -476,6 +476,7 @@ section { padding-block: clamp(72px, 8vw, 128px); }
 }
 @media (max-width: 900px) {
   .race-band > div { grid-template-columns: 1fr !important; padding: 24px !important; gap: 24px !important; }
+  .event-countdown-band { grid-template-columns: 1fr !important; padding: 22px !important; gap: 22px !important; }
 }
 .countdown-band h2 { font-size: clamp(32px, 4.4vw, 60px) !important; line-height: 1; letter-spacing: -0.028em; }
 .countdown-digits {

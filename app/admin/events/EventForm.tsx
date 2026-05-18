@@ -30,7 +30,7 @@ function toLocal(iso: string | null): string {
   return new Date(d.getTime() - off).toISOString().slice(0, 16);
 }
 
-export function EventForm({ action, initial, sections, media, submitLabel }: { action: (f: FormData) => Promise<void>; initial?: Initial; sections: Section[]; media: MediaOption[]; submitLabel: string }) {
+export function EventForm({ action, initial, sections, media, submitLabel, categoriesSlot }: { action: (f: FormData) => Promise<void>; initial?: Initial; sections: Section[]; media: MediaOption[]; submitLabel: string; categoriesSlot?: React.ReactNode }) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
@@ -136,6 +136,35 @@ export function EventForm({ action, initial, sections, media, submitLabel }: { a
       </div>
 
       <MediaPicker name="cover_media_id" options={media} initial={initial?.cover_media_id ?? null} label="Imazh kopertine" />
+
+      {categoriesSlot && (
+        <fieldset
+          style={{
+            border: "1px solid var(--line)",
+            borderRadius: 12,
+            padding: "16px 18px 18px",
+            margin: 0,
+          }}
+        >
+          <legend
+            className="mono"
+            style={{
+              padding: "0 8px",
+              fontSize: 11,
+              letterSpacing: ".18em",
+              textTransform: "uppercase",
+              color: "var(--ember)",
+            }}
+          >
+            Kategoritë e garës
+          </legend>
+          <div className="sub" style={{ marginBottom: 14, color: "var(--ink-3)", fontSize: 12.5 }}>
+            Zgjedh kategoritë në të cilat do të hapen regjistrimet. Çdo kategori
+            ka kufijtë e veta të moshës (UCI) dhe një numër maksimal opsional.
+          </div>
+          {categoriesSlot}
+        </fieldset>
+      )}
 
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}
 

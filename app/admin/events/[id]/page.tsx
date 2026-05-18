@@ -77,16 +77,14 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
           Regjistrimet ({signupCount ?? 0}) →
         </Link>
       </div>
-      <EventForm action={bound} sections={sections} media={media} initial={row} submitLabel="Ruaj ndryshimet" />
-      <div style={{ marginTop: 40 }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, letterSpacing: "-0.015em", margin: "0 0 16px 0" }}>
-          Kategoritë e garës
-        </h2>
-        <div className="sub" style={{ marginBottom: 18, color: "var(--ink-3)", fontSize: 13 }}>
-          Përdor kategoritë për të kufizuar rezultatet sipas grupit (p.sh. Elite, Junior, U19 Femra).
-        </div>
-        <CategoriesEditor eventId={row.id} categories={categories} />
-      </div>
+      <EventForm
+        action={bound}
+        sections={sections}
+        media={media}
+        initial={row}
+        submitLabel="Ruaj ndryshimet"
+        categoriesSlot={<CategoriesEditor eventId={row.id} categories={categories} />}
+      />
 
       <div style={{ marginTop: 40 }}>
         <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, letterSpacing: "-0.015em", margin: "0 0 16px 0" }}>

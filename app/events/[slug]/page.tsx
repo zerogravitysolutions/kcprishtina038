@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PublicNav } from "@/components/nav/PublicNav";
 import { Footer } from "@/components/public/Footer";
+import { Countdown } from "@/components/landing/Countdown";
 import { createClient } from "@/lib/supabase/server";
 import { mediaUrl } from "@/lib/supabase/fb";
 import { RegisterForm } from "./RegisterForm";
@@ -221,6 +222,58 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                 quality={85}
                 style={{ objectFit: "cover" }}
               />
+            </div>
+          </div>
+        )}
+
+        {/* Countdown — only when the event is still in the future */}
+        {new Date(ev.start_at) > new Date() && (
+          <div className="container" style={{ maxWidth: 1240, marginTop: 32 }}>
+            <div
+              style={{
+                background: "var(--ink)",
+                color: "var(--paper)",
+                borderRadius: 18,
+                padding: "28px 32px",
+                display: "grid",
+                gridTemplateColumns: "1.2fr 1.4fr",
+                gap: 32,
+                alignItems: "center",
+              }}
+              className="event-countdown-band"
+            >
+              <div>
+                <div className="cd-status">
+                  <span className="cd-dot"></span>
+                  <span>Numëron mbrapsht</span>
+                </div>
+                <p
+                  className="mono"
+                  style={{
+                    marginTop: 12,
+                    fontSize: 11,
+                    letterSpacing: ".16em",
+                    textTransform: "uppercase",
+                    color: "var(--slate)",
+                  }}
+                >
+                  {formatDate(ev.start_at)} · {formatTime(ev.start_at)}
+                </p>
+                {ev.location && (
+                  <p
+                    className="mono"
+                    style={{
+                      marginTop: 6,
+                      fontSize: 13,
+                      letterSpacing: ".05em",
+                      color: "var(--slate-2)",
+                    }}
+                  >
+                    {ev.location}
+                  </p>
+                )}
+              </div>
+              <Countdown targetIso={ev.start_at} />
             </div>
           </div>
         )}

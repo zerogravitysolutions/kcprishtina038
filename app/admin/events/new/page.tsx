@@ -14,7 +14,7 @@ export default async function NewEventPage() {
   const supabase = await createClient();
   const [{ data: secs }, { data: mediaData }] = await Promise.all([
     supabase.from("sections").select("id, name_sq").eq("active", true).order("display_order"),
-    supabase.from("media").select("id, storage_path, filename").order("created_at", { ascending: false }).limit(500),
+    supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),
   ]);
   const sections = (secs as { id: string; name_sq: string }[] | null) ?? [];
   const media = (mediaData as MediaOption[] | null) ?? [];

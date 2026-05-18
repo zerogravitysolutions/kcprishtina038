@@ -15,7 +15,7 @@ export default async function NewTeamMemberPage() {
   const [{ data: secs }, { data: profs }, { data: mediaData }] = await Promise.all([
     supabase.from("sections").select("slug, name_sq").eq("active", true).order("display_order"),
     supabase.from("profiles").select("id, full_name, role").order("full_name"),
-    supabase.from("media").select("id, storage_path, filename").order("created_at", { ascending: false }).limit(500),
+    supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),
   ]);
   return (
     <>

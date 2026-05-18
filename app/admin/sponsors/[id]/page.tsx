@@ -33,7 +33,7 @@ export default async function EditSponsorPage({ params }: { params: Promise<{ id
     supabase.from("sponsors")
       .select("id, name, tier, role_sq, role_en, body_sq, body_en, website_url, contract_start, contract_end, display_order, active, logo_media_id")
       .eq("id", id).maybeSingle(),
-    supabase.from("media").select("id, storage_path, filename").order("created_at", { ascending: false }).limit(500),
+    supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),
   ]);
   const row = data as Row | null;
   if (!row) notFound();

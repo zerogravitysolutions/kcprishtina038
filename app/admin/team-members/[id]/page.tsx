@@ -37,7 +37,7 @@ export default async function EditTeamMemberPage({ params }: { params: Promise<{
       .eq("id", id).maybeSingle(),
     supabase.from("sections").select("slug, name_sq").eq("active", true).order("display_order"),
     supabase.from("profiles").select("id, full_name, role").order("full_name"),
-    supabase.from("media").select("id, storage_path, filename").order("created_at", { ascending: false }).limit(500),
+    supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),
   ]);
   const row = tm as Row | null;
   if (!row) notFound();

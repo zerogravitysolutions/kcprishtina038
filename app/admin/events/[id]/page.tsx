@@ -38,7 +38,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
       .select("id, title_sq, title_en, type, status, section_id, start_at, end_at, location, distance_km, elevation_m, description_sq, description_en, cover_media_id")
       .eq("id", id).maybeSingle(),
     supabase.from("sections").select("id, name_sq").eq("active", true).order("display_order"),
-    supabase.from("media").select("id, storage_path, filename").order("created_at", { ascending: false }).limit(500),
+    supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),
     supabase.from("event_categories").select("id, name, max_riders, display_order").eq("event_id", id).order("display_order"),
   ]);
   const row = ev as Row | null;

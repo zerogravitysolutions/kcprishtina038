@@ -47,13 +47,13 @@ export type NewsCard = {
   source: "manual" | "facebook";
   external_url: string | null;
   cover: { storage_path: string } | null;
+  gallery_media_ids: string[];
 };
 
 // Full detail row used by /news/[slug] page.
 export type NewsDetail = NewsCard & {
   id: string;
   fb_post_id: string | null;
-  gallery_media_ids: string[];
 };
 
 // Public URL for a path in the `media` Storage bucket.
@@ -147,6 +147,7 @@ export async function getHeroPhotos(limit = 3): Promise<FbPhotoCard[]> {
 
 const NEWS_CARD_SELECT =
   "slug, title_sq, body_sq, published_at, tags, source, external_url, " +
+  "gallery_media_ids, " +
   "cover:media!cover_media_id(storage_path)";
 
 export async function getRecentNews(limit = 6): Promise<NewsCard[]> {
@@ -198,6 +199,7 @@ export type RaceEvent = {
   description: string | null;
   result_summary: string | null;
   external_url: string | null;
+  cover_media_id: string | null;
   cover: { storage_path: string } | null;
   gallery_media_ids: string[];
   /** Count of related news posts, returned only when needed. */
@@ -206,7 +208,7 @@ export type RaceEvent = {
 
 const RACE_EVENT_SELECT =
   "id, slug, name, race_date, location, race_type, organizer, " +
-  "description, result_summary, external_url, gallery_media_ids, " +
+  "description, result_summary, external_url, gallery_media_ids, cover_media_id, " +
   "cover:media!cover_media_id(storage_path)";
 
 /** Resolve a list of media IDs to {id, storage_path, alt, w, h}, in order. */

@@ -32,7 +32,7 @@ export default async function EditRacePage({ params }: { params: Promise<{ id: s
     supabase.from("race_events")
       .select("id, name, race_date, location, race_type, organizer, description, result_summary, external_url, cover_media_id, gallery_media_ids, display_order")
       .eq("id", id).maybeSingle(),
-    supabase.from("media").select("id, storage_path, filename").order("created_at", { ascending: false }).limit(500),
+    supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),
   ]);
   const row = data as Row | null;
   if (!row) notFound();

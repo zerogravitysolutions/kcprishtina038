@@ -22,7 +22,7 @@ export default async function NewRacePage({ searchParams }: { searchParams: Sear
   const sp = await searchParams;
 
   const supabase = await createClient();
-  const { data } = await supabase.from("media").select("id, storage_path, filename").order("created_at", { ascending: false }).limit(500);
+  const { data } = await supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500);
   const media = (data as MediaOption[] | null) ?? [];
 
   const galleryIds = (sp.gallery ?? "")

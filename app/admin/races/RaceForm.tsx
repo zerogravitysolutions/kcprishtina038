@@ -42,17 +42,28 @@ export function RaceForm({
   const [err, setErr] = useState<string | null>(null);
   const [galleryIds, setGalleryIds] = useState<string[]>(initial?.gallery_media_ids ?? []);
   const [galleryFilter, setGalleryFilter] = useState("");
+  const [galleryShow, setGalleryShow] = useState(80);
 
   function toggleGallery(id: string) {
     setGalleryIds((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
   }
 
   const mediaById = new Map(media.map((m) => [m.id, m]));
+  // Newest-first; callers pass it pre-sorted, but enforce.
+  const sortedMedia = [...media].sort((a, b) => {
+    const ta = a.created_at ? Date.parse(a.created_at) : 0;
+    const tb = b.created_at ? Date.parse(b.created_at) : 0;
+    return tb - ta;
+  });
   const filteredMedia = (() => {
     const f = galleryFilter.trim().toLowerCase();
-    if (!f) return media.slice(0, 60);
-    return media.filter((m) => m.filename.toLowerCase().includes(f) || m.storage_path.toLowerCase().includes(f)).slice(0, 60);
+    if (!f) return sortedMedia;
+    return sortedMedia.filter((m) => {
+      const hay = `${m.filename} ${m.alt ?? ""} ${m.storage_path}`.toLowerCase();
+      return f.split(/\s+/).every((t) => hay.includes(t));
+    });
   })();
+  const visibleMedia = filteredMedia.slice(0, galleryShow);
 
   return (
     <form
@@ -128,7 +139,7 @@ export function RaceForm({
         <label>Galeria ({galleryIds.length})</label>
         <input type="hidden" name="gallery_media_ids" value={galleryIds.join(",")} />
         {galleryIds.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: 6, background: "var(--paper-2)", border: "1px solid var(--line)", borderRadius: 6, marginBottom: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: 10, background: "var(--paper-2)", border: "1px solid var(--line)", borderRadius: 8, marginBottom: 10 }}>
             {galleryIds.map((id) => {
               const m = mediaById.get(id);
               if (!m) {
@@ -136,16 +147,17 @@ export function RaceForm({
                   <button
                     key={id} type="button" onClick={() => toggleGallery(id)}
                     title="Hiq nga galeria"
-                    style={{ width: 56, height: 56, border: "1px dashed var(--line-strong)", borderRadius: 4, background: "var(--white)", color: "var(--ink-3)", fontSize: 9, fontFamily: "var(--font-mono)", cursor: "pointer" }}
+                    style={{ width: 96, height: 96, border: "1px dashed var(--line-strong)", borderRadius: 6, background: "var(--white)", color: "var(--ink-3)", fontSize: 10, fontFamily: "var(--font-mono)", cursor: "pointer" }}
                   >FOTO?</button>
                 );
               }
               return (
                 <button
-                  key={id} type="button" onClick={() => toggleGallery(id)} title="Hiq nga galeria"
-                  style={{ width: 56, height: 56, padding: 0, border: "2px solid var(--ember)", borderRadius: 4, overflow: "hidden", background: "var(--paper-2)", cursor: "pointer", position: "relative" }}
+                  key={id} type="button" onClick={() => toggleGallery(id)} title={`Hiq · ${m.alt || m.filename}`}
+                  style={{ width: 96, height: 96, padding: 0, border: "2px solid var(--ember)", borderRadius: 6, overflow: "hidden", background: "var(--paper-2)", cursor: "pointer", position: "relative" }}
                 >
                   <img src={`${supaUrl}/storage/v1/object/public/media/${m.storage_path}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+                  <span style={{ position: "absolute", top: 4, right: 4, background: "var(--ember)", color: "var(--paper)", width: 20, height: 20, borderRadius: 999, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>×</span>
                 </button>
               );
             })}
@@ -153,29 +165,42 @@ export function RaceForm({
         )}
         <input
           type="search"
-          placeholder="Kërko për të shtuar foto..."
+          placeholder="Kërko (emri, alt, ose date si '2025')..."
           value={galleryFilter}
-          onChange={(e) => setGalleryFilter(e.target.value)}
+          onChange={(e) => { setGalleryFilter(e.target.value); setGalleryShow(80); }}
           style={{ width: "100%", marginBottom: 6 }}
         />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(56px, 1fr))", gap: 6, maxHeight: 200, overflowY: "auto", padding: 6, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 6 }}>
-          {filteredMedia.map((o) => {
+        <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", letterSpacing: ".06em", marginBottom: 6 }}>
+          {galleryFilter
+            ? `${visibleMedia.length}/${filteredMedia.length} rezultate · më të rejat më parë`
+            : `Më të rejat ${visibleMedia.length}/${media.length} · radhitur sipas datës`}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 8, maxHeight: 360, overflowY: "auto", padding: 8, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 8 }}>
+          {visibleMedia.map((o) => {
             const selected = galleryIds.includes(o.id);
             return (
               <button
                 key={o.id}
                 type="button"
                 onClick={() => toggleGallery(o.id)}
-                title={o.filename}
-                style={{ aspectRatio: "1", padding: 0, border: selected ? "2px solid var(--ember)" : "1px solid var(--line)", borderRadius: 4, overflow: "hidden", background: "var(--paper-2)", cursor: "pointer" }}
+                title={o.alt || o.filename}
+                style={{ aspectRatio: "1", padding: 0, border: selected ? "2px solid var(--ember)" : "1px solid var(--line)", borderRadius: 6, overflow: "hidden", background: "var(--paper-2)", cursor: "pointer", position: "relative" }}
               >
-                <img src={`${supaUrl}/storage/v1/object/public/media/${o.storage_path}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: selected ? 0.6 : 1 }} loading="lazy" />
+                <img src={`${supaUrl}/storage/v1/object/public/media/${o.storage_path}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: selected ? 0.55 : 1 }} loading="lazy" />
+                {selected && (
+                  <span style={{ position: "absolute", top: 4, right: 4, background: "var(--ember)", color: "var(--paper)", width: 20, height: 20, borderRadius: 999, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>
+                )}
               </button>
             );
           })}
         </div>
-        <p className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>
-          Kliko foton që të shtosh ose heqësh nga galeria. Galeria shfaqet në faqen publike <code>/races/&lt;slug&gt;</code>.
+        {filteredMedia.length > visibleMedia.length && (
+          <button type="button" className="btn btn-ghost btn-sm" style={{ alignSelf: "flex-start", marginTop: 6 }} onClick={() => setGalleryShow((c) => c + 80)}>
+            Ngarko {Math.min(80, filteredMedia.length - visibleMedia.length)} të tjera ({filteredMedia.length - visibleMedia.length} mbeten)
+          </button>
+        )}
+        <p className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6 }}>
+          Kliko foton për ta shtuar ose hequr nga galeria. Galeria shfaqet në faqen publike <code>/races/&lt;slug&gt;</code>.
         </p>
       </div>
 

@@ -17,10 +17,9 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
   {
     group: "Roster",
     items: [
-      { id: "members", label: "Members", href: "/admin/members" },
-      { id: "team-members", label: "Team (riders+staff)", href: "/admin/team-members", allow: ["admin", "editor"] },
+      { id: "members", label: "Members (llogaritë)", href: "/admin/members" },
+      { id: "team-members", label: "Team (ekipi publik)", href: "/admin/team-members", allow: ["admin", "editor"] },
       { id: "sections", label: "Sections", href: "/admin/sections" },
-      { id: "staff", label: "Staff & coaches", href: "/admin/staff", allow: ["admin"] },
     ],
   },
   {

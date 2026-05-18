@@ -36,7 +36,7 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
     supabase.from("news")
       .select("id, slug, title_sq, title_en, body_sq, body_en, status, tags, cover_media_id, gallery_media_ids, race_event_id, published_at, external_url, race_event:race_events(id, name, race_date)")
       .eq("id", id).maybeSingle(),
-    supabase.from("media").select("id, storage_path, filename").order("created_at", { ascending: false }).limit(500),
+    supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),
   ]);
   const row = rowData as unknown as Row | null;
   if (!row) notFound();

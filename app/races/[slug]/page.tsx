@@ -39,9 +39,25 @@ export default async function RaceEventPage({ params }: { params: Params }) {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
   const parsedResults = parseResults(race.result_summary);
-  const galleryMedia = race.gallery_media_ids?.length
-    ? await getMediaByIds(race.gallery_media_ids)
-    : [];
+
+  // Gallery resolution: race.gallery_media_ids if curated (≥2 photos).
+  // Otherwise fall back to the union of linked-news gallery_media_ids so
+  // races created from a news post automatically show all the photos
+  // without manual picking. Dedupe + drop the cover so it isn't shown
+  // twice next to the big hero.
+  let galleryIds: string[] = race.gallery_media_ids ?? [];
+  if (galleryIds.length < 2 && posts.length > 0) {
+    const seen = new Set<string>(galleryIds);
+    for (const p of posts) {
+      for (const id of p.gallery_media_ids ?? []) {
+        if (!seen.has(id)) { seen.add(id); galleryIds.push(id); }
+      }
+    }
+  }
+  if (race.cover_media_id) {
+    galleryIds = galleryIds.filter((id) => id !== race.cover_media_id);
+  }
+  const galleryMedia = galleryIds.length ? await getMediaByIds(galleryIds) : [];
   const galleryPhotos: GalleryPhoto[] = galleryMedia.map((m) => ({
     src: mediaUrl(m.storage_path)!,
     alt: m.alt,

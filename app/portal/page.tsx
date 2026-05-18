@@ -62,9 +62,9 @@ export default async function PortalDashboard() {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           {unpaidTotal > 0 ? (
-            <a className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13 }} href="mailto:info@prishtina038.cc?subject=Pay%20dues">Pay dues · €{unpaidTotal.toFixed(2).replace(/\.00$/, "")}</a>
+            <a className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13 }} href="mailto:info@prishtina038.cc?subject=Anëtarësia">Paguaj anëtarësinë · €{unpaidTotal.toFixed(2).replace(/\.00$/, "")}</a>
           ) : (
-            <span className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13, opacity: 0.6, pointerEvents: "none" }}>Dues paguar ✓</span>
+            <span className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13, opacity: 0.6, pointerEvents: "none" }}>Anëtarësia e paguar ✓</span>
           )}
           <Link className="btn btn-ember" style={{ padding: "10px 14px", fontSize: 13 }} href={"/races" as never}>Garat e klubit</Link>
         </div>
@@ -80,7 +80,7 @@ export default async function PortalDashboard() {
           <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "64px 1fr", gap: 16 }}>
             <div style={{ textAlign: "center", padding: "10px 0", background: nextReg ? "var(--ember)" : "var(--ink-2)", color: "var(--paper)", borderRadius: 8 }}>
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, lineHeight: 1, letterSpacing: "-0.02em" }}>{daysLabel ?? "—"}</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", marginTop: 4 }}>days</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", marginTop: 4 }}>ditë</div>
             </div>
             <div>
               <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, letterSpacing: "-0.015em", margin: 0 }}>
@@ -96,7 +96,7 @@ export default async function PortalDashboard() {
         <div className="pcard dark" style={{ background: "var(--ink)", color: "var(--paper)", borderRadius: 14, padding: 24 }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0, color: "var(--paper)" }}>Anëtarësia</h2>
           <div style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--slate)" }}>
-            {dues.length === 0 ? "Status: paguar / s'ka dues të krijuara" : `${dues.length} pa paguar · €${unpaidTotal.toFixed(2)}`}
+            {dues.length === 0 ? "Status: paguar / s'ka pagesa të krijuara" : `${dues.length} të papaguara · €${unpaidTotal.toFixed(2)}`}
           </div>
           <Link href="/portal/profile" className="btn" style={{ marginTop: 20, background: "transparent", borderColor: "rgba(244,242,236,.3)", color: "var(--paper)" }}>
             Profili & dokumentet →

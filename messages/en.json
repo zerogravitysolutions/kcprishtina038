@@ -62,14 +62,10 @@
   },
   "cd": {
     "status": "Next race",
-    "title": "Granfondo Sharri 2026",
-    "subtitle": "Brezovica → Prevallë → Prizren · 142 km · 2 600 m climbing",
     "days": "Days",
     "hours": "Hours",
     "minutes": "Min",
-    "seconds": "Sec",
-    "cta": "Register for the race",
-    "detail": "Categories: Elite · U23 · Masters · Women · Youth"
+    "seconds": "Sec"
   },
   "about": {
     "eyebrow": "The club",
@@ -131,44 +127,6 @@
       "meta": "11 riders · coach: Sh. Osmani Pllana"
     },
     "go": "Open the section"
-  },
-  "results": {
-    "eyebrow": "Latest results",
-    "title": "The 2025 season in numbers.",
-    "lede": "Races we entered in the last six months. The full list is on the Calendar page.",
-    "col": {
-      "race": "Race",
-      "date": "Date",
-      "rider": "Rider",
-      "category": "Category",
-      "pos": "Pos."
-    },
-    "cta": "All results",
-    "r1": {
-      "race": "Tour of Kosovo — Stage 2",
-      "rider": "Albion Ymeri",
-      "cat": "Elite · Road"
-    },
-    "r2": {
-      "race": "Sharri MTB Marathon",
-      "rider": "Blerton Krasniqi",
-      "cat": "Masters · MTB"
-    },
-    "r3": {
-      "race": "Granfondo Prizren",
-      "rider": "Era Hoxha",
-      "cat": "Elite Women · Road"
-    },
-    "r4": {
-      "race": "National Championship — TT",
-      "rider": "Qëndrim Pllana",
-      "cat": "Masters · TT"
-    },
-    "r5": {
-      "race": "Balkan Junior Cup — Tirana",
-      "rider": "Edon Gashi",
-      "cat": "Junior · Road"
-    }
   },
   "roster": {
     "eyebrow": "The team",
@@ -314,17 +272,6 @@
     "eyebrow": "Sections",
     "title": "Six disciplines, one club.",
     "lede": "Pick a section to see its coach, training schedule, race calendar, and current riders."
-  },
-  "evpage": {
-    "eyebrow": "Calendar 2026",
-    "title": "Every race and ride of the 2026 season.",
-    "lede": "Filter by discipline, category or month. Members find their registrations on the personal panel.",
-    "filter": {
-      "all": "All",
-      "race": "Races",
-      "ride": "Open rides",
-      "camp": "Camps"
-    }
   },
   "jp": {
     "eyebrow": "Membership",

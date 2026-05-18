@@ -62,14 +62,10 @@
   },
   "cd": {
     "status": "Gara e ardhshme",
-    "title": "Granfondo Sharri 2026",
-    "subtitle": "Brezovicë → Prevallë → Prizren · 142 km · 2 600 m ngritje",
     "days": "Ditë",
     "hours": "Orë",
     "minutes": "Min",
-    "seconds": "Sek",
-    "cta": "Regjistrohu për garën",
-    "detail": "Kategoritë: Elite · U23 · Masters · Femra · Youth"
+    "seconds": "Sek"
   },
   "about": {
     "eyebrow": "Klubi",
@@ -132,48 +128,10 @@
     },
     "go": "Hape seksionin"
   },
-  "results": {
-    "eyebrow": "Rezultatet e fundit",
-    "title": "Sezoni 2025 në numra.",
-    "lede": "Garat ku kemi marrë pjesë në gjashtë muajt e fundit. Lista e plotë në Garat.",
-    "col": {
-      "race": "Gara",
-      "date": "Data",
-      "rider": "Çiklisti",
-      "category": "Kategoria",
-      "pos": "Pozita"
-    },
-    "cta": "Të gjitha rezultatet",
-    "r1": {
-      "race": "Tour of Kosovo — etapa 2",
-      "rider": "Albion Ymeri",
-      "cat": "Elite · Rrugë"
-    },
-    "r2": {
-      "race": "Sharri MTB Marathon",
-      "rider": "Blerton Krasniqi",
-      "cat": "Masters · MTB"
-    },
-    "r3": {
-      "race": "Granfondo Prizren",
-      "rider": "Era Hoxha",
-      "cat": "Elite Femra · Rrugë"
-    },
-    "r4": {
-      "race": "Kampionati Kombëtar — Krono",
-      "rider": "Qëndrim Pllana",
-      "cat": "Masters · Krono"
-    },
-    "r5": {
-      "race": "Balkan Junior Cup — Tiranë",
-      "rider": "Edon Gashi",
-      "cat": "Junior · Rrugë"
-    }
-  },
   "roster": {
     "eyebrow": "Ekipi",
     "title": "Çiklistët tanë.",
-    "lede": "Një faqe nga libri i ekipit 2026. Roster i plotë me biografi në faqen e ekipit.",
+    "lede": "Lista e plotë e ekipit me biografi dhe role është në faqen e ekipit.",
     "cta": "Shih të gjithë ekipin"
   },
   "events": {
@@ -314,17 +272,6 @@
     "eyebrow": "Seksionet",
     "title": "Gjashtë disiplina, një klub.",
     "lede": "Zgjidhni një seksion për të parë trajnerin, oraret e stërvitjes, kalendarin e garave dhe çiklistët aktualë."
-  },
-  "evpage": {
-    "eyebrow": "Kalendari 2026",
-    "title": "Çdo garë dhe ride e sezonit 2026.",
-    "lede": "Filtroni sipas disiplinës, kategorisë ose muajit. Anëtarët gjejnë regjistrimin në panel personal.",
-    "filter": {
-      "all": "Të gjitha",
-      "race": "Garat",
-      "ride": "Ride të hapura",
-      "camp": "Kampet"
-    }
   },
   "jp": {
     "eyebrow": "Anëtarësia",

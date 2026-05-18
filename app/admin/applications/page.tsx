@@ -1,5 +1,6 @@
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ApplicationActions } from "./ApplicationActions";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ export default async function ApplicationsPage() {
               ? <tr><td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka aplikime.</td></tr>
               : rows.map(r => (
                 <tr key={r.id}>
-                  <td><div className="person"><div className="avatar">{initials(r.full_name)}</div><div className="nm">{r.full_name}<small>{r.email}</small></div></div></td>
+                  <td><Link href={`/admin/applications/${r.id}`} style={{ display: "block" }}><div className="person"><div className="avatar">{initials(r.full_name)}</div><div className="nm" style={{ fontWeight: 600 }}>{r.full_name}<small>{r.email}</small></div></div></Link></td>
                   <td>{r.section?.name_sq ?? "—"}</td>
                   <td className="mono">{r.experience ?? "—"}</td>
                   <td><span className={`badge-st ${r.status === "pending" ? "warn" : r.status === "approved" ? "ok" : "err"}`}>{r.status}</span></td>

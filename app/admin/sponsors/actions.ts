@@ -25,6 +25,8 @@ function parsePayload(form: FormData): Record<string, unknown> {
     const n = parseInt(String(ord), 10); if (!isNaN(n)) patch.display_order = n;
   }
   patch.active = String(form.get("active") || "off") === "on";
+  const logo = form.get("logo_media_id");
+  if (logo !== null) { const v = String(logo).trim(); patch.logo_media_id = v === "" ? null : v; }
   return patch;
 }
 

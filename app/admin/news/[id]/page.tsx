@@ -2,6 +2,7 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { updateNews } from "../actions";
 import { NewsForm } from "../NewsForm";
+import type { MediaOption } from "@/components/admin/MediaPicker";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,6 +16,7 @@ type Row = {
   body_en: string | null;
   status: string;
   tags: string[];
+  cover_media_id: string | null;
 };
 
 export default async function EditNewsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -23,11 +25,15 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
   if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const { id } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.from("news")
-    .select("id, slug, title_sq, title_en, body_sq, body_en, status, tags")
-    .eq("id", id).maybeSingle();
-  const row = data as Row | null;
+  const [{ data: rowData }, { data: mediaData }] = await Promise.all([
+    supabase.from("news")
+      .select("id, slug, title_sq, title_en, body_sq, body_en, status, tags, cover_media_id")
+      .eq("id", id).maybeSingle(),
+    supabase.from("media").select("id, storage_path, filename").order("created_at", { ascending: false }).limit(500),
+  ]);
+  const row = rowData as Row | null;
   if (!row) notFound();
+  const media = (mediaData as MediaOption[] | null) ?? [];
 
   const bound = updateNews.bind(null, row.id);
 
@@ -42,6 +48,7 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
       </div>
       <NewsForm
         action={bound}
+        media={media}
         initial={{
           title_sq: row.title_sq,
           title_en: row.title_en,
@@ -49,6 +56,7 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
           body_en: row.body_en,
           status: row.status,
           tags: row.tags ?? [],
+          cover_media_id: row.cover_media_id,
           slug: row.slug,
         }}
         submitLabel="Ruaj ndryshimet"

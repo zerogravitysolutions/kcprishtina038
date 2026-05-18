@@ -44,9 +44,11 @@ export async function createNews(form: FormData): Promise<void> {
     candidate = `${slug}-${suffix}`;
   }
 
+  const cover = String(form.get("cover_media_id") || "").trim();
   const payload: Record<string, unknown> = {
     slug, title_sq, title_en, body_sq, body_en, status, tags,
     author_id: me.id, source: "manual",
+    cover_media_id: cover || null,
   };
   if (status === "published") payload.published_at = new Date().toISOString();
 
@@ -81,6 +83,11 @@ export async function updateNews(id: string, form: FormData): Promise<void> {
   }
   const tagsRaw = form.get("tags");
   if (tagsRaw !== null) patch.tags = String(tagsRaw).split(",").map(s => s.trim()).filter(Boolean);
+  const cover = form.get("cover_media_id");
+  if (cover !== null) {
+    const v = String(cover).trim();
+    patch.cover_media_id = v === "" ? null : v;
+  }
 
   const { error } = await supabase.from("news").update(patch as never).eq("id", id);
   if (error) throw new Error(error.message);

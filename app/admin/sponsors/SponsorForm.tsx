@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTransition, useState } from "react";
+import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
 
 type Initial = {
   name: string;
@@ -15,9 +16,10 @@ type Initial = {
   contract_end: string | null;
   display_order: number;
   active: boolean;
+  logo_media_id: string | null;
 };
 
-export function SponsorForm({ action, initial, submitLabel }: { action: (f: FormData) => Promise<void>; initial?: Initial; submitLabel: string }) {
+export function SponsorForm({ action, initial, media, submitLabel }: { action: (f: FormData) => Promise<void>; initial?: Initial; media: MediaOption[]; submitLabel: string }) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
@@ -100,6 +102,8 @@ export function SponsorForm({ action, initial, submitLabel }: { action: (f: Form
           Aktiv
         </label>
       </div>
+
+      <MediaPicker name="logo_media_id" options={media} initial={initial?.logo_media_id ?? null} label="Logo" />
 
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}
 

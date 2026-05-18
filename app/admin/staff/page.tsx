@@ -16,7 +16,8 @@ export default async function StaffPage() {
   const supabase = await createClient();
   const { data } = await supabase.from("profiles")
     .select("id, full_name, email, role, status, section:sections(name_sq)")
-    .neq("role", "member").order("role");
+    .in("role", ["admin", "editor", "staff", "coach"])
+    .order("role");
   const rows = (data as Row[] | null) ?? [];
 
   return (

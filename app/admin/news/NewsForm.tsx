@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useTransition, useState } from "react";
+import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
 
 type Props = {
   action: (form: FormData) => Promise<void>;
+  media: MediaOption[];
   initial?: {
     title_sq: string;
     title_en: string | null;
@@ -12,12 +14,13 @@ type Props = {
     body_en: string | null;
     status: string;
     tags: string[];
+    cover_media_id: string | null;
     slug?: string;
   };
   submitLabel: string;
 };
 
-export function NewsForm({ action, initial, submitLabel }: Props) {
+export function NewsForm({ action, media, initial, submitLabel }: Props) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
@@ -63,6 +66,8 @@ export function NewsForm({ action, initial, submitLabel }: Props) {
         <label>Body (EN)</label>
         <textarea name="body_en" rows={8} defaultValue={initial?.body_en ?? ""} />
       </div>
+
+      <MediaPicker name="cover_media_id" options={media} initial={initial?.cover_media_id ?? null} label="Imazh kopertine" />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>

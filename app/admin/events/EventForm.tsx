@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTransition, useState } from "react";
+import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
 
 type Initial = {
   title_sq: string;
@@ -16,6 +17,7 @@ type Initial = {
   elevation_m: number | null;
   description_sq: string | null;
   description_en: string | null;
+  cover_media_id: string | null;
 };
 
 type Section = { id: string; name_sq: string };
@@ -27,7 +29,7 @@ function toLocal(iso: string | null): string {
   return new Date(d.getTime() - off).toISOString().slice(0, 16);
 }
 
-export function EventForm({ action, initial, sections, submitLabel }: { action: (f: FormData) => Promise<void>; initial?: Initial; sections: Section[]; submitLabel: string }) {
+export function EventForm({ action, initial, sections, media, submitLabel }: { action: (f: FormData) => Promise<void>; initial?: Initial; sections: Section[]; media: MediaOption[]; submitLabel: string }) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
@@ -118,6 +120,8 @@ export function EventForm({ action, initial, sections, submitLabel }: { action: 
         <label>Description (EN)</label>
         <textarea name="description_en" rows={4} defaultValue={initial?.description_en ?? ""} />
       </div>
+
+      <MediaPicker name="cover_media_id" options={media} initial={initial?.cover_media_id ?? null} label="Imazh kopertine" />
 
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}
 

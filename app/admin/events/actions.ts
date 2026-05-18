@@ -33,6 +33,7 @@ function parsePayload(form: FormData): Record<string, unknown> {
   } else if (el !== null) patch.elevation_m = null;
   const ds  = form.get("description_sq"); if (ds !== null) patch.description_sq = String(ds).trim() || null;
   const de  = form.get("description_en"); if (de !== null) patch.description_en = String(de).trim() || null;
+  const cov = form.get("cover_media_id"); if (cov !== null) { const v = String(cov).trim(); patch.cover_media_id = v === "" ? null : v; }
   return patch;
 }
 
@@ -80,6 +81,42 @@ export async function deleteEvent(id: string): Promise<{ ok: boolean; error?: st
     const { error } = await supabase.from("events").delete().eq("id", id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/events");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// ----- Event categories ---------------------------------------------------
+
+export async function addCategory(eventId: string, form: FormData): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await assertEditor();
+    const name = String(form.get("name") || "").trim();
+    if (!name) return { ok: false, error: "Emri i kategorisë mungon." };
+    const maxRaw = String(form.get("max_riders") || "").trim();
+    const orderRaw = String(form.get("display_order") || "").trim();
+    const max_riders = maxRaw ? parseInt(maxRaw, 10) : null;
+    const display_order = orderRaw ? parseInt(orderRaw, 10) : 0;
+    const supabase = await createClient();
+    const { error } = await supabase.from("event_categories").insert([{
+      event_id: eventId, name, max_riders, display_order,
+    }] as never);
+    if (error) return { ok: false, error: error.message };
+    revalidatePath(`/admin/events/${eventId}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function deleteCategory(eventId: string, categoryId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await assertEditor();
+    const supabase = await createClient();
+    const { error } = await supabase.from("event_categories").delete().eq("id", categoryId);
+    if (error) return { ok: false, error: error.message };
+    revalidatePath(`/admin/events/${eventId}`);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

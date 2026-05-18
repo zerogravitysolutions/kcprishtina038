@@ -145,7 +145,7 @@ export default async function Home() {
           <div className="hero-grid">
             <div>
               <h1>
-                <span>{t("hero.title.1")}</span>
+                <span>{t("hero.title.1")}</span>{" "}
                 <span>{t("hero.title.2")}</span><em>{t("hero.title.em")}</em><span>{t("hero.title.3")}</span><br />
                 <span>{t("hero.title.4")}</span>
               </h1>

@@ -10,14 +10,33 @@ type Row = { id: string; full_name: string; email: string; role: string; status:
 function initials(n: string) { return n.trim().split(/\s+/).slice(0, 2).map(s => s[0] || "").join("").toUpperCase() || "?"; }
 
 export default async function MembersPage() {
-  const profile = await getProfile();
+  // Build ONE client for this request and reuse it for both the auth check
+  // and the data query. createClient() builds a fresh client per call which
+  // means the auth-state populated by getProfile() doesn't carry over —
+  // the second call's auth refresh fails silently in Server Components,
+  // so the data query can run unauthenticated → RLS denies all rows.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  const { data: profileRow } = await supabase
+    .from("profiles")
+    .select("id, role, status")
+    .eq("id", user.id)
+    .maybeSingle();
+  const profile = profileRow as { id: string; role: string; status: string } | null;
   if (!profile) redirect("/login");
   const canChangeRole = profile.role === "admin";
-  const supabase = await createClient();
-  const { data } = await supabase.from("profiles")
+
+  const { data, error } = await supabase.from("profiles")
     .select("id, full_name, email, role, status, joined_at, section:sections(slug, name_sq)")
     .order("joined_at", { ascending: false, nullsFirst: false }).limit(500);
   const rows = (data as Row[] | null) ?? [];
+  console.log("[admin/members]", {
+    user: user.id,
+    role: profile.role,
+    rowCount: rows.length,
+    error: error?.message ?? null,
+  });
 
   return (
     <>

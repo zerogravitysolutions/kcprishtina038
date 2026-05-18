@@ -1042,6 +1042,12 @@ footer.foot {
   .hero-v2 .cta-row {
     display: flex; gap: 12px; margin-top: 36px; flex-wrap: wrap;
   }
+  @media (max-width: 600px) {
+    .hero-v2 { padding: 40px 0 32px; }
+    .hero-v2 .hero-top { margin-bottom: 28px; }
+    .hero-v2 .cta-row { flex-direction: column; align-items: stretch; gap: 10px; margin-top: 24px; }
+    .hero-v2 .cta-row .btn { justify-content: center; }
+  }
   .hero-v2 .btn-ghost {
     color: var(--paper);
     border-color: rgba(244,242,236,.3);
@@ -1060,7 +1066,29 @@ footer.foot {
     position: relative;
   }
   @media (max-width: 600px) {
-    .collage { height: 420px; }
+    .collage {
+      height: 320px;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr;
+      gap: 8px;
+      margin: 0 4px;
+    }
+    /* On mobile keep only 2 photos side-by-side; hide the third. */
+    .collage .s1 { grid-column: 1; grid-row: 1; }
+    .collage .s2 { grid-column: 2; grid-row: 1; }
+    .collage .s3 { display: none; }
+    /* Keep the badge + stamp inside the collage bounds on mobile. */
+    .collage .badge {
+      right: 8px; top: 8px;
+      font-size: 9px;
+      padding: 6px 10px;
+    }
+    .collage .stamp {
+      left: 8px; bottom: 8px;
+      font-size: 10px;
+      padding: 8px 10px;
+    }
+    .collage .stamp strong { font-size: 16px; }
   }
   .collage .slot {
     width: 100%; height: 100%;

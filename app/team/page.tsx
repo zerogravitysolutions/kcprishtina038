@@ -26,7 +26,8 @@ export default async function TeamPage() {
   // A person who holds multiple roles (e.g. Qëndrim = president + commissaire
   // + rider) appears in EACH bucket — the buckets are lenses on the same
   // person, not exclusive partitions.
-  const board     = active.filter((m) => m.positions.includes("president"));
+  const BOARD_ROLES = ["president", "secretary_general", "secretary_organizational"] as const;
+  const board     = active.filter((m) => m.positions.some((p) => (BOARD_ROLES as readonly string[]).includes(p)));
   const coaches   = active.filter((m) => m.positions.includes("coach"));
   const officials = active.filter((m) => m.positions.includes("commissaire"));
   const riders    = active.filter((m) => m.positions.includes("rider")).sort(byFirstName);

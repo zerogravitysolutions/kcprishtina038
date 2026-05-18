@@ -646,7 +646,15 @@ export default async function Home() {
                             </div>
                           )}
                           {s.body_sq && (
-                            <p style={{ marginTop: 16, color: "var(--slate-2)", maxWidth: "60ch", lineHeight: 1.6 }}>
+                            <p
+                              style={{
+                                marginTop: 16,
+                                color: "var(--slate-2)",
+                                maxWidth: "60ch",
+                                lineHeight: 1.6,
+                                whiteSpace: "pre-wrap",
+                              }}
+                            >
                               {s.body_sq}
                             </p>
                           )}
@@ -751,6 +759,7 @@ export default async function Home() {
                                 color: "var(--ink-2)",
                                 lineHeight: 1.6,
                                 marginTop: 14,
+                                whiteSpace: "pre-wrap",
                               }}
                             >
                               {s.body_sq}

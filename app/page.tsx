@@ -354,7 +354,7 @@ export default async function Home() {
                           className="btn btn-ember"
                           style={{ marginTop: 24 }}
                         >
-                          <span>{idx === 0 ? t("cd.cta") : "Detajet"}</span>
+                          <span>{idx === 0 ? "Regjistrohu" : "Detajet"}</span>
                           <svg className="arrow" viewBox="0 0 14 14" fill="none">
                             <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
                           </svg>

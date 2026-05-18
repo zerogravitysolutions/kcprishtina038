@@ -67,11 +67,7 @@ export default async function EventsIndexPage() {
 
       <section style={{ paddingTop: 48, paddingBottom: 32 }}>
         <div className="container">
-          <SectionHeading
-            label="Të ardhshme"
-            count={upcoming.length}
-            note="Hap njërin për detajet dhe regjistrimin."
-          />
+          <SectionHeading label="Të ardhshme" count={upcoming.length} />
           {upcoming.length === 0 ? (
             <p style={{ color: "var(--ink-3)", marginTop: 16 }}>
               Asnjë event i ardhshëm aktualisht. Kontrollo më vonë ose ndiq na në Facebook.
@@ -87,11 +83,7 @@ export default async function EventsIndexPage() {
       {past.length > 0 && (
         <section style={{ paddingTop: 32, paddingBottom: 80, background: "var(--paper-2)" }}>
           <div className="container">
-            <SectionHeading
-              label="Të kaluara"
-              count={past.length}
-              note="Eventet që kanë përfunduar — disa kanë rezultate të publikuara."
-            />
+            <SectionHeading label="Të kaluara" count={past.length} />
             <div className="event-card-grid">
               {past.map((r) => <EventCard key={r.id} row={r} past />)}
             </div>
@@ -104,7 +96,7 @@ export default async function EventsIndexPage() {
   );
 }
 
-function SectionHeading({ label, count, note }: { label: string; count: number; note: string }) {
+function SectionHeading({ label, count }: { label: string; count: number }) {
   return (
     <div
       style={{
@@ -112,7 +104,7 @@ function SectionHeading({ label, count, note }: { label: string; count: number; 
         alignItems: "baseline",
         gap: 14,
         flexWrap: "wrap",
-        marginBottom: 20,
+        marginBottom: 28,
       }}
     >
       <h2
@@ -121,8 +113,16 @@ function SectionHeading({ label, count, note }: { label: string; count: number; 
       >
         {label}
       </h2>
-      <span className="mono" style={{ fontSize: 11, letterSpacing: ".16em", color: "var(--ink-3)", textTransform: "uppercase" }}>
-        {count} · {note}
+      <span
+        className="mono"
+        style={{
+          fontSize: 11,
+          letterSpacing: ".16em",
+          color: "var(--ink-3)",
+          textTransform: "uppercase",
+        }}
+      >
+        {count} event{count === 1 ? "" : "e"}
       </span>
     </div>
   );
@@ -153,13 +153,13 @@ function EventCard({ row: r, past }: { row: Row; past?: boolean }) {
         style={{
           background: "var(--paper)",
           border: "1px solid var(--line)",
-          borderRadius: 12,
+          borderRadius: 16,
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           height: "100%",
           transition: "transform .25s, box-shadow .25s",
-          opacity: past && !r.results_published ? 0.92 : 1,
+          opacity: past && !r.results_published ? 0.94 : 1,
         }}
       >
         <div
@@ -175,9 +175,9 @@ function EventCard({ row: r, past }: { row: Row; past?: boolean }) {
               src={cover}
               alt={r.title_sq}
               fill
-              sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 33vw"
-              quality={75}
-              style={{ objectFit: "cover", filter: past ? "grayscale(30%)" : undefined }}
+              sizes="(max-width: 700px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              quality={80}
+              style={{ objectFit: "cover", filter: past ? "grayscale(25%)" : undefined }}
             />
           ) : (
             <span
@@ -185,7 +185,7 @@ function EventCard({ row: r, past }: { row: Row; past?: boolean }) {
               style={{
                 position: "absolute", inset: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "var(--ink-3)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase",
+                color: "var(--ink-3)", fontSize: 13, letterSpacing: ".16em", textTransform: "uppercase",
               }}
             >
               {r.type}
@@ -195,29 +195,59 @@ function EventCard({ row: r, past }: { row: Row; past?: boolean }) {
             <span
               className="mono"
               style={{
-                position: "absolute", top: 12, right: 12,
+                position: "absolute", top: 16, right: 16,
                 background: "var(--ember)", color: "var(--paper)",
-                fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase",
-                padding: "5px 9px", borderRadius: 999, fontWeight: 600,
+                fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase",
+                padding: "6px 12px", borderRadius: 999, fontWeight: 600,
               }}
             >
               Rezultatet
             </span>
           )}
         </div>
-        <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+        <div
+          style={{
+            padding: "28px 32px 32px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            flex: 1,
+          }}
+        >
           <div
             className="mono"
             style={{
-              fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase",
+              fontSize: 12,
+              letterSpacing: ".14em",
+              textTransform: "uppercase",
               color: past ? "var(--ink-3)" : "var(--ember)",
             }}
           >
             {dd} · {tt}
           </div>
-          <h3 style={{ fontSize: 19, lineHeight: 1.2, margin: 0 }}>{r.title_sq}</h3>
+          <h3
+            className="display"
+            style={{
+              fontSize: "clamp(22px, 2.2vw, 28px)",
+              lineHeight: 1.15,
+              letterSpacing: "-0.015em",
+              margin: 0,
+            }}
+          >
+            {r.title_sq}
+          </h3>
           {sub && (
-            <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>{sub}</div>
+            <div
+              className="mono"
+              style={{
+                fontSize: 13,
+                color: "var(--ink-3)",
+                letterSpacing: ".04em",
+                marginTop: 4,
+              }}
+            >
+              {sub}
+            </div>
           )}
         </div>
       </article>

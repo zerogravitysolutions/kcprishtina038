@@ -288,42 +288,53 @@ export default async function EventDetailPage({ params }: { params: Params }) {
           </div>
         )}
 
-        {/* Strava route / segment / activity */}
+        {/* Strava route / segment / activity — full-bleed across the
+            viewport (the embed's own map looks better with more horizontal
+            room). Only the heading + "Hap në Strava" CTA stay aligned to
+            the container so they line up with the rest of the page. */}
         {ev.strava_url && (
-          <div className="container" style={{ maxWidth: 1024, marginTop: 56 }}>
-            <div className="eyebrow" style={{ marginBottom: 12 }}>
-              <span>Rruga (Strava)</span>
+          <section style={{ marginTop: 56 }}>
+            <div className="container" style={{ marginBottom: 12 }}>
+              <div className="eyebrow">
+                <span>Rruga (Strava)</span>
+              </div>
             </div>
-            {stravaOk ? (
-              <StravaEmbed url={ev.strava_url} />
-            ) : (
-              <p style={{ color: "var(--ink-3)", fontSize: 13 }}>
-                Linku i Strava-s nuk u njoh si rrugë, segment ose aktivitet — kontrollo URL-në në panelin e admin.
-              </p>
-            )}
-            <a
-              href={ev.strava_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mono"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                marginTop: 12,
-                fontSize: 11,
-                letterSpacing: ".14em",
-                textTransform: "uppercase",
-                color: "var(--ember)",
-                textDecoration: "none",
-              }}
-            >
-              <span>Hap në Strava</span>
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            </a>
-          </div>
+
+            <div style={{ width: "100%", paddingInline: "var(--pad-x)" }}>
+              {stravaOk ? (
+                <StravaEmbed url={ev.strava_url} />
+              ) : (
+                <p style={{ color: "var(--ink-3)", fontSize: 13 }}>
+                  Linku i Strava-s nuk u njoh si rrugë, segment ose aktivitet —
+                  kontrollo URL-në në panelin e admin.
+                </p>
+              )}
+            </div>
+
+            <div className="container" style={{ marginTop: 12 }}>
+              <a
+                href={ev.strava_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mono"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 11,
+                  letterSpacing: ".14em",
+                  textTransform: "uppercase",
+                  color: "var(--ember)",
+                  textDecoration: "none",
+                }}
+              >
+                <span>Hap në Strava</span>
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+              </a>
+            </div>
+          </section>
         )}
 
         {/* Sponsors for this event */}

@@ -5,6 +5,9 @@ import {
   getDocuments, categoryLabel, documentUrl, formatBytes,
   type DocumentRow,
 } from "@/lib/supabase/documents";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { UploadForm } from "./UploadForm";
 import { DeleteButton } from "./DeleteButton";
 

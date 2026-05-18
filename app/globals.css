@@ -1599,3 +1599,93 @@ footer.foot {
   font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
   color: var(--ink-3);
 }
+
+/* ---------- Founders (landing page) ---------- */
+.founders-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+@media (max-width: 900px) { .founders-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .founders-grid { grid-template-columns: 1fr; } }
+
+.founder-card {
+  display: flex; flex-direction: column;
+  background: var(--white);
+  border: 1px solid color-mix(in oklab, var(--ink) 7%, transparent);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: transform .25s, box-shadow .25s;
+  text-decoration: none;
+  color: inherit;
+}
+.founder-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px -20px rgba(15,26,46,.18);
+}
+.founder-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+.founder-initials {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 84px; letter-spacing: -0.04em;
+  color: color-mix(in oklab, var(--ink) 30%, transparent);
+}
+.founder-meta { padding: 20px 22px 24px; }
+.founder-name {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 22px; letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.founder-role {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ember);
+}
+
+/* ---------- History timeline (landing page) ---------- */
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+@media (max-width: 1000px) { .history-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px)  { .history-grid { grid-template-columns: 1fr; } }
+
+.history-step {
+  background: var(--white);
+  border: 1px solid color-mix(in oklab, var(--ink) 7%, transparent);
+  border-radius: 14px;
+  padding: 22px 22px 24px;
+  display: flex; flex-direction: column; gap: 10px;
+  position: relative;
+}
+.history-step::before {
+  content: "";
+  position: absolute; left: 22px; top: 0;
+  width: 28px; height: 3px;
+  background: var(--ember);
+  border-radius: 0 0 4px 4px;
+}
+.history-year {
+  font-size: 12px; letter-spacing: .2em; color: var(--ink-3);
+  margin-top: 4px;
+}
+.history-step h3 {
+  margin: 0;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 20px; letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.history-step p {
+  margin: 0;
+  font-size: 14px; line-height: 1.6;
+  color: var(--ink-2);
+}

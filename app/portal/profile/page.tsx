@@ -2,6 +2,9 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import { ProfileForm } from "./ProfileForm";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type FullProfile = {
   full_name: string; email: string; phone: string | null;
   dob: string | null; bio: string | null;

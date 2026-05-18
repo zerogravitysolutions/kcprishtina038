@@ -1,5 +1,9 @@
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type Row = { id: string; slug: string; display_order: number; name_sq: string; name_en: string; active: boolean; coach: { full_name: string } | null };
 
@@ -18,7 +22,7 @@ export default async function SectionsAdminPage() {
       <div className="page-head"><div><h1>Sections</h1><div className="sub">{rows.length} në bazë</div></div></div>
       <div className="table-wrap">
         <table className="t">
-          <thead><tr><th>Name</th><th>Slug</th><th>Coach</th><th>Order</th><th>Status</th></tr></thead>
+          <thead><tr><th>Name</th><th>Slug</th><th>Coach</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
             {rows.map(r => (
               <tr key={r.id}>
@@ -27,6 +31,7 @@ export default async function SectionsAdminPage() {
                 <td>{r.coach?.full_name ?? "—"}</td>
                 <td className="mono">{r.display_order}</td>
                 <td><span className={`badge-st ${r.active ? "ok" : "err"}`}>{r.active ? "active" : "inactive"}</span></td>
+                <td className="actions"><Link className="btn btn-ghost btn-sm" href={`/admin/sections/${r.id}`}>Edit</Link></td>
               </tr>
             ))}
           </tbody>

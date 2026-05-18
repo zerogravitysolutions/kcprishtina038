@@ -2,6 +2,9 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type NextReg = {
   status: string;
   category: { name: string } | null;

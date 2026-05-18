@@ -7,6 +7,7 @@ import { Countdown } from "@/components/landing/Countdown";
 import { NewsCard } from "@/components/ui/NewsCard";
 import { createClient } from "@/lib/supabase/server";
 import { getRecentNews, getHeroPhotos, mediaUrl } from "@/lib/supabase/fb";
+import { memberInitials, memberPhotoUrl, type TeamMemberCard } from "@/lib/supabase/team";
 
 type NextRace = {
   title_sq: string; start_at: string; location: string | null;
@@ -21,7 +22,14 @@ async function fetchHomeData() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
 
-  const [nextRace, sections, news, sponsors, fbPhotos, riderC, raceEventC] = await Promise.all([
+  const FOUNDER_SLUGS = ["qendrim-pllana", "albion-ymeri", "shqiponja-osmani-pllana"];
+  const FOUNDER_ROLES: Record<string, string> = {
+    "qendrim-pllana":         "Themelues · President",
+    "albion-ymeri":           "Themelues · Trajner kryesor",
+    "shqiponja-osmani-pllana": "Themelueze · Programe të femrave",
+  };
+
+  const [nextRace, sections, news, sponsors, fbPhotos, riderC, raceEventC, foundersRaw] = await Promise.all([
     supabase.from("events")
       .select("title_sq, start_at, location, distance_km, elevation_m, description_sq")
       .eq("type", "race").eq("status", "published")
@@ -43,7 +51,21 @@ async function fetchHomeData() {
     // Distinct race events from the curated race_events catalog.
     supabase.from("race_events")
       .select("id", { count: "exact", head: true }),
+    supabase.from("team_members")
+      .select("id, slug, full_name, first_name, last_name, gender, dob, positions, section_slug, bio, status, ended_at, display_order, external_photo_url, photo:media!photo_media_id(storage_path)")
+      .in("slug", FOUNDER_SLUGS),
   ]);
+
+  const founderMap = new Map<string, TeamMemberCard>();
+  for (const m of (foundersRaw.data as unknown as TeamMemberCard[] | null) ?? []) {
+    founderMap.set(m.slug, m);
+  }
+  const founders = FOUNDER_SLUGS
+    .map(slug => {
+      const m = founderMap.get(slug);
+      return m ? { member: m, role: FOUNDER_ROLES[slug] } : null;
+    })
+    .filter((x): x is { member: TeamMemberCard; role: string } => x !== null);
 
   const yearsOnCalendar = new Date().getFullYear() - FOUNDING_YEAR;
 
@@ -53,6 +75,7 @@ async function fetchHomeData() {
     news,
     sponsors: (sponsors.data as SponsorRow[] | null) ?? [],
     fbPhotos,
+    founders,
     stats: {
       activeRiders: riderC.count ?? 0,
       sectionsActive: (sections.data as SectionRow[] | null)?.length ?? 0,
@@ -64,7 +87,7 @@ async function fetchHomeData() {
 
 export default async function Home() {
   const t = await getTranslations();
-  const { nextRace, sections, news, sponsors, fbPhotos, stats } = await fetchHomeData();
+  const { nextRace, sections, news, sponsors, fbPhotos, founders, stats } = await fetchHomeData();
   const pad2 = (n: number) => n.toString().padStart(2, "0");
   // Hero collage uses real FB photos when available; otherwise the labeled
   // placeholder boxes remain (existing behavior preserved).
@@ -241,6 +264,82 @@ export default async function Home() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============ THEMELUESIT ============ */}
+      {founders.length > 0 && (
+        <section>
+          <div className="container">
+            <div className="section-head">
+              <div>
+                <div className="eyebrow"><span>Themeluesit</span></div>
+                <h2 className="display display-m" style={{ marginTop: 16 }}>Tre themelues. Një ide e qartë.</h2>
+              </div>
+              <p className="lede">
+                KÇ Prishtina 038 lindi në vitin 2022 nga tre çiklistë që besuan se Prishtina e meriton një klub me identitet të vetin —
+                me kalendar, me akademinë e të rinjve dhe me një ekip që garon jashtë kufirit.
+              </p>
+            </div>
+            <div className="founders-grid">
+              {founders.map(({ member, role }) => {
+                const photo = memberPhotoUrl(member);
+                return (
+                  <Link key={member.slug} href={`/team/${member.slug}` as never} className="founder-card">
+                    <div className="founder-photo">
+                      {photo ? (
+                        <Image src={photo} alt={member.full_name} fill sizes="(max-width: 900px) 100vw, 33vw" quality={80} style={{ objectFit: "cover" }} />
+                      ) : (
+                        <span className="founder-initials">{memberInitials(member)}</span>
+                      )}
+                    </div>
+                    <div className="founder-meta">
+                      <div className="founder-name">{member.full_name}</div>
+                      <div className="founder-role">{role}</div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ============ HISTORIA ============ */}
+      <section style={{ background: "var(--paper-2)" }}>
+        <div className="container">
+          <div className="section-head">
+            <div>
+              <div className="eyebrow"><span>Historia</span></div>
+              <h2 className="display display-m" style={{ marginTop: 16 }}>Katër vite në kalendar.</h2>
+            </div>
+            <Link href={"/about" as never} className="btn btn-ghost" style={{ justifySelf: "start" }}>
+              <span>Historia e plotë</span>
+              <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
+            </Link>
+          </div>
+          <div className="history-grid">
+            <div className="history-step">
+              <div className="history-year mono">2022</div>
+              <h3>Themelimi</h3>
+              <p>Klubi regjistrohet pranë FÇK. Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana hapin seksionin e parë — Rrugë.</p>
+            </div>
+            <div className="history-step">
+              <div className="history-year mono">2023</div>
+              <h3>Triumfe të para</h3>
+              <p>Albion Ymeri triumfon në Cross Country Prishtina (Germi) dhe në Kampionatin e Triatlonit. Hapet seksioni i MTB-së.</p>
+            </div>
+            <div className="history-step">
+              <div className="history-year mono">2024</div>
+              <h3>Zgjerimi</h3>
+              <p>Klubi hap seksionet Gravel, Akademia e të rinjve dhe programi i femrave. Fillon bashkëpunimi me BikePlus dhe Novus.</p>
+            </div>
+            <div className="history-step">
+              <div className="history-year mono">2025</div>
+              <h3>Kupa Prishtina</h3>
+              <p>Klubi organizon edicionin e parë të Kupës së Prishtinës. Sezoni mbyllet me 23 pozita në podium kombëtar.</p>
+            </div>
           </div>
         </div>
       </section>

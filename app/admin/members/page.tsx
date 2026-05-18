@@ -1,5 +1,8 @@
 import { createClient, getProfile } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type Row = { id: string; full_name: string; email: string; role: string; status: string; joined_at: string | null; section: { slug: string; name_sq: string } | null };
 
 function initials(n: string) { return n.trim().split(/\s+/).slice(0, 2).map(s => s[0] || "").join("").toUpperCase() || "?"; }

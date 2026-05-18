@@ -95,12 +95,12 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
               🏁 Ky postim duket si raport gare.
             </div>
             <div style={{ marginTop: 6, fontSize: 13.5, color: "var(--ink-2)", lineHeight: 1.5 }}>
-              Krijoje si gara dhe lidhe me këtë lajm — që në faqen publike <code>/races</code> ta keni si etape me vete me lajmin si burim.
+              Krijoje si garë të veçantë dhe lidhe me këtë lajm — që në faqen publike <code>/races</code> të shfaqet si garë më vete me lajmin si burim.
               {signal.nameGuess && (
                 <>
                   {" "}
                   <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: ".06em" }}>
-                    Ofertë emri: {signal.nameGuess}
+                    Sugjerim emri: {signal.nameGuess}
                   </span>
                 </>
               )}

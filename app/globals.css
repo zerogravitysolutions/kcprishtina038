@@ -1798,27 +1798,6 @@ footer.foot::before {
   background: var(--paper-2);
   overflow: hidden;
 }
-.founder-photo::after {
-  /* subtle bottom gradient so the index badge always reads on light photos */
-  content: "";
-  position: absolute; inset: auto 0 0 0;
-  height: 40%;
-  background: linear-gradient(to top, rgba(15,26,46,.35) 0%, transparent 100%);
-  pointer-events: none;
-}
-.founder-index {
-  position: absolute;
-  top: 14px; left: 14px;
-  z-index: 2;
-  font-family: var(--font-mono);
-  font-size: 10.5px; letter-spacing: .2em;
-  background: rgba(255,255,255,.92);
-  color: var(--ink);
-  padding: 5px 10px;
-  border-radius: 999px;
-  text-transform: uppercase;
-  backdrop-filter: blur(4px);
-}
 .founder-initials {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
@@ -1871,11 +1850,6 @@ footer.foot::before {
     width: 38%;
     flex-shrink: 0;
     aspect-ratio: auto;
-  }
-  .founder-photo::after { display: none; }
-  .founder-index {
-    top: 10px; left: 10px;
-    font-size: 9.5px; padding: 4px 8px;
   }
   .founder-initials { font-size: 40px; opacity: .55; }
   .founder-meta { padding: 18px 20px; }

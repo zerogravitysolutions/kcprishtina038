@@ -291,7 +291,7 @@ export default async function Home() {
               </p>
             </div>
             <div className="founders-grid">
-              {founders.map(({ member, role }, idx) => {
+              {founders.map(({ member, role }) => {
                 const photo = memberPhotoUrl(member);
                 const blurb = FOUNDER_BLURBS[member.slug] ?? "";
                 return (
@@ -301,7 +301,6 @@ export default async function Home() {
                     className={`founder-card ${photo ? "" : "founder-card--noimg"}`}
                   >
                     <div className="founder-photo">
-                      <span className="founder-index">{String(idx + 1).padStart(2, "0")} / 03</span>
                       {photo ? (
                         <Image src={photo} alt={member.full_name} fill sizes="(max-width: 900px) 100vw, 33vw" quality={80} style={{ objectFit: "cover" }} />
                       ) : (

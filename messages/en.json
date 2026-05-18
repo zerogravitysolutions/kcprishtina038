@@ -2,7 +2,6 @@
   "nav": {
     "about": "Club",
     "sections": "Sections",
-    "events": "Calendar",
     "join": "Join",
     "news": "News",
     "contact": "Contact",
@@ -26,7 +25,7 @@
       "4": "we ride.",
       "em": "Prishtina"
     },
-    "lede": "Prishtina's cycling club. Six disciplines, one team, one city. We race under UCI and FÇK regulation — from the trails of Germia to the continental calendar.",
+    "lede": "Prishtina's cycling club. Five disciplines, one team, one city. We race under UCI and FÇK rules — from the trails of Germia to the continental calendar.",
     "cta": {
       "primary": "Join the club",
       "ghost": "Browse sections"
@@ -70,7 +69,7 @@
   "about": {
     "eyebrow": "The club",
     "title": "Three founders. One clear idea: put Prishtina on the Balkan cycling map.",
-    "body": "KÇ Prishtina 038 was founded in 2022 by Qëndrim Pllana, Albion Ymeri and Shqiponja Osmani Pllana. Registered with the Cycling Federation of Kosovo and racing under UCI and ECU regulation, the club runs six active disciplines — from road to track, from mountain trails to a brand-new youth academy.",
+    "body": "KÇ Prishtina 038 was founded in 2022 by Qëndrim Pllana, Albion Ymeri and Shqiponja Osmani Pllana. Registered with the Cycling Federation of Kosovo and racing under UCI and ECU regulation, the club runs five active disciplines — from road to mountain trails, and a youth academy.",
     "founder": {
       "1": {
         "name": "Qëndrim Pllana",
@@ -94,37 +93,27 @@
   },
   "disc": {
     "eyebrow": "Sections",
-    "title": "Six disciplines. One team.",
-    "lede": "Each discipline has its own coach, its own calendar, its own gym. But one logo and one language.",
+    "title": "Five disciplines. One team.",
+    "lede": "Each discipline has its own coach, its own calendar, its own trails. But we share one logo and one spirit.",
     "road": {
       "name": "Road",
-      "desc": "Spring–autumn season. FÇK national races, Granfondos, and regional stage races.",
-      "meta": "12 riders · coach: A. Ymeri"
+      "desc": "Spring–autumn season. FÇK national races, Granfondos, and regional stage races."
     },
     "mtb": {
       "name": "MTB",
-      "desc": "Cross-country across Germia, Sharri and the Accursed Mountains. XCO and marathon formats.",
-      "meta": "9 riders · coach: B. Krasniqi"
+      "desc": "Cross-country across Germia, Sharri and the Accursed Mountains. XCO and marathon formats."
     },
     "gravel": {
       "name": "Gravel",
-      "desc": "The newest section. Adventure events and open expeditions across Kosovo's back roads.",
-      "meta": "8 riders · coach: Q. Pllana"
-    },
-    "track": {
-      "name": "Track",
-      "desc": "The short discipline — sprint, keirin, pursuit. Partnered with the regional velodrome.",
-      "meta": "5 riders · coach: D. Berisha"
+      "desc": "The newest section. Adventure events and open expeditions across Kosovo's back roads."
     },
     "youth": {
       "name": "Youth Academy",
-      "desc": "The future of Kosovar cycling — ages 9–17. Training every Saturday morning.",
-      "meta": "18 kids · coach: Sh. Osmani Pllana"
+      "desc": "The future of Kosovar cycling — ages 9–17. Training every Saturday morning."
     },
     "women": {
       "name": "Women's",
-      "desc": "The women's cycling program — racing, open rides and inter-generational mentoring.",
-      "meta": "11 riders · coach: Sh. Osmani Pllana"
+      "desc": "The women's cycling program — racing, open rides and inter-generational mentoring."
     },
     "go": "Open the section"
   },
@@ -133,17 +122,6 @@
     "title": "Our riders.",
     "lede": "A page from the 2026 team book. Full roster with bios on the team page.",
     "cta": "See the full team"
-  },
-  "events": {
-    "eyebrow": "Calendar",
-    "title": "Upcoming races.",
-    "lede": "What's next — for the team, for members, and for any rider who wants to roll with us.",
-    "tag": {
-      "race": "Race",
-      "ride": "Open ride",
-      "camp": "Training camp"
-    },
-    "cta": "Full calendar"
   },
   "news": {
     "eyebrow": "News",
@@ -251,26 +229,20 @@
       "lede": "The second-largest section of the club, after Road. We train across Germia, Sharri and the Accursed Mountains, race the FÇK XCO calendar, and the regional marathon series.",
       "spec": {
         "coach": "Head coach",
-        "size": "Squad size",
         "training": "Training",
         "formats": "Formats",
-        "season": "Season",
-        "fee": "Membership / month"
+        "season": "Season"
       },
       "cta": "Apply for MTB",
       "h": {
         "calendar": "Season calendar",
-        "team": "Section riders",
-        "coach": "The coach"
-      },
-      "coach": {
-        "body": "Blerton has 12 years in mountain biking, two-time national champion (2019, 2022) and a UCI Level 2 coach. He splits training into three seasonal blocks: base (Apr–May), intensity (Jun–Jul), race (Aug–Oct)."
+        "team": "Section riders"
       }
     }
   },
   "secs": {
     "eyebrow": "Sections",
-    "title": "Six disciplines, one club.",
+    "title": "Five disciplines, one club.",
     "lede": "Pick a section to see its coach, training schedule, race calendar, and current riders."
   },
   "jp": {

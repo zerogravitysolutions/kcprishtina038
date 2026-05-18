@@ -2,7 +2,6 @@
   "nav": {
     "about": "Klubi",
     "sections": "Seksionet",
-    "events": "Garat",
     "join": "Bashkohu",
     "news": "Lajme",
     "contact": "Kontakti",
@@ -26,7 +25,7 @@
       "4": "ne pedalojmë.",
       "em": "Prishtinës"
     },
-    "lede": "Klubi çiklistik i Prishtinës. Gjashtë disiplina, një ekip, një qytet. Garojmë nën kodin e UCI dhe FÇK — nga shtigjet e Germisë te kalendari kontinental.",
+    "lede": "Klubi çiklistik i Prishtinës. Pesë disiplina, një ekip, një qytet. Garojmë sipas rregullave të UCI dhe FÇK — nga shtigjet e Germisë te kalendari kontinental.",
     "cta": {
       "primary": "Bëhu pjesë e klubit",
       "ghost": "Shfletoni seksionet"
@@ -70,7 +69,7 @@
   "about": {
     "eyebrow": "Klubi",
     "title": "Tre themelues. Një ide e qartë: ta vendosim Prishtinën në hartën çiklistike të Ballkanit.",
-    "body": "KÇ Prishtina 038 lindi në vitin 2022 nga Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana. I regjistruar nën Federatën Çiklistike të Kosovës dhe duke garuar sipas rregullave të UCI dhe ECU, klubi mban gjashtë disiplina aktive — nga rruga te treku, nga shtigjet e maleve te akademia e re e të rinjve.",
+    "body": "KÇ Prishtina 038 u themelua në vitin 2022 nga Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana. I regjistruar pranë Federatës së Çiklizmit të Kosovës dhe duke garuar sipas rregullave të UCI dhe ECU, klubi mban pesë disiplina aktive — nga rruga te shtigjet e maleve, deri te akademia e re e të rinjve.",
     "founder": {
       "1": {
         "name": "Qëndrim Pllana",
@@ -94,37 +93,27 @@
   },
   "disc": {
     "eyebrow": "Seksionet",
-    "title": "Gjashtë disiplina. Një ekip.",
-    "lede": "Çdo disiplinë ka trajnerin e vet, kalendarin e vet, dhe palestrën e vet. Por kemi një logo dhe një gjuhë.",
+    "title": "Pesë disiplina. Një ekip.",
+    "lede": "Çdo disiplinë ka trajnerin e vet, kalendarin e vet dhe shtigjet e veta. Por kemi një logo dhe një frymë.",
     "road": {
       "name": "Rrugë",
-      "desc": "Sezoni i pranverës–vjeshtës. Garat kombëtare të FÇK, Granfondo, dhe etapat rajonale.",
-      "meta": "12 çiklistë · trajner: A. Ymeri"
+      "desc": "Sezoni i pranverës–vjeshtës. Garat kombëtare të FÇK, Granfondo, dhe etapat rajonale."
     },
     "mtb": {
       "name": "MTB",
-      "desc": "Cross-country mbi Germinë, Sharrin dhe Prokletijet. Format XCO dhe maratonë.",
-      "meta": "9 çiklistë · trajner: B. Krasniqi"
+      "desc": "Cross-country mbi Germinë, Sharrin dhe Prokletijet. Format XCO dhe maratonë."
     },
     "gravel": {
       "name": "Gravel",
-      "desc": "E reja e klubit. Gara aventureske dhe ekspedita të hapura në rrugët dytësore të Kosovës.",
-      "meta": "8 çiklistë · trajner: Q. Pllana"
-    },
-    "track": {
-      "name": "Trek",
-      "desc": "Disiplinë e shkurtër — sprint, keirin, ndjekje individuale. Bashkëpunim me velodromin rajonal.",
-      "meta": "5 çiklistë · trajner: D. Berisha"
+      "desc": "E reja e klubit. Gara aventureske dhe ekspedita të hapura në rrugët dytësore të Kosovës."
     },
     "youth": {
       "name": "Akademia e të rinjve",
-      "desc": "Çiklistët e ardhshëm të Kosovës — moshat 9–17 vjeç. Stërvitje çdo të shtunë.",
-      "meta": "18 fëmijë · trajnere: Sh. Osmani Pllana"
+      "desc": "Çiklistët e ardhshëm të Kosovës — moshat 9–17 vjeç. Stërvitje çdo të shtunë."
     },
     "women": {
       "name": "Femra",
-      "desc": "Programi i çiklizmit të femrave — gara, ride të hapura, dhe mentorim ndër-gjenerata.",
-      "meta": "11 çikliste · trajnere: Sh. Osmani Pllana"
+      "desc": "Programi i çiklizmit të femrave — gara, ride të hapura, dhe mentorim ndër-gjenerata."
     },
     "go": "Hape seksionin"
   },
@@ -133,17 +122,6 @@
     "title": "Çiklistët tanë.",
     "lede": "Lista e plotë e ekipit me biografi dhe role është në faqen e ekipit.",
     "cta": "Shih të gjithë ekipin"
-  },
-  "events": {
-    "eyebrow": "Kalendari",
-    "title": "Garat e ardhshme.",
-    "lede": "Çfarë po vijon — për ekipin, për anëtarët, dhe për çdo çiklist që dëshiron të vrapojë me ne.",
-    "tag": {
-      "race": "Garë",
-      "ride": "Ride i hapur",
-      "camp": "Kamp stërvitor"
-    },
-    "cta": "Kalendari i plotë"
   },
   "news": {
     "eyebrow": "Lajme",
@@ -187,11 +165,11 @@
     "lede": "Pranojmë çiklistë të të gjitha niveleve nga 9 vjeç e lart. Stërvitje me trajner, kalendar me gara, fanellë e klubit dhe një ekip që të shtyn.",
     "cta": "Apliko si anëtar",
     "perk": {
-      "1": "Stërvitje me trajner çertifikuar — 3× në javë",
+      "1": "Stërvitje me trajner të certifikuar — 3× në javë",
       "2": "Kalendari i garave FÇK & rajonale",
       "3": "Fanella e klubit + helmetë gjatë sezonit",
       "4": "Servis i biçikletës me BikePlus",
-      "5": "Akses te kampet stërvitore verore",
+      "5": "Qasje në kampet stërvitore verore",
       "6": "Komunitet me çiklistë nga gjithë Kosova"
     }
   },
@@ -201,11 +179,11 @@
     "lede": "Fanella e sezonit 2026 është në prodhim. Para-porositë janë të hapura për anëtarët dhe simpatizantët.",
     "p1": {
       "name": "Fanella e sezonit",
-      "tag": "Pre-order"
+      "tag": "Para-porosi"
     },
     "p2": {
       "name": "Bib pantallona",
-      "tag": "Pre-order"
+      "tag": "Para-porosi"
     },
     "p3": {
       "name": "Casquette e klubit",
@@ -251,26 +229,20 @@
       "lede": "Disiplina më e madhe e klubit pas Rrugës. Stërvitemi në shtigjet e Germisë, Sharrit dhe Prokletijeve, garojmë në kalendarin XCO të FÇK dhe në maratonat rajonale.",
       "spec": {
         "coach": "Trajner kryesor",
-        "size": "Madhësia",
         "training": "Stërvitja",
         "formats": "Formatet",
-        "season": "Sezoni",
-        "fee": "Anëtarësia / muaj"
+        "season": "Sezoni"
       },
       "cta": "Apliko për MTB",
       "h": {
         "calendar": "Kalendari i sezonit",
-        "team": "Çiklistët e seksionit",
-        "coach": "Trajneri"
-      },
-      "coach": {
-        "body": "Blerton ka 12 vite në çiklizmin e maleve, dy herë kampion kombëtar (2019, 2022) dhe trajner UCI Level 2. Stërvitjet i ndan në tri blloqe sezonale: bazë (Prill–Maj), intensitet (Qershor–Korrik), garë (Gusht–Tetor)."
+        "team": "Çiklistët e seksionit"
       }
     }
   },
   "secs": {
     "eyebrow": "Seksionet",
-    "title": "Gjashtë disiplina, një klub.",
+    "title": "Pesë disiplina, një klub.",
     "lede": "Zgjidhni një seksion për të parë trajnerin, oraret e stërvitjes, kalendarin e garave dhe çiklistët aktualë."
   },
   "jp": {
@@ -289,7 +261,7 @@
     },
     "exp": {
       "beg": "Fillestar — më pak se 1 vit",
-      "int": "I avancuar — 1–3 vite",
+      "int": "Mesatar — 1–3 vite",
       "adv": "Garues aktiv — 3+ vite"
     },
     "fee": {

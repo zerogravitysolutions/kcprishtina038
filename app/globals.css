@@ -478,6 +478,23 @@ section { padding-block: clamp(72px, 8vw, 128px); }
   .race-band > div { grid-template-columns: 1fr !important; padding: 24px !important; gap: 24px !important; }
   .event-countdown-band { grid-template-columns: 1fr !important; padding: 22px !important; gap: 22px !important; }
 }
+
+/* Strava embed override — the widget injects a hard-coded ~590px iframe and
+   leaves its parent placeholder inline-block, so we force both back to the
+   full container width. */
+.kc-strava,
+.kc-strava .strava-embed-placeholder {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+.kc-strava iframe {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 520px;
+  border: 0;
+}
 .countdown-band h2 { font-size: clamp(32px, 4.4vw, 60px) !important; line-height: 1; letter-spacing: -0.028em; }
 .countdown-digits {
   display: grid;

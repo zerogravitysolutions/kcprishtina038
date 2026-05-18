@@ -56,17 +56,7 @@ export function StravaEmbed({ url }: { url: string }) {
   if (!parsed) return null;
 
   return (
-    <>
-      {/* The Strava widget injects a fixed-width iframe (~590px). Override
-          it so the embed stretches to fill its parent. */}
-      <style>{`
-        .strava-embed-placeholder { width: 100% !important; }
-        .strava-embed-placeholder iframe {
-          width: 100% !important;
-          max-width: 100% !important;
-          min-height: 480px;
-        }
-      `}</style>
+    <div className="kc-strava">
       <div
         ref={ref}
         className="strava-embed-placeholder"
@@ -75,8 +65,8 @@ export function StravaEmbed({ url }: { url: string }) {
         data-style="standard"
         data-from-embed="false"
         // Reserve the space so layout doesn't jump while the widget loads.
-        style={{ minHeight: 480, width: "100%" }}
+        style={{ minHeight: 520 }}
       />
-    </>
+    </div>
   );
 }

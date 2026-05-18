@@ -39,6 +39,9 @@ function parsePayload(form: FormData): Record<string, unknown> {
   const pid = form.get("profile_id"); if (pid !== null) { const v = String(pid).trim(); patch.profile_id = v === "" ? null : v; }
   const positions = form.getAll("positions").map(v => String(v)).filter((p): p is Position => (POSITIONS as readonly string[]).includes(p));
   if (positions.length) patch.positions = positions;
+  // is_master is a checkbox — present in FormData only when checked.
+  // Always write it so unchecking clears the flag.
+  patch.is_master = String(form.get("is_master") || "off") === "on";
   return patch;
 }
 

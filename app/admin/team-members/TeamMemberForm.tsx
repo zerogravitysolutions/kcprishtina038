@@ -18,6 +18,7 @@ type Initial = {
   bio: string | null;
   display_order: number;
   profile_id: string | null;
+  is_master: boolean;
 };
 
 type Section = { slug: string; name_sq: string };
@@ -150,6 +151,19 @@ export function TeamMemberForm({
             {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name} ({p.role})</option>)}
           </select>
         </div>
+      </div>
+
+      <div className="field" style={{ marginTop: 4 }}>
+        <label>Kategoria Master</label>
+        <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", textTransform: "none", letterSpacing: 0, color: "var(--ink)", fontSize: 14 }}>
+          <input type="checkbox" name="is_master" defaultChecked={initial?.is_master ?? false} />
+          <span>
+            Shfaq këtë çiklist si <strong>Master</strong> në publik
+            <small style={{ display: "block", color: "var(--ink-3)", fontSize: 12, marginTop: 2 }}>
+              Vetëm nëse çiklisti regjistrohet zyrtarisht në kategorinë Master të federatës. Pa këtë, kategoria llogaritet vetvetiu nga datëlindja (Elite për 23+ vjeç).
+            </small>
+          </span>
+        </label>
       </div>
 
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}

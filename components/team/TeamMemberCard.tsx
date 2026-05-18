@@ -17,7 +17,7 @@ export function TeamMemberCard({ member: m, showCategory = true }: Props) {
   const roles = memberRoleSummary(m);
   // Only show a category badge for riders (other positions don't race).
   const isRider = m.positions.includes("rider");
-  const category = isRider ? uciCategoryLabel(m.dob, m.gender) : null;
+  const category = isRider ? uciCategoryLabel(m.dob, m.gender, { isMaster: m.is_master }) : null;
 
   return (
     <Link href={`/team/${m.slug}` as never} className="team-card" aria-label={m.full_name}>

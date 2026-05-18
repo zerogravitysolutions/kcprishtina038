@@ -34,7 +34,7 @@ export default async function TeamMemberPage({ params }: { params: Params }) {
   const url = memberPhotoUrl(m);
   const initials = memberInitials(m);
   const isRider = m.positions.includes("rider");
-  const cat = isRider ? getUciCategory(m.dob, m.gender) : null;
+  const cat = isRider ? getUciCategory(m.dob, m.gender, { isMaster: m.is_master }) : null;
 
   // Sibling cards — same status (active or past), excluding the current one.
   const siblings = (await getTeamMembers(m.status)).filter((x) => x.slug !== m.slug).slice(0, 4);

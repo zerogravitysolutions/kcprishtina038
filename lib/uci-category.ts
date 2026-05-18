@@ -2,22 +2,24 @@
 // the public /team pages AND the admin members pages so the displayed
 // category is consistent everywhere.
 //
-// Bracket (per Kosovan cycling convention, FÇK):
+// Auto-derived bracket from age (per Kosovan cycling convention, FÇK):
 //   <15    Kadet
 //   15–16  Junior
 //   17–18  U19
 //   19–22  U23
 //   23+    Elite
 //
-// Note: the club does not run a Masters category. Everyone 23 years and
-// older races in Elite.
+// Master is NOT auto-derived. An admin sets `is_master` on a team
+// member only when that rider actually registers in the federation's
+// Master category. The auto-derived label stays Elite until that
+// happens.
 //
 // Category for season Y is determined by age the rider TURNS in Y
 // (calendar year, not the date of birth).
 // Women get a "Femra" suffix on the label. The code stays the same.
 
 export type UciCategoryCode =
-  | "Kadet" | "Junior" | "U19" | "U23" | "Elite";
+  | "Kadet" | "Junior" | "U19" | "U23" | "Elite" | "Master";
 
 export type Gender = "m" | "f";
 
@@ -29,6 +31,9 @@ export type UciCategory = {
    *  Kept on the return value for admin-side use only — public pages
    *  intentionally display the category label and never the age. */
   age: number;
+  /** True when the label came from the admin-set is_master override
+   *  rather than the auto-derived age bracket. */
+  isMaster: boolean;
 };
 
 function codeForAge(age: number): UciCategoryCode {
@@ -39,37 +44,52 @@ function codeForAge(age: number): UciCategoryCode {
   return "Elite";
 }
 
+type Opts = {
+  /** Admin-set override; when true, label becomes "Master"/"Master Femra"
+   *  regardless of the rider's age. */
+  isMaster?: boolean | null;
+  /** Reference year for the age calculation (default: current year). */
+  refYear?: number;
+};
+
 /**
  * Resolve a UCI category from a DOB string (`YYYY-MM-DD` or anything
- * `Date` can parse) and gender. The `refYear` defaults to the current
- * calendar year.
+ * `Date` can parse) and gender.
  */
 export function getUciCategory(
   dob: string | Date | null | undefined,
   gender: Gender | null | undefined = "m",
-  refYear?: number,
+  opts: Opts | number = {},
 ): UciCategory | null {
-  if (!dob) return null;
+  // Back-compat: callers used to pass refYear as a third positional arg.
+  const o: Opts = typeof opts === "number" ? { refYear: opts } : opts;
+
+  if (!dob) {
+    if (o.isMaster) {
+      const label = gender === "f" ? "Master Femra" : "Master";
+      return { code: "Master", label, age: 0, isMaster: true };
+    }
+    return null;
+  }
   const d = dob instanceof Date ? dob : new Date(dob);
   if (isNaN(d.getTime())) return null;
-  const year = refYear ?? new Date().getFullYear();
+  const year = o.refYear ?? new Date().getFullYear();
   const age = year - d.getFullYear();
   if (age < 0 || age > 120) return null;
 
-  const code = codeForAge(age);
+  const code: UciCategoryCode = o.isMaster ? "Master" : codeForAge(age);
   const label = gender === "f" ? `${code} Femra` : code;
 
-  return { code, label, age };
+  return { code, label, age, isMaster: code === "Master" };
 }
 
 /**
- * Just the short label (e.g. "Elite", "U23 Femra"). Convenient
- * when you only need the string for badges/chips.
+ * Just the short label (e.g. "Elite", "U23 Femra", "Master").
  */
 export function uciCategoryLabel(
   dob: string | Date | null | undefined,
   gender: Gender | null | undefined = "m",
-  refYear?: number,
+  opts: Opts | number = {},
 ): string | null {
-  return getUciCategory(dob, gender, refYear)?.label ?? null;
+  return getUciCategory(dob, gender, opts)?.label ?? null;
 }

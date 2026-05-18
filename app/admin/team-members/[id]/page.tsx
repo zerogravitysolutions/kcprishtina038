@@ -22,6 +22,7 @@ type Row = {
   bio: string | null;
   display_order: number;
   profile_id: string | null;
+  is_master: boolean;
 };
 
 export default async function EditTeamMemberPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,7 +33,7 @@ export default async function EditTeamMemberPage({ params }: { params: Promise<{
   const supabase = await createClient();
   const [{ data: tm }, { data: secs }, { data: profs }, { data: mediaData }] = await Promise.all([
     supabase.from("team_members")
-      .select("id, first_name, last_name, dob, gender, positions, section_slug, photo_media_id, external_photo_url, status, ended_at, bio, display_order, profile_id")
+      .select("id, first_name, last_name, dob, gender, positions, section_slug, photo_media_id, external_photo_url, status, ended_at, bio, display_order, profile_id, is_master")
       .eq("id", id).maybeSingle(),
     supabase.from("sections").select("slug, name_sq").eq("active", true).order("display_order"),
     supabase.from("profiles").select("id, full_name, role").order("full_name"),

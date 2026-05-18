@@ -26,13 +26,14 @@ export type TeamMemberCard = {
   ended_at: string | null;
   display_order: number;
   external_photo_url: string | null;
+  is_master: boolean;          // admin-set override; promotes Elite → Master
   photo: { storage_path: string } | null;
 };
 
 const CARD_SELECT =
   "id, slug, full_name, first_name, last_name, gender, dob, " +
   "positions, section_slug, bio, status, ended_at, display_order, " +
-  "external_photo_url, " +
+  "external_photo_url, is_master, " +
   "photo:media!photo_media_id(storage_path)";
 
 export async function getTeamMembers(status: "active" | "past" = "active"): Promise<TeamMemberCard[]> {

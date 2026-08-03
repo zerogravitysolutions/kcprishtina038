@@ -119,7 +119,7 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
           </button>
         </div>
         <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "4px 0 0" }}>
-          Një lidhje për tërë stërvitjen. Marrja automatike e numrave nga Strava kërkon lidhjen e llogarisë (fazë e mëvonshme).
+          Një lidhje për tërë stërvitjen. Distanca/ngjitja/koha plotësohen automatikisht te krijimi i stërvitjes (aktivitete publike).
         </p>
       </div>
       {canEmbed && <div style={{ marginTop: 12 }}><StravaEmbed url={stravaUrl} compact /></div>}

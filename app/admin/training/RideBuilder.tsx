@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { StravaEmbed } from "@/components/public/StravaEmbed";
-import { createRide, resolveStravaUrl } from "./actions";
+import { createRide, fetchStravaStats } from "./actions";
 import { AthletePicker, type AthleteOption } from "./AthletePicker";
-import { parseDurationToSeconds } from "@/lib/training";
+import { parseDurationToSeconds, formatDurationHMS } from "@/lib/training";
 import { stravaActivityId } from "@/lib/strava";
 
 type Section = { id: string; name_sq: string };
@@ -36,12 +36,17 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
 
   const canEmbed = !!stravaActivityId(stravaUrl);
 
-  function resolveStrava() {
+  function importStrava() {
     if (!stravaUrl.trim()) return;
     startResolve(async () => {
-      const r = await resolveStravaUrl(stravaUrl.trim());
-      if (r.ok) { setStravaUrl(r.url); setErr(null); }
-      else setErr(r.error);
+      const r = await fetchStravaStats(stravaUrl.trim());
+      if (r.ok) {
+        setStravaUrl(r.url);
+        if (r.distance_km != null) setDistance(String(r.distance_km));
+        if (r.elevation_m != null) setElevation(String(r.elevation_m));
+        if (r.moving_seconds != null) setDuration(formatDurationHMS(r.moving_seconds));
+        setErr(null);
+      } else setErr(r.error);
     });
   }
 
@@ -84,11 +89,11 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
         <label>Lidhja Strava (opsionale)</label>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input value={stravaUrl} onChange={(e) => setStravaUrl(e.target.value)} placeholder="https://www.strava.com/activities/… ose strava.app.link/…" style={{ flex: 1, minWidth: 220 }} />
-          <button type="button" className="btn btn-ghost btn-sm" onClick={resolveStrava} disabled={resolving || !stravaUrl.trim()}>{resolving ? "…" : "Njeh lidhjen"}</button>
+          <button type="button" className="btn btn-ember btn-sm" onClick={importStrava} disabled={resolving || !stravaUrl.trim()}>{resolving ? "…" : "Merr nga Strava"}</button>
         </div>
         {canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} compact /></div>}
         <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "6px 0 0" }}>
-          Widget-i tregon distancën, ngjitjen dhe kohën — shkruaji te “Bazë” më poshtë.
+          “Merr nga Strava” plotëson vetë distancën, ngjitjen dhe kohën për aktivitete publike. Përndryshe shkruaji te “Bazë”.
         </p>
       </div>
 

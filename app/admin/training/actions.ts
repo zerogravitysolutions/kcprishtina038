@@ -346,11 +346,34 @@ export async function upsertAthleteProfile(athleteId: string, patch: ProfilePatc
 // ------------------------------------------------------------------ strava
 
 /**
- * Turn a pasted Strava link into a canonical activity URL + id. Handles both
- * strava.com/activities/<id> links and strava.app.link/<code> deep links
- * (resolved by following the redirect). Best-effort — app.link pages that gate
- * behind JS may not resolve, in which case the coach pastes the full URL.
+ * Resolve a pasted link to a canonical activity URL + id. Handles both
+ * strava.com/activities/<id> and strava.app.link/<code> deep links (followed
+ * server-side, host-validated to avoid SSRF). Returns null if not an activity.
  */
+async function resolveActivity(raw: string): Promise<{ url: string; activityId: string } | null> {
+  const direct = parseStravaUrl(raw);
+  if (direct?.type === "activity") return { url: raw, activityId: direct.id };
+
+  // Deep link: validate the HOST before fetching (isStravaAppLink parses it).
+  let target: URL | null = null;
+  try { target = new URL(raw); } catch { target = null; }
+  if (target && isStravaAppLink(target.toString())) {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(target.toString(), { redirect: "follow", signal: controller.signal });
+      const p = parseStravaUrl(res.url || raw);
+      if (p?.type === "activity") return { url: `https://www.strava.com/activities/${p.id}`, activityId: p.id };
+      const body = await res.text();
+      const m = body.match(/strava\.com\\?\/activities\\?\/(\d+)/i);
+      if (m) return { url: `https://www.strava.com/activities/${m[1]}`, activityId: m[1] };
+    } finally {
+      clearTimeout(t);
+    }
+  }
+  return null;
+}
+
 export async function resolveStravaUrl(
   url: string,
 ): Promise<{ ok: true; url: string; activityId: string } | { ok: false; error: string }> {
@@ -358,33 +381,89 @@ export async function resolveStravaUrl(
     await assertCoach();
     const raw = (url ?? "").trim();
     if (!raw) return { ok: false, error: "Lidhja mungon." };
-
-    const direct = parseStravaUrl(raw);
-    if (direct?.type === "activity") return { ok: true, url: raw, activityId: direct.id };
-
-    // Deep link (strava.app.link/…): validate the HOST before fetching so a
-    // coach can't turn this into a server-side request to an arbitrary/internal
-    // URL (SSRF). isStravaAppLink parses the host; we re-parse to fetch the
-    // normalized URL rather than the raw string.
-    let target: URL | null = null;
-    try { target = new URL(raw); } catch { target = null; }
-    if (target && isStravaAppLink(target.toString())) {
-      const controller = new AbortController();
-      const t = setTimeout(() => controller.abort(), 8000);
-      try {
-        const res = await fetch(target.toString(), { redirect: "follow", signal: controller.signal });
-        const finalUrl = res.url || raw;
-        const p = parseStravaUrl(finalUrl);
-        if (p?.type === "activity") return { ok: true, url: finalUrl, activityId: p.id };
-        // Some deep links land on a branch interstitial — scan the body too.
-        const body = await res.text();
-        const m = body.match(/strava\.com\\?\/activities\\?\/(\d+)/i);
-        if (m) return { ok: true, url: `https://www.strava.com/activities/${m[1]}`, activityId: m[1] };
-      } finally {
-        clearTimeout(t);
-      }
-    }
+    const r = await resolveActivity(raw);
+    if (r) return { ok: true, url: r.url, activityId: r.activityId };
     return { ok: false, error: "S'u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- Parse the public Strava embed widget (no OAuth needed for public rides).
+function parseWidgetTime(s: string): number | null {
+  const v = s.trim();
+  if (v.includes(":")) {
+    const parts = v.split(":").map((p) => parseInt(p, 10));
+    if (parts.some((p) => Number.isNaN(p))) return null;
+    let sec = 0;
+    for (const p of parts) sec = sec * 60 + p;
+    return sec;
+  }
+  let total = 0, matched = false;
+  const h = v.match(/(\d+)\s*h/i); if (h) { total += parseInt(h[1], 10) * 3600; matched = true; }
+  const m = v.match(/(\d+)\s*m(?!i)/i); if (m) { total += parseInt(m[1], 10) * 60; matched = true; }
+  const s2 = v.match(/(\d+)\s*s/i); if (s2) { total += parseInt(s2[1], 10); matched = true; }
+  return matched ? total : null;
+}
+
+function parseStravaWidget(rawHtml: string): { distance_km: number | null; elevation_m: number | null; moving_seconds: number | null } {
+  const text = rawHtml
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  let distance_km: number | null = null;
+  let m = text.match(/Distance\s+([\d.,]+)\s*(km|mi)/i);
+  if (m) { const v = parseFloat(m[1].replace(/,/g, "")); if (!Number.isNaN(v)) distance_km = m[2].toLowerCase() === "mi" ? Math.round(v * 1.60934 * 10) / 10 : v; }
+
+  let elevation_m: number | null = null;
+  m = text.match(/Elev(?:ation)?\s*(?:Gain)?\s+([\d.,]+)\s*(m|ft)\b/i);
+  if (m) { const v = parseFloat(m[1].replace(/,/g, "")); if (!Number.isNaN(v)) elevation_m = m[2].toLowerCase() === "ft" ? Math.round(v * 0.3048) : Math.round(v); }
+
+  let moving_seconds: number | null = null;
+  m = text.match(/(?:Moving Time|Time)\s+((?:\d+\s*h\s*)?(?:\d+\s*m\s*)?(?:\d+\s*s)?|\d{1,2}:\d{2}(?::\d{2})?)/i);
+  if (m) moving_seconds = parseWidgetTime(m[1]);
+
+  return { distance_km, elevation_m, moving_seconds };
+}
+
+/**
+ * Auto-fill distance / elevation / time from a Strava link by reading Strava's
+ * own public embed widget. No OAuth / API key — works for public activities;
+ * private ones expose no stats and return an error so the coach fills manually.
+ */
+export async function fetchStravaStats(url: string): Promise<
+  | { ok: true; url: string; activityId: string; distance_km: number | null; elevation_m: number | null; moving_seconds: number | null }
+  | { ok: false; error: string }
+> {
+  try {
+    await assertCoach();
+    const raw = (url ?? "").trim();
+    if (!raw) return { ok: false, error: "Lidhja mungon." };
+    const resolved = await resolveActivity(raw);
+    if (!resolved) return { ok: false, error: "S'u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
+
+    // Fixed host + numeric id → no SSRF surface.
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 8000);
+    let html = "";
+    try {
+      const res = await fetch(`https://strava-embeds.com/activity/${resolved.activityId}`, {
+        signal: controller.signal,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; KCPrishtina/1.0)" },
+      });
+      if (!res.ok) return { ok: false, error: `Strava ktheu ${res.status} — a është aktiviteti publik?` };
+      html = await res.text();
+    } finally {
+      clearTimeout(t);
+    }
+
+    const stats = parseStravaWidget(html);
+    if (stats.distance_km == null && stats.elevation_m == null && stats.moving_seconds == null) {
+      return { ok: false, error: "Nuk u lexuan të dhënat — ndoshta aktiviteti nuk është publik." };
+    }
+    return { ok: true, url: resolved.url, activityId: resolved.activityId, ...stats };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

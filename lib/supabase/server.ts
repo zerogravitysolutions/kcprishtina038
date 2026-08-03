@@ -1,10 +1,14 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { Database, UserRole, MemberStatus } from "./types";
 
 type CookieSet = { name: string; value: string; options?: CookieOptions };
 
-export async function createClient() {
+// cache() memoizes per request-render, so the admin layout and the page it
+// wraps share ONE Supabase client (and one auth/profile lookup) instead of each
+// building their own. This roughly halves the auth round-trips per page load.
+export const createClient = cache(async () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) {
@@ -33,7 +37,7 @@ export async function createClient() {
       },
     }
   );
-}
+});
 
 export type ProfileSummary = {
   id: string;
@@ -44,8 +48,9 @@ export type ProfileSummary = {
   section_id: string | null;
 };
 
-// Fetch the current user's profile (or null).
-export async function getProfile(): Promise<ProfileSummary | null> {
+// Fetch the current user's profile (or null). Memoized per request so the
+// layout + page (and any component) that need it don't each re-run getUser().
+export const getProfile = cache(async (): Promise<ProfileSummary | null> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -55,4 +60,4 @@ export async function getProfile(): Promise<ProfileSummary | null> {
     .eq("id", user.id)
     .maybeSingle();
   return (data as ProfileSummary | null) ?? null;
-}
+});

@@ -768,3 +768,36 @@ table.t .person .nm small {
 @media (max-width: 900px) {
   .athlete-cols { grid-template-columns: 1fr !important; }
 }
+
+/* Exercises list — tidy labeled card on mobile. The generic stacked-table
+   transform hides the header, leaving bare numbers; here the exercise name is
+   the card title and each stat gets an inline label + right-aligned value. */
+@media (max-width: 800px) {
+  table.t.ex-table tr { padding: 14px 16px; }
+  /* :not([colspan]) keeps the title divider off the empty-state colSpan=6 cell. */
+  table.t.ex-table td:first-child:not([colspan]) {
+    font-size: 16px;
+    padding: 0 0 10px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  table.t.ex-table td[data-label] {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 0;
+  }
+  table.t.ex-table td[data-label]::before {
+    content: attr(data-label);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    flex-shrink: 0;
+  }
+  /* Override the generic mobile .mono dimming so values stay readable. */
+  table.t.ex-table td[data-label].mono { font-size: 14px; color: var(--ink); }
+  table.t.ex-table td.actions .btn { flex: 1; justify-content: center; min-height: 40px; }
+}

@@ -49,11 +49,11 @@ export default async function TrainingPage() {
       </div>
 
       <div className="table-wrap">
-        <table className="t">
+        <table className="t ex-table">
           <thead>
             <tr>
-              <th>Data</th>
               <th>Stërvitja</th>
+              <th>Data</th>
               <th>Seksioni</th>
               <th>Çiklistë</th>
               <th>KM</th>
@@ -74,7 +74,6 @@ export default async function TrainingPage() {
                 const dateLabel = new Date(r.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short", year: "numeric" });
                 return (
                   <tr key={r.id}>
-                    <td className="mono">{dateLabel}</td>
                     <td>
                       <Link href={`/admin/training/${r.id}`} style={{ fontWeight: 600 }}>
                         {r.title || r.focus || "Stërvitje"}
@@ -86,9 +85,10 @@ export default async function TrainingPage() {
                         </div>
                       ) : null}
                     </td>
-                    <td>{r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : "—"}</td>
-                    <td className="mono">{parts}</td>
-                    <td className="mono">{km > 0 ? fmt(km, 1) : "—"}</td>
+                    <td className="mono" data-label="Data">{dateLabel}</td>
+                    <td data-label="Seksioni">{r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : "—"}</td>
+                    <td className="mono" data-label="Çiklistë">{parts}</td>
+                    <td className="mono" data-label="KM">{km > 0 ? fmt(km, 1) : "—"}</td>
                     <td className="actions">
                       <Link className="btn btn-ghost btn-sm" href={`/admin/training/${r.id}`}>Hap</Link>
                     </td>

@@ -9,13 +9,10 @@ export const revalidate = 0;
 
 const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 
-export default async function NewRidePage({ searchParams }: { searchParams: Promise<{ kind?: string }> }) {
+export default async function NewRidePage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
   if (!COACH_ROLES.includes(profile.role)) redirect("/admin/dashboard");
-
-  const sp = await searchParams;
-  const kind = sp.kind === "solo" ? "solo" : "group";
 
   const supabase = await createClient();
   const [{ data: athleteRows }, { data: sectionRows }] = await Promise.all([
@@ -35,8 +32,8 @@ export default async function NewRidePage({ searchParams }: { searchParams: Prom
     <>
       <div className="page-head">
         <div>
-          <h1>{kind === "solo" ? "Stërvitje individuale" : "Stërvitje grupi"}</h1>
-          <div className="sub">Krijo stërvitjen dhe zgjidh çiklistët — vlerat vendosen në hapin tjetër.</div>
+          <h1>Stërvitje e re</h1>
+          <div className="sub">Zgjidh datën, bazën dhe çiklistët (1 ose më shumë) — vlerat individuale vendosen në hapin tjetër.</div>
         </div>
         <Link className="btn btn-ghost" href="/admin/training">← Të gjitha</Link>
       </div>
@@ -47,7 +44,7 @@ export default async function NewRidePage({ searchParams }: { searchParams: Prom
           <Link href="/admin/team-members" style={{ color: "var(--ember)" }}>Ekipi</Link> (me pozicionin “Çiklist/e”).
         </p>
       ) : (
-        <RideBuilder initialKind={kind} athletes={athletes} sections={sections} />
+        <RideBuilder athletes={athletes} sections={sections} />
       )}
     </>
   );

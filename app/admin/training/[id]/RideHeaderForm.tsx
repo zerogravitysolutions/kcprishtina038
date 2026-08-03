@@ -1,34 +1,42 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { updateRide } from "../actions";
+import { updateRide, applyBaseToAll } from "../actions";
+import { parseDurationToSeconds, formatDurationHMS } from "@/lib/training";
 
 export type RideHeader = {
   id: string;
-  kind: "group" | "solo";
   ride_date: string;
   title: string | null;
   focus: string | null;
   section_id: string | null;
   location: string | null;
   notes: string | null;
+  distance_km: number | null;
+  moving_seconds: number | null;
+  elevation_m: number | null;
 };
 
 export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections: { id: string; name_sq: string }[] }) {
   const [pending, start] = useTransition();
+  const [applying, setApplying] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [rideDate, setRideDate] = useState(ride.ride_date);
-  const [kind, setKind] = useState<"group" | "solo">(ride.kind);
   const [title, setTitle] = useState(ride.title ?? "");
   const [focus, setFocus] = useState(ride.focus ?? "");
   const [sectionId, setSectionId] = useState(ride.section_id ?? "");
   const [location, setLocation] = useState(ride.location ?? "");
   const [notes, setNotes] = useState(ride.notes ?? "");
+  const [distance, setDistance] = useState(ride.distance_km != null ? String(ride.distance_km) : "");
+  const [duration, setDuration] = useState(formatDurationHMS(ride.moving_seconds));
+  const [elevation, setElevation] = useState(ride.elevation_m != null ? String(ride.elevation_m) : "");
+
+  const durationSeconds = () => (duration.trim() ? String(parseDurationToSeconds(duration) ?? "") : "");
 
   const snapshot = useMemo(
-    () => JSON.stringify({ rideDate, kind, title, focus, sectionId, location, notes }),
-    [rideDate, kind, title, focus, sectionId, location, notes],
+    () => JSON.stringify({ rideDate, title, focus, sectionId, location, notes, distance, duration, elevation }),
+    [rideDate, title, focus, sectionId, location, notes, distance, duration, elevation],
   );
 
   const mounted = useRef(false);
@@ -38,8 +46,9 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
       setMsg(null);
       start(async () => {
         const r = await updateRide(ride.id, {
-          ride_date: rideDate, kind, title, focus, location, notes,
+          ride_date: rideDate, title, focus, location, notes,
           section_id: sectionId || null,
+          distance_km: distance, elevation_m: elevation, moving_seconds: durationSeconds(),
         });
         setMsg(r.ok ? { ok: true, text: "Ruajtur ✓" } : { ok: false, text: r.error });
         if (r.ok) setTimeout(() => setMsg(null), 1400);
@@ -48,6 +57,17 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot]);
+
+  async function applyAll() {
+    setApplying(true);
+    setMsg(null);
+    const r = await applyBaseToAll(ride.id, {
+      distance_km: distance, elevation_m: elevation, moving_seconds: durationSeconds(),
+    });
+    setApplying(false);
+    if (r.ok) window.location.reload();
+    else setMsg({ ok: false, text: r.error });
+  }
 
   return (
     <div className="card" style={{ padding: 16 }}>
@@ -66,22 +86,8 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
           <input type="date" value={rideDate} onChange={(e) => setRideDate(e.target.value)} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Lloji</label>
-          <select value={kind} onChange={(e) => setKind(e.target.value as "group" | "solo")}>
-            <option value="group">Grup</option>
-            <option value="solo">Individuale</option>
-          </select>
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
           <label>Titulli</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Opsional" />
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginTop: 12 }}>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Fokusi / lloji</label>
-          <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="4×8 threshold…" />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Seksioni</label>
@@ -92,15 +98,52 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
         </div>
       </div>
 
-      <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
-        <label>Vendi</label>
-        <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Opsional" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginTop: 12 }}>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Fokusi / lloji</label>
+          <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="4×8 threshold…" />
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Vendi</label>
+          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Opsional" />
+        </div>
       </div>
 
-      <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
+      {/* Bazë — inherited by each cyclist; "apply to all" pushes it onto every entry. */}
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+          <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--ink-3)" }}>
+            Bazë (e përbashkët)
+          </div>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={applyAll} disabled={applying}>
+            {applying ? "Duke aplikuar…" : "Apliko te të gjithë çiklistët"}
+          </button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Distanca (km)</label>
+            <input type="number" inputMode="decimal" step="0.1" value={distance} onChange={(e) => setDistance(e.target.value)} placeholder="42.5" style={{ fontFamily: "var(--font-mono)" }} />
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Kohëzgjatja</label>
+            <input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="1:25:00" style={{ fontFamily: "var(--font-mono)" }} />
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Ngjitja (m)</label>
+            <input type="number" inputMode="numeric" value={elevation} onChange={(e) => setElevation(e.target.value)} placeholder="650" style={{ fontFamily: "var(--font-mono)" }} />
+          </div>
+        </div>
+        <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "6px 0 0" }}>
+          Baza bartet automatikisht te çiklistët e rinj. “Apliko te të gjithë” e vendos edhe te ata ekzistues.
+        </p>
+      </div>
+
+      <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
         <label>Shënime</label>
         <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
+
+      {msg?.ok === false && <div className="mono" style={{ color: "var(--err)", fontSize: 12, marginTop: 10 }}>Gabim: {msg.text}</div>}
     </div>
   );
 }

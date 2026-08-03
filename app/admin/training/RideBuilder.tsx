@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createRide } from "./actions";
 import { AthletePicker, type AthleteOption } from "./AthletePicker";
+import { parseDurationToSeconds } from "@/lib/training";
 
 type Section = { id: string; name_sq: string };
 
@@ -14,22 +15,18 @@ function todayISO(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function RideBuilder({
-  initialKind, athletes, sections,
-}: {
-  initialKind: "group" | "solo";
-  athletes: AthleteOption[];
-  sections: Section[];
-}) {
+export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[]; sections: Section[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [kind, setKind] = useState<"group" | "solo">(initialKind);
   const [rideDate, setRideDate] = useState(todayISO());
   const [title, setTitle] = useState("");
   const [focus, setFocus] = useState("");
   const [sectionId, setSectionId] = useState("");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [distance, setDistance] = useState("");
+  const [duration, setDuration] = useState("");
+  const [elevation, setElevation] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
@@ -37,13 +34,16 @@ export function RideBuilder({
     setErr(null);
     if (!rideDate) { setErr("Zgjidh datën."); return; }
     if (selected.length === 0) { setErr("Zgjidh së paku një çiklist."); return; }
+    const sec = duration.trim() ? parseDurationToSeconds(duration) : null;
     start(async () => {
       const r = await createRide({
-        kind,
         ride_date: rideDate,
         title, focus, location, notes,
         section_id: sectionId || null,
         athlete_ids: selected,
+        distance_km: distance,
+        elevation_m: elevation,
+        moving_seconds: sec == null ? "" : String(sec),
       });
       if (r.ok) router.push(`/admin/training/${r.id}`);
       else setErr(r.error);
@@ -52,21 +52,6 @@ export function RideBuilder({
 
   return (
     <div style={{ display: "grid", gap: 16, maxWidth: 720 }}>
-      {/* Kind toggle */}
-      <div style={{ display: "flex", gap: 8 }}>
-        {(["group", "solo"] as const).map((k) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => { setKind(k); if (k === "solo") setSelected((s) => s.slice(0, 1)); }}
-            className={`chip ${kind === k ? "active" : ""}`}
-            style={{ padding: "8px 16px", fontSize: 12.5 }}
-          >
-            {k === "group" ? "Stërvitje grupi" : "Individuale"}
-          </button>
-        ))}
-      </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Data *</label>
@@ -74,7 +59,7 @@ export function RideBuilder({
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Titulli (opsional)</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "solo" ? "p.sh. Test FTP" : "p.sh. Ditar i së dielës"} />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="p.sh. Ditar i së dielës" />
         </div>
       </div>
 
@@ -92,19 +77,35 @@ export function RideBuilder({
         </div>
       </div>
 
+      {/* Bazë — shared by the whole group; inherited by each cyclist (editable). */}
+      <div>
+        <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 6 }}>
+          Bazë (e përbashkët — bartet te çdo çiklist)
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Distanca (km)</label>
+            <input type="number" inputMode="decimal" step="0.1" value={distance} onChange={(e) => setDistance(e.target.value)} placeholder="42.5" style={{ fontFamily: "var(--font-mono)" }} />
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Kohëzgjatja</label>
+            <input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="1:25:00" style={{ fontFamily: "var(--font-mono)" }} />
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Ngjitja (m)</label>
+            <input type="number" inputMode="numeric" value={elevation} onChange={(e) => setElevation(e.target.value)} placeholder="650" style={{ fontFamily: "var(--font-mono)" }} />
+          </div>
+        </div>
+      </div>
+
       <div className="field" style={{ marginBottom: 0 }}>
         <label>Vendi (opsional)</label>
         <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="p.sh. Germia, Prishtinë–Ferizaj" />
       </div>
 
       <div className="field" style={{ marginBottom: 0 }}>
-        <label>{kind === "solo" ? "Çiklisti *" : "Çiklistët *"}</label>
-        <AthletePicker
-          athletes={athletes}
-          value={selected}
-          onChange={setSelected}
-          mode={kind === "solo" ? "single" : "multi"}
-        />
+        <label>Çiklistët * <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>(zgjidh 1 ose më shumë)</span></label>
+        <AthletePicker athletes={athletes} value={selected} onChange={setSelected} mode="multi" />
       </div>
 
       <div className="field" style={{ marginBottom: 0 }}>
@@ -121,7 +122,7 @@ export function RideBuilder({
         <Link href="/admin/training" className="btn btn-ghost">Anulo</Link>
       </div>
       <p className="mono" style={{ fontSize: 11, color: "var(--ink-3)", margin: 0 }}>
-        Pas krijimit hapet faqja ku vendos vlerat për çdo çiklist (distanca, HR, fuqia, FTP…).
+        Baza bartet te çdo çiklist; pas krijimit mund t’i ndryshosh vlerat për secilin (HR, fuqia, FTP…).
       </p>
     </div>
   );

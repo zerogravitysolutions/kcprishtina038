@@ -348,6 +348,9 @@ export interface Database {
           location: string | null;
           route_url: string | null;
           notes: string | null;
+          distance_km: number | null;
+          moving_seconds: number | null;
+          elevation_m: number | null;
           created_by: string | null;
           created_at: string; updated_at: string;
         };
@@ -357,6 +360,7 @@ export interface Database {
           title?: string | null; focus?: string | null;
           section_id?: string | null; location?: string | null;
           route_url?: string | null; notes?: string | null;
+          distance_km?: number | null; moving_seconds?: number | null; elevation_m?: number | null;
           created_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["training_rides"]["Row"]>;

@@ -35,7 +35,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
   const [{ data: rideData }, { data: entryData }, { data: sectionRows }, { data: athleteRows }] = await Promise.all([
     supabase
       .from("training_rides")
-      .select("id, kind, ride_date, title, focus, section_id, location, notes")
+      .select("id, ride_date, title, focus, section_id, location, notes, distance_km, moving_seconds, elevation_m")
       .eq("id", id)
       .maybeSingle(),
     supabase
@@ -65,7 +65,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
     <>
       <div className="page-head">
         <div>
-          <h1>{ride.title || ride.focus || (ride.kind === "solo" ? "Stërvitje individuale" : "Stërvitje grupi")}</h1>
+          <h1>{ride.title || ride.focus || "Stërvitje"}</h1>
           <div className="mono" style={{ color: "var(--ink-3)", fontSize: 12, letterSpacing: ".06em", marginTop: 6 }}>
             {dateLabel}
           </div>

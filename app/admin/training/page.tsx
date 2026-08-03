@@ -11,7 +11,6 @@ const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 type EntryLite = { participated: boolean; distance_km: number | null };
 type RideRow = {
   id: string;
-  kind: "group" | "solo";
   ride_date: string;
   title: string | null;
   focus: string | null;
@@ -20,22 +19,17 @@ type RideRow = {
   entries: EntryLite[];
 };
 
-export default async function TrainingPage({ searchParams }: { searchParams: Promise<{ kind?: string }> }) {
+export default async function TrainingPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
   if (!COACH_ROLES.includes(profile.role)) redirect("/admin/dashboard");
 
-  const sp = await searchParams;
-  const kind = sp.kind === "group" || sp.kind === "solo" ? sp.kind : null;
-
   const supabase = await createClient();
-  let q = supabase
+  const { data } = await supabase
     .from("training_rides")
-    .select("id, kind, ride_date, title, focus, location, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km)")
+    .select("id, ride_date, title, focus, location, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km)")
     .order("ride_date", { ascending: false })
     .limit(80);
-  if (kind) q = q.eq("kind", kind);
-  const { data } = await q;
   const rows = (data as unknown as RideRow[] | null) ?? [];
 
   return (
@@ -43,18 +37,13 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       <div className="page-head">
         <div>
           <h1>Stërvitjet</h1>
-          <div className="sub">Regjistro dhe ndiq stërvitjet e grupit dhe individuale.</div>
+          <div className="sub">Regjistro stërvitjet — zgjidh 1 ose më shumë çiklistë për secilën.</div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Link className="btn btn-ghost" href="/admin/training/new?kind=solo">+ Individuale</Link>
-          <Link className="btn btn-ember" href="/admin/training/new?kind=group">+ Stërvitje grupi</Link>
-        </div>
+        <Link className="btn btn-ember" href="/admin/training/new">+ Stërvitje e re</Link>
       </div>
 
       <div className="filter-bar" style={{ borderRadius: 12, border: "1px solid var(--line)", marginBottom: 12 }}>
-        <Link className={`chip ${!kind ? "active" : ""}`} href="/admin/training">Të gjitha</Link>
-        <Link className={`chip ${kind === "group" ? "active" : ""}`} href="/admin/training?kind=group">Grup</Link>
-        <Link className={`chip ${kind === "solo" ? "active" : ""}`} href="/admin/training?kind=solo">Individuale</Link>
+        <span className="meta">{rows.length} stërvitje</span>
         <div className="spacer" />
         <Link className="meta" href="/admin/training/progress" style={{ color: "var(--ember-deep)" }}>Progresi mujor →</Link>
       </div>
@@ -75,7 +64,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
-                  Ende asnjë stërvitje. Fillo me “+ Stërvitje grupi”.
+                  Ende asnjë stërvitje. Fillo me “+ Stërvitje e re”.
                 </td>
               </tr>
             ) : (
@@ -88,13 +77,14 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                     <td className="mono">{dateLabel}</td>
                     <td>
                       <Link href={`/admin/training/${r.id}`} style={{ fontWeight: 600 }}>
-                        {r.title || r.focus || (r.kind === "solo" ? "Stërvitje individuale" : "Stërvitje grupi")}
+                        {r.title || r.focus || "Stërvitje"}
                       </Link>
-                      <div style={{ marginTop: 3, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                        <span className="badge-st neutral" style={{ fontSize: 10 }}>{r.kind === "solo" ? "Individuale" : "Grup"}</span>
-                        {r.focus && r.title ? <small className="mono" style={{ color: "var(--ink-3)", fontSize: 11 }}>{r.focus}</small> : null}
-                        {r.location ? <small className="mono" style={{ color: "var(--ink-3)", fontSize: 11 }}>· {r.location}</small> : null}
-                      </div>
+                      {(r.focus && r.title) || r.location ? (
+                        <div style={{ marginTop: 3, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                          {r.focus && r.title ? <small className="mono" style={{ color: "var(--ink-3)", fontSize: 11 }}>{r.focus}</small> : null}
+                          {r.location ? <small className="mono" style={{ color: "var(--ink-3)", fontSize: 11 }}>{r.focus && r.title ? "· " : ""}{r.location}</small> : null}
+                        </div>
+                      ) : null}
                     </td>
                     <td>{r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : "—"}</td>
                     <td className="mono">{parts}</td>

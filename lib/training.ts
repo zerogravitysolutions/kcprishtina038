@@ -21,6 +21,7 @@ export type MetricField = {
   max?: number;
   placeholder?: string;
   summary?: boolean;    // shown in the collapsed one-line summary
+  computed?: boolean;   // derived (read-only) — not typed by the coach
 };
 
 export type MetricGroupKey = "core" | "hr" | "power" | "bests" | "effort" | "extra";
@@ -53,14 +54,25 @@ export const RIDE_METRIC_FIELDS: MetricField[] = [
   { key: "best_power_10m_w", label: "10 min", group: "bests", kind: "int", ui: "number", unit: "W", min: 0, summary: true },
   { key: "best_power_20m_w", label: "20 min", group: "bests", kind: "int", ui: "number", unit: "W", min: 0 },
   { key: "best_power_60m_w", label: "60 min", group: "bests", kind: "int", ui: "number", unit: "W", min: 0 },
-  // Effort
-  { key: "tss",             label: "TSS",          group: "effort", kind: "num", ui: "number", step: 1, min: 0, placeholder: "72" },
-  { key: "intensity_factor",label: "IF",           group: "effort", kind: "num", ui: "number", step: 0.01, min: 0, placeholder: "0.82" },
+  // Effort — IF and TSS are auto-computed from NP + FTP + moving time (read-only).
+  { key: "intensity_factor",label: "IF",           group: "effort", kind: "num", ui: "number", computed: true },
+  { key: "tss",             label: "TSS",          group: "effort", kind: "num", ui: "number", computed: true },
   { key: "rpe",             label: "RPE (1–10)",   group: "effort", kind: "int", ui: "number", min: 1, max: 10, placeholder: "6" },
   // Extra
-  { key: "elapsed_seconds", label: "Koha totale",  group: "extra",  kind: "int", ui: "duration", placeholder: "1:40:00" },
   { key: "avg_cadence",     label: "Kadenca",      group: "extra",  kind: "int", ui: "number", unit: "rpm", min: 0, placeholder: "88" },
 ];
+
+/** Intensity Factor = Normalized Power ÷ FTP. Null if either is missing. */
+export function computeIntensity(np: number | null | undefined, ftp: number | null | undefined): number | null {
+  if (!np || !ftp) return null;
+  return Math.round((np / ftp) * 100) / 100;
+}
+
+/** Training Stress Score = (sec · NP² / FTP²) / 3600 · 100. Null if inputs missing. */
+export function computeTss(seconds: number | null | undefined, np: number | null | undefined, ftp: number | null | undefined): number | null {
+  if (!seconds || !np || !ftp) return null;
+  return Math.round(((seconds * np * np) / (ftp * ftp * 3600)) * 100);
+}
 
 export const RIDE_METRIC_BY_KEY: Record<string, MetricField> = Object.fromEntries(
   RIDE_METRIC_FIELDS.map((f) => [f.key, f]),

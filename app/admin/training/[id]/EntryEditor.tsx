@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateEntry, removeEntry } from "../actions";
 import {
   RIDE_METRIC_FIELDS, METRIC_GROUPS, type MetricField, type MetricGroupKey,
-  formatDurationHMS, parseDurationToSeconds, wPerKg,
+  formatDurationHMS, parseDurationToSeconds, wPerKg, computeIntensity, computeTss,
 } from "@/lib/training";
 
 export type EntryRow = {
@@ -18,7 +18,7 @@ export type EntryRow = {
   [key: string]: unknown; // metric columns
 };
 
-export type EntryAthlete = { id: string; full_name: string; section_slug: string | null; weight_kg: number | null };
+export type EntryAthlete = { id: string; full_name: string; section_slug: string | null; weight_kg: number | null; ftp_w: number | null };
 
 // Groups always visible on expand vs. behind the "më shumë" toggle.
 const PRIMARY_GROUPS: MetricGroupKey[] = ["core", "hr", "power"];
@@ -58,6 +58,21 @@ export function EntryEditor({
     setValues((s) => ({ ...s, [key]: val }));
   }
 
+  // Derived values. Effective FTP = this ride's FTP, else the athlete's profile
+  // FTP. IF and TSS are computed from NP + FTP + moving time (never typed).
+  const ftpNow = values.ftp_w ? parseInt(values.ftp_w, 10) : null;
+  const effectiveFtp = ftpNow ?? athlete.ftp_w;
+  const npNow = values.np_w ? parseInt(values.np_w, 10) : null;
+  const movingSec = parseDurationToSeconds(values.moving_seconds ?? "");
+  const computedIf = computeIntensity(npNow, effectiveFtp);
+  const computedTss = computeTss(movingSec, npNow, effectiveFtp);
+  const computedDisplay: Record<string, string> = {
+    intensity_factor: computedIf != null ? computedIf.toFixed(2) : "—",
+    tss: computedTss != null ? String(computedTss) : "—",
+  };
+  const wkg = wPerKg(ftpNow, athlete.weight_kg);
+  const summaryFields = RIDE_METRIC_FIELDS.filter((f) => f.summary);
+
   // Snapshot that changes whenever any editable value changes.
   const snapshot = useMemo(
     () => JSON.stringify({ values, participated, setFtp, notes }),
@@ -79,6 +94,9 @@ export function EntryEditor({
           metrics[f.key] = raw;
         }
       }
+      // IF & TSS are derived, not typed — overwrite whatever the loop set.
+      metrics.intensity_factor = computedIf != null ? String(computedIf) : "";
+      metrics.tss = computedTss != null ? String(computedTss) : "";
       startSave(async () => {
         const r = await updateEntry(rideId, entry.id, {
           participated, set_ftp: setFtp, notes, metrics,
@@ -97,10 +115,6 @@ export function EntryEditor({
     if (r.ok) router.refresh();
     else setMsg({ ok: false, text: r.error });
   }
-
-  const ftpNow = values.ftp_w ? parseInt(values.ftp_w, 10) : null;
-  const wkg = wPerKg(ftpNow, athlete.weight_kg);
-  const summaryFields = RIDE_METRIC_FIELDS.filter((f) => f.summary);
 
   const initials = athlete.full_name.trim().split(/\s+/).slice(0, 2).map((s) => s[0] || "").join("").toUpperCase() || "?";
 
@@ -159,7 +173,7 @@ export function EntryEditor({
           </button>
 
           {more && SECONDARY_GROUPS.map((g) => (
-            <MetricGroup key={g} groupKey={g} values={values} onChange={setField} />
+            <MetricGroup key={g} groupKey={g} values={values} onChange={setField} computed={computedDisplay} />
           ))}
 
           {/* Notes */}
@@ -193,12 +207,13 @@ function summaryLine(fields: MetricField[], values: Record<string, string>): str
 }
 
 function MetricGroup({
-  groupKey, values, onChange, extra,
+  groupKey, values, onChange, extra, computed,
 }: {
   groupKey: MetricGroupKey;
   values: Record<string, string>;
   onChange: (key: string, val: string) => void;
   extra?: React.ReactNode;
+  computed?: Record<string, string>;
 }) {
   const group = METRIC_GROUPS.find((g) => g.key === groupKey)!;
   const fields = RIDE_METRIC_FIELDS.filter((f) => f.group === groupKey);
@@ -208,10 +223,34 @@ function MetricGroup({
         {group.label}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10 }}>
-        {fields.map((f) => <MetricInput key={f.key} field={f} value={values[f.key] ?? ""} onChange={(v) => onChange(f.key, v)} />)}
+        {fields.map((f) => f.computed
+          ? <MetricDisplay key={f.key} field={f} value={computed?.[f.key] ?? "—"} />
+          : <MetricInput key={f.key} field={f} value={values[f.key] ?? ""} onChange={(v) => onChange(f.key, v)} />)}
         {extra}
       </div>
     </div>
+  );
+}
+
+function MetricDisplay({ field, value }: { field: MetricField; value: string }) {
+  return (
+    <label className="field" style={{ marginBottom: 0, gap: 4 }}>
+      <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <span>{field.label}</span>
+        <span style={{ fontSize: 9, color: "var(--slate)" }}>auto</span>
+      </span>
+      <div
+        title="Llogaritet vetë nga NP dhe FTP"
+        style={{
+          padding: "9px 12px", borderRadius: 8, border: "1px solid var(--line)",
+          background: "var(--paper)", color: "var(--ink-2)",
+          fontFamily: "var(--font-mono)", fontSize: 13.5, minHeight: 38,
+          display: "flex", alignItems: "center",
+        }}
+      >
+        {value}
+      </div>
+    </label>
   );
 }
 

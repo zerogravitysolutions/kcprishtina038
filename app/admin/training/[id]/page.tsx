@@ -20,7 +20,7 @@ type EntryJoined = EntryRow & {
     id: string;
     full_name: string;
     section_slug: string | null;
-    profile: { weight_kg: number | null } | null;
+    profile: { weight_kg: number | null; ftp_w: number | null } | null;
   } | null;
 };
 
@@ -40,7 +40,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
       .maybeSingle(),
     supabase
       .from("ride_entries")
-      .select("*, athlete:team_members!athlete_id(id, full_name, section_slug, profile:athlete_profiles(weight_kg))")
+      .select("*, athlete:team_members!athlete_id(id, full_name, section_slug, profile:athlete_profiles(weight_kg, ftp_w))")
       .eq("ride_id", id),
     supabase.from("sections").select("id, name_sq").eq("active", true).order("display_order"),
     supabase.from("team_members").select("id, full_name, section_slug, gender").eq("status", "active").contains("positions", ["rider"]).order("full_name"),
@@ -107,6 +107,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
                 full_name: e.athlete?.full_name ?? "—",
                 section_slug: e.athlete?.section_slug ?? null,
                 weight_kg: e.athlete?.profile?.weight_kg ?? null,
+                ftp_w: e.athlete?.profile?.ftp_w ?? null,
               }}
             />
           ))}

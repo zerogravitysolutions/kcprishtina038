@@ -32,6 +32,14 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
     ],
   },
   {
+    group: "Trajnimet",
+    items: [
+      { id: "training", label: "Stërvitjet", href: "/admin/training" },
+      { id: "athletes", label: "Çiklistët", href: "/admin/athletes" },
+      { id: "progress", label: "Progresi mujor", href: "/admin/training/progress" },
+    ],
+  },
+  {
     group: "Content",
     items: [
       { id: "news", label: "News", href: "/admin/news", allow: ["admin", "editor"] },

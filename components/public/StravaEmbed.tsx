@@ -1,24 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { parseStravaUrl } from "@/lib/strava";
 
 declare global {
   interface Window {
     __strava_embed_loaded?: boolean;
   }
-}
-
-type Parsed = { type: "route" | "segment" | "activity"; id: string } | null;
-
-function parseStravaUrl(raw: string): Parsed {
-  // Accepts plain numeric IDs, /routes/<id>, /segments/<id>, /activities/<id>,
-  // optionally with trailing slash, query string, or /embed suffix.
-  const m = raw.match(/strava\.com\/(routes|segments|activities)\/(\d+)/i);
-  if (!m) return null;
-  const kind = m[1].toLowerCase();
-  const type =
-    kind === "routes" ? "route" : kind === "segments" ? "segment" : "activity";
-  return { type, id: m[2] };
 }
 
 /**

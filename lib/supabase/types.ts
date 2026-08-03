@@ -14,6 +14,7 @@ export type DuesStatus = "paid" | "unpaid" | "overdue" | "waived";
 export type AttendanceStatus = "present" | "absent" | "late" | "excused";
 export type ContentStatus = "draft" | "published" | "archived";
 export type SponsorTier = "title" | "technical" | "partner" | "supporter";
+export type TrainingRideKind = "group" | "solo";
 
 export interface Database {
   public: {
@@ -336,6 +337,84 @@ export interface Database {
           visibility?: "public"|"members"|"admin";
         };
       };
+      training_rides: {
+        Row: {
+          id: string;
+          kind: TrainingRideKind;
+          ride_date: string;
+          title: string | null;
+          focus: string | null;
+          section_id: string | null;
+          location: string | null;
+          route_url: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          ride_date: string;
+          kind?: TrainingRideKind;
+          title?: string | null; focus?: string | null;
+          section_id?: string | null; location?: string | null;
+          route_url?: string | null; notes?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["training_rides"]["Row"]>;
+      };
+      ride_entries: {
+        Row: {
+          id: string;
+          ride_id: string;
+          athlete_id: string;
+          participated: boolean;
+          distance_km: number | null;
+          moving_seconds: number | null;
+          elapsed_seconds: number | null;
+          elevation_m: number | null;
+          avg_hr: number | null;
+          max_hr: number | null;
+          avg_power_w: number | null;
+          np_w: number | null;
+          ftp_w: number | null;
+          set_ftp: boolean;
+          best_power_1m_w: number | null;
+          best_power_3m_w: number | null;
+          best_power_5m_w: number | null;
+          best_power_10m_w: number | null;
+          best_power_20m_w: number | null;
+          best_power_60m_w: number | null;
+          tss: number | null;
+          intensity_factor: number | null;
+          rpe: number | null;
+          avg_cadence: number | null;
+          strava_url: string | null;
+          strava_activity_id: number | null;
+          notes: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          ride_id: string; athlete_id: string;
+          participated?: boolean;
+        } & Partial<Database["public"]["Tables"]["ride_entries"]["Row"]>;
+        Update: Partial<Database["public"]["Tables"]["ride_entries"]["Row"]>;
+      };
+      athlete_profiles: {
+        Row: {
+          athlete_id: string;
+          ftp_w: number | null;
+          ftp_updated_at: string | null;
+          weight_kg: number | null;
+          max_hr: number | null;
+          resting_hr: number | null;
+          notes: string | null;
+          updated_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          athlete_id: string;
+        } & Partial<Database["public"]["Tables"]["athlete_profiles"]["Row"]>;
+        Update: Partial<Database["public"]["Tables"]["athlete_profiles"]["Row"]>;
+      };
     };
     Functions: {
       approve_application: { Args: { app_id: string }; Returns: string };
@@ -356,6 +435,7 @@ export interface Database {
       attendance_status: AttendanceStatus;
       content_status: ContentStatus;
       sponsor_tier: SponsorTier;
+      training_ride_kind: TrainingRideKind;
     };
   };
 }

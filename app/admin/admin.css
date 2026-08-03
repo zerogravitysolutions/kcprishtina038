@@ -747,3 +747,24 @@ table.t .person .nm small {
   .kpi-grid { grid-template-columns: 1fr; }
   .top .public-link { font-size: 10.5px; padding: 10px 6px; }
 }
+
+/* ---------- Coaching: dense, header-preserving tables ----------
+   Wide numeric matrices (monthly progress, athlete roster) stay a real
+   scrollable table on mobile — the default stacked-card transform hides the
+   header, which is useless for a grid of numbers. */
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 800px) {
+  .scroll-x > .table-wrap { border: 1px solid var(--line); border-radius: 12px; background: var(--white); overflow: hidden; }
+  .scroll-x table.t { display: table; width: auto; min-width: 100%; }
+  .scroll-x table.t thead { display: table-header-group; }
+  .scroll-x table.t tbody { display: table-row-group; }
+  .scroll-x table.t tr { display: table-row; background: var(--white); border: 0; border-radius: 0; padding: 0; margin: 0; }
+  .scroll-x table.t tr:hover { background: var(--paper); }
+  .scroll-x table.t th, .scroll-x table.t td { display: table-cell; border-bottom: 1px solid var(--line); padding: 10px 12px; white-space: nowrap; }
+  .scroll-x table.t td:first-child { font-size: 13px; padding-bottom: 10px; }
+}
+
+/* Athlete profile: two columns on desktop, stacked on mobile. */
+@media (max-width: 900px) {
+  .athlete-cols { grid-template-columns: 1fr !important; }
+}

@@ -1,0 +1,279 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { StravaEmbed } from "@/components/public/StravaEmbed";
+import { updateEntry, removeEntry, resolveStravaUrl } from "../actions";
+import {
+  RIDE_METRIC_FIELDS, METRIC_GROUPS, type MetricField, type MetricGroupKey,
+  formatDurationHMS, parseDurationToSeconds, wPerKg,
+} from "@/lib/training";
+import { stravaActivityId } from "@/lib/strava";
+
+export type EntryRow = {
+  id: string;
+  athlete_id: string;
+  participated: boolean;
+  set_ftp: boolean;
+  strava_url: string | null;
+  notes: string | null;
+  [key: string]: unknown; // metric columns
+};
+
+export type EntryAthlete = { id: string; full_name: string; section_slug: string | null; weight_kg: number | null };
+
+// Groups always visible on expand vs. behind the "më shumë" toggle.
+const PRIMARY_GROUPS: MetricGroupKey[] = ["core", "hr", "power"];
+const SECONDARY_GROUPS: MetricGroupKey[] = ["bests", "effort", "extra"];
+
+function initialValues(entry: EntryRow): Record<string, string> {
+  const v: Record<string, string> = {};
+  for (const f of RIDE_METRIC_FIELDS) {
+    const raw = entry[f.key];
+    if (f.ui === "duration") v[f.key] = formatDurationHMS(typeof raw === "number" ? raw : null);
+    else v[f.key] = raw == null ? "" : String(raw);
+  }
+  return v;
+}
+
+export function EntryEditor({
+  rideId, entry, athlete, index, defaultOpen = false,
+}: {
+  rideId: string;
+  entry: EntryRow;
+  athlete: EntryAthlete;
+  index: number;
+  defaultOpen?: boolean;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(defaultOpen);
+  const [more, setMore] = useState(false);
+  const [pending, startSave] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const [values, setValues] = useState<Record<string, string>>(() => initialValues(entry));
+  const [participated, setParticipated] = useState(entry.participated);
+  const [setFtp, setSetFtp] = useState(entry.set_ftp);
+  const [stravaUrl, setStravaUrl] = useState(entry.strava_url ?? "");
+  const [notes, setNotes] = useState(entry.notes ?? "");
+  const [showEmbed, setShowEmbed] = useState(false);
+  const [resolving, startResolve] = useTransition();
+
+  function setField(key: string, val: string) {
+    setValues((s) => ({ ...s, [key]: val }));
+  }
+
+  // Snapshot that changes whenever any editable value changes.
+  const snapshot = useMemo(
+    () => JSON.stringify({ values, participated, setFtp, stravaUrl, notes }),
+    [values, participated, setFtp, stravaUrl, notes],
+  );
+
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (!mounted.current) { mounted.current = true; return; }
+    const t = setTimeout(() => {
+      setMsg(null);
+      const metrics: Record<string, string> = {};
+      for (const f of RIDE_METRIC_FIELDS) {
+        const raw = values[f.key] ?? "";
+        if (f.ui === "duration") {
+          const sec = parseDurationToSeconds(raw);
+          metrics[f.key] = sec == null ? "" : String(sec);
+        } else {
+          metrics[f.key] = raw;
+        }
+      }
+      startSave(async () => {
+        const r = await updateEntry(rideId, entry.id, {
+          participated, set_ftp: setFtp, strava_url: stravaUrl, notes, metrics,
+        });
+        setMsg(r.ok ? { ok: true, text: "Ruajtur ✓" } : { ok: false, text: r.error });
+        if (r.ok) setTimeout(() => setMsg(null), 1400);
+      });
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot]);
+
+  function onResolveStrava() {
+    if (!stravaUrl.trim()) return;
+    startResolve(async () => {
+      const r = await resolveStravaUrl(stravaUrl.trim());
+      if (r.ok) { setStravaUrl(r.url); setShowEmbed(true); setMsg(null); }
+      else setMsg({ ok: false, text: r.error });
+    });
+  }
+
+  async function onRemove() {
+    if (!window.confirm(`Hiq ${athlete.full_name} nga kjo stërvitje?`)) return;
+    const r = await removeEntry(rideId, entry.id);
+    if (r.ok) router.refresh();
+    else setMsg({ ok: false, text: r.error });
+  }
+
+  const ftpNow = values.ftp_w ? parseInt(values.ftp_w, 10) : null;
+  const wkg = wPerKg(ftpNow, athlete.weight_kg);
+  const summaryFields = RIDE_METRIC_FIELDS.filter((f) => f.summary);
+  const canEmbed = !!stravaActivityId(stravaUrl);
+
+  const initials = athlete.full_name.trim().split(/\s+/).slice(0, 2).map((s) => s[0] || "").join("").toUpperCase() || "?";
+
+  return (
+    <div style={{
+      border: "1px solid var(--line)", borderRadius: 12, background: "var(--white)",
+      opacity: participated ? 1 : 0.72,
+    }}>
+      {/* Header row — always visible */}
+      <div
+        style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", cursor: "pointer" }}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", width: 20 }}>{String(index + 1).padStart(2, "0")}</div>
+        <div style={{
+          width: 34, height: 34, borderRadius: 999, flexShrink: 0, background: "var(--paper-2)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13,
+        }}>{initials}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600 }}>{athlete.full_name}</div>
+          <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {!participated ? "Munguar" : summaryLine(summaryFields, values) || "Pa vlera ende"}
+          </div>
+        </div>
+        <div className="mono" style={{ fontSize: 11, width: 66, textAlign: "right", color: msg?.ok === false ? "var(--err)" : pending ? "var(--ink-3)" : "var(--ok)" }}>
+          {pending ? "…" : msg?.ok ? "✓" : ""}
+        </div>
+        <span aria-hidden style={{ color: "var(--ink-3)", transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</span>
+      </div>
+
+      {open && (
+        <div style={{ padding: "4px 14px 16px", borderTop: "1px solid var(--line)" }}>
+          {/* Participation */}
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, margin: "12px 0", fontSize: 13, cursor: "pointer" }}>
+            <input type="checkbox" checked={participated} onChange={(e) => setParticipated(e.target.checked)} style={{ accentColor: "var(--ember)" }} />
+            Mori pjesë
+          </label>
+
+          {PRIMARY_GROUPS.map((g) => (
+            <MetricGroup key={g} groupKey={g} values={values} onChange={setField} extra={
+              g === "power" ? (
+                <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 4 }}>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12.5, cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>
+                    <input type="checkbox" checked={setFtp} onChange={(e) => setSetFtp(e.target.checked)} style={{ accentColor: "var(--ember)" }} />
+                    Vendos FTP-në në profil
+                  </label>
+                  {wkg != null && <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>{wkg} W/kg</span>}
+                </div>
+              ) : null
+            } />
+          ))}
+
+          <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 6 }} onClick={() => setMore((m) => !m)}>
+            {more ? "− Më pak" : "+ Më shumë metrika (fuqia më e mirë, përpjekja…)"}
+          </button>
+
+          {more && SECONDARY_GROUPS.map((g) => (
+            <MetricGroup key={g} groupKey={g} values={values} onChange={setField} />
+          ))}
+
+          {/* Strava */}
+          <div className="field" style={{ marginTop: 16, marginBottom: 0 }}>
+            <label>Lidhja Strava</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input
+                value={stravaUrl}
+                onChange={(e) => setStravaUrl(e.target.value)}
+                placeholder="https://www.strava.com/activities/… ose strava.app.link/…"
+                style={{ flex: 1, minWidth: 220 }}
+              />
+              <button type="button" className="btn btn-ghost btn-sm" onClick={onResolveStrava} disabled={resolving || !stravaUrl.trim()}>
+                {resolving ? "…" : "Njeh lidhjen"}
+              </button>
+              {canEmbed && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowEmbed((s) => !s)}>
+                  {showEmbed ? "Fshih" : "Shiko"}
+                </button>
+              )}
+            </div>
+            <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "4px 0 0" }}>
+              Ngjit lidhjen dhe shkruaj vlerat manualisht. Marrja automatike nga Strava kërkon lidhjen e llogarisë (fazë e mëvonshme).
+            </p>
+          </div>
+          {showEmbed && canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} /></div>}
+
+          {/* Notes */}
+          <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
+            <label>Shënime</label>
+            <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ndjesitë, vërejtjet, incidentet…" />
+          </div>
+
+          {msg?.ok === false && (
+            <div className="mono" style={{ color: "var(--err)", fontSize: 12, marginTop: 10 }}>Gabim: {msg.text}</div>
+          )}
+
+          <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+            <button type="button" className="btn btn-ghost btn-sm" style={{ color: "var(--err)" }} onClick={onRemove}>Hiq çiklistin</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function summaryLine(fields: MetricField[], values: Record<string, string>): string {
+  const parts: string[] = [];
+  for (const f of fields) {
+    const raw = values[f.key] ?? "";
+    if (raw.trim() === "") continue;
+    if (f.ui === "duration") parts.push(raw);
+    else parts.push(`${raw}${f.unit ? " " + f.unit : ""}`);
+  }
+  return parts.join(" · ");
+}
+
+function MetricGroup({
+  groupKey, values, onChange, extra,
+}: {
+  groupKey: MetricGroupKey;
+  values: Record<string, string>;
+  onChange: (key: string, val: string) => void;
+  extra?: React.ReactNode;
+}) {
+  const group = METRIC_GROUPS.find((g) => g.key === groupKey)!;
+  const fields = RIDE_METRIC_FIELDS.filter((f) => f.group === groupKey);
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div className="mono" style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 6 }}>
+        {group.label}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10 }}>
+        {fields.map((f) => <MetricInput key={f.key} field={f} value={values[f.key] ?? ""} onChange={(v) => onChange(f.key, v)} />)}
+        {extra}
+      </div>
+    </div>
+  );
+}
+
+function MetricInput({ field, value, onChange }: { field: MetricField; value: string; onChange: (v: string) => void }) {
+  const isNum = field.ui === "number";
+  return (
+    <label className="field" style={{ marginBottom: 0, gap: 4 }}>
+      <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <span>{field.label}</span>
+        {field.unit && <span style={{ fontSize: 9, color: "var(--slate)" }}>{field.unit}</span>}
+      </span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        type={isNum ? "number" : "text"}
+        inputMode={isNum ? (field.kind === "int" ? "numeric" : "decimal") : undefined}
+        step={field.step}
+        min={field.min}
+        max={field.max}
+        placeholder={field.placeholder ?? (field.ui === "duration" ? "1:23:00" : "")}
+        style={{ width: "100%", fontFamily: "var(--font-mono)", fontSize: 13.5 }}
+      />
+    </label>
+  );
+}

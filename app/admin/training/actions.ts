@@ -100,7 +100,7 @@ export type RidePatch = {
   location?: string;
   notes?: string;
   strava_url?: string;
-} & BaseSrc;
+};
 
 export async function updateRide(id: string, patch: RidePatch): Promise<Result> {
   try {
@@ -122,13 +122,6 @@ export async function updateRide(id: string, patch: RidePatch): Promise<Result> 
       const aid = u ? stravaActivityId(u) : null;
       update.strava_activity_id = aid ? Number(aid) : null;
     }
-    for (const key of BASE_KEYS) {
-      if (patch[key] !== undefined) {
-        const r = coerceMetric(RIDE_METRIC_BY_KEY[key], patch[key]!);
-        if (!r.ok) return r;
-        update[key] = r.value;
-      }
-    }
     if (Object.keys(update).length === 0) return { ok: true };
 
     const { error } = await supabase.from("training_rides").update(update as never).eq("id", id);
@@ -149,40 +142,6 @@ export async function deleteRide(id: string): Promise<Result> {
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin/training");
     return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-// Save the session base and copy the provided (non-empty) fields onto every
-// rider's entry — the "inherited for each cyclist, open to change" action.
-export async function applyBaseToAll(rideId: string, src: BaseSrc): Promise<Result<{ count: number }>> {
-  try {
-    await assertCoach();
-    const supabase = await createClient();
-    const baseR = coerceBase(src);
-    if (!baseR.ok) return baseR;
-    const base = baseR.base;
-
-    if (Object.keys(base).length > 0) {
-      const { error: rideErr } = await supabase.from("training_rides").update(base as never).eq("id", rideId);
-      if (rideErr) return { ok: false, error: rideErr.message };
-    }
-
-    const entryPatch: Record<string, number> = {};
-    for (const [k, v] of Object.entries(base)) if (v != null) entryPatch[k] = v;
-    let count = 0;
-    if (Object.keys(entryPatch).length > 0) {
-      const { data, error } = await supabase
-        .from("ride_entries")
-        .update(entryPatch as never)
-        .eq("ride_id", rideId)
-        .select("id");
-      if (error) return { ok: false, error: error.message };
-      count = (data as { id: string }[] | null)?.length ?? 0;
-    }
-    revalidatePath(`/admin/training/${rideId}`);
-    return { ok: true, count };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

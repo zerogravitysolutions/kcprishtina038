@@ -55,14 +55,24 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot]);
 
-  function resolveStrava() {
-    if (!stravaUrl.trim()) return;
-    startResolve(async () => {
-      const r = await resolveStravaUrl(stravaUrl.trim());
-      if (r.ok) { setStravaUrl(r.url); setMsg(null); }
-      else setMsg({ ok: false, text: r.error });
-    });
-  }
+  // Auto-resolve on paste: app.link deep links need resolving to a canonical
+  // activity URL before the widget can embed. Canonical URLs embed directly.
+  const lastResolved = useRef("");
+  useEffect(() => {
+    const url = stravaUrl.trim();
+    if (!url || url === lastResolved.current) return;
+    if (!/strava\.app\.link\//i.test(url)) return;
+    const t = setTimeout(() => {
+      lastResolved.current = url;
+      startResolve(async () => {
+        const r = await resolveStravaUrl(url);
+        if (r.ok) { lastResolved.current = r.url; setStravaUrl(r.url); setMsg(null); }
+        else setMsg({ ok: false, text: r.error });
+      });
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stravaUrl]);
 
   return (
     <div className="card" style={{ padding: 16 }}>
@@ -104,22 +114,16 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
         </div>
       </div>
 
-      {/* Strava — one shared link for the whole exercise. */}
+      {/* Strava — one shared link for the whole exercise (embeds on paste). */}
       <div className="field" style={{ marginTop: 16, marginBottom: 0 }}>
-        <label>Lidhja Strava (e stërvitjes)</label>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input
-            value={stravaUrl}
-            onChange={(e) => setStravaUrl(e.target.value)}
-            placeholder="https://www.strava.com/activities/… ose strava.app.link/…"
-            style={{ flex: 1, minWidth: 220 }}
-          />
-          <button type="button" className="btn btn-ghost btn-sm" onClick={resolveStrava} disabled={resolving || !stravaUrl.trim()}>
-            {resolving ? "…" : "Njeh lidhjen"}
-          </button>
-        </div>
+        <label>Lidhja Strava (e stërvitjes) {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke njohur…</span> : null}</label>
+        <input
+          value={stravaUrl}
+          onChange={(e) => setStravaUrl(e.target.value)}
+          placeholder="Ngjit lidhjen strava.com/activities/… ose strava.app.link/…"
+        />
         <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "4px 0 0" }}>
-          Një lidhje për tërë stërvitjen. Distanca/ngjitja/koha plotësohen automatikisht te krijimi i stërvitjes (aktivitete publike).
+          Një lidhje për tërë stërvitjen. Distanca/ngjitja/koha plotësohen te krijimi i stërvitjes (aktivitete publike).
         </p>
       </div>
       {canEmbed && <div style={{ marginTop: 12 }}><StravaEmbed url={stravaUrl} compact /></div>}

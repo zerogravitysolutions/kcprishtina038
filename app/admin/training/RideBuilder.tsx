@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { StravaEmbed } from "@/components/public/StravaEmbed";
 import { createRide, fetchStravaStats } from "./actions";
 import { AthletePicker, type AthleteOption } from "./AthletePicker";
@@ -36,19 +36,31 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
 
   const canEmbed = !!stravaActivityId(stravaUrl);
 
-  function importStrava() {
-    if (!stravaUrl.trim()) return;
-    startResolve(async () => {
-      const r = await fetchStravaStats(stravaUrl.trim());
-      if (r.ok) {
-        setStravaUrl(r.url);
-        if (r.distance_km != null) setDistance(String(r.distance_km));
-        if (r.elevation_m != null) setElevation(String(r.elevation_m));
-        if (r.moving_seconds != null) setDuration(formatDurationHMS(r.moving_seconds));
-        setErr(null);
-      } else setErr(r.error);
-    });
-  }
+  // Auto-fetch on paste/change: when a Strava link is entered, pull the public
+  // stats and fill Bazë. The ref guards against re-fetching the same URL (incl.
+  // the canonical URL we set after a successful fetch), so no loop.
+  const lastFetched = useRef("");
+  useEffect(() => {
+    const url = stravaUrl.trim();
+    if (!url || url === lastFetched.current) return;
+    if (!/strava\.(com|app\.link)/i.test(url)) return;
+    const t = setTimeout(() => {
+      lastFetched.current = url;
+      startResolve(async () => {
+        const r = await fetchStravaStats(url);
+        if (r.ok) {
+          lastFetched.current = r.url;
+          setStravaUrl(r.url);
+          if (r.distance_km != null) setDistance(String(r.distance_km));
+          if (r.elevation_m != null) setElevation(String(r.elevation_m));
+          if (r.moving_seconds != null) setDuration(formatDurationHMS(r.moving_seconds));
+          setErr(null);
+        } else setErr(r.error);
+      });
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stravaUrl]);
 
   function submit() {
     setErr(null);
@@ -84,16 +96,13 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
         </div>
       </div>
 
-      {/* Strava link — the widget shows distance / elevation / time; copy them into Bazë below. */}
+      {/* Strava link — auto-fills Bazë on paste (public activities). */}
       <div className="field" style={{ marginBottom: 0 }}>
-        <label>Lidhja Strava (opsionale)</label>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input value={stravaUrl} onChange={(e) => setStravaUrl(e.target.value)} placeholder="https://www.strava.com/activities/… ose strava.app.link/…" style={{ flex: 1, minWidth: 220 }} />
-          <button type="button" className="btn btn-ember btn-sm" onClick={importStrava} disabled={resolving || !stravaUrl.trim()}>{resolving ? "…" : "Merr nga Strava"}</button>
-        </div>
+        <label>Lidhja Strava (opsionale) {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke marrë nga Strava…</span> : null}</label>
+        <input value={stravaUrl} onChange={(e) => setStravaUrl(e.target.value)} placeholder="Ngjit lidhjen strava.com/activities/… ose strava.app.link/…" />
         {canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} compact /></div>}
         <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "6px 0 0" }}>
-          “Merr nga Strava” plotëson vetë distancën, ngjitjen dhe kohën për aktivitete publike. Përndryshe shkruaji te “Bazë”.
+          Sapo ngjit lidhjen, distanca, ngjitja dhe koha plotësohen vetë (aktivitete publike). Përndryshe shkruaji te “Bazë”.
         </p>
       </div>
 

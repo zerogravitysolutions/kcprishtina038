@@ -5,6 +5,16 @@ import { setUserRole } from "../actions";
 
 const ROLES = ["admin", "editor", "staff", "coach", "member"] as const;
 
+// Friendly Albanian labels (the value saved is still the raw role).
+const ROLE_LABEL: Record<string, string> = {
+  admin: "Admin",
+  editor: "Editor",
+  staff: "Staf",
+  coach: "Trajner",
+  member: "Anëtar",
+};
+const label = (r: string) => ROLE_LABEL[r] ?? r;
+
 export function RolePicker({ id, current, name }: { id: string; current: string; name: string }) {
   const [pending, start] = useTransition();
   const [value, setValue] = useState(current);
@@ -13,7 +23,7 @@ export function RolePicker({ id, current, name }: { id: string; current: string;
   const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const next = e.target.value;
     if (next === value) return;
-    if (!confirm(`Ndrysho rolin e "${name}" nga "${value}" në "${next}"?`)) {
+    if (!confirm(`Ndrysho rolin e "${name}" nga "${label(value)}" në "${label(next)}"?`)) {
       e.target.value = value;
       return;
     }
@@ -41,7 +51,7 @@ export function RolePicker({ id, current, name }: { id: string; current: string;
           cursor: "pointer",
         }}
       >
-        {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+        {ROLES.map((r) => <option key={r} value={r}>{label(r)}</option>)}
       </select>
       {err && <span style={{ color: "var(--err, #c25a2d)", fontSize: 11 }}>{err}</span>}
     </div>

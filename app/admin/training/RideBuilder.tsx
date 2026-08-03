@@ -87,30 +87,27 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
     <div style={{ display: "grid", gap: 16, maxWidth: 720 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Data *</label>
+          <label>Data</label>
           <input type="date" value={rideDate} onChange={(e) => setRideDate(e.target.value)} required />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Titulli (opsional)</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="p.sh. Ditar i së dielës" />
+          <label>Titulli</label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Opsionale" />
         </div>
       </div>
 
-      {/* Strava link — auto-fills Bazë on paste (public activities). */}
+      {/* Strava — auto-fills Bazë on paste. */}
       <div className="field" style={{ marginBottom: 0 }}>
-        <label>Lidhja Strava (opsionale) {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke marrë nga Strava…</span> : null}</label>
-        <input value={stravaUrl} onChange={(e) => setStravaUrl(e.target.value)} placeholder="Ngjit lidhjen strava.com/activities/… ose strava.app.link/…" />
+        <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· po lexoj…</span> : null}</label>
+        <input value={stravaUrl} onChange={(e) => setStravaUrl(e.target.value)} placeholder="Ngjit lidhjen — plotëson vetë Bazën" />
         {canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} compact /></div>}
-        <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "6px 0 0" }}>
-          Sapo ngjit lidhjen, distanca, ngjitja dhe koha plotësohen vetë (aktivitete publike). Përndryshe shkruaji te “Bazë”.
-        </p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Lloji i ushtrimit</label>
+          <label>Lloji</label>
           <select name="kc-focus" autoComplete="off" value={focus} onChange={(e) => setFocus(e.target.value)}>
-            <option value="">— Zgjidh llojin —</option>
+            <option value="">— Zgjidh —</option>
             {TRAINING_FOCUS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
         </div>
@@ -122,53 +119,50 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
         </div>
       </div>
 
-      {/* Bazë — shared by the whole group; inherited by each cyclist (editable). */}
+      {/* Bazë — shared, inherited by each cyclist. */}
       <div>
         <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 6 }}>
-          Bazë (e përbashkët — bartet te çdo çiklist)
+          Bazë <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· për të gjithë</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label>Distanca (km)</label>
+            <label style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span>Distanca</span><span style={{ fontSize: 9, color: "var(--slate)", letterSpacing: 0, textTransform: "none" }}>km</span></label>
             <input type="number" inputMode="decimal" step="0.1" value={distance} onChange={(e) => setDistance(e.target.value)} placeholder="42.5" style={{ fontFamily: "var(--font-mono)" }} />
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label>Kohëzgjatja</label>
+            <label style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span>Kohëzgjatja</span><span style={{ fontSize: 9, color: "var(--slate)", letterSpacing: 0, textTransform: "none" }}>h:min</span></label>
             <input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="1:25:00" style={{ fontFamily: "var(--font-mono)" }} />
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label>Ngjitja (m)</label>
+            <label style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span>Ngjitja</span><span style={{ fontSize: 9, color: "var(--slate)", letterSpacing: 0, textTransform: "none" }}>m</span></label>
             <input type="number" inputMode="numeric" value={elevation} onChange={(e) => setElevation(e.target.value)} placeholder="650" style={{ fontFamily: "var(--font-mono)" }} />
           </div>
         </div>
       </div>
 
       <div className="field" style={{ marginBottom: 0 }}>
-        <label>Vendi (opsional)</label>
-        <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="p.sh. Germia, Prishtinë–Ferizaj" />
+        <label>Vendi</label>
+        <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Opsionale" />
       </div>
 
       <div className="field" style={{ marginBottom: 0 }}>
-        <label>Çiklistët * <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>(zgjidh 1 ose më shumë)</span></label>
+        <label>Çiklistët <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· 1 ose më shumë</span></label>
         <AthletePicker athletes={athletes} value={selected} onChange={setSelected} mode="multi" />
       </div>
 
       <div className="field" style={{ marginBottom: 0 }}>
-        <label>Shënime të stërvitjes (opsional)</label>
-        <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Kushtet, plani, vërejtjet…" />
+        <label>Shënime</label>
+        <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsionale" />
       </div>
 
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}
 
       <div style={{ display: "flex", gap: 10 }}>
         <button type="button" className="btn btn-ember" disabled={pending} onClick={submit}>
-          {pending ? "Duke krijuar…" : "Krijo dhe shto vlerat →"}
+          {pending ? "Duke krijuar…" : "Krijo →"}
         </button>
         <Link href="/admin/training" className="btn btn-ghost">Anulo</Link>
       </div>
-      <p className="mono" style={{ fontSize: 11, color: "var(--ink-3)", margin: 0 }}>
-        Baza bartet te çdo çiklist; pas krijimit mund t’i ndryshosh vlerat për secilin (HR, fuqia, FTP…).
-      </p>
     </div>
   );
 }

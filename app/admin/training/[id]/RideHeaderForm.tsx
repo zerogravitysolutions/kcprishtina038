@@ -119,16 +119,13 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
       </div>
 
       {/* Strava — one shared link for the whole exercise (embeds on paste). */}
-      <div className="field" style={{ marginTop: 16, marginBottom: 0 }}>
-        <label>Lidhja Strava (e stërvitjes) {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke njohur…</span> : null}</label>
+      <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
+        <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· po lexoj…</span> : null}</label>
         <input
           value={stravaUrl}
           onChange={(e) => setStravaUrl(e.target.value)}
-          placeholder="Ngjit lidhjen strava.com/activities/… ose strava.app.link/…"
+          placeholder="Ngjit lidhjen e aktivitetit"
         />
-        <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "4px 0 0" }}>
-          Një lidhje për tërë stërvitjen. Distanca/ngjitja/koha plotësohen te krijimi i stërvitjes (aktivitete publike).
-        </p>
       </div>
       {canEmbed && <div style={{ marginTop: 12 }}><StravaEmbed url={stravaUrl} compact /></div>}
 

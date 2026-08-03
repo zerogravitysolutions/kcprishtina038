@@ -33,7 +33,7 @@ export default async function NewRidePage() {
       <div className="page-head">
         <div>
           <h1>Stërvitje e re</h1>
-          <div className="sub">Zgjidh datën, bazën dhe çiklistët (1 ose më shumë) — vlerat individuale vendosen në hapin tjetër.</div>
+          <div className="sub">Plotëso bazën dhe zgjidh çiklistët — vlerat individuale vijnë më pas.</div>
         </div>
         <Link className="btn btn-ghost" href="/admin/training">← Të gjitha</Link>
       </div>

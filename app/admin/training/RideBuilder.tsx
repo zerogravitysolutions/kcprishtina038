@@ -23,7 +23,7 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
   const [rideDate, setRideDate] = useState(todayISO());
   const [title, setTitle] = useState("");
   const [focus, setFocus] = useState("");
-  const [sectionId, setSectionId] = useState("");
+  const [sectionId, setSectionId] = useState(sections[0]?.id ?? "");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [distance, setDistance] = useState("");
@@ -114,7 +114,6 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Seksioni</label>
           <select name="kc-section" autoComplete="off" value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
-            <option value="">— Asnjë —</option>
             {sections.map((s) => <option key={s.id} value={s.id}>{s.name_sq}</option>)}
           </select>
         </div>

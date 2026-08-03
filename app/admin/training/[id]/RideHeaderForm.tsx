@@ -23,7 +23,7 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
   const [rideDate, setRideDate] = useState(ride.ride_date);
   const [title, setTitle] = useState(ride.title ?? "");
   const [focus, setFocus] = useState(ride.focus ?? "");
-  const [sectionId, setSectionId] = useState(ride.section_id ?? "");
+  const [sectionId, setSectionId] = useState(ride.section_id ?? sections[0]?.id ?? "");
   const [location, setLocation] = useState(ride.location ?? "");
   const [notes, setNotes] = useState(ride.notes ?? "");
   const [stravaUrl, setStravaUrl] = useState(ride.strava_url ?? "");
@@ -97,7 +97,6 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Seksioni</label>
           <select name="kc-section" autoComplete="off" value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
-            <option value="">— Asnjë —</option>
             {sections.map((s) => <option key={s.id} value={s.id}>{s.name_sq}</option>)}
           </select>
         </div>

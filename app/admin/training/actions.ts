@@ -42,6 +42,7 @@ export type CreateRideInput = {
   section_id?: string | null;
   location?: string;
   notes?: string;
+  strava_url?: string;
   athlete_ids: string[];
 } & BaseSrc;
 
@@ -58,6 +59,9 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
     if (!baseR.ok) return baseR;
     const base = baseR.base;
 
+    const stravaUrl = input.strava_url?.trim() || null;
+    const stravaAid = stravaUrl ? stravaActivityId(stravaUrl) : null;
+
     const { data: ride, error: rideErr } = await supabase
       .from("training_rides")
       .insert({
@@ -67,6 +71,8 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
         section_id: input.section_id || null,
         location: input.location?.trim() || null,
         notes: input.notes?.trim() || null,
+        strava_url: stravaUrl,
+        strava_activity_id: stravaAid ? Number(stravaAid) : null,
         created_by: me.id,
         ...base,
       } as never)

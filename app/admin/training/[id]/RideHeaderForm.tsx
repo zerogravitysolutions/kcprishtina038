@@ -27,7 +27,6 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
   const [location, setLocation] = useState(ride.location ?? "");
   const [notes, setNotes] = useState(ride.notes ?? "");
   const [stravaUrl, setStravaUrl] = useState(ride.strava_url ?? "");
-  const [showEmbed, setShowEmbed] = useState(false);
   const [resolving, startResolve] = useTransition();
 
   const canEmbed = !!stravaActivityId(stravaUrl);
@@ -60,7 +59,7 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
     if (!stravaUrl.trim()) return;
     startResolve(async () => {
       const r = await resolveStravaUrl(stravaUrl.trim());
-      if (r.ok) { setStravaUrl(r.url); setShowEmbed(true); setMsg(null); }
+      if (r.ok) { setStravaUrl(r.url); setMsg(null); }
       else setMsg({ ok: false, text: r.error });
     });
   }
@@ -118,17 +117,12 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
           <button type="button" className="btn btn-ghost btn-sm" onClick={resolveStrava} disabled={resolving || !stravaUrl.trim()}>
             {resolving ? "…" : "Njeh lidhjen"}
           </button>
-          {canEmbed && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowEmbed((s) => !s)}>
-              {showEmbed ? "Fshih" : "Shiko"}
-            </button>
-          )}
         </div>
         <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "4px 0 0" }}>
           Një lidhje për tërë stërvitjen. Marrja automatike e numrave nga Strava kërkon lidhjen e llogarisë (fazë e mëvonshme).
         </p>
       </div>
-      {showEmbed && canEmbed && <div style={{ marginTop: 12 }}><StravaEmbed url={stravaUrl} /></div>}
+      {canEmbed && <div style={{ marginTop: 12 }}><StravaEmbed url={stravaUrl} compact /></div>}
 
       <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
         <label>Shënime</label>

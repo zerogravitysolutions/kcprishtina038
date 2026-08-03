@@ -15,7 +15,7 @@ declare global {
  * load and on each `embed:rendered` event, so re-mounting (e.g. via React
  * navigation) needs us to nudge it to re-scan.
  */
-export function StravaEmbed({ url }: { url: string }) {
+export function StravaEmbed({ url, compact = false }: { url: string; compact?: boolean }) {
   const parsed = parseStravaUrl(url);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -44,7 +44,7 @@ export function StravaEmbed({ url }: { url: string }) {
   if (!parsed) return null;
 
   return (
-    <div className="kc-strava">
+    <div className="kc-strava" style={compact ? { maxWidth: 460 } : undefined}>
       <div
         ref={ref}
         className="strava-embed-placeholder"
@@ -53,7 +53,7 @@ export function StravaEmbed({ url }: { url: string }) {
         data-style="standard"
         data-from-embed="false"
         // Reserve the space so layout doesn't jump while the widget loads.
-        style={{ minHeight: 520 }}
+        style={{ minHeight: compact ? 180 : 520 }}
       />
     </div>
   );

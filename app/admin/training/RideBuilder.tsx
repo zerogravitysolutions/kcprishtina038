@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { createRide } from "./actions";
+import { StravaEmbed } from "@/components/public/StravaEmbed";
+import { createRide, resolveStravaUrl } from "./actions";
 import { AthletePicker, type AthleteOption } from "./AthletePicker";
 import { parseDurationToSeconds } from "@/lib/training";
+import { stravaActivityId } from "@/lib/strava";
 
 type Section = { id: string; name_sq: string };
 
@@ -27,8 +29,21 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
   const [distance, setDistance] = useState("");
   const [duration, setDuration] = useState("");
   const [elevation, setElevation] = useState("");
+  const [stravaUrl, setStravaUrl] = useState("");
+  const [resolving, startResolve] = useTransition();
   const [selected, setSelected] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
+
+  const canEmbed = !!stravaActivityId(stravaUrl);
+
+  function resolveStrava() {
+    if (!stravaUrl.trim()) return;
+    startResolve(async () => {
+      const r = await resolveStravaUrl(stravaUrl.trim());
+      if (r.ok) { setStravaUrl(r.url); setErr(null); }
+      else setErr(r.error);
+    });
+  }
 
   function submit() {
     setErr(null);
@@ -44,6 +59,7 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
         distance_km: distance,
         elevation_m: elevation,
         moving_seconds: sec == null ? "" : String(sec),
+        strava_url: stravaUrl,
       });
       if (r.ok) router.push(`/admin/training/${r.id}`);
       else setErr(r.error);
@@ -61,6 +77,19 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
           <label>Titulli (opsional)</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="p.sh. Ditar i së dielës" />
         </div>
+      </div>
+
+      {/* Strava link — the widget shows distance / elevation / time; copy them into Bazë below. */}
+      <div className="field" style={{ marginBottom: 0 }}>
+        <label>Lidhja Strava (opsionale)</label>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input value={stravaUrl} onChange={(e) => setStravaUrl(e.target.value)} placeholder="https://www.strava.com/activities/… ose strava.app.link/…" style={{ flex: 1, minWidth: 220 }} />
+          <button type="button" className="btn btn-ghost btn-sm" onClick={resolveStrava} disabled={resolving || !stravaUrl.trim()}>{resolving ? "…" : "Njeh lidhjen"}</button>
+        </div>
+        {canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} compact /></div>}
+        <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "6px 0 0" }}>
+          Widget-i tregon distancën, ngjitjen dhe kohën — shkruaji te “Bazë” më poshtë.
+        </p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>

@@ -351,6 +351,8 @@ export interface Database {
           distance_km: number | null;
           moving_seconds: number | null;
           elevation_m: number | null;
+          strava_url: string | null;
+          strava_activity_id: number | null;
           created_by: string | null;
           created_at: string; updated_at: string;
         };
@@ -361,6 +363,7 @@ export interface Database {
           section_id?: string | null; location?: string | null;
           route_url?: string | null; notes?: string | null;
           distance_km?: number | null; moving_seconds?: number | null; elevation_m?: number | null;
+          strava_url?: string | null; strava_activity_id?: number | null;
           created_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["training_rides"]["Row"]>;

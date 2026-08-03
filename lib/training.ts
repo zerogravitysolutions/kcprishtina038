@@ -254,6 +254,46 @@ export function computeBests(entries: EntryLike[]): AthleteBests {
   };
 }
 
+// ------------------------------------------------------------------ weekly
+
+const MONTHS_SHORT_SQ = ["Jan", "Shk", "Mar", "Pri", "Maj", "Qer", "Kor", "Gsh", "Sht", "Tet", "Nën", "Dhj"];
+
+// Monday (local midnight) of the week containing d.
+function mondayOf(d: Date): Date {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = (x.getDay() + 6) % 7; // 0 = Monday
+  x.setDate(x.getDate() - dow);
+  return x;
+}
+
+export type WeekBar = { label: string; km: number; hours: number; rides: number };
+
+/** Bucket participated rides into the last `weeks` Monday-started weeks. */
+export function weeklyVolume(
+  rows: { ride_date: string; distance_km: number | null; moving_seconds: number | null; participated: boolean }[],
+  weeks = 12,
+  today: Date = new Date(),
+): WeekBar[] {
+  const startMon = mondayOf(today);
+  const buckets: WeekBar[] = [];
+  const indexByTime = new Map<number, number>();
+  for (let i = weeks - 1; i >= 0; i--) {
+    const s = new Date(startMon);
+    s.setDate(startMon.getDate() - i * 7);
+    indexByTime.set(s.getTime(), buckets.length);
+    buckets.push({ label: `${s.getDate()} ${MONTHS_SHORT_SQ[s.getMonth()]}`, km: 0, hours: 0, rides: 0 });
+  }
+  for (const r of rows) {
+    if (!r.participated || !r.ride_date) continue;
+    const idx = indexByTime.get(mondayOf(new Date(r.ride_date + "T00:00:00")).getTime());
+    if (idx == null) continue;
+    buckets[idx].km += r.distance_km ?? 0;
+    buckets[idx].hours += (r.moving_seconds ?? 0) / 3600;
+    buckets[idx].rides += 1;
+  }
+  return buckets.map((b) => ({ label: b.label, km: Math.round(b.km * 10) / 10, hours: Math.round(b.hours * 10) / 10, rides: b.rides }));
+}
+
 export type MonthlyStat = {
   athlete_id: string;
   participations: number;

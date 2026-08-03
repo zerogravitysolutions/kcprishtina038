@@ -2,13 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { StravaEmbed } from "@/components/public/StravaEmbed";
-import { updateEntry, removeEntry, resolveStravaUrl } from "../actions";
+import { updateEntry, removeEntry } from "../actions";
 import {
   RIDE_METRIC_FIELDS, METRIC_GROUPS, type MetricField, type MetricGroupKey,
   formatDurationHMS, parseDurationToSeconds, wPerKg,
 } from "@/lib/training";
-import { stravaActivityId } from "@/lib/strava";
 
 export type EntryRow = {
   id: string;
@@ -54,10 +52,7 @@ export function EntryEditor({
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(entry));
   const [participated, setParticipated] = useState(entry.participated);
   const [setFtp, setSetFtp] = useState(entry.set_ftp);
-  const [stravaUrl, setStravaUrl] = useState(entry.strava_url ?? "");
   const [notes, setNotes] = useState(entry.notes ?? "");
-  const [showEmbed, setShowEmbed] = useState(false);
-  const [resolving, startResolve] = useTransition();
 
   function setField(key: string, val: string) {
     setValues((s) => ({ ...s, [key]: val }));
@@ -65,8 +60,8 @@ export function EntryEditor({
 
   // Snapshot that changes whenever any editable value changes.
   const snapshot = useMemo(
-    () => JSON.stringify({ values, participated, setFtp, stravaUrl, notes }),
-    [values, participated, setFtp, stravaUrl, notes],
+    () => JSON.stringify({ values, participated, setFtp, notes }),
+    [values, participated, setFtp, notes],
   );
 
   const mounted = useRef(false);
@@ -86,7 +81,7 @@ export function EntryEditor({
       }
       startSave(async () => {
         const r = await updateEntry(rideId, entry.id, {
-          participated, set_ftp: setFtp, strava_url: stravaUrl, notes, metrics,
+          participated, set_ftp: setFtp, notes, metrics,
         });
         setMsg(r.ok ? { ok: true, text: "Ruajtur ✓" } : { ok: false, text: r.error });
         if (r.ok) setTimeout(() => setMsg(null), 1400);
@@ -95,15 +90,6 @@ export function EntryEditor({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot]);
-
-  function onResolveStrava() {
-    if (!stravaUrl.trim()) return;
-    startResolve(async () => {
-      const r = await resolveStravaUrl(stravaUrl.trim());
-      if (r.ok) { setStravaUrl(r.url); setShowEmbed(true); setMsg(null); }
-      else setMsg({ ok: false, text: r.error });
-    });
-  }
 
   async function onRemove() {
     if (!window.confirm(`Hiq ${athlete.full_name} nga kjo stërvitje?`)) return;
@@ -115,7 +101,6 @@ export function EntryEditor({
   const ftpNow = values.ftp_w ? parseInt(values.ftp_w, 10) : null;
   const wkg = wPerKg(ftpNow, athlete.weight_kg);
   const summaryFields = RIDE_METRIC_FIELDS.filter((f) => f.summary);
-  const canEmbed = !!stravaActivityId(stravaUrl);
 
   const initials = athlete.full_name.trim().split(/\s+/).slice(0, 2).map((s) => s[0] || "").join("").toUpperCase() || "?";
 
@@ -176,31 +161,6 @@ export function EntryEditor({
           {more && SECONDARY_GROUPS.map((g) => (
             <MetricGroup key={g} groupKey={g} values={values} onChange={setField} />
           ))}
-
-          {/* Strava */}
-          <div className="field" style={{ marginTop: 16, marginBottom: 0 }}>
-            <label>Lidhja Strava</label>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <input
-                value={stravaUrl}
-                onChange={(e) => setStravaUrl(e.target.value)}
-                placeholder="https://www.strava.com/activities/… ose strava.app.link/…"
-                style={{ flex: 1, minWidth: 220 }}
-              />
-              <button type="button" className="btn btn-ghost btn-sm" onClick={onResolveStrava} disabled={resolving || !stravaUrl.trim()}>
-                {resolving ? "…" : "Njeh lidhjen"}
-              </button>
-              {canEmbed && (
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowEmbed((s) => !s)}>
-                  {showEmbed ? "Fshih" : "Shiko"}
-                </button>
-              )}
-            </div>
-            <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "4px 0 0" }}>
-              Ngjit lidhjen dhe shkruaj vlerat manualisht. Marrja automatike nga Strava kërkon lidhjen e llogarisë (fazë e mëvonshme).
-            </p>
-          </div>
-          {showEmbed && canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} /></div>}
 
           {/* Notes */}
           <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>

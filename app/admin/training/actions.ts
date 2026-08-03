@@ -99,6 +99,7 @@ export type RidePatch = {
   section_id?: string | null;
   location?: string;
   notes?: string;
+  strava_url?: string;
 } & BaseSrc;
 
 export async function updateRide(id: string, patch: RidePatch): Promise<Result> {
@@ -115,6 +116,12 @@ export async function updateRide(id: string, patch: RidePatch): Promise<Result> 
     if (patch.section_id !== undefined) update.section_id = patch.section_id || null;
     if (patch.location !== undefined) update.location = patch.location.trim() || null;
     if (patch.notes !== undefined) update.notes = patch.notes.trim() || null;
+    if (patch.strava_url !== undefined) {
+      const u = patch.strava_url.trim();
+      update.strava_url = u || null;
+      const aid = u ? stravaActivityId(u) : null;
+      update.strava_activity_id = aid ? Number(aid) : null;
+    }
     for (const key of BASE_KEYS) {
       if (patch[key] !== undefined) {
         const r = coerceMetric(RIDE_METRIC_BY_KEY[key], patch[key]!);

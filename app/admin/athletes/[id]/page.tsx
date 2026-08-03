@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { AthleteProfileForm, type ProfileInitial } from "./AthleteProfileForm";
-import { computeBests, fmt, toHours, formatDurationShort, type EntryLike } from "@/lib/training";
+import { ColumnChart, LineChart } from "../../training/charts";
+import { computeBests, fmt, toHours, formatDurationShort, weeklyVolume, type EntryLike } from "@/lib/training";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -47,6 +48,21 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
     .slice()
     .sort((a, b) => (b.ride?.ride_date ?? "").localeCompare(a.ride?.ride_date ?? ""))
     .slice(0, 20);
+
+  const volumeData = weeklyVolume(
+    entries.map((e) => ({ ride_date: e.ride?.ride_date ?? "", distance_km: e.distance_km, moving_seconds: e.moving_seconds, participated: e.participated })),
+    12,
+  ).map((w) => ({ label: w.label, value: w.km, display: `${w.km}` }));
+
+  const powerPts = entries
+    .filter((e) => e.best_power_20m_w != null && e.ride?.ride_date)
+    .slice()
+    .sort((a, b) => (a.ride!.ride_date).localeCompare(b.ride!.ride_date))
+    .map((e) => ({
+      label: new Date(e.ride!.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short" }),
+      value: e.best_power_20m_w as number,
+      display: `${e.best_power_20m_w} W`,
+    }));
 
   const powerCurve: { label: string; w: number | null }[] = [
     { label: "1 min", w: bests.best_power_1m_w },
@@ -96,6 +112,20 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
               <span>Fuqia mes. më e mirë: <strong style={{ color: "var(--ink)" }}>{bests.best_avg_power_w ? `${bests.best_avg_power_w} W` : "—"}</strong></span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Monitoring charts */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginTop: 20 }}>
+        <div className="card" style={{ padding: 16 }}>
+          <div className="card-head" style={{ marginBottom: 10 }}><h3>Volumi javor</h3><span className="kicker">km · 12 javë</span></div>
+          <ColumnChart data={volumeData} />
+        </div>
+        <div className="card" style={{ padding: 16 }}>
+          <div className="card-head" style={{ marginBottom: 10 }}><h3>Fuqia 20-min</h3><span className="kicker">W · sipas stërvitjes</span></div>
+          {powerPts.length >= 2
+            ? <LineChart data={powerPts} />
+            : <p className="mono" style={{ fontSize: 12, color: "var(--ink-3)", padding: "28px 0", textAlign: "center" }}>Duhen së paku 2 stërvitje me fuqi 20-min për këtë grafik.</p>}
         </div>
       </div>
 

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { updateRide, applyBaseToAll } from "../actions";
+import { StravaEmbed } from "@/components/public/StravaEmbed";
+import { updateRide, applyBaseToAll, resolveStravaUrl } from "../actions";
 import { parseDurationToSeconds, formatDurationHMS } from "@/lib/training";
+import { stravaActivityId } from "@/lib/strava";
 
 export type RideHeader = {
   id: string;
@@ -15,6 +17,7 @@ export type RideHeader = {
   distance_km: number | null;
   moving_seconds: number | null;
   elevation_m: number | null;
+  strava_url: string | null;
 };
 
 export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections: { id: string; name_sq: string }[] }) {
@@ -31,12 +34,16 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
   const [distance, setDistance] = useState(ride.distance_km != null ? String(ride.distance_km) : "");
   const [duration, setDuration] = useState(formatDurationHMS(ride.moving_seconds));
   const [elevation, setElevation] = useState(ride.elevation_m != null ? String(ride.elevation_m) : "");
+  const [stravaUrl, setStravaUrl] = useState(ride.strava_url ?? "");
+  const [showEmbed, setShowEmbed] = useState(false);
+  const [resolving, startResolve] = useTransition();
 
   const durationSeconds = () => (duration.trim() ? String(parseDurationToSeconds(duration) ?? "") : "");
+  const canEmbed = !!stravaActivityId(stravaUrl);
 
   const snapshot = useMemo(
-    () => JSON.stringify({ rideDate, title, focus, sectionId, location, notes, distance, duration, elevation }),
-    [rideDate, title, focus, sectionId, location, notes, distance, duration, elevation],
+    () => JSON.stringify({ rideDate, title, focus, sectionId, location, notes, distance, duration, elevation, stravaUrl }),
+    [rideDate, title, focus, sectionId, location, notes, distance, duration, elevation, stravaUrl],
   );
 
   const mounted = useRef(false);
@@ -49,6 +56,7 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
           ride_date: rideDate, title, focus, location, notes,
           section_id: sectionId || null,
           distance_km: distance, elevation_m: elevation, moving_seconds: durationSeconds(),
+          strava_url: stravaUrl,
         });
         setMsg(r.ok ? { ok: true, text: "Ruajtur ✓" } : { ok: false, text: r.error });
         if (r.ok) setTimeout(() => setMsg(null), 1400);
@@ -67,6 +75,15 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
     setApplying(false);
     if (r.ok) window.location.reload();
     else setMsg({ ok: false, text: r.error });
+  }
+
+  function resolveStrava() {
+    if (!stravaUrl.trim()) return;
+    startResolve(async () => {
+      const r = await resolveStravaUrl(stravaUrl.trim());
+      if (r.ok) { setStravaUrl(r.url); setShowEmbed(true); setMsg(null); }
+      else setMsg({ ok: false, text: r.error });
+    });
   }
 
   return (
@@ -137,6 +154,31 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
           Baza bartet automatikisht te çiklistët e rinj. “Apliko te të gjithë” e vendos edhe te ata ekzistues.
         </p>
       </div>
+
+      {/* Strava — one shared link for the whole exercise. */}
+      <div className="field" style={{ marginTop: 16, marginBottom: 0 }}>
+        <label>Lidhja Strava (e stërvitjes)</label>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            value={stravaUrl}
+            onChange={(e) => setStravaUrl(e.target.value)}
+            placeholder="https://www.strava.com/activities/… ose strava.app.link/…"
+            style={{ flex: 1, minWidth: 220 }}
+          />
+          <button type="button" className="btn btn-ghost btn-sm" onClick={resolveStrava} disabled={resolving || !stravaUrl.trim()}>
+            {resolving ? "…" : "Njeh lidhjen"}
+          </button>
+          {canEmbed && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowEmbed((s) => !s)}>
+              {showEmbed ? "Fshih" : "Shiko"}
+            </button>
+          )}
+        </div>
+        <p className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "4px 0 0" }}>
+          Një lidhje për tërë stërvitjen. Marrja automatike e numrave nga Strava kërkon lidhjen e llogarisë (fazë e mëvonshme).
+        </p>
+      </div>
+      {showEmbed && canEmbed && <div style={{ marginTop: 12 }}><StravaEmbed url={stravaUrl} /></div>}
 
       <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
         <label>Shënime</label>

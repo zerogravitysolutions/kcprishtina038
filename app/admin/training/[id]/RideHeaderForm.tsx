@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { StravaEmbed } from "@/components/public/StravaEmbed";
 import { updateRide, resolveStravaUrl } from "../actions";
 import { stravaActivityId } from "@/lib/strava";
+import { TRAINING_FOCUS } from "@/lib/training";
 
 export type RideHeader = {
   id: string;
@@ -104,8 +105,12 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginTop: 12 }}>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Fokusi / lloji</label>
-          <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="4×8 threshold…" />
+          <label>Lloji i ushtrimit</label>
+          <select name="kc-focus" autoComplete="off" value={focus} onChange={(e) => setFocus(e.target.value)}>
+            <option value="">— Zgjidh llojin —</option>
+            {focus && !TRAINING_FOCUS.some((f) => f.value === focus) ? <option value={focus}>{focus}</option> : null}
+            {TRAINING_FOCUS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+          </select>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Vendi</label>

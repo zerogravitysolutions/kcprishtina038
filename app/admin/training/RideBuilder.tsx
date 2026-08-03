@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { StravaEmbed } from "@/components/public/StravaEmbed";
 import { createRide, fetchStravaStats } from "./actions";
 import { AthletePicker, type AthleteOption } from "./AthletePicker";
-import { parseDurationToSeconds, formatDurationHMS } from "@/lib/training";
+import { parseDurationToSeconds, formatDurationHMS, TRAINING_FOCUS } from "@/lib/training";
 import { stravaActivityId } from "@/lib/strava";
 
 type Section = { id: string; name_sq: string };
@@ -108,8 +108,11 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Fokusi / lloji</label>
-          <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="p.sh. 4×8 threshold, Z2 endurance" />
+          <label>Lloji i ushtrimit</label>
+          <select name="kc-focus" autoComplete="off" value={focus} onChange={(e) => setFocus(e.target.value)}>
+            <option value="">— Zgjidh llojin —</option>
+            {TRAINING_FOCUS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+          </select>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Seksioni</label>

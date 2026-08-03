@@ -78,6 +78,20 @@ export const RIDE_METRIC_BY_KEY: Record<string, MetricField> = Object.fromEntrie
   RIDE_METRIC_FIELDS.map((f) => [f.key, f]),
 );
 
+// ------------------------------------------------------------------ focus (workout type)
+// `value` is the short label stored on training_rides.focus (compact for lists
+// and titles); `label` is the full description shown in the dropdown.
+export const TRAINING_FOCUS: { value: string; label: string }[] = [
+  { value: "Recovery (Z1)",      label: "Recovery – Rikuperim aktiv (Z1)" },
+  { value: "Endurance (Z2)",     label: "Endurance (Base) – Qëndrueshmëri aerobike (Z2)" },
+  { value: "Tempo (Z3)",         label: "Tempo – Ritëm i qëndrueshëm (Z3)" },
+  { value: "Sweet Spot",         label: "Sweet Spot – Rritje efikase e FTP (88–94% FTP)" },
+  { value: "Threshold",          label: "Threshold – Pragu i laktatit / FTP (95–105% FTP)" },
+  { value: "VO₂ Max",            label: "VO₂ Max – Rritja e kapacitetit maksimal aerobik (106–120% FTP)" },
+  { value: "Anaerobic & Sprint", label: "Anaerobic & Sprint – Fuqi shpërthyese dhe sprint (>120% FTP)" },
+  { value: "Skills & Strength",  label: "Skills & Strength – Teknikë, kadencë, forcë në biçikletë dhe jashtë saj" },
+];
+
 /** Coerce a raw string from a form input into the DB value for a metric. */
 export function coerceMetric(
   field: MetricField,

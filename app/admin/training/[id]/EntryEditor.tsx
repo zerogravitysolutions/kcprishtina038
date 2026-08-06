@@ -120,8 +120,9 @@ export function EntryEditor({
 
   return (
     <div style={{
-      border: "1px solid var(--line)", borderRadius: 12, background: "var(--white)",
-      opacity: participated ? 1 : 0.72,
+      border: "1px solid var(--line)", borderRadius: 14, background: "var(--white)",
+      boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 6px 18px rgba(15,26,46,.05)",
+      opacity: participated ? 1 : 0.72, transition: "box-shadow .2s ease, opacity .2s ease",
     }}>
       {/* Header row — always visible */}
       <div
@@ -130,7 +131,8 @@ export function EntryEditor({
       >
         <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", width: 20 }}>{String(index + 1).padStart(2, "0")}</div>
         <div style={{
-          width: 34, height: 34, borderRadius: 999, flexShrink: 0, background: "var(--paper-2)",
+          width: 34, height: 34, borderRadius: 999, flexShrink: 0,
+          background: "color-mix(in oklab, var(--teal) 24%, var(--white))",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13,
         }}>{initials}</div>

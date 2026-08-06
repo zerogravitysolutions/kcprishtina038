@@ -839,35 +839,46 @@ table.t .person .nm small {
   .pt-empty { padding: 24px; text-align: center; color: var(--ink-3); font-family: var(--font-mono); font-size: 12.5px; background: var(--white); border: 1px solid var(--line); border-radius: 14px; }
 }
 
-/* Exercises list — tidy labeled card on mobile. The generic stacked-table
-   transform hides the header, leaving bare numbers; here the exercise name is
-   the card title and each stat gets an inline label + right-aligned value. */
+/* Training + athlete lists — modern tappable cards on mobile, table on desktop.
+   Cards render only the stats that have data (never a "—" placeholder). */
+.ex-cards { display: none; }
+.ex-card {
+  display: block;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(15, 26, 46, .04), 0 10px 26px rgba(15, 26, 46, .055);
+  padding: 15px 17px;
+  margin-bottom: 11px;
+  color: var(--ink);
+  transition: transform .14s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.ex-card:active { transform: scale(.988); border-color: var(--line-strong); }
+.ex-card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.ex-card-title { font-family: var(--font-display); font-weight: 700; font-size: 16.5px; letter-spacing: -.012em; line-height: 1.2; }
+.ex-card-date { font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; color: var(--ink-3); white-space: nowrap; flex-shrink: 0; }
+.ex-card-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 9px; }
+.ex-card-sub { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+.ex-card-stats { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 13px; }
+.ex-pill {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  padding: 5px 11px; border-radius: 999px;
+  background: var(--paper); border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .01em;
+}
+.ex-pill i { font-style: normal; color: var(--ink-3); font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+.ex-pill b { font-weight: 700; color: var(--ink); font-feature-settings: "tnum" 1; font-size: 13px; }
+.ex-empty { padding: 26px 20px; text-align: center; color: var(--ink-3); font-family: var(--font-mono); font-size: 12.5px; background: var(--white); border: 1px solid var(--line); border-radius: 16px; }
+
+/* Athlete card — avatar header + labeled stat pills. */
+.ath-card-head { display: flex; align-items: center; gap: 12px; }
+.ath-card-head .avatar { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; font-size: 14px; }
+.ath-card-id { min-width: 0; }
+.ath-card-name { display: block; font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -.01em; color: var(--ink); line-height: 1.2; }
+.ath-card-sec { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+
 @media (max-width: 800px) {
-  table.t.ex-table tr { padding: 14px 16px; }
-  /* :not([colspan]) keeps the title divider off the empty-state colSpan=6 cell. */
-  table.t.ex-table td:first-child:not([colspan]) {
-    font-size: 16px;
-    padding: 0 0 10px;
-    margin-bottom: 4px;
-    border-bottom: 1px solid var(--line);
-  }
-  table.t.ex-table td[data-label] {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 7px 0;
-  }
-  table.t.ex-table td[data-label]::before {
-    content: attr(data-label);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-    flex-shrink: 0;
-  }
-  /* Override the generic mobile .mono dimming so values stay readable. */
-  table.t.ex-table td[data-label].mono { font-size: 14px; color: var(--ink); }
-  table.t.ex-table td.actions .btn { flex: 1; justify-content: center; min-height: 40px; }
+  .ex-desktop { display: none; }
+  .ex-cards { display: block; }
 }

@@ -123,3 +123,12 @@
   .portal-tab:active { transform: scale(.92); }
   .portal-tab.active { color: var(--ember, #c25a2d); background: color-mix(in oklab, var(--ember, #c25a2d) 9%, transparent); }
 }
+
+/* Portal home — responsive hero + two-card row (stack on mobile). */
+.portal-hero-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+.portal-duo { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; }
+@media (max-width: 800px) {
+  .portal-hero-head { margin-bottom: 22px; gap: 12px; }
+  .portal-hero-head h1 { font-size: 27px !important; }
+  .portal-duo { grid-template-columns: 1fr; gap: 14px; }
+}

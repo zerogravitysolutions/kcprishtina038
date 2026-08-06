@@ -89,19 +89,22 @@ export function ProgressTable({ rows }: { rows: ProgressRow[] }) {
         {sorted.length === 0 ? (
           <div className="pt-empty">Asnjë çiklist.</div>
         ) : (
-          sorted.map((r) => (
-            <div className="pt-card" key={r.athlete_id}>
-              <div className="pt-card-name"><Link href={`/admin/athletes/${r.athlete_id}`}>{r.name}</Link></div>
-              <div className="pt-card-stats">
-                {statCols.map((c) => (
-                  <div className="pt-stat" key={c.key}>
-                    <span className="k">{c.label}</span>
-                    <span className="v">{c.render(r)}</span>
-                  </div>
-                ))}
+          sorted.map((r) => {
+            const visible = statCols.filter((c) => c.render(r) !== "—");
+            return (
+              <div className="pt-card" key={r.athlete_id}>
+                <div className="pt-card-name"><Link href={`/admin/athletes/${r.athlete_id}`}>{r.name}</Link></div>
+                <div className="pt-card-stats">
+                  {visible.map((c) => (
+                    <div className="pt-stat" key={c.key}>
+                      <span className="k">{c.label}</span>
+                      <span className="v">{c.render(r)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

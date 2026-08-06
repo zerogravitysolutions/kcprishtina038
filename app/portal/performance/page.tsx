@@ -70,27 +70,29 @@ export default async function PortalPerformancePage() {
         </div>
       ) : (
         <div style={{ display: "grid", gap: 16, marginTop: 22 }}>
-          {/* Baseline tiles */}
+          {/* Baseline tiles — only present values. */}
           <div style={{ ...CARD, display: "flex", gap: 24, flexWrap: "wrap", padding: "16px 20px" }}>
-            <Stat label="FTP" value={prof?.ftp_w ? `${prof.ftp_w} W` : "—"} sub={wkg != null ? `${wkg} W/kg` : undefined} />
-            <Stat label="Pesha" value={prof?.weight_kg ? `${prof.weight_kg} kg` : "—"} />
-            <Stat label="HR max" value={prof?.max_hr ? String(prof.max_hr) : (bests.max_hr ? String(bests.max_hr) : "—")} />
+            {prof?.ftp_w ? <Stat label="FTP" value={`${prof.ftp_w} W`} sub={wkg != null ? `${wkg} W/kg` : undefined} /> : null}
+            {prof?.weight_kg ? <Stat label="Pesha" value={`${prof.weight_kg} kg`} /> : null}
+            {(prof?.max_hr || bests.max_hr) ? <Stat label="HR max" value={String(prof?.max_hr || bests.max_hr)} /> : null}
             <Stat label="Stërvitje" value={String(bests.rides)} />
-            <Stat label="KM total" value={bests.total_km > 0 ? fmt(bests.total_km, 0) : "—"} />
+            {bests.total_km > 0 ? <Stat label="KM total" value={fmt(bests.total_km, 0)} /> : null}
           </div>
 
-          {/* Power curve */}
-          <div style={CARD}>
-            <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, margin: "0 0 12px" }}>Rekordet e fuqisë</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: 10 }}>
-              {curve.map((p) => (
-                <div key={p.label} style={{ padding: "10px 12px", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 8, textAlign: "center" }}>
-                  <div className="mono" style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--ink-3)" }}>{p.label}</div>
-                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, marginTop: 4 }}>{p.w ?? "—"}<span style={{ fontSize: 11, color: "var(--ink-3)", fontWeight: 400 }}>{p.w ? " W" : ""}</span></div>
-                </div>
-              ))}
+          {/* Power curve — only records that exist. */}
+          {curve.some((p) => p.w != null) ? (
+            <div style={CARD}>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, margin: "0 0 12px" }}>Rekordet e fuqisë</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: 10 }}>
+                {curve.filter((p) => p.w != null).map((p) => (
+                  <div key={p.label} style={{ padding: "10px 12px", border: "1px solid color-mix(in oklab, var(--ink, #0f1a2e) 8%, transparent)", borderRadius: 10, textAlign: "center" }}>
+                    <div className="mono" style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--ink-3)" }}>{p.label}</div>
+                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, marginTop: 4 }}>{p.w}<span style={{ fontSize: 11, color: "var(--ink-3)", fontWeight: 400 }}> W</span></div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
             <div style={CARD}>

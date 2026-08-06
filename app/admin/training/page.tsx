@@ -32,6 +32,16 @@ export default async function TrainingPage() {
     .limit(80);
   const rows = (data as unknown as RideRow[] | null) ?? [];
 
+  const view = rows.map((r) => ({
+    r,
+    parts: r.entries.filter((e) => e.participated).length,
+    km: sum(r.entries.map((e) => e.distance_km)),
+    title: r.title || r.focus || "Stërvitje",
+    hasFocusSub: !!(r.focus && r.title),
+    dateShort: new Date(r.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short" }),
+    dateLong: new Date(r.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short", year: "numeric" }),
+  }));
+
   return (
     <>
       <div className="page-head">
@@ -48,53 +58,62 @@ export default async function TrainingPage() {
         <Link className="meta" href="/admin/training/progress" style={{ color: "var(--ember-deep)" }}>Progresi mujor →</Link>
       </div>
 
-      <div className="table-wrap">
-        <table className="t ex-table">
+      {/* Mobile: modern cards */}
+      <div className="ex-cards">
+        {view.length === 0 ? (
+          <div className="ex-empty">Ende asnjë stërvitje. Fillo me “+ Stërvitje e re”.</div>
+        ) : (
+          view.map(({ r, parts, km, title, hasFocusSub, dateShort }) => (
+            <Link key={r.id} href={`/admin/training/${r.id}`} className="ex-card">
+              <div className="ex-card-top">
+                <span className="ex-card-title">{title}</span>
+                <span className="ex-card-date">{dateShort}</span>
+              </div>
+              {(r.section || hasFocusSub || r.location) && (
+                <div className="ex-card-meta">
+                  {r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : null}
+                  {hasFocusSub ? <span className="ex-card-sub">{r.focus}</span> : null}
+                  {r.location ? <span className="ex-card-sub">{r.location}</span> : null}
+                </div>
+              )}
+              {(parts > 0 || km > 0) && (
+                <div className="ex-card-stats">
+                  {parts > 0 ? <span className="ex-pill"><b>{parts}</b> çiklistë</span> : null}
+                  {km > 0 ? <span className="ex-pill"><b>{fmt(km, 1)}</b> km</span> : null}
+                </div>
+              )}
+            </Link>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="ex-desktop table-wrap">
+        <table className="t">
           <thead>
-            <tr>
-              <th>Stërvitja</th>
-              <th>Data</th>
-              <th>Seksioni</th>
-              <th>Çiklistë</th>
-              <th>KM</th>
-              <th>Veprime</th>
-            </tr>
+            <tr><th>Stërvitja</th><th>Data</th><th>Seksioni</th><th>Çiklistë</th><th>KM</th><th>Veprime</th></tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
-                  Ende asnjë stërvitje. Fillo me “+ Stërvitje e re”.
-                </td>
-              </tr>
+            {view.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Ende asnjë stërvitje. Fillo me “+ Stërvitje e re”.</td></tr>
             ) : (
-              rows.map((r) => {
-                const parts = r.entries.filter((e) => e.participated).length;
-                const km = sum(r.entries.map((e) => e.distance_km));
-                const dateLabel = new Date(r.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short", year: "numeric" });
-                return (
-                  <tr key={r.id}>
-                    <td>
-                      <Link href={`/admin/training/${r.id}`} style={{ fontWeight: 600 }}>
-                        {r.title || r.focus || "Stërvitje"}
-                      </Link>
-                      {(r.focus && r.title) || r.location ? (
-                        <div style={{ marginTop: 3, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                          {r.focus && r.title ? <small className="mono" style={{ color: "var(--ink-3)", fontSize: 11 }}>{r.focus}</small> : null}
-                          {r.location ? <small className="mono" style={{ color: "var(--ink-3)", fontSize: 11 }}>{r.focus && r.title ? "· " : ""}{r.location}</small> : null}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="mono" data-label="Data">{dateLabel}</td>
-                    <td data-label="Seksioni">{r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : "—"}</td>
-                    <td className="mono" data-label="Çiklistë">{parts}</td>
-                    <td className="mono" data-label="KM">{km > 0 ? fmt(km, 1) : "—"}</td>
-                    <td className="actions">
-                      <Link className="btn btn-ghost btn-sm" href={`/admin/training/${r.id}`}>Hap</Link>
-                    </td>
-                  </tr>
-                );
-              })
+              view.map(({ r, parts, km, title, hasFocusSub, dateLong }) => (
+                <tr key={r.id}>
+                  <td>
+                    <Link href={`/admin/training/${r.id}`} style={{ fontWeight: 600 }}>{title}</Link>
+                    {hasFocusSub || r.location ? (
+                      <div style={{ marginTop: 3, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>
+                        {hasFocusSub ? r.focus : ""}{hasFocusSub && r.location ? " · " : ""}{r.location ?? ""}
+                      </div>
+                    ) : null}
+                  </td>
+                  <td className="mono">{dateLong}</td>
+                  <td>{r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : "—"}</td>
+                  <td className="mono">{parts}</td>
+                  <td className="mono">{km > 0 ? fmt(km, 1) : "—"}</td>
+                  <td className="actions"><Link className="btn btn-ghost btn-sm" href={`/admin/training/${r.id}`}>Hap</Link></td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>

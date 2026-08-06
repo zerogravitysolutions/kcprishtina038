@@ -54,7 +54,7 @@ export default async function PortalDashboard() {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
+      <div className="portal-hero-head">
         <div>
           <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 36, letterSpacing: "-0.03em", margin: 0 }}>
             Mirë se erdhe, <em style={{ fontStyle: "italic", fontVariationSettings: "'wdth' 75", color: "var(--ember)" }}>{first}</em>.
@@ -73,27 +73,31 @@ export default async function PortalDashboard() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 24 }}>
+      <div className="portal-duo">
         <div className="pcard" style={{ background: "var(--white)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 16, padding: 24, boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0 }}>Gara jote e ardhshme</h2>
             {nextReg ? <span className="kicker" style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--ember)" }}>{nextReg.status}</span> : null}
           </div>
 
-          <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "64px 1fr", gap: 16 }}>
-            <div style={{ textAlign: "center", padding: "10px 0", background: nextReg ? "var(--ember)" : "var(--ink-2)", color: "var(--paper)", borderRadius: 8 }}>
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, lineHeight: 1, letterSpacing: "-0.02em" }}>{daysLabel ?? "—"}</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", marginTop: 4 }}>ditë</div>
-            </div>
-            <div>
-              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, letterSpacing: "-0.015em", margin: 0 }}>
-                {nextReg?.event?.title_sq ?? "—"}
-              </h3>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".06em", color: "var(--ink-3)", marginTop: 4 }}>
-                {raceLine}
+          {nextReg?.event ? (
+            <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "64px 1fr", gap: 16 }}>
+              <div style={{ textAlign: "center", padding: "10px 0", background: "var(--ember)", color: "var(--paper)", borderRadius: 8 }}>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, lineHeight: 1, letterSpacing: "-0.02em" }}>{daysLabel}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", marginTop: 4 }}>ditë</div>
+              </div>
+              <div>
+                <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, letterSpacing: "-0.015em", margin: 0 }}>
+                  {nextReg.event.title_sq}
+                </h3>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".06em", color: "var(--ink-3)", marginTop: 4 }}>
+                  {raceLine}
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <p style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 12.5, lineHeight: 1.6, color: "var(--ink-3)" }}>{raceLine}</p>
+          )}
         </div>
 
         <div className="pcard dark" style={{ background: "var(--ink)", color: "var(--paper)", borderRadius: 16, padding: 24, boxShadow: "0 1px 2px rgba(15,26,46,.06), 0 10px 28px rgba(15,26,46,.10)" }}>

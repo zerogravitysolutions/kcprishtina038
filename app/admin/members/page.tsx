@@ -36,6 +36,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     .maybeSingle();
   const profile = profileRow as { id: string; role: string; status: string } | null;
   if (!profile) redirect("/login");
+  if (!["admin", "editor", "staff"].includes(profile.role)) redirect("/admin/dashboard");
   const canChangeRole = profile.role === "admin";
 
   const sp = await searchParams;

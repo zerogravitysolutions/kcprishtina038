@@ -18,6 +18,9 @@ export default async function PortalLayout({ children }: { children: React.React
     const { data } = await supabase.from("sections").select("name_sq").eq("id", profile.section_id).maybeSingle();
     sectionName = (data as { name_sq: string } | null)?.name_sq ?? null;
   }
+  // Is this login linked to a cyclist on the roster? (Enables the training pages.)
+  const { data: athleteRows } = await supabase.from("team_members").select("id").eq("profile_id", profile.id).limit(1);
+  const isAthlete = ((athleteRows as { id: string }[] | null)?.length ?? 0) > 0;
   const roleLine = profile.role === "member" ? "Anëtar" : profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
   const subline = sectionName ? `${roleLine} · ${sectionName}` : roleLine;
 
@@ -35,8 +38,16 @@ export default async function PortalLayout({ children }: { children: React.React
         <Link className="nav-item" href="/portal">Paneli</Link>
         <Link className="nav-item" href="/portal/profile">Profili & dokumentet</Link>
 
+        {isAthlete && (
+          <>
+            <div className="group" style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--ink-3)", padding: "16px 8px 6px" }}>Stërvitja</div>
+            <Link className="nav-item" href={"/portal/training" as never}>Stërvitjet</Link>
+            <Link className="nav-item" href={"/portal/performance" as never}>Performanca</Link>
+          </>
+        )}
+
         <div className="group" style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--ink-3)", padding: "16px 8px 6px" }}>Klubi</div>
-        <Link className="nav-item" href={"/races" as never}>Garat</Link>
+        <Link className="nav-item" href={"/races" as never}>Garat & rezultatet</Link>
         <Link className="nav-item" href={"/#disciplines" as never}>Seksionet</Link>
 
         <form action={signOut} style={{ marginTop: "auto" }}>

@@ -17,9 +17,9 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
   {
     group: "Roster",
     items: [
-      { id: "members", label: "Members (llogaritë)", href: "/admin/members" },
+      { id: "members", label: "Members (llogaritë)", href: "/admin/members", allow: ["admin", "editor", "staff"] },
       { id: "team-members", label: "Team (ekipi publik)", href: "/admin/team-members", allow: ["admin", "editor"] },
-      { id: "sections", label: "Sections", href: "/admin/sections" },
+      { id: "sections", label: "Sections", href: "/admin/sections", allow: ["admin", "editor", "staff"] },
     ],
   },
   {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AdminNavIcon, type AdminIcon } from "./AdminNav";
@@ -10,7 +11,10 @@ export type MobileNavGroup = { group: string; items: MobileNavItem[] };
 
 export function MobileNav({ groups, profileName, profileRole }: { groups: MobileNavGroup[]; profileName: string; profileRole: string }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => { setMounted(true); }, []);
 
   // Close on route change
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -46,7 +50,10 @@ export function MobileNav({ groups, profileName, profileRole }: { groups: Mobile
         </svg>
       </button>
 
-      {open && (
+      {/* Portal to <body> so the fixed drawer escapes the top bar's stacking
+          context (the top bar uses backdrop-filter, which would otherwise trap
+          fixed children inside its ~56px box). */}
+      {open && mounted && createPortal(
         <>
           <div className="mobile-nav-backdrop" onClick={() => setOpen(false)} />
           <aside className="mobile-nav-drawer" role="dialog" aria-label="Menyja kryesore">
@@ -75,7 +82,8 @@ export function MobileNav({ groups, profileName, profileRole }: { groups: Mobile
               ))}
             </nav>
           </aside>
-        </>
+        </>,
+        document.body,
       )}
     </>
   );

@@ -19,6 +19,8 @@ function rel(iso: string) {
 export default async function AdminDashboard() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
+  // Coaches don't use the dashboard — their home is the monthly progress.
+  if (profile.role === "coach") redirect("/admin/training/progress");
   const supabase = await createClient();
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
   const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString().slice(0, 10);

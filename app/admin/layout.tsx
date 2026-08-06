@@ -10,7 +10,7 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
   {
     group: "Workspace",
     items: [
-      { id: "dashboard", label: "Dashboard", href: "/admin/dashboard" },
+      { id: "dashboard", label: "Dashboard", href: "/admin/dashboard", allow: ["admin", "editor", "staff"] },
       { id: "applications", label: "Applications", href: "/admin/applications", allow: ["admin", "editor", "staff"] },
     ],
   },
@@ -27,7 +27,7 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
     items: [
       // Results now live inside each event (/admin/events/<id>/results),
       // so the standalone /admin/results entry is gone.
-      { id: "events", label: "Events", href: "/admin/events" },
+      { id: "events", label: "Events", href: "/admin/events", allow: ["admin", "editor", "staff"] },
       { id: "races", label: "Garat (katalogu)", href: "/admin/races", allow: ["admin", "editor"] },
     ],
   },

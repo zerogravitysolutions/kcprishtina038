@@ -17,7 +17,10 @@ export function LoginForm({ next }: { next: string | null }) {
     start(async () => {
       const result = await login(email, password);
       if (!result.ok) { setError(result.error); return; }
-      const dest = next && next.startsWith("/") ? next : (result.role === "member" ? "/portal" : "/admin/dashboard");
+      const dest = next && next.startsWith("/") ? next
+        : result.role === "member" ? "/portal"
+        : result.role === "coach" ? "/admin/training/progress"
+        : "/admin/dashboard";
       router.push(dest as never);
       router.refresh();
     });

@@ -94,11 +94,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </div>
           );
         })}
-        <form action={adminSignOut} style={{ marginTop: "auto", padding: "8px 0" }}>
-          <button type="submit" className="nav-item" style={{ width: "100%", textAlign: "left", background: "transparent", border: 0, color: "var(--err, #c25a2d)", cursor: "pointer" }}>
-            Sign out →
-          </button>
-        </form>
         <div className="me">
           <div className="avatar">{initials(profile.full_name)}</div>
           <div className="who">
@@ -106,6 +101,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span>{profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}</span>
           </div>
         </div>
+        <form action={adminSignOut} style={{ padding: "4px 0 2px" }}>
+          <button type="submit" className="nav-item" style={{ width: "100%", textAlign: "left", background: "transparent", border: 0, color: "var(--err, #c25a2d)", cursor: "pointer" }}>
+            Sign out →
+          </button>
+        </form>
       </aside>
       <header className="top">
         <MobileNav groups={mobileGroups} profileName={profile.full_name} profileRole={profile.role} />

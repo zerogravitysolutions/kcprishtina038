@@ -99,14 +99,18 @@ button { font-family: inherit; }
 }
 .side a.nav-item:hover { background: rgba(244,242,236,.06); color: var(--paper); }
 .side a.nav-item.active {
-  background: rgba(244,242,236,.10);
+  background: rgba(244,242,236,.12);
   color: var(--paper);
+  font-weight: 600;
 }
 .side a.nav-item .ic {
   width: 18px; height: 18px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  color: inherit;
+  color: inherit; opacity: .72;
+  transition: opacity .16s ease, color .16s ease;
 }
+.side a.nav-item:hover .ic { opacity: 1; }
+.side a.nav-item.active .ic { color: var(--teal); opacity: 1; }
 .side a.nav-item .badge {
   margin-left: auto;
   background: var(--ember);
@@ -115,12 +119,28 @@ button { font-family: inherit; }
   font-size: 10px; letter-spacing: .04em; font-weight: 500;
   padding: 2px 7px; border-radius: 999px;
 }
+.side-foot { margin-top: auto; padding-top: 4px; }
 .side .me {
-  margin-top: auto;
   padding: 12px 10px;
   border-top: 1px solid rgba(244,242,236,.10);
   display: flex; align-items: center; gap: 10px;
 }
+.side-signout {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 10px; border-radius: 8px;
+  width: 100%; text-align: left; cursor: pointer;
+  background: transparent; border: 0;
+  color: color-mix(in oklab, var(--paper) 72%, transparent);
+  font-family: inherit; font-size: 13.5px;
+  transition: background .15s ease, color .15s ease;
+}
+.side-signout .ic {
+  width: 18px; height: 18px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; opacity: .7;
+  transition: opacity .15s ease;
+}
+.side-signout:hover { background: color-mix(in oklab, var(--err, #c24a4a) 26%, transparent); color: #fff; }
+.side-signout:hover .ic { opacity: 1; }
 .side .me .avatar {
   width: 28px; height: 28px; border-radius: 999px;
   background: var(--teal); color: var(--ink);
@@ -633,13 +653,15 @@ table.t .person .nm small {
   color: var(--slate); padding: 14px 12px 6px;
 }
 .mobile-nav-item {
-  display: block;
+  display: flex; align-items: center; gap: 12px;
   padding: 12px 12px;
   border-radius: 8px;
   color: color-mix(in oklab, var(--paper) 80%, transparent);
   font-size: 14.5px;
   min-height: 44px;
 }
+.mobile-nav-item .ic { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; opacity: .75; }
+.mobile-nav-item.active .ic { opacity: 1; color: var(--teal); }
 .mobile-nav-item:hover, .mobile-nav-item.active {
   background: rgba(244,242,236,.10); color: var(--paper);
 }

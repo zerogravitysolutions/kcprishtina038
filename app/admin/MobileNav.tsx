@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AdminNavIcon, type AdminIcon } from "./AdminNav";
 
-export type MobileNavItem = { id: string; label: string; href: string };
+export type MobileNavItem = { id: string; label: string; href: string; icon: AdminIcon };
 export type MobileNavGroup = { group: string; items: MobileNavItem[] };
 
 export function MobileNav({ groups, profileName, profileRole }: { groups: MobileNavGroup[]; profileName: string; profileRole: string }) {
@@ -65,7 +66,9 @@ export function MobileNav({ groups, profileName, profileRole }: { groups: Mobile
                   {g.items.map(it => {
                     const active = pathname === it.href || (it.href !== "/admin/dashboard" && pathname?.startsWith(it.href + "/"));
                     return (
-                      <Link key={it.id} href={it.href} className={`mobile-nav-item ${active ? "active" : ""}`}>{it.label}</Link>
+                      <Link key={it.id} href={it.href} className={`mobile-nav-item ${active ? "active" : ""}`}>
+                        <span className="ic"><AdminNavIcon name={it.icon} /></span>{it.label}
+                      </Link>
                     );
                   })}
                 </div>

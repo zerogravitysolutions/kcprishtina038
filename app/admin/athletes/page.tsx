@@ -67,9 +67,8 @@ export default async function AthletesPage() {
         <Link className="btn btn-ghost" href="/admin/training/progress">Progresi mujor →</Link>
       </div>
 
-      <div className="scroll-x">
       <div className="table-wrap">
-        <table className="t">
+        <table className="t ex-table">
           <thead>
             <tr>
               <th>Çiklisti</th>
@@ -101,22 +100,21 @@ export default async function AthletesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="mono">
-                      {a.profile?.ftp_w ? <>{a.profile.ftp_w} W{wkg != null ? <small style={{ display: "block", color: "var(--ink-3)", fontSize: 10.5 }}>{wkg} W/kg</small> : null}</> : "—"}
+                    <td className="mono" data-label="FTP">
+                      {a.profile?.ftp_w ? <>{a.profile.ftp_w} W{wkg != null ? <small style={{ color: "var(--ink-3)", fontSize: 10.5 }}> · {wkg} W/kg</small> : null}</> : "—"}
                     </td>
-                    <td className="mono">{bests.best_power_5m_w ? `${bests.best_power_5m_w} W` : "—"}</td>
-                    <td className="mono">{bests.best_power_10m_w ? `${bests.best_power_10m_w} W` : "—"}</td>
-                    <td className="mono">{bests.best_power_20m_w ? `${bests.best_power_20m_w} W` : "—"}</td>
-                    <td className="mono">{bests.rides}</td>
-                    <td className="mono">{bests.total_km > 0 ? fmt(bests.total_km, 0) : "—"}</td>
-                    <td className="mono">{last ? new Date(last + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short" }) : "—"}</td>
+                    <td className="mono" data-label="5 min">{bests.best_power_5m_w ? `${bests.best_power_5m_w} W` : "—"}</td>
+                    <td className="mono" data-label="10 min">{bests.best_power_10m_w ? `${bests.best_power_10m_w} W` : "—"}</td>
+                    <td className="mono" data-label="20 min">{bests.best_power_20m_w ? `${bests.best_power_20m_w} W` : "—"}</td>
+                    <td className="mono" data-label="Stërvitje">{bests.rides}</td>
+                    <td className="mono" data-label="KM total">{bests.total_km > 0 ? fmt(bests.total_km, 0) : "—"}</td>
+                    <td className="mono" data-label="Fundit">{last ? new Date(last + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short" }) : "—"}</td>
                   </tr>
                 );
               })
             )}
           </tbody>
         </table>
-      </div>
       </div>
     </>
   );

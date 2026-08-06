@@ -821,6 +821,24 @@ table.t .person .nm small {
   .athlete-cols { grid-template-columns: 1fr !important; }
 }
 
+/* Progress table → one card per cyclist on mobile (no sideways scroll). */
+.pt-mobile { display: none; }
+@media (max-width: 800px) {
+  .pt-desktop { display: none; }
+  .pt-mobile { display: block; }
+  .pt-sort { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .pt-sort-label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); flex-shrink: 0; }
+  .pt-sort select { flex: 1; min-width: 0; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--white); color: var(--ink); font-size: 13.5px; }
+  .pt-dir { width: 42px; height: 40px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--white); color: var(--ink); cursor: pointer; font-size: 16px; flex-shrink: 0; }
+  .pt-card { background: var(--white); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05); padding: 14px 16px; margin-bottom: 10px; }
+  .pt-card-name { font-family: var(--font-display); font-weight: 700; font-size: 15.5px; letter-spacing: -.01em; margin-bottom: 12px; }
+  .pt-card-name a { color: var(--ink); }
+  .pt-card-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; }
+  .pt-stat .k { display: block; font-family: var(--font-mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .pt-stat .v { display: block; font-family: var(--font-mono); font-size: 14px; color: var(--ink); font-feature-settings: "tnum" 1; margin-top: 3px; }
+  .pt-empty { padding: 24px; text-align: center; color: var(--ink-3); font-family: var(--font-mono); font-size: 12.5px; background: var(--white); border: 1px solid var(--line); border-radius: 14px; }
+}
+
 /* Exercises list — tidy labeled card on mobile. The generic stacked-table
    transform hides the header, leaving bare numbers; here the exercise name is
    the card title and each stat gets an inline label + right-aligned value. */

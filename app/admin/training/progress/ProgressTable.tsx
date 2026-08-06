@@ -54,7 +54,7 @@ export function ProgressTable({ rows }: { rows: ProgressRow[] }) {
       const an = typeof av === "number" ? av : null;
       const bn = typeof bv === "number" ? bv : null;
       if (an == null && bn == null) return 0;
-      if (an == null) return 1;  // nulls last regardless of dir
+      if (an == null) return 1;
       if (bn == null) return -1;
       return dir === "asc" ? an - bn : bn - an;
     }
@@ -68,40 +68,78 @@ export function ProgressTable({ rows }: { rows: ProgressRow[] }) {
     setDir(numeric ? "desc" : "asc");
   }
 
+  const statCols = COLS.filter((c) => c.numeric);
+
   return (
-    <div className="table-wrap">
-      <table className="t">
-        <thead>
-          <tr>
-            {COLS.map((c) => (
-              <th
-                key={c.key}
-                onClick={() => onSort(c.key, c.numeric)}
-                style={{ cursor: "pointer", whiteSpace: "nowrap", userSelect: "none", textAlign: c.numeric ? "right" : "left" }}
-              >
-                {c.label}{sortKey === c.key ? (dir === "asc" ? " ▲" : " ▼") : ""}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.length === 0 ? (
-            <tr><td colSpan={COLS.length} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Asnjë çiklist.</td></tr>
-          ) : (
-            sorted.map((r) => (
-              <tr key={r.athlete_id}>
+    <>
+      {/* Mobile: sort control + one card per cyclist */}
+      <div className="pt-mobile">
+        <div className="pt-sort">
+          <span className="pt-sort-label">Rendit</span>
+          <select
+            value={sortKey}
+            onChange={(e) => { const c = COLS.find((x) => x.key === e.target.value); setSortKey(e.target.value); setDir(c && !c.numeric ? "asc" : "desc"); }}
+          >
+            {COLS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+          </select>
+          <button type="button" className="pt-dir" onClick={() => setDir((d) => (d === "asc" ? "desc" : "asc"))} aria-label="Kthe renditjen">
+            {dir === "asc" ? "↑" : "↓"}
+          </button>
+        </div>
+        {sorted.length === 0 ? (
+          <div className="pt-empty">Asnjë çiklist.</div>
+        ) : (
+          sorted.map((r) => (
+            <div className="pt-card" key={r.athlete_id}>
+              <div className="pt-card-name"><Link href={`/admin/athletes/${r.athlete_id}`}>{r.name}</Link></div>
+              <div className="pt-card-stats">
+                {statCols.map((c) => (
+                  <div className="pt-stat" key={c.key}>
+                    <span className="k">{c.label}</span>
+                    <span className="v">{c.render(r)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: sortable table */}
+      <div className="pt-desktop scroll-x">
+        <div className="table-wrap">
+          <table className="t">
+            <thead>
+              <tr>
                 {COLS.map((c) => (
-                  c.key === "name" ? (
-                    <td key={c.key}><Link href={`/admin/athletes/${r.athlete_id}`} style={{ fontWeight: 600 }}>{r.name}</Link></td>
-                  ) : (
-                    <td key={c.key} className="mono" style={{ textAlign: "right" }}>{c.render(r)}</td>
-                  )
+                  <th
+                    key={c.key}
+                    onClick={() => onSort(c.key, c.numeric)}
+                    style={{ cursor: "pointer", whiteSpace: "nowrap", userSelect: "none", textAlign: c.numeric ? "right" : "left" }}
+                  >
+                    {c.label}{sortKey === c.key ? (dir === "asc" ? " ▲" : " ▼") : ""}
+                  </th>
                 ))}
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+            </thead>
+            <tbody>
+              {sorted.length === 0 ? (
+                <tr><td colSpan={COLS.length} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Asnjë çiklist.</td></tr>
+              ) : (
+                sorted.map((r) => (
+                  <tr key={r.athlete_id}>
+                    {COLS.map((c) => (
+                      c.key === "name"
+                        ? <td key={c.key}><Link href={`/admin/athletes/${r.athlete_id}`} style={{ fontWeight: 600 }}>{r.name}</Link></td>
+                        : <td key={c.key} className="mono" style={{ textAlign: "right" }}>{c.render(r)}</td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   );
 }

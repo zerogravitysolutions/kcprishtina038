@@ -130,9 +130,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
         <span className="meta">{totalParticipations} pjesëmarrje · {fmt(totalKm, 0)} km · {fmt(totalHours, 1)} orë</span>
       </div>
 
-      <div className="scroll-x">
-        <ProgressTable rows={rows} />
-      </div>
+      <ProgressTable rows={rows} />
     </>
   );
 }

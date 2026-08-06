@@ -8,7 +8,7 @@ export const revalidate = 0;
 
 type EntryRow = EntryLike & { ride: { ride_date: string } | null };
 
-const CARD = { background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 12, padding: 18 } as const;
+const CARD = { background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 16, padding: 18, boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05)" } as const;
 
 export default async function PortalPerformancePage() {
   const profile = await getProfile();

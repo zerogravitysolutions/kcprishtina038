@@ -74,7 +74,7 @@ export default async function PortalDashboard() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 24 }}>
-        <div className="pcard" style={{ background: "var(--white)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 14, padding: 24 }}>
+        <div className="pcard" style={{ background: "var(--white)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 16, padding: 24, boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0 }}>Gara jote e ardhshme</h2>
             {nextReg ? <span className="kicker" style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--ember)" }}>{nextReg.status}</span> : null}
@@ -96,7 +96,7 @@ export default async function PortalDashboard() {
           </div>
         </div>
 
-        <div className="pcard dark" style={{ background: "var(--ink)", color: "var(--paper)", borderRadius: 14, padding: 24 }}>
+        <div className="pcard dark" style={{ background: "var(--ink)", color: "var(--paper)", borderRadius: 16, padding: 24, boxShadow: "0 1px 2px rgba(15,26,46,.06), 0 10px 28px rgba(15,26,46,.10)" }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0, color: "var(--paper)" }}>Anëtarësia</h2>
           <div style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--slate)" }}>
             {dues.length === 0 ? "Status: paguar / s'ka pagesa të krijuara" : `${dues.length} të papaguara · €${unpaidTotal.toFixed(2)}`}

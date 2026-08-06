@@ -105,10 +105,10 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
       </div>
 
       <div className="kpi-grid" style={{ marginBottom: 16 }}>
-        <Kpi label="Pjesëmarrje" value={String(totalParticipations)} sub={monthLabel(year, month0)} />
-        <Kpi label="Kilometra" value={fmt(totalKm, 0)} sub="km këtë muaj" />
-        <Kpi label="Orë" value={fmt(totalHours, 1)} sub="orë këtë muaj" />
-        <Kpi label="Çiklistë aktivë" value={String(activeRiders)} sub={`nga ${rows.length}`} />
+        <Kpi accent="#C25A2D" label="Pjesëmarrje" value={String(totalParticipations)} sub={monthLabel(year, month0)} />
+        <Kpi accent="#6FAAA8" label="Kilometra" value={fmt(totalKm, 0)} sub="km këtë muaj" />
+        <Kpi accent="#1B2742" label="Orë" value={fmt(totalHours, 1)} sub="orë këtë muaj" />
+        <Kpi accent="#2E8B57" label="Çiklistë aktivë" value={String(activeRiders)} sub={`nga ${rows.length}`} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 16 }}>
@@ -137,10 +137,13 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
   );
 }
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Kpi({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
   return (
     <div className="kpi">
-      <div className="lab">{label}</div>
+      <div className="lab" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {accent ? <span style={{ width: 7, height: 7, borderRadius: 999, background: accent, flexShrink: 0 }} /> : null}
+        {label}
+      </div>
       <div className="val">{value}</div>
       {sub ? <div className="delta">{sub}</div> : null}
     </div>

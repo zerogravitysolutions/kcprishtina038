@@ -47,7 +47,7 @@ export default async function PortalTrainingPage() {
         <EmptyState />
       ) : (
         <>
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", margin: "22px 0", padding: "16px 20px", background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 12 }}>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", margin: "22px 0", padding: "16px 20px", background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 16, boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05)" }}>
             <Stat label="Stërvitje" value={String(bests.rides)} />
             <Stat label="KM total" value={bests.total_km > 0 ? fmt(bests.total_km, 0) : "—"} />
             <Stat label="Orë total" value={bests.total_seconds > 0 ? fmt(toHours(bests.total_seconds), 1) : "—"} />
@@ -59,7 +59,7 @@ export default async function PortalTrainingPage() {
           ) : (
             <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
               {rides.map((e) => (
-                <div key={e.id} style={{ background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 12, padding: "14px 16px" }}>
+                <div key={e.id} style={{ background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
                     <strong style={{ fontFamily: "var(--font-display)", fontSize: 15 }}>{e.ride?.title || e.ride?.focus || "Stërvitje"}</strong>
                     <span className="mono" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>
@@ -86,7 +86,7 @@ export default async function PortalTrainingPage() {
 
 function EmptyState() {
   return (
-    <div style={{ marginTop: 24, padding: 20, background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 12, color: "var(--ink-3)", fontSize: 14 }}>
+    <div style={{ marginTop: 24, padding: 20, background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 16, boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05)", color: "var(--ink-3)", fontSize: 14 }}>
       Nuk je i lidhur ende si çiklist. Kontakto trajnerin që të lidhë llogarinë tënde me profilin e çiklistit.
     </div>
   );

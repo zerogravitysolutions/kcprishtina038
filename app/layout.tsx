@@ -4,6 +4,10 @@ import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 
+// Co-locate SSR/functions with the Supabase project (eu-central-1, Frankfurt)
+// so DB round-trips are local (~ms) instead of transatlantic (~100ms each).
+export const preferredRegion = "fra1";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://prishtina038.cc"),
   title: { default: "KÇ Prishtina 038 — Klubi Çiklistik i Prishtinës", template: "%s · KÇ Prishtina 038" },

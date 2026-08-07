@@ -1,7 +1,22 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+
+const MEMBER_ROLES = ["admin", "editor", "staff", "coach", "member"];
+const MEMBER_STATUSES = ["active", "inactive", "suspended", "pending"];
+
+/** Confirm the caller is a signed-in admin. Returns their id or an error. */
+async function requireAdmin(): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Nuk je i kyçur." };
+  const { data } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const role = (data as { role: string } | null)?.role;
+  if (role !== "admin") return { ok: false, error: "Vetëm admini mund ta bëjë këtë veprim." };
+  return { ok: true, id: user.id };
+}
 
 export async function adminSignOut() {
   const supabase = await createClient();
@@ -39,5 +54,72 @@ export async function setUserRole(targetId: string, newRole: string): Promise<{ 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/members");
   revalidatePath("/admin/staff");
+  return { ok: true };
+}
+
+// ---------- Member (account) management — admin only ----------
+
+/** Create an auth user + promote their auto-created profile. */
+export async function createMember(input: { full_name: string; email: string; password: string; role: string }): Promise<{ ok: boolean; error?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+
+  const full_name = (input.full_name ?? "").trim();
+  const email = (input.email ?? "").trim().toLowerCase();
+  const password = input.password ?? "";
+  const role = MEMBER_ROLES.includes(input.role) ? input.role : "member";
+  if (full_name.length < 2) return { ok: false, error: "Shkruaj emrin e plotë." };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Email-i nuk është valid." };
+  if (password.length < 8) return { ok: false, error: "Fjalëkalimi duhet të ketë së paku 8 karaktere." };
+
+  let admin;
+  try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
+
+  const { data: created, error: cErr } = await admin.auth.admin.createUser({
+    email, password, email_confirm: true, user_metadata: { full_name },
+  });
+  if (cErr || !created?.user) {
+    const msg = cErr?.message ?? "Krijimi i llogarisë dështoi.";
+    return { ok: false, error: /already been registered|exists/i.test(msg) ? "Ky email është i regjistruar tashmë." : msg };
+  }
+
+  // handle_new_user trigger already inserted a profile (member / pending) — promote it.
+  const { error: uErr } = await admin.from("profiles")
+    .update({ full_name, role, status: "active", joined_at: new Date().toISOString().slice(0, 10) })
+    .eq("id", created.user.id);
+  if (uErr) return { ok: false, error: `Llogaria u krijua, por profili s'u përditësua: ${uErr.message}` };
+
+  revalidatePath("/admin/members");
+  revalidatePath("/admin/dashboard");
+  return { ok: true };
+}
+
+/** Activate / deactivate (or suspend) a member — flips profiles.status. */
+export async function setMemberStatus(targetId: string, status: string): Promise<{ ok: boolean; error?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  if (targetId === gate.id) return { ok: false, error: "Nuk mund të çaktivizosh llogarinë tënde." };
+  if (!MEMBER_STATUSES.includes(status)) return { ok: false, error: "Status jo valid." };
+
+  let admin;
+  try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
+  const { error } = await admin.from("profiles").update({ status }).eq("id", targetId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/members");
+  return { ok: true };
+}
+
+/** Permanently delete a member's auth user (profile cascades). */
+export async function deleteMember(targetId: string): Promise<{ ok: boolean; error?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  if (targetId === gate.id) return { ok: false, error: "Nuk mund të fshish llogarinë tënde." };
+
+  let admin;
+  try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
+  const { error } = await admin.auth.admin.deleteUser(targetId);
+  if (error) return { ok: false, error: `${error.message} — nëse ka të dhëna të lidhura, përdor 'Çaktivizo'.` };
+  revalidatePath("/admin/members");
+  revalidatePath("/admin/dashboard");
   return { ok: true };
 }

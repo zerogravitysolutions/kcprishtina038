@@ -2,6 +2,8 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { RolePicker } from "./RolePicker";
+import { AddMember } from "./AddMember";
+import { MemberActions } from "./MemberActions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -83,21 +85,22 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         <div>
           <h1>Members</h1>
           <div className="sub">
-            {rows.length} {roleFilter ? `me rolin "${ROLE_LABEL[roleFilter]}"` : "në bazë"} ·
-            admin mund të ndryshojë rolin direkt këtu
+            {rows.length} {roleFilter ? `me rolin "${ROLE_LABEL[roleFilter]}"` : "në bazë"}
+            {canChangeRole ? " · admin mund të shtojë, ndryshojë rolin, çaktivizojë ose fshijë" : ""}
           </div>
         </div>
       </div>
-      <div className="filter-bar" style={{ borderRadius: 12, border: "1px solid var(--line)", marginBottom: 12 }}>
+      {canChangeRole ? <div style={{ marginBottom: 16 }}><AddMember /></div> : null}
+      <div className="filter-bar" style={{ marginBottom: 12 }}>
         {chip(null, "Të gjithë")}
         {ROLES.map((r) => chip(r, ROLE_LABEL[r]))}
       </div>
       <div className="table-wrap">
         <table className="t">
-          <thead><tr><th>Anëtari</th><th>Seksioni</th><th>Roli</th><th>U bashkua</th><th>Statusi</th></tr></thead>
+          <thead><tr><th>Anëtari</th><th>Seksioni</th><th>Roli</th><th>U bashkua</th><th>Statusi</th>{canChangeRole ? <th>Veprime</th> : null}</tr></thead>
           <tbody>
             {rows.length === 0
-              ? <tr><td colSpan={5} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka anëtarë në këtë filtër.</td></tr>
+              ? <tr><td colSpan={canChangeRole ? 6 : 5} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka anëtarë në këtë filtër.</td></tr>
               : rows.map(r => (
                 <tr key={r.id}>
                   <td><div className="person"><div className="avatar">{initials(r.full_name)}</div><div className="nm">{r.full_name}<small>{r.email}</small></div></div></td>
@@ -109,6 +112,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
                   </td>
                   <td className="mono">{r.joined_at ? new Date(r.joined_at).toLocaleDateString("sq", { month: "short", year: "numeric" }) : "—"}</td>
                   <td><span className={`badge-st ${r.status === "active" ? "ok" : r.status === "pending" ? "warn" : "err"}`}>{r.status}</span></td>
+                  {canChangeRole ? <td className="actions"><MemberActions id={r.id} name={r.full_name} status={r.status} isSelf={r.id === user.id} /></td> : null}
                 </tr>
               ))}
           </tbody>

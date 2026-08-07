@@ -65,6 +65,8 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
   function submit() {
     setErr(null);
     if (!rideDate) { setErr("Zgjidh datën."); return; }
+    if (!title.trim()) { setErr("Shkruaj titullin."); return; }
+    if (!focus) { setErr("Zgjidh llojin e ushtrimit."); return; }
     if (selected.length === 0) { setErr("Zgjidh së paku një çiklist."); return; }
     const sec = duration.trim() ? parseDurationToSeconds(duration) : null;
     start(async () => {
@@ -91,8 +93,8 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
           <input type="date" value={rideDate} onChange={(e) => setRideDate(e.target.value)} required />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Titulli</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Opsionale" />
+          <label>Titulli <span style={{ color: "var(--accent)" }}>*</span></label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="p.sh. Germia 4×2.5 VO2Max" required />
         </div>
       </div>
 
@@ -105,8 +107,8 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Lloji</label>
-          <select name="kc-focus" autoComplete="off" value={focus} onChange={(e) => setFocus(e.target.value)}>
+          <label>Lloji i ushtrimit <span style={{ color: "var(--accent)" }}>*</span></label>
+          <select name="kc-focus" autoComplete="off" value={focus} onChange={(e) => setFocus(e.target.value)} required>
             <option value="">— Zgjidh —</option>
             {TRAINING_FOCUS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
@@ -122,7 +124,7 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
       {/* Bazë — shared, inherited by each cyclist. */}
       <div>
         <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 6 }}>
-          Bazë <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· për të gjithë</span>
+          Bazë <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· për të gjithë · manual ose nga Strava</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           <div className="field" style={{ marginBottom: 0 }}>

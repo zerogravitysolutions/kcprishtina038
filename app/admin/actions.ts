@@ -123,3 +123,60 @@ export async function deleteMember(targetId: string): Promise<{ ok: boolean; err
   revalidatePath("/admin/dashboard");
   return { ok: true };
 }
+
+const SITE_URL = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://kcprishtina038.vercel.app").replace(/\/$/, "");
+const RESET_REDIRECT = () => `${SITE_URL()}/auth/reset-password`;
+
+/** Change a member's login email (instant, no verification email). Syncs profiles.email. */
+export async function updateMemberEmail(targetId: string, newEmail: string): Promise<{ ok: boolean; error?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const email = (newEmail ?? "").trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Email-i nuk është valid." };
+
+  let admin;
+  try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
+  const { error: aErr } = await admin.auth.admin.updateUserById(targetId, { email, email_confirm: true });
+  if (aErr) return { ok: false, error: /registered|exists|already/i.test(aErr.message) ? "Ky email është i zënë nga një llogari tjetër." : aErr.message };
+  const { error: pErr } = await admin.from("profiles").update({ email }).eq("id", targetId);
+  if (pErr) return { ok: false, error: `Email-i i hyrjes u ndryshua, por profili s'u sinkronizua: ${pErr.message}` };
+  revalidatePath("/admin/members");
+  return { ok: true };
+}
+
+/** Set a member's password directly (instant). */
+export async function updateMemberPassword(targetId: string, newPassword: string): Promise<{ ok: boolean; error?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const password = newPassword ?? "";
+  if (password.length < 8) return { ok: false, error: "Fjalëkalimi duhet të ketë së paku 8 karaktere." };
+
+  let admin;
+  try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
+  const { error } = await admin.auth.admin.updateUserById(targetId, { password });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+/** Email the member a password-reset link (needs email delivery configured). */
+export async function sendPasswordReset(email: string): Promise<{ ok: boolean; error?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail((email ?? "").trim().toLowerCase(), { redirectTo: RESET_REDIRECT() });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+/** Generate a copyable recovery link (works without SMTP — admin delivers it). */
+export async function generateResetLink(email: string): Promise<{ ok: boolean; link?: string; error?: string }> {
+  const gate = await requireAdmin();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  let admin;
+  try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
+  const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email: (email ?? "").trim().toLowerCase(), options: { redirectTo: RESET_REDIRECT() } });
+  if (error) return { ok: false, error: error.message };
+  const link = (data as { properties?: { action_link?: string } } | null)?.properties?.action_link;
+  if (!link) return { ok: false, error: "Nuk u gjenerua lidhja." };
+  return { ok: true, link };
+}

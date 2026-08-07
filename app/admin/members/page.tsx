@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { RolePicker } from "./RolePicker";
 import { AddMember } from "./AddMember";
-import { MemberActions } from "./MemberActions";
+import { ManageMember } from "./ManageMember";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -112,7 +112,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
                   </td>
                   <td className="mono">{r.joined_at ? new Date(r.joined_at).toLocaleDateString("sq", { month: "short", year: "numeric" }) : "—"}</td>
                   <td><span className={`badge-st ${r.status === "active" ? "ok" : r.status === "pending" ? "warn" : "err"}`}>{r.status}</span></td>
-                  {canChangeRole ? <td className="actions"><MemberActions id={r.id} name={r.full_name} status={r.status} isSelf={r.id === user.id} /></td> : null}
+                  {canChangeRole ? <td className="actions"><ManageMember id={r.id} name={r.full_name} email={r.email} status={r.status} isSelf={r.id === user.id} /></td> : null}
                 </tr>
               ))}
           </tbody>

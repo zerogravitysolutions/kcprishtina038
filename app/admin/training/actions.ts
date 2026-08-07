@@ -52,6 +52,8 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
     const supabase = await createClient();
 
     if (!input.ride_date) return { ok: false, error: "Data mungon." };
+    if (!input.title?.trim()) return { ok: false, error: "Titulli është i detyrueshëm." };
+    if (!input.focus?.trim()) return { ok: false, error: "Lloji i ushtrimit është i detyrueshëm." };
     const athletes = Array.from(new Set((input.athlete_ids ?? []).filter(Boolean)));
     if (athletes.length === 0) return { ok: false, error: "Zgjidh së paku një çiklist." };
 

@@ -531,3 +531,36 @@ table.t .person .nm small { font-family: var(--font-mono); font-size: 10px; lett
 
 /* Athlete profile: two columns on desktop, stacked on mobile. */
 @media (max-width: 900px) { .athlete-cols { grid-template-columns: 1fr !important; } }
+
+/* ---------- Manage-member modal ---------- */
+.mm-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(16, 24, 40, .5); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px 24px; overflow-y: auto; }
+.mm-panel { width: 100%; max-width: 470px; background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--pop); padding: 20px 22px 22px; }
+.mm-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.mm-head .nm { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: -.01em; color: var(--text-1); line-height: 1.2; }
+.mm-head .em { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-3); margin-top: 4px; word-break: break-all; }
+.mm-x { width: 34px; height: 34px; border: 1px solid var(--line-strong); background: var(--surface-1); border-radius: var(--r-xs); cursor: pointer; color: var(--text-2); flex-shrink: 0; font-size: 15px; }
+.mm-x:hover { background: var(--surface-2); color: var(--text-1); }
+.mm-sec { padding: 15px 0; border-top: 1px solid var(--line); }
+.mm-sec h4 { margin: 0 0 9px; font-family: var(--font-mono); font-weight: 500; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--text-3); }
+.mm-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mm-row input { flex: 1 1 190px; min-width: 0; font-family: var(--font-body); font-size: 14px; padding: 10px 12px; border-radius: var(--r-sm); border: 1px solid var(--line-strong); background: var(--surface-1); color: var(--text-1); }
+.mm-row input:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+.mm-msg { margin-top: 8px; font-size: 12px; font-family: var(--font-mono); }
+.mm-msg.ok { color: var(--ok); }
+.mm-msg.err { color: var(--err); }
+.mm-link { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+.mm-link code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 11px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-xs); padding: 9px 10px; color: var(--text-2); }
+.mm-danger { color: var(--err) !important; border-color: color-mix(in oklab, var(--err) 32%, transparent) !important; background: transparent !important; box-shadow: none !important; }
+
+/* ---------- Row kebab (⋮) menu ---------- */
+.kebab { width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line-strong); background: var(--surface-1); color: var(--text-2); border-radius: var(--r-xs); cursor: pointer; }
+.kebab:hover { background: var(--surface-2); color: var(--text-1); }
+.kebab-backdrop { position: fixed; inset: 0; z-index: 95; background: transparent; }
+.kebab-menu { position: fixed; z-index: 96; min-width: 208px; background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--pop); padding: 6px; }
+.kebab-menu button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: transparent; border: 0; cursor: pointer; padding: 9px 10px; border-radius: var(--r-sm); font-family: var(--font-body); font-size: 13px; color: var(--text-1); }
+.kebab-menu button:hover { background: var(--surface-2); }
+.kebab-menu button:disabled { opacity: .5; cursor: default; }
+.kebab-menu .sep { height: 1px; background: var(--line); margin: 5px 4px; }
+.kebab-menu button.danger { color: var(--err); }
+.kebab-menu button.danger:hover { background: var(--err-bg); }
+.kebab-menu .k-ic { width: 15px; height: 15px; flex-shrink: 0; opacity: .7; }

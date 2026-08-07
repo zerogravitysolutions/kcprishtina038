@@ -80,7 +80,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
           <h1>{athlete.full_name}</h1>
           <div className="sub">{athlete.section_slug ?? "Çiklist"} · profili i performancës</div>
         </div>
-        <Link className="btn btn-ghost btn-sm" href="/admin/athletes">← Çiklistët</Link>
+        <Link className="btn btn-ghost btn-sm" href="/admin/training/progress">← Progresi</Link>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.2fr)", gap: 20, alignItems: "start" }} className="athlete-cols">

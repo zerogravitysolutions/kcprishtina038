@@ -55,7 +55,7 @@ export default async function TrainingPage() {
       <div className="filter-bar" style={{ borderRadius: 12, border: "1px solid var(--line)", marginBottom: 12 }}>
         <span className="meta">{rows.length} stërvitje</span>
         <div className="spacer" />
-        <Link className="meta" href="/admin/training/progress" style={{ color: "var(--ember-deep)" }}>Progresi mujor →</Link>
+        <Link className="meta" href="/admin/training/progress" style={{ color: "var(--ember)" }}>Progresi →</Link>
       </div>
 
       {/* Mobile: modern cards */}

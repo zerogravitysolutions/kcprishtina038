@@ -4,7 +4,7 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import { ProgressTable, type ProgressRow } from "./ProgressTable";
 import { ColumnChart, RowBars } from "../charts";
 import {
-  aggregateMonthly, monthRange, monthLabel, parseMonthParam, monthParam, shiftMonth,
+  aggregateMonthly, monthRange, monthLabel, monthParam, shiftMonth,
   weeklyVolume, fmt, toHours, type EntryLike,
 } from "@/lib/training";
 
@@ -16,15 +16,27 @@ const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 type Member = { id: string; full_name: string; section_slug: string | null; status: string; positions: string[] };
 type EntryWithDate = EntryLike & { ride: { ride_date: string } | null };
 
-export default async function ProgressPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
+export default async function ProgressPage({ searchParams }: { searchParams: Promise<{ p?: string }> }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
   if (!COACH_ROLES.includes(profile.role)) redirect("/admin/dashboard");
 
   const now = new Date();
   const sp = await searchParams;
-  const { year, month0 } = parseMonthParam(sp.m, { year: now.getFullYear(), month0: now.getMonth() });
-  const { start, end } = monthRange(year, month0);
+  const raw = sp.p;
+
+  // Period scope: all-time · a year · a single month (default = current month).
+  let mode: "all" | "year" | "month" = "month";
+  let year = now.getFullYear();
+  let month0 = now.getMonth();
+  if (raw === "all") mode = "all";
+  else if (raw && /^\d{4}$/.test(raw)) { mode = "year"; year = Number(raw); }
+  else if (raw && /^\d{4}-\d{2}$/.test(raw)) { mode = "month"; year = Number(raw.slice(0, 4)); month0 = Number(raw.slice(5, 7)) - 1; }
+
+  let start: string, end: string, periodLabel: string;
+  if (mode === "all") { start = "1900-01-01"; end = "2100-01-01"; periodLabel = "Të gjitha kohërat"; }
+  else if (mode === "year") { start = `${year}-01-01`; end = `${year + 1}-01-01`; periodLabel = `Viti ${year}`; }
+  else { const r = monthRange(year, month0); start = r.start; end = r.end; periodLabel = monthLabel(year, month0); }
 
   // Rolling 12-week window for the club volume chart (independent of the month).
   const pad2 = (x: number) => String(x).padStart(2, "0");
@@ -91,41 +103,46 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
     .slice(0, 12)
     .map((r) => ({ label: r.name, value: r.total_km, display: `${fmt(r.total_km, 0)} km` }));
 
-  const prev = shiftMonth(year, month0, -1);
-  const next = shiftMonth(year, month0, 1);
+  const navYear = mode === "month" ? year : now.getFullYear();
+  const navMonth0 = mode === "month" ? month0 : now.getMonth();
+  const prev = shiftMonth(navYear, navMonth0, -1);
+  const next = shiftMonth(navYear, navMonth0, 1);
+  const thisYear = now.getFullYear();
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h1>Progresi mujor</h1>
-          <div className="sub">Pjesëmarrja dhe performanca e secilit çiklist — kliko titujt për renditje.</div>
+          <h1>Progresi</h1>
+          <div className="sub">Pjesëmarrja dhe performanca e secilit çiklist — zgjidh periudhën, kliko titujt për renditje.</div>
         </div>
-        <Link className="btn btn-ghost btn-sm" href="/admin/athletes">Çiklistët →</Link>
       </div>
 
       <div className="kpi-grid" style={{ marginBottom: 16 }}>
-        <Kpi accent="#C25A2D" label="Pjesëmarrje" value={String(totalParticipations)} sub={monthLabel(year, month0)} />
-        <Kpi accent="#6FAAA8" label="Kilometra" value={fmt(totalKm, 0)} sub="km këtë muaj" />
-        <Kpi accent="#1B2742" label="Orë" value={fmt(totalHours, 1)} sub="orë këtë muaj" />
-        <Kpi accent="#2E8B57" label="Çiklistë aktivë" value={String(activeRiders)} sub={`nga ${rows.length}`} />
+        <Kpi accent="#E0562D" label="Pjesëmarrje" value={String(totalParticipations)} sub={periodLabel} />
+        <Kpi accent="#0E9384" label="Kilometra" value={fmt(totalKm, 0)} sub="km" />
+        <Kpi accent="#2E90FA" label="Orë" value={fmt(totalHours, 1)} sub="orë" />
+        <Kpi accent="#16A34A" label="Çiklistë aktivë" value={String(activeRiders)} sub={`nga ${rows.length}`} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 16 }}>
         <div className="card" style={{ padding: 16 }}>
           <div className="card-head" style={{ marginBottom: 10 }}><h3>Volumi i klubit</h3><span className="kicker">km · 12 javët e fundit</span></div>
-          <ColumnChart data={clubWeekly} color="#4F8A88" />
+          <ColumnChart data={clubWeekly} color="#0E9384" />
         </div>
         <div className="card" style={{ padding: 16 }}>
-          <div className="card-head" style={{ marginBottom: 10 }}><h3>KM për çiklist</h3><span className="kicker">{monthLabel(year, month0)}</span></div>
+          <div className="card-head" style={{ marginBottom: 10 }}><h3>KM për çiklist</h3><span className="kicker">{periodLabel}</span></div>
           <RowBars data={riderKm} />
         </div>
       </div>
 
-      <div className="filter-bar" style={{ borderRadius: 12, border: "1px solid var(--line)", marginBottom: 12 }}>
-        <Link className="chip" href={`/admin/training/progress?m=${monthParam(prev.year, prev.month0)}`}>← {monthLabel(prev.year, prev.month0)}</Link>
-        <span className="chip active" style={{ cursor: "default" }}>{monthLabel(year, month0)}</span>
-        <Link className="chip" href={`/admin/training/progress?m=${monthParam(next.year, next.month0)}`}>{monthLabel(next.year, next.month0)} →</Link>
+      <div className="filter-bar">
+        <Link className={`chip ${mode === "all" ? "active" : ""}`} href="/admin/training/progress?p=all">Të gjitha</Link>
+        <Link className={`chip ${mode === "year" ? "active" : ""}`} href={`/admin/training/progress?p=${thisYear}`}>{thisYear}</Link>
+        <span aria-hidden style={{ width: 1, alignSelf: "stretch", background: "var(--line-strong)", margin: "2px 4px" }} />
+        <Link className="chip" href={`/admin/training/progress?p=${monthParam(prev.year, prev.month0)}`}>← {monthLabel(prev.year, prev.month0)}</Link>
+        <Link className={`chip ${mode === "month" ? "active" : ""}`} href={`/admin/training/progress?p=${monthParam(navYear, navMonth0)}`}>{monthLabel(navYear, navMonth0)}</Link>
+        <Link className="chip" href={`/admin/training/progress?p=${monthParam(next.year, next.month0)}`}>{monthLabel(next.year, next.month0)} →</Link>
         <div className="spacer" />
         <span className="meta">{totalParticipations} pjesëmarrje · {fmt(totalKm, 0)} km · {fmt(totalHours, 1)} orë</span>
       </div>

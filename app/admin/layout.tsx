@@ -34,8 +34,7 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
     group: "Trajnimet",
     items: [
       { id: "training", label: "Stërvitjet", href: "/admin/training", icon: "activity" },
-      { id: "athletes", label: "Çiklistët", href: "/admin/athletes", icon: "bike" },
-      { id: "progress", label: "Progresi mujor", href: "/admin/training/progress", icon: "chart" },
+      { id: "progress", label: "Progresi", href: "/admin/training/progress", icon: "chart" },
     ],
   },
   {
@@ -76,7 +75,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v0.9</span>
+            <span className="sub">Admin · v1.0</span>
           </div>
         </Link>
 

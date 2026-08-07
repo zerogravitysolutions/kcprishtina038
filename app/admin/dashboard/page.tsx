@@ -16,13 +16,14 @@ function rel(iso: string) {
   return Math.floor(ms / 86_400_000) + "d";
 }
 
-const SOFT_SHADOW = "0 1px 2px rgba(15,26,46,0.04), 0 8px 24px rgba(15,26,46,0.05)";
-const CARD: React.CSSProperties = { background: "#fff", border: "1px solid var(--line)", borderRadius: 16, boxShadow: SOFT_SHADOW };
+const SOFT_SHADOW = "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)";
+const CARD: React.CSSProperties = { background: "var(--surface-1)", border: "1px solid var(--line)", borderRadius: 14, boxShadow: SOFT_SHADOW };
 const AVATAR: React.CSSProperties = {
-  width: 34, height: 34, borderRadius: 999, flexShrink: 0,
-  background: "color-mix(in oklab, var(--teal) 24%, #fff)", color: "var(--ink)",
+  width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+  background: "color-mix(in oklab, var(--accent-2) 16%, #fff)", color: "var(--accent-2-hi)",
   display: "flex", alignItems: "center", justifyContent: "center",
-  fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 12.5,
+  fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 12.5,
+  boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--accent-2) 22%, transparent)",
 };
 
 export default async function AdminDashboard() {
@@ -64,50 +65,33 @@ export default async function AdminDashboard() {
 
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 16 }}>
-        <Kpi accent="#6FAAA8" label="Anëtarë aktivë" value={membersC.count ?? 0} sub={`${membersC.count ?? 0} në bazë`} />
-        <Kpi accent="#C25A2D" label="Aplikime në pritje" value={pendingApps} sub={pendingApps > 0 ? "kërkojnë shqyrtim" : "asnjë e re"} tone={pendingApps > 0 ? "warn" : undefined} />
-        <Kpi accent="#2E8B57" label="Anëtarësi këtë muaj" value={`${paid}/${duesRows.length}`} sub={duesRows.length === 0 ? "pa pagesa" : `${duesRows.length - paid} pa paguar`} />
-        <Kpi accent="#1B2742" label="Ngjarje të ardhshme" value={eventsC.count ?? 0} sub="të publikuara" />
+        <Kpi accent="#0E9384" label="Anëtarë aktivë" value={membersC.count ?? 0} sub={`${membersC.count ?? 0} në bazë`} />
+        <Kpi accent="#E0562D" label="Aplikime në pritje" value={pendingApps} sub={pendingApps > 0 ? "kërkojnë shqyrtim" : "asnjë e re"} tone={pendingApps > 0 ? "warn" : undefined} />
+        <Kpi accent="#16A34A" label="Anëtarësi këtë muaj" value={`${paid}/${duesRows.length}`} sub={duesRows.length === 0 ? "pa pagesa" : `${duesRows.length - paid} pa paguar`} />
+        <Kpi accent="#2E90FA" label="Ngjarje të ardhshme" value={eventsC.count ?? 0} sub="të publikuara" />
       </div>
 
-      {/* Applications */}
-      <div style={{ ...CARD, marginTop: 24, overflow: "hidden" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px" }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, letterSpacing: "-0.01em", margin: 0 }}>Aplikimet e fundit</h3>
-          <Link href="/admin/applications" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--ember-deep)" }}>Shiko të gjitha →</Link>
+      {/* Applications — card row-list, no table */}
+      <div style={{ ...CARD, marginTop: 24, overflow: "hidden", padding: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px", borderBottom: "1px solid var(--line)" }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em", margin: 0, color: "var(--ink)" }}>Aplikimet e fundit</h3>
+          <Link href="/admin/applications" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--ember)" }}>Shiko të gjitha →</Link>
         </div>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
-            <thead>
-              <tr>
-                <Th pl>Aplikanti</Th><Th>Seksioni</Th><Th>Përvoja</Th><Th>Pranuar</Th><Th pr />
-              </tr>
-            </thead>
-            <tbody>
-              {appList.length === 0 ? (
-                <tr><td colSpan={5} style={{ padding: "26px 22px", color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12.5, textAlign: "center" }}>Nuk ka aplikime në pritje ✦</td></tr>
-              ) : appList.map(a => (
-                <tr key={a.id} style={{ borderTop: "1px solid var(--line)" }}>
-                  <td style={{ padding: "13px 22px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={AVATAR}>{initials(a.full_name)}</div>
-                      <div style={{ lineHeight: 1.25 }}>
-                        <div style={{ fontWeight: 600 }}>{a.full_name}</div>
-                        <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: ".04em", color: "var(--ink-3)", marginTop: 2 }}>{a.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: "13px 12px" }}>{a.section ? <span className={`tag-sec ${a.section.slug}`}>{a.section.name_sq}</span> : "—"}</td>
-                  <td style={{ padding: "13px 12px", fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--ink-2)" }}>{a.experience ?? "—"}</td>
-                  <td style={{ padding: "13px 12px", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-3)" }}>{rel(a.created_at)}</td>
-                  <td style={{ padding: "13px 22px", textAlign: "right" }}>
-                    <Link className="btn btn-sm btn-ember" href="/admin/applications">Shqyrto</Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {appList.length === 0 ? (
+          <div style={{ padding: "28px 22px", color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12.5, textAlign: "center" }}>Nuk ka aplikime në pritje ✦</div>
+        ) : appList.map((a, i) => (
+          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", padding: "14px 22px", borderTop: i > 0 ? "1px solid var(--line)" : "none" }}>
+            <div style={AVATAR}>{initials(a.full_name)}</div>
+            <div style={{ minWidth: 0, flex: "1 1 190px", lineHeight: 1.3 }}>
+              <div style={{ fontWeight: 600, color: "var(--ink)" }}>{a.full_name}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".02em", color: "var(--ink-3)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.email}</div>
+            </div>
+            {a.section ? <span className={`tag-sec ${a.section.slug}`}>{a.section.name_sq}</span> : null}
+            {a.experience ? <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-2)" }}>{a.experience}</span> : null}
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-3)", whiteSpace: "nowrap" }}>{rel(a.created_at)}</span>
+            <Link className="btn btn-sm btn-ember" href="/admin/applications">Shqyrto</Link>
+          </div>
+        ))}
       </div>
     </>
   );
@@ -126,12 +110,3 @@ function Kpi({ accent, label, value, sub, tone }: { accent: string; label: strin
   );
 }
 
-function Th({ children, pl, pr }: { children?: React.ReactNode; pl?: boolean; pr?: boolean }) {
-  return (
-    <th style={{
-      textAlign: "left", padding: `10px ${pr ? 22 : 12}px 10px ${pl ? 22 : 12}px`,
-      fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase",
-      color: "var(--ink-3)", fontWeight: 500, background: "var(--paper)",
-    }}>{children}</th>
-  );
-}

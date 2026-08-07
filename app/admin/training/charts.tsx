@@ -9,10 +9,14 @@ import { useState } from "react";
 
 export type Point = { label: string; value: number; display: string };
 
-const EMBER = "#C25A2D";
-const INK3 = "#2A3858";
-const SLATE = "#A4ADB6";
-const GRID = "rgba(15,26,46,0.10)";
+// Theme-aware via CSS vars so the same charts read on the dark admin AND the
+// light portal. admin.css defines the dark values; the fallbacks here are the
+// original light-theme colours the portal inherits.
+const SERIES = "var(--chart-series, #C25A2D)";
+const STRONG = "var(--chart-strong, #2A3858)";
+const AXIS = "var(--chart-axis, #A4ADB6)";
+const GRID = "var(--chart-grid, rgba(15,26,46,0.10))";
+const DOT_STROKE = "var(--chart-bg, #fff)";
 
 function barPath(x: number, y: number, w: number, h: number, r: number) {
   const rr = Math.max(0, Math.min(r, w / 2, h));
@@ -20,7 +24,7 @@ function barPath(x: number, y: number, w: number, h: number, r: number) {
 }
 
 /** Vertical bars for a time series (e.g. weekly volume). */
-export function ColumnChart({ data, color = EMBER, unitHint }: { data: Point[]; color?: string; unitHint?: string }) {
+export function ColumnChart({ data, color = SERIES, unitHint }: { data: Point[]; color?: string; unitHint?: string }) {
   const [hover, setHover] = useState<number | null>(null);
   const W = 560, H = 170, padT = 18, padB = 28, padX = 10;
   const baseY = H - padB;
@@ -43,21 +47,21 @@ export function ColumnChart({ data, color = EMBER, unitHint }: { data: Point[]; 
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} role="img">
-      <line x1={padX} y1={baseY} x2={W - padX} y2={baseY} stroke={GRID} strokeWidth={1} />
+      <line x1={padX} y1={baseY} x2={W - padX} y2={baseY} style={{ stroke: GRID }} strokeWidth={1} />
       {bars.map((b) => (
         <g key={b.i} onMouseEnter={() => setHover(b.i)} onMouseLeave={() => setHover((h) => (h === b.i ? null : h))}>
           <title>{`${b.d.label}: ${b.d.display}`}</title>
           {/* full-height hit target */}
           <rect x={padX + b.i * band} y={padT} width={band} height={plotH + 6} fill="transparent" />
-          <path d={barPath(b.x, b.y, barW, b.h, 3)} fill={color} opacity={hover == null || hover === b.i ? 1 : 0.45} />
+          <path d={barPath(b.x, b.y, barW, b.h, 3)} style={{ fill: color, opacity: hover == null || hover === b.i ? 1 : 0.45 }} />
           {(b.i % labelStep === 0 || b.i === n - 1) && (
-            <text x={b.cx} y={H - 10} textAnchor="middle" style={{ fill: SLATE, fontSize: 9, fontFamily: "var(--font-mono)" }}>{b.d.label}</text>
+            <text x={b.cx} y={H - 10} textAnchor="middle" style={{ fill: AXIS, fontSize: 9, fontFamily: "var(--font-mono)" }}>{b.d.label}</text>
           )}
         </g>
       ))}
       {/* direct label on the most recent bar (when idle) */}
       {hover == null && bars.length > 0 && bars[bars.length - 1].d.value > 0 && (
-        <text x={bars[bars.length - 1].cx} y={bars[bars.length - 1].y - 6} textAnchor="middle" style={{ fill: INK3, fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)" }}>
+        <text x={bars[bars.length - 1].cx} y={bars[bars.length - 1].y - 6} textAnchor="middle" style={{ fill: STRONG, fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)" }}>
           {bars[bars.length - 1].d.display}
         </text>
       )}
@@ -67,7 +71,7 @@ export function ColumnChart({ data, color = EMBER, unitHint }: { data: Point[]; 
             x={Math.max(40, Math.min(W - 40, active.cx))}
             y={Math.max(12, active.y - 8)}
             textAnchor="middle"
-            style={{ fill: INK3, fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)" }}
+            style={{ fill: STRONG, fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)" }}
           >
             {active.d.display}
           </text>
@@ -78,7 +82,7 @@ export function ColumnChart({ data, color = EMBER, unitHint }: { data: Point[]; 
 }
 
 /** Single-series trend line (e.g. 20-min power over time). */
-export function LineChart({ data, color = EMBER }: { data: Point[]; color?: string }) {
+export function LineChart({ data, color = SERIES }: { data: Point[]; color?: string }) {
   const [hover, setHover] = useState<number | null>(null);
   const W = 560, H = 170, padT = 16, padB = 28, padL = 12, padR = 40;
   const baseY = H - padB;
@@ -104,23 +108,23 @@ export function LineChart({ data, color = EMBER }: { data: Point[]; color?: stri
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} role="img">
       {[0, 0.5, 1].map((t) => (
-        <line key={t} x1={padL} y1={padT + t * plotH} x2={W - padR} y2={padT + t * plotH} stroke={GRID} strokeWidth={1} />
+        <line key={t} x1={padL} y1={padT + t * plotH} x2={W - padR} y2={padT + t * plotH} style={{ stroke: GRID }} strokeWidth={1} />
       ))}
-      <polygon points={area} fill={color} opacity={0.08} />
-      <polyline points={line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <polygon points={area} style={{ fill: color, opacity: 0.1 }} />
+      <polyline points={line} fill="none" style={{ stroke: color }} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       {pts.map((p) => (
         <g key={p.i} onMouseEnter={() => setHover(p.i)} onMouseLeave={() => setHover((h) => (h === p.i ? null : h))}>
           <title>{`${p.d.label}: ${p.d.display}`}</title>
-          <circle cx={p.x} cy={p.y} r={hover === p.i ? 5 : 3.4} fill={color} stroke="#fff" strokeWidth={1.5} />
+          <circle cx={p.x} cy={p.y} r={hover === p.i ? 5 : 3.4} style={{ fill: color, stroke: DOT_STROKE }} strokeWidth={1.5} />
           {(p.i % labelStep === 0 || p.i === n - 1) && (
-            <text x={p.x} y={H - 10} textAnchor="middle" style={{ fill: SLATE, fontSize: 9, fontFamily: "var(--font-mono)" }}>{p.d.label}</text>
+            <text x={p.x} y={H - 10} textAnchor="middle" style={{ fill: AXIS, fontSize: 9, fontFamily: "var(--font-mono)" }}>{p.d.label}</text>
           )}
         </g>
       ))}
       {/* most-recent value, always labelled at the right */}
-      <text x={last.x + 6} y={last.y + 3} style={{ fill: INK3, fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)" }}>{last.d.display}</text>
+      <text x={last.x + 6} y={last.y + 3} style={{ fill: STRONG, fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)" }}>{last.d.display}</text>
       {active && (
-        <text x={Math.max(30, Math.min(W - 30, active.x))} y={Math.max(11, active.y - 9)} textAnchor="middle" style={{ fill: INK3, fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)" }}>
+        <text x={Math.max(30, Math.min(W - 30, active.x))} y={Math.max(11, active.y - 9)} textAnchor="middle" style={{ fill: STRONG, fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)" }}>
           {active.d.display}
         </text>
       )}
@@ -129,7 +133,7 @@ export function LineChart({ data, color = EMBER }: { data: Point[]; color?: stri
 }
 
 /** Horizontal labelled bars for a per-entity comparison (e.g. km per rider). */
-export function RowBars({ data, color = EMBER }: { data: Point[]; color?: string }) {
+export function RowBars({ data, color = SERIES }: { data: Point[]; color?: string }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   if (data.length === 0) return <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>Pa të dhëna këtë muaj.</div>;
   return (

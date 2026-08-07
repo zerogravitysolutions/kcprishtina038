@@ -3,18 +3,23 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 const MEMBER_ROLES = ["admin", "editor", "staff", "coach", "member"];
 const MEMBER_STATUSES = ["active", "inactive", "suspended", "pending"];
 
-/** Confirm the caller is a signed-in admin. Returns their id or an error. */
+/** Confirm the caller is a signed-in, ACTIVE admin. Returns their id or an error.
+ * Re-reads role AND status every call so a demoted/deactivated admin loses access
+ * immediately (Server Actions are standalone POST endpoints; the layout's status
+ * gate never runs for them). */
 async function requireAdmin(): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Nuk je i kyçur." };
-  const { data } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  const role = (data as { role: string } | null)?.role;
-  if (role !== "admin") return { ok: false, error: "Vetëm admini mund ta bëjë këtë veprim." };
+  const { data } = await supabase.from("profiles").select("role, status").eq("id", user.id).maybeSingle();
+  const p = data as { role: string; status: string } | null;
+  if (!p || p.status !== "active") return { ok: false, error: "Llogaria jote nuk është aktive." };
+  if (p.role !== "admin") return { ok: false, error: "Vetëm admini mund ta bëjë këtë veprim." };
   return { ok: true, id: user.id };
 }
 
@@ -105,6 +110,11 @@ export async function setMemberStatus(targetId: string, status: string): Promise
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
   const { error } = await admin.from("profiles").update({ status }).eq("id", targetId);
   if (error) return { ok: false, error: error.message };
+  // Revoke (or restore) the auth session so a deactivated user is cut off
+  // immediately everywhere — not just when a page/layout re-checks status.
+  // Anything other than "active" bans the login; "active" lifts the ban.
+  const { error: banErr } = await admin.auth.admin.updateUserById(targetId, { ban_duration: status === "active" ? "none" : "876000h" });
+  if (banErr) return { ok: false, error: `Statusi u ndryshua, por sesioni s'u përditësua: ${banErr.message}` };
   revalidatePath("/admin/members");
   return { ok: true };
 }
@@ -124,8 +134,20 @@ export async function deleteMember(targetId: string): Promise<{ ok: boolean; err
   return { ok: true };
 }
 
-const SITE_URL = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://kcprishtina038.vercel.app").replace(/\/$/, "");
-const RESET_REDIRECT = () => `${SITE_URL()}/auth/reset-password`;
+// Derive the origin from the actual request so reset links point at the domain
+// the admin is really using (not a possibly-stale NEXT_PUBLIC_SITE_URL). NOTE:
+// Supabase only honours redirect_to if it's in Auth → URL Configuration → Redirect
+// URLs; otherwise it falls back to the project's Site URL.
+async function siteOrigin(): Promise<string> {
+  try {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    const proto = h.get("x-forwarded-proto") ?? "https";
+    if (host) return `${proto}://${host}`;
+  } catch { /* not in a request scope */ }
+  return (process.env.NEXT_PUBLIC_SITE_URL || "https://kcprishtina038.vercel.app").replace(/\/$/, "");
+}
+async function resetRedirect(): Promise<string> { return `${await siteOrigin()}/auth/reset-password`; }
 
 /** Change a member's login email (instant, no verification email). Syncs profiles.email. */
 export async function updateMemberEmail(targetId: string, newEmail: string): Promise<{ ok: boolean; error?: string }> {
@@ -163,7 +185,7 @@ export async function sendPasswordReset(email: string): Promise<{ ok: boolean; e
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const supabase = await createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail((email ?? "").trim().toLowerCase(), { redirectTo: RESET_REDIRECT() });
+  const { error } = await supabase.auth.resetPasswordForEmail((email ?? "").trim().toLowerCase(), { redirectTo: await resetRedirect() });
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
@@ -174,7 +196,7 @@ export async function generateResetLink(email: string): Promise<{ ok: boolean; l
   if (!gate.ok) return { ok: false, error: gate.error };
   let admin;
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
-  const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email: (email ?? "").trim().toLowerCase(), options: { redirectTo: RESET_REDIRECT() } });
+  const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email: (email ?? "").trim().toLowerCase(), options: { redirectTo: await resetRedirect() } });
   if (error) return { ok: false, error: error.message };
   const link = (data as { properties?: { action_link?: string } } | null)?.properties?.action_link;
   if (!link) return { ok: false, error: "Nuk u gjenerua lidhja." };

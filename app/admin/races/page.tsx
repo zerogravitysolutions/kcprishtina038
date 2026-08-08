@@ -11,8 +11,24 @@ export const revalidate = 0;
 
 type NewsCand = {
   id: string; title_sq: string | null; body_sq: string | null; published_at: string | null;
-  gallery_media_ids: string[] | null; cover: { storage_path: string } | null;
+  gallery_media_ids: string[] | null; cover_media_id: string | null; external_url: string | null;
+  cover: { storage_path: string } | null;
 };
+
+// Build the pre-filled "new race" URL for an approved suggestion. The editor
+// reviews it (esp. the real race date) before creating — nothing hits /races
+// until they save.
+function approveHref(c: NewsCand, nameGuess: string | null): string {
+  const p = new URLSearchParams();
+  p.set("link_news_id", c.id);
+  p.set("name", (nameGuess || c.title_sq || "").slice(0, 120));
+  if (c.published_at) p.set("date", c.published_at.slice(0, 10));
+  if (c.body_sq) p.set("description", c.body_sq.slice(0, 1500));
+  if (c.cover_media_id) p.set("cover_media_id", c.cover_media_id);
+  if (c.external_url) p.set("external_url", c.external_url);
+  if (c.gallery_media_ids?.length) p.set("gallery", c.gallery_media_ids.join(","));
+  return `/admin/races/new?${p.toString()}`;
+}
 
 type Row = {
   id: string;
@@ -46,7 +62,7 @@ export default async function RacesAdminPage() {
   // Suggestions: FB posts that look like races but aren't a race yet (and not declined).
   const { data: newsData } = await supabase
     .from("news")
-    .select("id, title_sq, body_sq, published_at, gallery_media_ids, cover:media!cover_media_id(storage_path)")
+    .select("id, title_sq, body_sq, published_at, gallery_media_ids, cover_media_id, external_url, cover:media!cover_media_id(storage_path)")
     .eq("source", "facebook").is("race_event_id", null).eq("race_dismissed", false).eq("status", "published")
     .order("published_at", { ascending: false }).limit(200);
   const suggestions = ((newsData as unknown as NewsCand[] | null) ?? [])
@@ -82,7 +98,7 @@ export default async function RacesAdminPage() {
                   {" · shenja: "}{sig.matches.slice(0, 3).join(", ") || sig.score}
                 </div>
               </div>
-              <RaceSuggestionActions newsId={c.id} />
+              <RaceSuggestionActions newsId={c.id} approveHref={approveHref(c, sig.nameGuess)} />
             </div>
             );
           })}

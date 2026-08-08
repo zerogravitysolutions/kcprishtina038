@@ -62,10 +62,10 @@ function DocumentCategorySection({
     <section style={{ paddingTop: 40, paddingBottom: 40 }}>
       <div className="container">
         <div className="docs-section-head">
-          <div className="eyebrow"><span>{categoryLabel(category)}</span></div>
-          <h2 className="display display-m" style={{ marginTop: 10 }}>
-            {items.length} {items.length === 1 ? "dokument" : "dokumente"}.
-          </h2>
+          <h2 className="display display-m">{categoryLabel(category)}</h2>
+          <div className="eyebrow" style={{ marginTop: 10 }}>
+            <span>{items.length} {items.length === 1 ? "dokument" : "dokumente"}</span>
+          </div>
         </div>
         <ul className="docs-list">
           {items.map((d) => (

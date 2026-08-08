@@ -564,3 +564,14 @@ table.t .person .nm small { font-family: var(--font-mono); font-size: 10px; lett
 .kebab-menu button.danger { color: var(--err); }
 .kebab-menu button.danger:hover { background: var(--err-bg); }
 .kebab-menu .k-ic { width: 15px; height: 15px; flex-shrink: 0; opacity: .7; }
+
+/* ---------- Race suggestions (approve/decline queue) ---------- */
+.rs-item { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid var(--line); }
+.rs-item:first-of-type { border-top: 0; }
+.rs-thumb { width: 66px; height: 48px; border-radius: var(--r-xs); object-fit: cover; flex-shrink: 0; background: var(--surface-2); border: 1px solid var(--line); }
+.rs-thumb--empty { display: block; }
+.rs-body { flex: 1; min-width: 0; }
+.rs-title { font-family: var(--font-display); font-weight: 600; font-size: 14.5px; color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
+@media (max-width: 640px) { .rs-item { flex-wrap: wrap; } .rs-body { flex-basis: calc(100% - 80px); } .rs-actions { flex-basis: 100%; } }

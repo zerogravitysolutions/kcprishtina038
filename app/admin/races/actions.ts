@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { detectRaceSignal } from "@/lib/race-detect";
 
 const RACE_TYPES = ["road", "mtb", "tt", "stage", "gravel", "cyclocross"] as const;
 
@@ -91,6 +92,72 @@ export async function updateRaceEvent(id: string, form: FormData): Promise<void>
   revalidatePath("/admin/races");
   revalidatePath("/races");
   redirect("/admin/races");
+}
+
+// ---------- Facebook race suggestions (approve / decline) ----------
+
+type NewsForRace = {
+  id: string; title_sq: string | null; body_sq: string | null; published_at: string | null;
+  gallery_media_ids: string[] | null; cover_media_id: string | null; external_url: string | null;
+  race_event_id: string | null;
+};
+
+/** APPROVE a suggested FB post → create a race_event from it and link the post. */
+export async function approveRaceSuggestion(newsId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await assertEditor();
+    const supabase = await createClient();
+    const { data: n } = await supabase
+      .from("news")
+      .select("id, title_sq, body_sq, published_at, gallery_media_ids, cover_media_id, external_url, race_event_id")
+      .eq("id", newsId).maybeSingle();
+    const post = n as NewsForRace | null;
+    if (!post) return { ok: false, error: "Postimi nuk u gjet." };
+    if (post.race_event_id) return { ok: false, error: "Tashmë e lidhur me një garë." };
+
+    const name = (detectRaceSignal({ title: post.title_sq ?? "", body: post.body_sq ?? "" }).nameGuess
+      || post.title_sq || "Garë").trim().slice(0, 120);
+    const race_date = (post.published_at ?? new Date().toISOString()).slice(0, 10);
+
+    // Unique slug from name + year.
+    let slug = slugify(`${name} ${race_date.slice(0, 4)}`);
+    if (!slug) slug = `gare-${race_date}`;
+    for (let suffix = 1, candidate = slug; ; suffix++) {
+      const { data: exists } = await supabase.from("race_events").select("id").eq("slug", candidate).maybeSingle();
+      if (!exists) { slug = candidate; break; }
+      candidate = `${slug}-${suffix + 1}`;
+    }
+
+    const { data: inserted, error } = await supabase.from("race_events").insert([{
+      slug, name, race_date,
+      description: post.body_sq?.trim() || null,
+      external_url: post.external_url || null,
+      cover_media_id: post.cover_media_id || null,
+      gallery_media_ids: post.gallery_media_ids ?? [],
+    }] as never).select("id").single();
+    if (error || !inserted) return { ok: false, error: error?.message ?? "Krijimi dështoi." };
+
+    await supabase.from("news").update({ race_event_id: (inserted as { id: string }).id } as never).eq("id", newsId);
+    revalidatePath("/admin/races");
+    revalidatePath("/races");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** DECLINE a suggested FB post → it stops being suggested. */
+export async function declineRaceSuggestion(newsId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await assertEditor();
+    const supabase = await createClient();
+    const { error } = await supabase.from("news").update({ race_dismissed: true } as never).eq("id", newsId);
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/admin/races");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export async function deleteRaceEvent(id: string): Promise<{ ok: boolean; error?: string }> {

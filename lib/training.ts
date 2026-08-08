@@ -90,6 +90,12 @@ export const TRAINING_FOCUS: { value: string; label: string }[] = [
   { value: "VO₂ Max",            label: "VO₂ Max – Rritja e kapacitetit maksimal aerobik (106–120% FTP)" },
   { value: "Anaerobic & Sprint", label: "Anaerobic & Sprint – Fuqi shpërthyese dhe sprint (>120% FTP)" },
   { value: "Skills & Strength",  label: "Skills & Strength – Teknikë, kadencë, forcë në biçikletë dhe jashtë saj" },
+  { value: "Intervale (HIIT)",   label: "Intervale (HIIT) – Intervale të shkurtra me intensitet të lartë" },
+  { value: "Climbing",           label: "Climbing – Stërvitje ngjitjeje / kodra" },
+  { value: "Kronometër (TT)",    label: "Time Trial – Kronometër / provë kohore" },
+  { value: "Long Ride",          label: "Long Ride – Dalje e gjatë (vëllim aerobik)" },
+  { value: "Dalje grupore",      label: "Group Ride – Dalje grupore" },
+  { value: "Garë / Simulim",     label: "Race – Garë ose simulim gare" },
 ];
 
 /** Coerce a raw string from a form input into the DB value for a metric. */

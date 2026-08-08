@@ -18,7 +18,7 @@ type EntryRow = EntryLike & {
   tss: number | null;
   rpe: number | null;
   notes: string | null;
-  ride: { id: string; ride_date: string; title: string | null; focus: string | null } | null;
+  ride: { id: string; ride_date: string; focus: string | null } | null;
 };
 
 export default async function AthleteProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -34,7 +34,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
     supabase.from("athlete_profiles").select("ftp_w, ftp_updated_at, weight_kg, max_hr, resting_hr, notes").eq("athlete_id", id).maybeSingle(),
     supabase
       .from("ride_entries")
-      .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, rpe, notes, ride:training_rides(id, ride_date, title, focus)")
+      .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, rpe, notes, ride:training_rides(id, ride_date, focus)")
       .eq("athlete_id", id),
   ]);
 
@@ -143,7 +143,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
               recent.map((e) => (
                 <tr key={e.id}>
                   <td className="mono">{e.ride ? new Date(e.ride.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short", year: "2-digit" }) : "—"}</td>
-                  <td>{e.ride ? <Link href={`/admin/training/${e.ride.id}`} style={{ fontWeight: 600 }}>{e.ride.title || e.ride.focus || "Stërvitje"}</Link> : "—"}</td>
+                  <td>{e.ride ? <Link href={`/admin/training/${e.ride.id}`} style={{ fontWeight: 600 }}>{e.ride.focus || "Stërvitje"}</Link> : "—"}</td>
                   <td className="mono">{e.distance_km != null ? fmt(e.distance_km, 1) : "—"}</td>
                   <td className="mono">{formatDurationShort(e.moving_seconds)}</td>
                   <td className="mono">{e.avg_hr ?? "—"}</td>

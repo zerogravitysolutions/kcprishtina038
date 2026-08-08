@@ -12,7 +12,6 @@ type EntryLite = { participated: boolean; distance_km: number | null };
 type RideRow = {
   id: string;
   ride_date: string;
-  title: string | null;
   focus: string | null;
   location: string | null;
   section: { slug: string; name_sq: string } | null;
@@ -27,7 +26,7 @@ export default async function TrainingPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("training_rides")
-    .select("id, ride_date, title, focus, location, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km)")
+    .select("id, ride_date, focus, location, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km)")
     .order("ride_date", { ascending: false })
     .limit(80);
   const rows = (data as unknown as RideRow[] | null) ?? [];
@@ -36,8 +35,7 @@ export default async function TrainingPage() {
     r,
     parts: r.entries.filter((e) => e.participated).length,
     km: sum(r.entries.map((e) => e.distance_km)),
-    title: r.title || r.focus || "Stërvitje",
-    hasFocusSub: !!(r.focus && r.title),
+    title: r.focus || "Stërvitje",
     dateShort: new Date(r.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short" }),
     dateLong: new Date(r.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short", year: "numeric" }),
   }));
@@ -63,16 +61,15 @@ export default async function TrainingPage() {
         {view.length === 0 ? (
           <div className="ex-empty">Ende asnjë stërvitje. Fillo me “+ Stërvitje e re”.</div>
         ) : (
-          view.map(({ r, parts, km, title, hasFocusSub, dateShort }) => (
+          view.map(({ r, parts, km, title, dateShort }) => (
             <Link key={r.id} href={`/admin/training/${r.id}`} className="ex-card">
               <div className="ex-card-top">
                 <span className="ex-card-title">{title}</span>
                 <span className="ex-card-date">{dateShort}</span>
               </div>
-              {(r.section || hasFocusSub || r.location) && (
+              {(r.section || r.location) && (
                 <div className="ex-card-meta">
                   {r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : null}
-                  {hasFocusSub ? <span className="ex-card-sub">{r.focus}</span> : null}
                   {r.location ? <span className="ex-card-sub">{r.location}</span> : null}
                 </div>
               )}
@@ -97,14 +94,12 @@ export default async function TrainingPage() {
             {view.length === 0 ? (
               <tr><td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Ende asnjë stërvitje. Fillo me “+ Stërvitje e re”.</td></tr>
             ) : (
-              view.map(({ r, parts, km, title, hasFocusSub, dateLong }) => (
+              view.map(({ r, parts, km, title, dateLong }) => (
                 <tr key={r.id}>
                   <td>
                     <Link href={`/admin/training/${r.id}`} style={{ fontWeight: 600 }}>{title}</Link>
-                    {hasFocusSub || r.location ? (
-                      <div style={{ marginTop: 3, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>
-                        {hasFocusSub ? r.focus : ""}{hasFocusSub && r.location ? " · " : ""}{r.location ?? ""}
-                      </div>
+                    {r.location ? (
+                      <div style={{ marginTop: 3, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>{r.location}</div>
                     ) : null}
                   </td>
                   <td className="mono">{dateLong}</td>

@@ -21,7 +21,6 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
   const router = useRouter();
   const [pending, start] = useTransition();
   const [rideDate, setRideDate] = useState(todayISO());
-  const [title, setTitle] = useState("");
   const [focus, setFocus] = useState("");
   const [sectionId, setSectionId] = useState(sections[0]?.id ?? "");
   const [location, setLocation] = useState("");
@@ -65,14 +64,13 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
   function submit() {
     setErr(null);
     if (!rideDate) { setErr("Zgjidh datën."); return; }
-    if (!title.trim()) { setErr("Shkruaj titullin."); return; }
     if (!focus) { setErr("Zgjidh llojin e ushtrimit."); return; }
     if (selected.length === 0) { setErr("Zgjidh së paku një çiklist."); return; }
     const sec = duration.trim() ? parseDurationToSeconds(duration) : null;
     start(async () => {
       const r = await createRide({
         ride_date: rideDate,
-        title, focus, location, notes,
+        focus, location, notes,
         section_id: sectionId || null,
         athlete_ids: selected,
         distance_km: distance,
@@ -93,8 +91,11 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
           <input type="date" value={rideDate} onChange={(e) => setRideDate(e.target.value)} required />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Titulli <span style={{ color: "var(--accent)" }}>*</span></label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="p.sh. Germia 4×2.5 VO2Max" required />
+          <label>Lloji i ushtrimit <span style={{ color: "var(--accent)" }}>*</span></label>
+          <select name="kc-focus" autoComplete="off" value={focus} onChange={(e) => setFocus(e.target.value)} required>
+            <option value="">— Zgjidh —</option>
+            {TRAINING_FOCUS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+          </select>
         </div>
       </div>
 
@@ -107,17 +108,14 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Lloji i ushtrimit <span style={{ color: "var(--accent)" }}>*</span></label>
-          <select name="kc-focus" autoComplete="off" value={focus} onChange={(e) => setFocus(e.target.value)} required>
-            <option value="">— Zgjidh —</option>
-            {TRAINING_FOCUS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-          </select>
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
           <label>Seksioni</label>
           <select name="kc-section" autoComplete="off" value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
             {sections.map((s) => <option key={s.id} value={s.id}>{s.name_sq}</option>)}
           </select>
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Vendi</label>
+          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Opsionale" />
         </div>
       </div>
 
@@ -140,11 +138,6 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
             <input type="number" inputMode="numeric" value={elevation} onChange={(e) => setElevation(e.target.value)} placeholder="650" style={{ fontFamily: "var(--font-mono)" }} />
           </div>
         </div>
-      </div>
-
-      <div className="field" style={{ marginBottom: 0 }}>
-        <label>Vendi</label>
-        <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Opsionale" />
       </div>
 
       <div className="field" style={{ marginBottom: 0 }}>

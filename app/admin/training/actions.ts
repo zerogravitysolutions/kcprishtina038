@@ -37,7 +37,6 @@ function coerceBase(src: BaseSrc): { ok: true; base: Record<string, number | nul
 
 export type CreateRideInput = {
   ride_date: string;
-  title?: string;
   focus?: string;
   section_id?: string | null;
   location?: string;
@@ -52,7 +51,6 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
     const supabase = await createClient();
 
     if (!input.ride_date) return { ok: false, error: "Data mungon." };
-    if (!input.title?.trim()) return { ok: false, error: "Titulli është i detyrueshëm." };
     if (!input.focus?.trim()) return { ok: false, error: "Lloji i ushtrimit është i detyrueshëm." };
     const athletes = Array.from(new Set((input.athlete_ids ?? []).filter(Boolean)));
     if (athletes.length === 0) return { ok: false, error: "Zgjidh së paku një çiklist." };
@@ -68,7 +66,6 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
       .from("training_rides")
       .insert({
         ride_date: input.ride_date,
-        title: input.title?.trim() || null,
         focus: input.focus?.trim() || null,
         section_id: input.section_id || null,
         location: input.location?.trim() || null,
@@ -102,7 +99,6 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
 
 export type RidePatch = {
   ride_date?: string;
-  title?: string;
   focus?: string;
   section_id?: string | null;
   location?: string;
@@ -119,7 +115,6 @@ export async function updateRide(id: string, patch: RidePatch): Promise<Result> 
       if (!patch.ride_date) return { ok: false, error: "Data mungon." };
       update.ride_date = patch.ride_date;
     }
-    if (patch.title !== undefined) update.title = patch.title.trim() || null;
     if (patch.focus !== undefined) update.focus = patch.focus.trim() || null;
     if (patch.section_id !== undefined) update.section_id = patch.section_id || null;
     if (patch.location !== undefined) update.location = patch.location.trim() || null;

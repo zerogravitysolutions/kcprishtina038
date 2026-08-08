@@ -9,7 +9,7 @@ export const revalidate = 0;
 type EntryRow = EntryLike & {
   id: string;
   rpe: number | null;
-  ride: { id: string; ride_date: string; title: string | null; focus: string | null } | null;
+  ride: { id: string; ride_date: string; focus: string | null } | null;
 };
 
 export default async function PortalTrainingPage() {
@@ -27,7 +27,7 @@ export default async function PortalTrainingPage() {
   const entries = athlete
     ? (((await supabase
         .from("ride_entries")
-        .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, rpe, ride:training_rides(id, ride_date, title, focus)")
+        .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, rpe, ride:training_rides(id, ride_date, focus)")
         .eq("athlete_id", athlete.id)).data) as unknown as EntryRow[] | null) ?? []
     : [];
 
@@ -70,7 +70,7 @@ export default async function PortalTrainingPage() {
                 return (
                   <div key={e.id} style={{ background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink, #0f1a2e) 8%, transparent)", borderRadius: 16, padding: "15px 17px", boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-                      <strong style={{ fontFamily: "var(--font-display)", fontSize: 16.5, fontWeight: 700, letterSpacing: "-.012em", lineHeight: 1.2 }}>{e.ride?.title || e.ride?.focus || "Stërvitje"}</strong>
+                      <strong style={{ fontFamily: "var(--font-display)", fontSize: 16.5, fontWeight: 700, letterSpacing: "-.012em", lineHeight: 1.2 }}>{e.ride?.focus || "Stërvitje"}</strong>
                       {e.ride ? (
                         <span className="mono" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3, #2a3858)", whiteSpace: "nowrap", flexShrink: 0 }}>
                           {new Date(e.ride.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short" })}

@@ -9,7 +9,6 @@ import { TRAINING_FOCUS } from "@/lib/training";
 export type RideHeader = {
   id: string;
   ride_date: string;
-  title: string | null;
   focus: string | null;
   section_id: string | null;
   location: string | null;
@@ -22,7 +21,6 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [rideDate, setRideDate] = useState(ride.ride_date);
-  const [title, setTitle] = useState(ride.title ?? "");
   const [focus, setFocus] = useState(ride.focus ?? "");
   const [sectionId, setSectionId] = useState(ride.section_id ?? sections[0]?.id ?? "");
   const [location, setLocation] = useState(ride.location ?? "");
@@ -33,8 +31,8 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
   const canEmbed = !!stravaActivityId(stravaUrl);
 
   const snapshot = useMemo(
-    () => JSON.stringify({ rideDate, title, focus, sectionId, location, notes, stravaUrl }),
-    [rideDate, title, focus, sectionId, location, notes, stravaUrl],
+    () => JSON.stringify({ rideDate, focus, sectionId, location, notes, stravaUrl }),
+    [rideDate, focus, sectionId, location, notes, stravaUrl],
   );
 
   const mounted = useRef(false);
@@ -44,7 +42,7 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
       setMsg(null);
       start(async () => {
         const r = await updateRide(ride.id, {
-          ride_date: rideDate, title, focus, location, notes,
+          ride_date: rideDate, focus, location, notes,
           section_id: sectionId || null,
           strava_url: stravaUrl,
         });
@@ -92,8 +90,12 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
           <input type="date" value={rideDate} onChange={(e) => setRideDate(e.target.value)} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Titulli</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Opsional" />
+          <label>Lloji i ushtrimit</label>
+          <select name="kc-focus" autoComplete="off" value={focus} onChange={(e) => setFocus(e.target.value)}>
+            <option value="">— Zgjidh llojin —</option>
+            {focus && !TRAINING_FOCUS.some((f) => f.value === focus) ? <option value={focus}>{focus}</option> : null}
+            {TRAINING_FOCUS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+          </select>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Seksioni</label>
@@ -104,14 +106,6 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginTop: 12 }}>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Lloji i ushtrimit</label>
-          <select name="kc-focus" autoComplete="off" value={focus} onChange={(e) => setFocus(e.target.value)}>
-            <option value="">— Zgjidh llojin —</option>
-            {focus && !TRAINING_FOCUS.some((f) => f.value === focus) ? <option value={focus}>{focus}</option> : null}
-            {TRAINING_FOCUS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-          </select>
-        </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Vendi</label>
           <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Opsional" />

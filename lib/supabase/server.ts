@@ -1,4 +1,5 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createClient as createSbClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import type { Database, UserRole, MemberStatus } from "./types";
@@ -38,6 +39,21 @@ export const createClient = cache(async () => {
     }
   );
 });
+
+/**
+ * Cookie-less anon client for cached PUBLIC reads. It carries no per-user or
+ * per-request state, so its results can be memoized with unstable_cache (Next
+ * Data Cache) and shared across all visitors — this is what lets public content
+ * fetchers skip Supabase on most navigations even though the app renders
+ * dynamically (the root layout reads the locale cookie). Never use it for
+ * anything auth-dependent.
+ */
+export function createPublicClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error("Supabase env vars missing (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY).");
+  return createSbClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
 
 export type ProfileSummary = {
   id: string;

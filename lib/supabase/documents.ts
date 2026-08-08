@@ -2,7 +2,8 @@
 // /admin/documents CRUD. Single source of truth for the category labels
 // (used by both pages so they don't drift apart).
 
-import { createClient } from "./server";
+import { unstable_cache } from "next/cache";
+import { createPublicClient } from "./server";
 import { mediaUrl } from "./fb";
 
 export type DocumentCategory =
@@ -70,18 +71,22 @@ export function formatBytes(n: number | null | undefined): string {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export async function getDocuments(category?: DocumentCategory): Promise<DocumentRow[]> {
-  const supabase = await createClient();
-  let q = supabase
-    .from("documents")
-    .select("*")
-    .order("category")
-    .order("display_order")
-    .order("title");
-  if (category) q = q.eq("category", category);
-  const { data } = await q;
-  return (data as unknown as DocumentRow[] | null) ?? [];
-}
+export const getDocuments = unstable_cache(
+  async (category?: DocumentCategory): Promise<DocumentRow[]> => {
+    const supabase = createPublicClient();
+    let q = supabase
+      .from("documents")
+      .select("*")
+      .order("category")
+      .order("display_order")
+      .order("title");
+    if (category) q = q.eq("category", category);
+    const { data } = await q;
+    return (data as unknown as DocumentRow[] | null) ?? [];
+  },
+  ["public-documents"],
+  { revalidate: 60, tags: ["documents"] },
+);
 
 export async function getDocumentsGrouped(): Promise<Map<DocumentCategory, DocumentRow[]>> {
   const all = await getDocuments();

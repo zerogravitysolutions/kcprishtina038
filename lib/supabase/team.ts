@@ -2,7 +2,8 @@
 // Uses the same Supabase client as everything else (cookie-aware,
 // works with RLS — team_members has public-select policy).
 
-import { createClient } from "./server";
+import { unstable_cache } from "next/cache";
+import { createClient, createPublicClient } from "./server";
 import { mediaUrl } from "./fb";
 
 export type TeamPosition =
@@ -38,16 +39,20 @@ const CARD_SELECT =
   "external_photo_url, is_master, " +
   "photo:media!photo_media_id(storage_path)";
 
-export async function getTeamMembers(status: "active" | "past" = "active"): Promise<TeamMemberCard[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("team_members")
-    .select(CARD_SELECT)
-    .eq("status", status)
-    .order("display_order")
-    .order("last_name");
-  return (data as unknown as TeamMemberCard[] | null) ?? [];
-}
+export const getTeamMembers = unstable_cache(
+  async (status: "active" | "past" = "active"): Promise<TeamMemberCard[]> => {
+    const supabase = createPublicClient();
+    const { data } = await supabase
+      .from("team_members")
+      .select(CARD_SELECT)
+      .eq("status", status)
+      .order("display_order")
+      .order("last_name");
+    return (data as unknown as TeamMemberCard[] | null) ?? [];
+  },
+  ["public-team-members"],
+  { revalidate: 60, tags: ["team"] },
+);
 
 export async function getTeamMemberBySlug(slug: string): Promise<TeamMemberCard | null> {
   const supabase = await createClient();

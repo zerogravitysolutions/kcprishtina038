@@ -6,7 +6,8 @@
 // via the Edge Function's upsertNewsFromPost step. Direct fb_posts
 // reads are kept here (legacy section, marked) until callers migrate.
 
-import { createClient } from "./server";
+import { unstable_cache } from "next/cache";
+import { createClient, createPublicClient } from "./server";
 
 export const DEFAULT_PAGE_ID = "119279937733925";
 
@@ -176,25 +177,20 @@ export async function getRecentNews(limit = 6): Promise<NewsCard[]> {
   return (data as unknown as NewsCard[] | null) ?? [];
 }
 
-export async function getNewsPage({
-  offset = 0,
-  limit = 12,
-}: { offset?: number; limit?: number } = {}): Promise<{
-  rows: NewsCard[];
-  total: number;
-}> {
-  const supabase = await createClient();
-  const { data, count } = await supabase
-    .from("news")
-    .select(NEWS_CARD_SELECT, { count: "exact" })
-    .eq("status", "published")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .range(offset, offset + limit - 1);
-  return {
-    rows: (data as unknown as NewsCard[] | null) ?? [],
-    total: count ?? 0,
-  };
-}
+export const getNewsPage = unstable_cache(
+  async ({ offset = 0, limit = 12 }: { offset?: number; limit?: number } = {}): Promise<{ rows: NewsCard[]; total: number }> => {
+    const supabase = createPublicClient();
+    const { data, count } = await supabase
+      .from("news")
+      .select(NEWS_CARD_SELECT, { count: "exact" })
+      .eq("status", "published")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .range(offset, offset + limit - 1);
+    return { rows: (data as unknown as NewsCard[] | null) ?? [], total: count ?? 0 };
+  },
+  ["public-news-page"],
+  { revalidate: 60, tags: ["news"] },
+);
 
 // ============================================================
 // Race events — curated catalog. Replaces the auto-tagged news.tags 'race'
@@ -241,14 +237,18 @@ export async function getMediaByIds(
   return ids.map((id) => byId.get(id)).filter(Boolean) as typeof rows;
 }
 
-export async function getRaceEvents(): Promise<RaceEvent[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("race_events")
-    .select(RACE_EVENT_SELECT)
-    .order("race_date", { ascending: false });
-  return (data as unknown as RaceEvent[] | null) ?? [];
-}
+export const getRaceEvents = unstable_cache(
+  async (): Promise<RaceEvent[]> => {
+    const supabase = createPublicClient();
+    const { data } = await supabase
+      .from("race_events")
+      .select(RACE_EVENT_SELECT)
+      .order("race_date", { ascending: false });
+    return (data as unknown as RaceEvent[] | null) ?? [];
+  },
+  ["public-race-events"],
+  { revalidate: 60, tags: ["races"] },
+);
 
 export async function getRaceEventBySlug(slug: string): Promise<RaceEvent | null> {
   const supabase = await createClient();

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
+import { TopProgress } from "@/components/public/TopProgress";
 
 // Co-locate SSR/functions with the Supabase project (eu-central-1, Frankfurt)
 // so DB round-trips are local (~ms) instead of transatlantic (~100ms each).
@@ -40,6 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        <TopProgress />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

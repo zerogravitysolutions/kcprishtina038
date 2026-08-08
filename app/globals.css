@@ -2176,13 +2176,3 @@ footer.foot::before {
   .join-photo { flex-direction: column; }
   .join-photo__preview { width: 100%; height: 200px; }
 }
-
-/* ---- Route loading skeletons (instant navigation feedback) ---- */
-@keyframes sk-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-.sk { background: rgba(15, 26, 46, .09); border-radius: 8px; animation: sk-pulse 1.15s ease-in-out infinite; }
-.sk-ondark { background: rgba(255, 255, 255, .14); }
-.sk-navbar { height: 64px; border-bottom: 1px solid rgba(15, 26, 46, .08); }
-.sk-hero { background: #0F1A2E; padding: 72px 0; }
-.sk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-.sk-card { height: 180px; }
-@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }

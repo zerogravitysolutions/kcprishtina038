@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { RIDE_METRIC_FIELDS, RIDE_METRIC_BY_KEY, coerceMetric } from "@/lib/training";
 import { stravaActivityId, isStravaAppLink, parseStravaUrl } from "@/lib/strava";
+import { dbError } from "@/lib/errors";
 
 const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 
@@ -73,7 +74,7 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
       } as never)
       .select("id")
       .single<{ id: string }>();
-    if (rideErr || !ride) return { ok: false, error: rideErr?.message ?? "Stërvitja nuk u krijua." };
+    if (rideErr || !ride) return { ok: false, error: dbError(rideErr, "Stërvitja nuk u krijua.") };
 
     // Inherit the session base into every rider's entry (still editable).
     const entryBase: Record<string, number> = {};
@@ -83,13 +84,13 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
     if (entErr) {
       // Roll back the empty ride so we don't leave an orphan.
       await supabase.from("training_rides").delete().eq("id", ride.id);
-      return { ok: false, error: entErr.message };
+      return { ok: false, error: dbError(entErr, "Çiklistët nuk u shtuan në stërvitje.") };
     }
 
     revalidatePath("/admin/training");
     return { ok: true, id: ride.id };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -120,12 +121,12 @@ export async function updateRide(id: string, patch: RidePatch): Promise<Result> 
     if (Object.keys(update).length === 0) return { ok: true };
 
     const { error } = await supabase.from("training_rides").update(update as never).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Ruajtja e stërvitjes dështoi. Provo sërish.") };
     revalidatePath(`/admin/training/${id}`);
     revalidatePath("/admin/training");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -134,11 +135,11 @@ export async function deleteRide(id: string): Promise<Result> {
     await assertCoach();
     const supabase = await createClient();
     const { error } = await supabase.from("training_rides").delete().eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Fshirja e stërvitjes dështoi. Provo sërish.") };
     revalidatePath("/admin/training");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -166,12 +167,12 @@ export async function addEntry(rideId: string, athleteId: string): Promise<Resul
       .single<{ id: string }>();
     if (error) {
       if (error.code === "23505") return { ok: false, error: "Ky çiklist është tashmë në këtë stërvitje." };
-      return { ok: false, error: error.message };
+      return { ok: false, error: dbError(error, "Shtimi i çiklistit dështoi. Provo sërish.") };
     }
     revalidatePath(`/admin/training/${rideId}`);
     return { ok: true, id: data?.id ?? "" };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -184,11 +185,11 @@ export async function removeEntry(rideId: string, entryId: string): Promise<Resu
       .delete()
       .eq("id", entryId)
       .eq("ride_id", rideId);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Heqja e çiklistit dështoi. Provo sërish.") };
     revalidatePath(`/admin/training/${rideId}`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -233,7 +234,7 @@ export async function updateEntry(
         .update(update as never)
         .eq("id", entryId)
         .eq("ride_id", rideId);
-      if (error) return { ok: false, error: error.message };
+      if (error) return { ok: false, error: dbError(error, "Ruajtja e të dhënave dështoi. Provo sërish.") };
     }
 
     // If this entry is flagged as an FTP source, propagate its FTP to the
@@ -261,7 +262,7 @@ export async function updateEntry(
     revalidatePath(`/admin/training/${rideId}`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -321,12 +322,12 @@ export async function upsertAthleteProfile(athleteId: string, patch: ProfilePatc
     const { error } = await supabase
       .from("athlete_profiles")
       .upsert(row as never, { onConflict: "athlete_id" });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Ruajtja e profilit dështoi. Provo sërish.") };
     revalidatePath(`/admin/athletes/${athleteId}`);
     revalidatePath("/admin/athletes");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -372,7 +373,7 @@ export async function resolveStravaUrl(
     if (r) return { ok: true, url: r.url, activityId: r.activityId };
     return { ok: false, error: "S’u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e, "Lidhja me Strava-n dështoi. Provo sërish.") };
   }
 }
 
@@ -452,6 +453,6 @@ export async function fetchStravaStats(url: string): Promise<
     }
     return { ok: true, url: resolved.url, activityId: resolved.activityId, ...stats };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e, "Lidhja me Strava-n dështoi. Provo sërish.") };
   }
 }

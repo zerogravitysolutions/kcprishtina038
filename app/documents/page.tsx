@@ -26,7 +26,7 @@ export default async function DocumentsPage() {
       <PageHero
         eyebrow="Dokumentet"
         title="Dokumentet zyrtare të klubit."
-        subtitle={`Statuti, vendimet e bordit, procesverbalet, deklaratat dhe vërtetimet. ${total} dokumente në ${Array.from(grouped.values()).filter(a => a.length > 0).length} kategori.`}
+        subtitle={`Statuti, vendimet e bordit, procesverbalet, deklaratat dhe vërtetimet. ${total} ${total === 1 ? "dokument" : "dokumente"} në ${Array.from(grouped.values()).filter(a => a.length > 0).length} kategori.`}
         imageStoragePath={null}
       />
 

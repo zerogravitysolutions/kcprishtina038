@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors";
 
 async function assertAdmin() {
   const p = await getProfile();
@@ -31,7 +32,7 @@ export async function upsertSetting(form: FormData): Promise<void> {
     updated_by: me.id,
     updated_at: new Date().toISOString(),
   }] as never, { onConflict: "key" });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Ruajtja e cilësimit dështoi. Provo sërish."));
   revalidatePath("/admin/settings");
   redirect("/admin/settings");
 }
@@ -41,10 +42,10 @@ export async function deleteSetting(key: string): Promise<{ ok: boolean; error?:
     await assertAdmin();
     const supabase = await createClient();
     const { error } = await supabase.from("settings").delete().eq("key", key);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Fshirja e cilësimit dështoi. Provo sërish.") };
     revalidatePath("/admin/settings");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }

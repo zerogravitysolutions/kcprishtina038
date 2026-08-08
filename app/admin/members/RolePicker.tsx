@@ -8,7 +8,7 @@ const ROLES = ["admin", "editor", "staff", "coach", "member"] as const;
 // Friendly Albanian labels (the value saved is still the raw role).
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
-  editor: "Editor",
+  editor: "Redaktor",
   staff: "Staf",
   coach: "Trajner",
   member: "Anëtar",

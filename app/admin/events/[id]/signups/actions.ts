@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors";
 
 async function assertEditor() {
   const p = await getProfile();
@@ -31,7 +32,7 @@ export async function updateSignup(
 
     if (patch.status !== undefined) {
       if (!(STATUSES as readonly string[]).includes(patch.status)) {
-        return { ok: false, error: "Statusi i pavlefshëm." };
+        return { ok: false, error: "Statusi nuk është i vlefshëm." };
       }
       update.status = patch.status;
     }
@@ -63,11 +64,11 @@ export async function updateSignup(
       .update(update as never)
       .eq("id", signupId)
       .eq("event_id", eventId);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Ruajtja e regjistrimit dështoi. Provo sërish.") };
     revalidatePath(`/admin/events/${eventId}/signups`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -86,13 +87,13 @@ export async function toggleResultsPublished(
       .from("events")
       .update(patch as never)
       .eq("id", eventId);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Ndryshimi i publikimit dështoi. Provo sërish.") };
     revalidatePath(`/admin/events/${eventId}/results`);
     revalidatePath(`/admin/events/${eventId}/signups`);
     revalidatePath(`/events`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -102,17 +103,17 @@ export async function deleteSignup(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const p = await getProfile();
-    if (!p || p.role !== "admin") return { ok: false, error: "Nuk lejohet — vetëm admini." };
+    if (!p || p.role !== "admin") return { ok: false, error: "Vetëm admini mund ta bëjë këtë veprim." };
     const supabase = await createClient();
     const { error } = await supabase
       .from("event_signups")
       .delete()
       .eq("id", signupId)
       .eq("event_id", eventId);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Fshirja e regjistrimit dështoi. Provo sërish.") };
     revalidatePath(`/admin/events/${eventId}/signups`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }

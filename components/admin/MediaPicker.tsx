@@ -129,7 +129,7 @@ export function MediaPicker(props: Props) {
 
       setUploadInfo(
         `${result.ids.length} ${result.ids.length === 1 ? "foto u ngarkua" : "foto u ngarkuan"}` +
-        (result.skipped ? ` · ${result.skipped} u kapërcyen` : ""),
+        (result.skipped ? ` · ${result.skipped} ${result.skipped === 1 ? "u kapërcye" : "u kapërcyen"}` : ""),
       );
       // Pull fresh options from the parent (with real storage_path).
       router.refresh();
@@ -192,7 +192,7 @@ export function MediaPicker(props: Props) {
       <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", letterSpacing: ".06em", marginBottom: 8 }}>
         {filter
           ? `${visible.length}/${filtered.length} rezultate · më të rejat së pari`
-          : `${visible.length}/${sorted.length} media · radhitur sipas datës, më të rejat së pari`}
+          : `${visible.length}/${sorted.length} foto · renditur sipas datës, më të rejat së pari`}
       </div>
 
       {/* Critical: grid-auto-rows pinned to TILE_SIZE so rows can't stretch.
@@ -286,7 +286,7 @@ export function MediaPicker(props: Props) {
           style={{ alignSelf: "flex-start", marginTop: 8 }}
           onClick={() => setShowCount((c) => c + 80)}
         >
-          Shfaq {Math.min(80, filtered.length - visible.length)} të tjera ({filtered.length - visible.length} mbeten)
+          Shfaq edhe {Math.min(80, filtered.length - visible.length)} foto ({filtered.length - visible.length === 1 ? "mbetet 1" : `mbeten ${filtered.length - visible.length}`})
         </button>
       )}
 

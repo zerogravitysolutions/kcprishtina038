@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors";
 
 async function assertEditor() {
   const p = await getProfile();
@@ -39,7 +40,7 @@ export async function createResult(form: FormData): Promise<void> {
   payload.recorded_by = me.id;
   const supabase = await createClient();
   const { error } = await supabase.from("results").insert([payload] as never);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Ruajtja e rezultatit dështoi. Provo sërish."));
   revalidatePath("/admin/results");
   redirect("/admin/results");
 }
@@ -49,7 +50,7 @@ export async function updateResult(id: string, form: FormData): Promise<void> {
   const supabase = await createClient();
   const patch = parsePayload(form);
   const { error } = await supabase.from("results").update(patch as never).eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Ruajtja e rezultatit dështoi. Provo sërish."));
   revalidatePath("/admin/results");
   redirect("/admin/results");
 }
@@ -59,10 +60,10 @@ export async function deleteResult(id: string): Promise<{ ok: boolean; error?: s
     await assertEditor();
     const supabase = await createClient();
     const { error } = await supabase.from("results").delete().eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Fshirja e rezultatit dështoi. Provo sërish.") };
     revalidatePath("/admin/results");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }

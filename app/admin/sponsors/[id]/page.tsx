@@ -12,9 +12,7 @@ type Row = {
   name: string;
   tier: string;
   role_sq: string | null;
-  role_en: string | null;
   body_sq: string | null;
-  body_en: string | null;
   website_url: string | null;
   contract_start: string | null;
   contract_end: string | null;
@@ -31,7 +29,7 @@ export default async function EditSponsorPage({ params }: { params: Promise<{ id
   const supabase = await createClient();
   const [{ data }, { data: mediaData }] = await Promise.all([
     supabase.from("sponsors")
-      .select("id, name, tier, role_sq, role_en, body_sq, body_en, website_url, contract_start, contract_end, display_order, active, logo_media_id")
+      .select("id, name, tier, role_sq, body_sq, website_url, contract_start, contract_end, display_order, active, logo_media_id")
       .eq("id", id).maybeSingle(),
     supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),
   ]);

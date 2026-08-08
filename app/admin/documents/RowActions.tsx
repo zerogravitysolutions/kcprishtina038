@@ -61,7 +61,7 @@ export function RowActions({
       fd.set("display_order", ord);
       const r = await updateDocument(id, fd);
       if (r.ok) {
-        setSaveMsg({ ok: true, text: "Ruajtur ✓" });
+        setSaveMsg({ ok: true, text: "U ruajt ✓" });
         setTimeout(() => { setSaveMsg(null); setEdit(false); }, 600);
       } else {
         setSaveMsg({ ok: false, text: r.error ?? "Gabim" });

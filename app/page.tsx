@@ -181,7 +181,7 @@ export default async function Home() {
             </div>
 
             <div className="collage">
-              <span className="badge">SEZONI 2026 · LIVE</span>
+              <span className="badge">SEZONI 2026 · AKTIV</span>
               {(["s1", "s2", "s3"] as const).map((slot, i) => {
                 const photo = heroSlots[i];
                 if (photo.url) {

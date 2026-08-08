@@ -38,13 +38,13 @@ export default async function MediaAdminPage({ searchParams }: { searchParams: P
       <div className="filter-bar" style={{ borderRadius: 12, border: "1px solid var(--line)", marginBottom: 12 }}>
         <Link className={`chip ${src === "all" ? "active" : ""}`} href="/admin/media">Të gjitha</Link>
         <Link className={`chip ${src === "facebook" ? "active" : ""}`} href="/admin/media?src=facebook">Facebook</Link>
-        <Link className={`chip ${src === "upload" ? "active" : ""}`} href="/admin/media?src=upload">Manualë</Link>
+        <Link className={`chip ${src === "upload" ? "active" : ""}`} href="/admin/media?src=upload">Të ngarkuara</Link>
         <div className="spacer" />
         <span className="meta">{total} gjithsej</span>
       </div>
       {rows.length === 0 ? (
         <p style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
-          Mediateka është bosh për këtë filtër.
+          Biblioteka është bosh për këtë filtër.
         </p>
       ) : (
         <>
@@ -77,7 +77,7 @@ export default async function MediaAdminPage({ searchParams }: { searchParams: P
                   <Link className="btn btn-ghost btn-sm" href={`/admin/media?${new URLSearchParams({ ...(src !== "all" ? { src } : {}), page: String(page - 1) })}`}>← E mëparshme</Link>
                 )}
                 {page < pages && (
-                  <Link className="btn btn-ghost btn-sm" href={`/admin/media?${new URLSearchParams({ ...(src !== "all" ? { src } : {}), page: String(page + 1) })}`}>Tjetra →</Link>
+                  <Link className="btn btn-ghost btn-sm" href={`/admin/media?${new URLSearchParams({ ...(src !== "all" ? { src } : {}), page: String(page + 1) })}`}>E ardhshme →</Link>
                 )}
               </div>
             </div>

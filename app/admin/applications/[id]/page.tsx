@@ -77,11 +77,11 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
             <div style={{ marginBottom: 18, display: "flex", gap: 16, alignItems: "flex-start" }}>
               <img
                 src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${row.photo_storage_path}`}
-                alt={`Foto profili e ${row.full_name}`}
+                alt={`Foto e profilit të ${row.full_name}`}
                 style={{ width: 140, height: 175, objectFit: "cover", borderRadius: 8, border: "1px solid var(--line)" }}
               />
               <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: ".12em", textTransform: "uppercase", marginTop: 6 }}>
-                Foto profili<br />
+                Fotoja e profilit<br />
                 <a href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${row.photo_storage_path}`} target="_blank" rel="noopener" style={{ color: "var(--ember)", letterSpacing: ".06em", textTransform: "none", fontSize: 12 }}>Hape në madhësi të plotë ↗</a>
               </div>
             </div>
@@ -118,7 +118,7 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
 
           {row.status !== "pending" && (
             <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line)", fontSize: 13 }}>
-              <div className="mono" style={{ color: "var(--ink-3)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 6 }}>Rishikuar</div>
+              <div className="mono" style={{ color: "var(--ink-3)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 6 }}>Shqyrtuar nga</div>
               <div>
                 {row.reviewer?.full_name ?? "—"}
                 {row.reviewed_at && <span style={{ color: "var(--ink-3)" }}> · {new Date(row.reviewed_at).toLocaleDateString("sq")}</span>}

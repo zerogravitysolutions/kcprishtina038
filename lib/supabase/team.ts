@@ -67,16 +67,17 @@ export async function getTeamMemberBySlug(slug: string): Promise<TeamMemberCard 
 // Helpers for display
 
 export function positionLabel(pos: TeamPosition, gender: TeamGender | null = "m"): string {
+  const f = gender === "f";
   switch (pos) {
-    case "president":                return "Kryetar";
-    case "board_member":             return "Anëtar bordi";
-    case "secretary_general":        return "Sekretar i përgjithshëm";
-    case "secretary_organizational": return "Sekretar organizativ";
-    case "commissaire":              return "Komisar";
-    case "coach":                    return "Trajner";
-    case "rider":                    return gender === "f" ? "Çikliste" : "Çiklist";
-    case "mechanic":                 return "Mekanik";
-    case "physio":                   return "Fizioterapist";
+    case "president":                return f ? "Kryetare" : "Kryetar";
+    case "board_member":             return f ? "Anëtare bordi" : "Anëtar bordi";
+    case "secretary_general":        return f ? "Sekretare e përgjithshme" : "Sekretar i përgjithshëm";
+    case "secretary_organizational": return f ? "Sekretare organizative" : "Sekretar organizativ";
+    case "commissaire":              return f ? "Komisare" : "Komisar";
+    case "coach":                    return f ? "Trajnere" : "Trajner";
+    case "rider":                    return f ? "Çikliste" : "Çiklist";
+    case "mechanic":                 return f ? "Mekanike" : "Mekanik";
+    case "physio":                   return f ? "Fizioterapiste" : "Fizioterapist";
     case "staff":                    return "Staf";
   }
 }

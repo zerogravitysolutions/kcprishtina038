@@ -5,7 +5,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-type Row = { id: string; slug: string; display_order: number; name_sq: string; name_en: string; active: boolean; coach: { full_name: string } | null };
+type Row = { id: string; slug: string; display_order: number; name_sq: string; active: boolean; coach: { full_name: string } | null };
 
 export default async function SectionsAdminPage() {
   const profile = await getProfile();
@@ -13,7 +13,7 @@ export default async function SectionsAdminPage() {
   if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
   const { data } = await supabase.from("sections")
-    .select("id, slug, display_order, name_sq, name_en, active, coach:coach_id(full_name)")
+    .select("id, slug, display_order, name_sq, active, coach:coach_id(full_name)")
     .order("display_order");
   const rows = (data as Row[] | null) ?? [];
 

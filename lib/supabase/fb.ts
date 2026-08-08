@@ -352,7 +352,7 @@ export function newsCardExcerpt(n: { body_sq: string; title_sq: string }, max = 
   return after.length > max ? after.slice(0, max - 1) + "…" : after;
 }
 
-export function formatNewsDate(iso: string | null, locale: "sq" | "en" = "sq"): string {
+export function formatNewsDate(iso: string | null, locale: "sq" = "sq"): string {
   if (!iso) return "";
   const d = new Date(iso);
   return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -399,7 +399,7 @@ export function postBody(p: FbPostCard, max = 200): string {
   return after.length > max ? after.slice(0, max - 1) + "…" : after;
 }
 
-export function formatPostDate(iso: string, locale: "sq" | "en" = "sq"): string {
+export function formatPostDate(iso: string, locale: "sq" = "sq"): string {
   const d = new Date(iso);
   return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" });
 }

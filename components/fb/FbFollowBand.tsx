@@ -48,7 +48,7 @@ export async function FbFollowBand({ href, path, page: provided }: Props = {}) {
           <div className="fb-band__stats mono">
             {typeof page.fan_count === "number" && page.fan_count > 0 && (
               <div>
-                <div className="fb-band__num">{page.fan_count.toLocaleString()}</div>
+                <div className="fb-band__num">{page.fan_count.toLocaleString("sq")}</div>
                 <div className="fb-band__label">{t("about.fbFans")}</div>
               </div>
             )}

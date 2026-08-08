@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTransition, useState } from "react";
 import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
+import { actionError } from "@/lib/errors";
 
 type Initial = {
   first_name: string;
@@ -67,8 +68,8 @@ export function TeamMemberForm({
         start(async () => {
           try { await action(fd); }
           catch (x) {
-            const msg = x instanceof Error ? x.message : String(x);
-            if (!msg.toLowerCase().includes("next_redirect")) setErr(msg);
+            const msg = actionError(x, "Ruajtja e anëtarit dështoi. Provo sërish.");
+            if (msg) setErr(msg);
           }
         });
       }}
@@ -127,7 +128,7 @@ export function TeamMemberForm({
       </div>
 
       <div className="field">
-        <label>Bio</label>
+        <label>Biografia</label>
         <textarea name="bio" rows={4} defaultValue={initial?.bio ?? ""} />
       </div>
 
@@ -148,7 +149,7 @@ export function TeamMemberForm({
           <input name="display_order" type="number" defaultValue={initial?.display_order ?? 100} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Profil i lidhur</label>
+          <label>Profili i lidhur</label>
           <select name="profile_id" defaultValue={initial?.profile_id ?? ""}>
             <option value="">— Pa profil —</option>
             {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name} ({p.role})</option>)}
@@ -161,7 +162,7 @@ export function TeamMemberForm({
         <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", textTransform: "none", letterSpacing: 0, color: "var(--ink)", fontSize: 14 }}>
           <input type="checkbox" name="is_master" defaultChecked={initial?.is_master ?? false} />
           <span>
-            Shfaq këtë çiklist si <strong>Master</strong> në publik
+            Shfaqe këtë çiklist si <strong>Master</strong> në faqen publike
             <small style={{ display: "block", color: "var(--ink-3)", fontSize: 12, marginTop: 2 }}>
               Vetëm nëse çiklisti regjistrohet zyrtarisht në kategorinë Master të federatës. Pa këtë, kategoria llogaritet automatikisht nga datëlindja (Elite për 23+ vjeç).
             </small>

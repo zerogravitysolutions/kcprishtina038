@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors";
 
 function slugify(s: string): string {
   return s
@@ -25,9 +26,7 @@ async function assertEditor() {
 export async function createNews(form: FormData): Promise<void> {
   const me = await assertEditor();
   const title_sq = String(form.get("title_sq") || "").trim();
-  const title_en = String(form.get("title_en") || "").trim() || null;
   const body_sq  = String(form.get("body_sq")  || "").trim();
-  const body_en  = String(form.get("body_en")  || "").trim() || null;
   const status   = String(form.get("status")   || "draft");
   const tags     = String(form.get("tags")     || "").split(",").map(s => s.trim()).filter(Boolean);
   if (!title_sq) throw new Error("Titulli mungon.");
@@ -35,7 +34,7 @@ export async function createNews(form: FormData): Promise<void> {
 
   const supabase = await createClient();
   let slug = slugify(title_sq);
-  if (!slug) throw new Error("Titulli nuk gjeneron një URL të vlefshme.");
+  if (!slug) throw new Error("Nga ky titull nuk del një URL e vlefshme. Përdor së paku një shkronjë ose numër.");
   let suffix = 1, candidate = slug;
   for (;;) {
     const { data: existing } = await supabase.from("news").select("id").eq("slug", candidate).maybeSingle();
@@ -48,7 +47,7 @@ export async function createNews(form: FormData): Promise<void> {
   const galleryRaw = String(form.get("gallery_media_ids") || "").trim();
   const gallery = galleryRaw ? galleryRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const payload: Record<string, unknown> = {
-    slug, title_sq, title_en, body_sq, body_en, status, tags,
+    slug, title_sq, body_sq, status, tags,
     author_id: me.id, source: "manual",
     cover_media_id: cover || null,
     gallery_media_ids: gallery,
@@ -56,7 +55,7 @@ export async function createNews(form: FormData): Promise<void> {
   if (status === "published") payload.published_at = new Date().toISOString();
 
   const { error } = await supabase.from("news").insert([payload] as never);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Ruajtja e artikullit dështoi. Provo sërish."));
   revalidatePath("/admin/news");
   revalidatePath("/news");
   redirect("/admin/news");
@@ -68,12 +67,8 @@ export async function updateNews(id: string, form: FormData): Promise<void> {
   const patch: Record<string, unknown> = {};
   const t = String(form.get("title_sq") || "").trim();
   if (t) patch.title_sq = t;
-  const te = form.get("title_en");
-  if (te !== null) patch.title_en = String(te).trim() || null;
   const b = String(form.get("body_sq") || "").trim();
   if (b) patch.body_sq = b;
-  const be = form.get("body_en");
-  if (be !== null) patch.body_en = String(be).trim() || null;
   const s = String(form.get("status") || "").trim();
   if (s) {
     patch.status = s;
@@ -98,7 +93,7 @@ export async function updateNews(id: string, form: FormData): Promise<void> {
   }
 
   const { error } = await supabase.from("news").update(patch as never).eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Ruajtja e artikullit dështoi. Provo sërish."));
   revalidatePath("/admin/news");
   revalidatePath("/news");
   redirect("/admin/news");
@@ -109,11 +104,11 @@ export async function deleteNews(id: string): Promise<{ ok: boolean; error?: str
     await assertEditor();
     const supabase = await createClient();
     const { error } = await supabase.from("news").delete().eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Fshirja e artikullit dështoi. Provo sërish.") };
     revalidatePath("/admin/news");
     revalidatePath("/news");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import type { DocumentCategory, DocumentVisibility } from "@/lib/supabase/documents";
+import { dbError } from "@/lib/errors";
 
 const PDF_MIME = "application/pdf";
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
@@ -37,7 +38,7 @@ export async function uploadDocument(form: FormData): Promise<{ ok: true; slug: 
     const description = String(form.get("description") || "").trim() || null;
     const effectiveDate = String(form.get("effective_date") || "").trim() || null;
 
-    if (!(file instanceof File))   return { ok: false, error: "Nuk u ngarkua asnjë skedar." };
+    if (!(file instanceof File))   return { ok: false, error: "Nuk u zgjodh asnjë skedar." };
     if (!title)                    return { ok: false, error: "Titulli mungon." };
     if (file.type !== PDF_MIME && !file.name.toLowerCase().endsWith(".pdf")) {
       return { ok: false, error: "Lejohen vetëm skedarët PDF." };
@@ -47,7 +48,7 @@ export async function uploadDocument(form: FormData): Promise<{ ok: true; slug: 
 
     const supabase = await createClient();
     let slug = slugify(title);
-    if (!slug) return { ok: false, error: "Titulli nuk gjeneron një URL të vlefshme." };
+    if (!slug) return { ok: false, error: "Nga ky titull nuk del një URL e vlefshme. Përdor së paku një shkronjë ose numër." };
 
     // Uniquify slug if necessary (append -2, -3, …).
     let suffix = 1;
@@ -65,7 +66,7 @@ export async function uploadDocument(form: FormData): Promise<{ ok: true; slug: 
     const { error: upErr } = await supabase.storage
       .from("media")
       .upload(storagePath, ab, { contentType: PDF_MIME, upsert: false });
-    if (upErr) return { ok: false, error: `Ngarkimi dështoi: ${upErr.message}` };
+    if (upErr) return { ok: false, error: dbError(upErr, "Ngarkimi i skedarit dështoi. Provo sërish.") };
 
     // supabase-ssr's typed builder narrows `.from("documents").insert()`
     // to `never[]` when the Tables generic is forwarded through layers
@@ -87,14 +88,14 @@ export async function uploadDocument(form: FormData): Promise<{ ok: true; slug: 
     if (dbErr) {
       // Roll back the storage upload.
       await supabase.storage.from("media").remove([storagePath]);
-      return { ok: false, error: `DB: ${dbErr.message}` };
+      return { ok: false, error: dbError(dbErr, "Ruajtja e dokumentit dështoi. Provo sërish.") };
     }
 
     revalidatePath("/admin/documents");
     revalidatePath("/documents");
     return { ok: true, slug };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -119,12 +120,12 @@ export async function updateDocument(id: string, form: FormData): Promise<{ ok: 
       if (!isNaN(n)) patch.display_order = n;
     }
     const { error } = await supabase.from("documents").update(patch as never).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Ruajtja e dokumentit dështoi. Provo sërish.") };
     revalidatePath("/admin/documents");
     revalidatePath("/documents");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -133,12 +134,12 @@ export async function deleteDocument(id: string, storagePath: string): Promise<{
     await assertAdmin();
     const supabase = await createClient();
     const { error: dbErr } = await supabase.from("documents").delete().eq("id", id);
-    if (dbErr) return { ok: false, error: dbErr.message };
+    if (dbErr) return { ok: false, error: dbError(dbErr, "Fshirja e dokumentit dështoi. Provo sërish.") };
     await supabase.storage.from("media").remove([storagePath]);
     revalidatePath("/admin/documents");
     revalidatePath("/documents");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }

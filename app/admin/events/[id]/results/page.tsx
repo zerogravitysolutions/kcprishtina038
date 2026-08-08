@@ -83,7 +83,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <Link className="btn btn-ghost btn-sm" href={`/admin/events/${event.id}/signups`}>← Regjistrimet</Link>
-          <Link className="btn btn-ghost btn-sm" href={`/admin/events/${event.id}`}>Te gara</Link>
+          <Link className="btn btn-ghost btn-sm" href={`/admin/events/${event.id}`}>← Te gara</Link>
         </div>
       </div>
 
@@ -107,7 +107,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
       >
         <Stat label="Lista e startit" value={rows.length} />
         <Stat label="Me rezultate" value={withResults} />
-        <Stat label="Pa rezultat" value={rows.length - withResults} />
+        <Stat label="Pa rezultate" value={rows.length - withResults} />
       </div>
 
       {rows.length === 0 ? (

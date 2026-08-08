@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors";
 
 const POSITIONS = [
   "president", "board_member",
@@ -59,7 +60,7 @@ export async function createTeamMember(form: FormData): Promise<void> {
   }
   const supabase = await createClient();
   let slug = slugify(`${payload.first_name} ${payload.last_name}`);
-  if (!slug) throw new Error("Emri nuk gjeneron URL të vlefshme.");
+  if (!slug) throw new Error("Nga ky emër nuk del një URL e vlefshme. Përdor së paku një shkronjë ose numër.");
   let suffix = 1, candidate = slug;
   for (;;) {
     const { data: existing } = await supabase.from("team_members").select("id").eq("slug", candidate).maybeSingle();
@@ -69,7 +70,7 @@ export async function createTeamMember(form: FormData): Promise<void> {
   payload.slug = slug;
   payload.status = payload.status ?? "active";
   const { error } = await supabase.from("team_members").insert([payload] as never);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Ruajtja e anëtarit dështoi. Provo sërish."));
   revalidatePath("/admin/team-members");
   revalidatePath("/team");
   redirect("/admin/team-members");
@@ -80,7 +81,7 @@ export async function updateTeamMember(id: string, form: FormData): Promise<void
   const supabase = await createClient();
   const patch = parsePayload(form);
   const { error } = await supabase.from("team_members").update(patch as never).eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Ruajtja e anëtarit dështoi. Provo sërish."));
   revalidatePath("/admin/team-members");
   revalidatePath("/team");
   redirect("/admin/team-members");
@@ -91,11 +92,11 @@ export async function deleteTeamMember(id: string): Promise<{ ok: boolean; error
     await assertEditor();
     const supabase = await createClient();
     const { error } = await supabase.from("team_members").delete().eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Fshirja e anëtarit dështoi. Provo sërish.") };
     revalidatePath("/admin/team-members");
     revalidatePath("/team");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }

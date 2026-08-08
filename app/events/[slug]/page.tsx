@@ -17,7 +17,6 @@ type EventRow = {
   id: string;
   slug: string;
   title_sq: string;
-  title_en: string | null;
   type: string;
   status: string;
   start_at: string;
@@ -26,7 +25,6 @@ type EventRow = {
   distance_km: number | null;
   elevation_m: number | null;
   description_sq: string | null;
-  description_en: string | null;
   registration_open_at: string | null;
   registration_close_at: string | null;
   external_url: string | null;
@@ -58,11 +56,19 @@ type EventSponsorRow = {
 };
 
 const EVENT_SELECT =
-  "id, slug, title_sq, title_en, type, status, start_at, end_at, location, " +
-  "distance_km, elevation_m, description_sq, description_en, " +
+  "id, slug, title_sq, type, status, start_at, end_at, location, " +
+  "distance_km, elevation_m, description_sq, " +
   "registration_open_at, registration_close_at, external_url, strava_url, source, " +
   "results_published, results_published_at, " +
   "cover:media!cover_media_id(storage_path)";
+
+// Labels only — the keys are the `sponsors.tier` enum values and stay as-is.
+const TIER_LABEL: Record<string, string> = {
+  title: "Sponsor kryesor",
+  technical: "Sponsor teknik",
+  partner: "Partner",
+  supporter: "Mbështetës",
+};
 
 function isStravaUrl(url: string | null): boolean {
   if (!url) return false;
@@ -447,7 +453,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                               color: "var(--ember)",
                             }}
                           >
-                            {s.tier}
+                            {TIER_LABEL[s.tier] ?? s.tier}
                           </div>
                           <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>{s.name}</div>
                           {s.role_sq && (
@@ -561,7 +567,7 @@ function ResultsBlock({
 
         {results.length === 0 ? (
           <p style={{ color: "var(--ink-2)" }}>
-            Rezultatet janë publikuar, por ende nuk ka të dhëna për t&apos;u shfaqur.
+            Rezultatet janë publikuar, por ende nuk ka të dhëna për t’u shfaqur.
           </p>
         ) : (
           <div style={{ display: "grid", gap: 24 }}>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
+import { actionError } from "@/lib/errors";
 
 type Initial = {
   name: string;
@@ -49,8 +50,8 @@ export function RaceForm({
         start(async () => {
           try { await action(fd); }
           catch (x) {
-            const msg = x instanceof Error ? x.message : String(x);
-            if (!msg.toLowerCase().includes("next_redirect")) setErr(msg);
+            const msg = actionError(x, "Ruajtja e garës dështoi. Provo sërish.");
+            if (msg) setErr(msg);
           }
         });
       }}

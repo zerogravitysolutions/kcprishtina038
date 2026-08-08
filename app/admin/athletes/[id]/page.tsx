@@ -28,17 +28,25 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: athleteData }, { data: profileData }, { data: entryData }] = await Promise.all([
+  const [{ data: athleteData }, { data: profileData }, { data: entryData }, { data: sectionData }] = await Promise.all([
     supabase.from("team_members").select("id, full_name, section_slug, dob, gender").eq("id", id).maybeSingle(),
     supabase.from("athlete_profiles").select("ftp_w, ftp_updated_at, weight_kg, max_hr, resting_hr, notes").eq("athlete_id", id).maybeSingle(),
     supabase
       .from("ride_entries")
       .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, rpe, ride:training_rides(id, ride_date, focus)")
       .eq("athlete_id", id),
+    supabase.from("sections").select("slug, name_sq"),
   ]);
 
   const athlete = athleteData as Athlete | null;
   if (!athlete) notFound();
+  // Show the section's Albanian name, not the raw slug ("road" → "Rrugë").
+  const sectionNameBySlug = new Map(
+    ((sectionData as { slug: string; name_sq: string }[] | null) ?? []).map((s) => [s.slug, s.name_sq]),
+  );
+  const sectionLabel = athlete.section_slug
+    ? sectionNameBySlug.get(athlete.section_slug) ?? athlete.section_slug
+    : null;
   const prof = (profileData as ProfileInitial | null) ?? { ftp_w: null, ftp_updated_at: null, weight_kg: null, max_hr: null, resting_hr: null, notes: null };
   const entries = (entryData as unknown as EntryRow[] | null) ?? [];
   const bests = computeBests(entries);
@@ -77,7 +85,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
       <div className="page-head">
         <div>
           <h1>{athlete.full_name}</h1>
-          <div className="sub">{athlete.section_slug ?? "Çiklist"} · profili i performancës</div>
+          <div className="sub">{sectionLabel ?? "Çiklist"} · profili i performancës</div>
         </div>
         <Link className="btn btn-ghost btn-sm" href="/admin/training/progress">← Progresi</Link>
       </div>
@@ -91,7 +99,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
             <Stat label="Stërvitje" value={String(bests.rides)} />
             <Stat label="KM gjithsej" value={bests.total_km > 0 ? fmt(bests.total_km, 0) : "—"} />
             <Stat label="Orë gjithsej" value={bests.total_seconds > 0 ? fmt(toHours(bests.total_seconds), 1) : "—"} />
-            <Stat label="HR max" value={bests.max_hr ? String(bests.max_hr) : "—"} />
+            <Stat label="HR maksimal" value={bests.max_hr ? String(bests.max_hr) : "—"} />
           </div>
 
           {/* Power curve */}

@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { useTransition, useState } from "react";
 import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
+import { actionError } from "@/lib/errors";
 
 type Initial = {
   name: string;
   tier: string;
   role_sq: string | null;
-  role_en: string | null;
   body_sq: string | null;
-  body_en: string | null;
   website_url: string | null;
   contract_start: string | null;
   contract_end: string | null;
@@ -32,8 +31,8 @@ export function SponsorForm({ action, initial, media, submitLabel }: { action: (
         start(async () => {
           try { await action(fd); }
           catch (x) {
-            const msg = x instanceof Error ? x.message : String(x);
-            if (!msg.toLowerCase().includes("next_redirect")) setErr(msg);
+            const msg = actionError(x, "Ruajtja e sponsorit dështoi. Provo sërish.");
+            if (msg) setErr(msg);
           }
         });
       }}
@@ -55,25 +54,14 @@ export function SponsorForm({ action, initial, media, submitLabel }: { action: (
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Roli (SQ)</label>
-          <input name="role_sq" defaultValue={initial?.role_sq ?? ""} placeholder="Sponsor i përgjithshëm" />
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Roli (EN)</label>
-          <input name="role_en" defaultValue={initial?.role_en ?? ""} placeholder="Title sponsor" />
-        </div>
+      <div className="field">
+        <label>Roli</label>
+        <input name="role_sq" defaultValue={initial?.role_sq ?? ""} placeholder="Sponsor i përgjithshëm" />
       </div>
 
       <div className="field">
-        <label>Përshkrimi (SQ)</label>
+        <label>Përshkrimi</label>
         <textarea name="body_sq" rows={4} defaultValue={initial?.body_sq ?? ""} />
-      </div>
-
-      <div className="field">
-        <label>Përshkrimi (EN)</label>
-        <textarea name="body_en" rows={4} defaultValue={initial?.body_en ?? ""} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 180px 180px 120px", gap: 16 }}>

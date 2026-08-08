@@ -33,8 +33,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_cB3Hl2_07OqDyV-U5exvbQ_WiTjKx6M`}
           </>
         ) : (
           <p style={{ marginTop: 12, fontSize: 14.5, color: "#1B2742" }}>
-            {error.message || "Gabim i brendshëm"}
-            {error.digest && <span style={{ display: "block", marginTop: 8, fontFamily: "monospace", fontSize: 11, color: "#A4ADB6" }}>Trace: {error.digest}</span>}
+            Faqja nuk u ngarkua dot. Provo sërish; nëse gabimi vazhdon, njofto administratorin.
+            {error.digest && <span style={{ display: "block", marginTop: 8, fontFamily: "monospace", fontSize: 11, color: "#A4ADB6" }}>Kodi: {error.digest}</span>}
           </p>
         )}
         <button onClick={() => reset()} style={{ marginTop: 20, padding: "10px 16px", background: "#C25A2D", color: "white", border: 0, borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>

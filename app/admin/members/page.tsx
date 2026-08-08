@@ -15,7 +15,7 @@ type Role = (typeof ROLES)[number];
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
-  editor: "Editor",
+  editor: "Redaktor",
   staff: "Staf",
   coach: "Trajner",
   member: "Anëtar",

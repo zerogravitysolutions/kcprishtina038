@@ -118,7 +118,7 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
             )}
             {!isSelf && (
               <button role="menuitem" className="danger" disabled={pending} onClick={() => {
-                if (!confirm(`Fshij përfundimisht "${name}"? Ky veprim s'kthehet — për të bllokuar hyrjen pa e fshirë, përdor "Çaktivizo".`)) return;
+                if (!confirm(`Fshij përfundimisht "${name}"? Ky veprim s’kthehet — për të bllokuar hyrjen pa e fshirë, përdor "Çaktivizo".`)) return;
                 quick(() => deleteMember(id));
               }}>
                 <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>

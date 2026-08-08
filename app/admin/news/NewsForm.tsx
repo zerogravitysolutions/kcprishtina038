@@ -3,15 +3,14 @@
 import Link from "next/link";
 import { useTransition, useState } from "react";
 import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
+import { actionError } from "@/lib/errors";
 
 type Props = {
   action: (form: FormData) => Promise<void>;
   media: MediaOption[];
   initial?: {
     title_sq: string;
-    title_en: string | null;
     body_sq: string;
-    body_en: string | null;
     status: string;
     tags: string[];
     cover_media_id: string | null;
@@ -34,8 +33,8 @@ export function NewsForm({ action, media, initial, submitLabel }: Props) {
         start(async () => {
           try { await action(fd); }
           catch (x) {
-            const msg = x instanceof Error ? x.message : String(x);
-            if (!msg.toLowerCase().includes("next_redirect")) setErr(msg);
+            const msg = actionError(x, "Ruajtja e artikullit dështoi. Provo sërish.");
+            if (msg) setErr(msg);
           }
         });
       }}
@@ -49,26 +48,16 @@ export function NewsForm({ action, media, initial, submitLabel }: Props) {
       )}
 
       <div className="field">
-        <label>Titulli (SQ) *</label>
+        <label>Titulli *</label>
         <input name="title_sq" required defaultValue={initial?.title_sq ?? ""} />
       </div>
 
       <div className="field">
-        <label>Titulli (EN)</label>
-        <input name="title_en" defaultValue={initial?.title_en ?? ""} />
-      </div>
-
-      <div className="field">
-        <label>Përmbajtja (SQ) *</label>
+        <label>Përmbajtja *</label>
         <textarea name="body_sq" required rows={12} defaultValue={initial?.body_sq ?? ""} />
       </div>
 
-      <div className="field">
-        <label>Përmbajtja (EN)</label>
-        <textarea name="body_en" rows={8} defaultValue={initial?.body_en ?? ""} />
-      </div>
-
-      <MediaPicker name="cover_media_id" options={media} initial={initial?.cover_media_id ?? null} label="Imazh kopertine" />
+      <MediaPicker name="cover_media_id" options={media} initial={initial?.cover_media_id ?? null} label="Imazhi i kopertinës" />
 
       <MediaPicker
         name="gallery_media_ids"

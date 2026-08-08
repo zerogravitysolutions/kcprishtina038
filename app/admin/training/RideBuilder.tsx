@@ -113,7 +113,7 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
       {/* Bazë — shared, inherited by each cyclist. */}
       <div>
         <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 6 }}>
-          Bazë <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· për të gjithë · manual ose nga Strava</span>
+          Bazë <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· për të gjithë · me dorë ose nga Strava</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           <div className="field" style={{ marginBottom: 0 }}>

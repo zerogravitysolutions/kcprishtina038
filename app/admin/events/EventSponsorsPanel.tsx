@@ -82,12 +82,12 @@ function SponsorFormModal({
         </div>
 
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Roli (SQ)</label>
+          <label>Roli</label>
           <input name="role_sq" defaultValue={initial?.role_sq ?? ""} placeholder="Sponsor i garës" />
         </div>
 
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Përshkrimi i shkurtër (SQ)</label>
+          <label>Përshkrimi i shkurtër</label>
           <textarea name="body_sq" rows={3} defaultValue={initial?.body_sq ?? ""} />
         </div>
 
@@ -171,7 +171,7 @@ export function EventSponsorsPanel({
 
       {sponsors.length === 0 ? (
         <p className="mono" style={{ fontSize: 12, color: "var(--ink-3)", padding: "8px 0" }}>
-          Asnjë sponsor për këtë garë. Kliko “+ Sponsor i ri” për të shtuar një.
+          Asnjë sponsor për këtë garë. Kliko “+ Sponsor i ri” për të shtuar të parin.
         </p>
       ) : (
         <div className="table-wrap">
@@ -219,11 +219,11 @@ export function EventSponsorsPanel({
                         </div>
                       </div>
                     </td>
-                    <td className="mono" style={{ textTransform: "uppercase", fontSize: 11 }}>{s.tier}</td>
+                    <td className="mono" style={{ textTransform: "uppercase", fontSize: 11 }}>{TIERS.find((t) => t.v === s.tier)?.label ?? s.tier}</td>
                     <td className="mono">{s.display_order}</td>
                     <td>
                       <span className={`badge-st ${s.active ? "ok" : "err"}`}>
-                        {s.active ? "aktiv" : "joaktiv"}
+                        {s.active ? "Aktiv" : "Joaktiv"}
                       </span>
                     </td>
                     <td className="actions">

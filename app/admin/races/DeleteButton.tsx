@@ -24,7 +24,7 @@ export function DeleteButton({ id, name }: { id: string; name: string }) {
         confirmLabel="Fshij"
         message={
           <>
-            A je i sigurt që do ta fshish <strong>{name}</strong>? Lidhjet me lajmet do të prishen.
+            Sigurt që do ta fshish <strong>{name}</strong>? Lidhjet me lajmet do të prishen.
           </>
         }
         onConfirm={async () => {

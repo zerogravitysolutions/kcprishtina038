@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors";
 
 const RACE_TYPES = ["road", "mtb", "tt", "stage", "gravel", "cyclocross"] as const;
 
@@ -53,7 +54,7 @@ export async function createRaceEvent(form: FormData): Promise<void> {
   // Auto-generate unique slug if not provided.
   const customSlug = String(form.get("slug") || "").trim();
   let slug = customSlug ? slugify(customSlug) : slugify(`${payload.name} ${String(payload.race_date).slice(0, 4)}`);
-  if (!slug) throw new Error("Nga ky emër nuk mund të krijohet një URL e vlefshme.");
+  if (!slug) throw new Error("Nga ky emër nuk del një URL e vlefshme. Përdor së paku një shkronjë ose numër.");
   let suffix = 1, candidate = slug;
   for (;;) {
     const { data: existing } = await supabase.from("race_events").select("id").eq("slug", candidate).maybeSingle();
@@ -67,7 +68,7 @@ export async function createRaceEvent(form: FormData): Promise<void> {
     .insert([payload] as never)
     .select("id")
     .single();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Krijimi i garës dështoi. Provo sërish."));
 
   // Optional: link a news row to this newly created race.
   const linkNewsId = String(form.get("link_news_id") || "").trim();
@@ -87,7 +88,7 @@ export async function updateRaceEvent(id: string, form: FormData): Promise<void>
   const supabase = await createClient();
   const patch = parsePayload(form);
   const { error } = await supabase.from("race_events").update(patch as never).eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Ruajtja e garës dështoi. Provo sërish."));
   revalidatePath("/admin/races");
   revalidatePath("/races");
   redirect("/admin/races");
@@ -104,11 +105,11 @@ export async function declineRaceSuggestion(newsId: string): Promise<{ ok: boole
     await assertEditor();
     const supabase = await createClient();
     const { error } = await supabase.from("news").update({ race_dismissed: true } as never).eq("id", newsId);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Refuzimi i sugjerimit dështoi. Provo sërish.") };
     revalidatePath("/admin/races");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -117,11 +118,11 @@ export async function deleteRaceEvent(id: string): Promise<{ ok: boolean; error?
     await assertEditor();
     const supabase = await createClient();
     const { error } = await supabase.from("race_events").delete().eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Fshirja e garës dështoi. Provo sërish.") };
     revalidatePath("/admin/races");
     revalidatePath("/races");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }

@@ -13,7 +13,6 @@ export const revalidate = 0;
 type Row = {
   id: string;
   title_sq: string;
-  title_en: string | null;
   type: string;
   status: string;
   section_id: string | null;
@@ -23,7 +22,6 @@ type Row = {
   distance_km: number | null;
   elevation_m: number | null;
   description_sq: string | null;
-  description_en: string | null;
   cover_media_id: string | null;
   strava_url: string | null;
 };
@@ -44,7 +42,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
     { data: eventSponsors },
   ] = await Promise.all([
     supabase.from("events")
-      .select("id, title_sq, title_en, type, status, section_id, start_at, end_at, location, distance_km, elevation_m, description_sq, description_en, cover_media_id, strava_url")
+      .select("id, title_sq, type, status, section_id, start_at, end_at, location, distance_km, elevation_m, description_sq, cover_media_id, strava_url")
       .eq("id", id).maybeSingle(),
     supabase.from("sections").select("id, name_sq").eq("active", true).order("display_order"),
     supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),

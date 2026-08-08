@@ -32,6 +32,14 @@ const SELECT =
 
 export const dynamic = "force-dynamic";
 
+// Labels only — the keys are the `events.type` enum values and stay as-is.
+const TYPE_LABEL: Record<string, string> = {
+  race: "Garë",
+  ride: "Dalje",
+  camp: "Kamp",
+  training: "Stërvitje",
+};
+
 export default async function EventsIndexPage() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
@@ -188,7 +196,7 @@ function EventCard({ row: r, past }: { row: Row; past?: boolean }) {
                 color: "var(--ink-3)", fontSize: 13, letterSpacing: ".16em", textTransform: "uppercase",
               }}
             >
-              {r.type}
+              {TYPE_LABEL[r.type] ?? r.type}
             </span>
           )}
           {r.results_published && (

@@ -37,7 +37,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       </aside>
 
       <main className="auth-form-side">
-        <Link href="/" className="auth-back">← Kthehu te faqja kryesore</Link>
+        <Link href="/" className="auth-back">← Kthehu në ballinë</Link>
         <div className="auth-card">
           <h1 className="auth-card-title">Mirë se erdhe.</h1>
           <p className="auth-card-lede">Identifikohu për të hyrë në llogarinë tënde.</p>

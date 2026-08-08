@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB per file
@@ -31,10 +32,10 @@ export async function uploadMediaFiles(form: FormData): Promise<UploadResult> {
   try {
     const me = await getProfile();
     if (!me || !["admin", "editor"].includes(me.role)) {
-      return { ok: false, error: "Nuk keni leje — vetëm admin ose editor mund të ngarkojnë." };
+      return { ok: false, error: "Nuk ke leje — vetëm admini ose redaktori mund të ngarkojë skedarë." };
     }
     const files = form.getAll("files").filter((f): f is File => f instanceof File);
-    if (files.length === 0) return { ok: false, error: "Nuk u ngarkua asnjë skedar." };
+    if (files.length === 0) return { ok: false, error: "Nuk u zgjodh asnjë skedar." };
 
     const supabase = await createClient();
     const ids: string[] = [];
@@ -50,7 +51,7 @@ export async function uploadMediaFiles(form: FormData): Promise<UploadResult> {
       const { error: upErr } = await supabase.storage
         .from("media")
         .upload(path, buf, { contentType: file.type, upsert: false });
-      if (upErr) { lastErr = upErr.message; skipped++; continue; }
+      if (upErr) { lastErr = dbError(upErr, "Ngarkimi i skedarit dështoi. Provo sërish."); skipped++; continue; }
 
       const row: Record<string, unknown> = {
         storage_path: path,
@@ -72,7 +73,7 @@ export async function uploadMediaFiles(form: FormData): Promise<UploadResult> {
       if (dbErr) {
         // Roll back the storage object if the row failed.
         await supabase.storage.from("media").remove([path]).catch(() => {});
-        lastErr = dbErr.message;
+        lastErr = dbError(dbErr, "Ruajtja e skedarit dështoi. Provo sërish.");
         skipped++;
         continue;
       }
@@ -80,13 +81,13 @@ export async function uploadMediaFiles(form: FormData): Promise<UploadResult> {
     }
 
     if (ids.length === 0 && lastErr) {
-      return { ok: false, error: `Ngarkimi dështoi: ${lastErr}` };
+      return { ok: false, error: lastErr };
     }
 
     revalidatePath("/admin/media");
     // Picker hosts revalidate themselves via router.refresh() after the call.
     return { ok: true, ids, skipped };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }

@@ -8,6 +8,22 @@ export const revalidate = 0;
 
 type Row = { id: string; title_sq: string; type: string; status: string; source: string | null; start_at: string; location: string | null; section: { name_sq: string } | null };
 
+// Display-only labels — the DB values stay `race` / `ride` / `camp` / `training`.
+const TYPE_LABEL: Record<string, string> = {
+  race: "Garë",
+  ride: "Dalje",
+  camp: "Kamp",
+  training: "Stërvitje",
+};
+
+// Display-only labels — the DB values stay `draft` / `published` / …
+const STATUS_LABEL: Record<string, string> = {
+  draft: "Draft",
+  published: "Publikuar",
+  cancelled: "Anuluar",
+  done: "Përfunduar",
+};
+
 export default async function EventsAdminPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
@@ -36,11 +52,11 @@ export default async function EventsAdminPage() {
                     <Link href={`/admin/events/${r.id}`} style={{ fontWeight: 600 }}>{r.title_sq}</Link>
                     <small style={{ display: "block", color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 10.5, marginTop: 2 }}>{r.location ?? "—"}</small>
                   </td>
-                  <td className="mono">{r.type}</td>
+                  <td className="mono">{TYPE_LABEL[r.type] ?? r.type}</td>
                   <td>{r.section?.name_sq ?? "—"}</td>
                   <td className="mono">{new Date(r.start_at).toLocaleDateString("sq")}</td>
                   <td className="mono" style={{ textTransform: "uppercase", fontSize: 10.5 }}>{r.source ?? "native"}</td>
-                  <td><span className={`badge-st ${r.status === "published" ? "ok" : r.status === "draft" ? "warn" : "err"}`}>{r.status}</span></td>
+                  <td><span className={`badge-st ${r.status === "published" ? "ok" : r.status === "draft" ? "warn" : "err"}`}>{STATUS_LABEL[r.status] ?? r.status}</span></td>
                   <td className="actions">
                     <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}`}>Ndrysho</Link>
                     <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}/signups`}>Regjistrimet</Link>

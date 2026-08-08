@@ -8,7 +8,7 @@ const ROLES: [string, string][] = [
   ["member", "Anëtar"],
   ["coach", "Trajner"],
   ["staff", "Staf"],
-  ["editor", "Editor"],
+  ["editor", "Redaktor"],
   ["admin", "Admin"],
 ];
 

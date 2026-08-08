@@ -136,7 +136,7 @@ export function EntryEditor({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600 }}>{athlete.full_name}</div>
           <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {!participated ? "Nuk mori pjesë" : summaryLine(summaryFields, values) || "Pa vlera ende"}
+            {!participated ? "Nuk mori pjesë" : summaryLine(summaryFields, values) || "Ende pa vlera"}
           </div>
         </div>
         <div className="mono" style={{ fontSize: 11, width: 66, textAlign: "right", color: msg?.ok === false ? "var(--err)" : pending ? "var(--ink-3)" : "var(--ok)" }}>
@@ -226,7 +226,7 @@ function MetricDisplay({ field, value }: { field: MetricField; value: string }) 
     <label className="field" style={{ marginBottom: 0, gap: 4 }}>
       <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <span>{field.label}</span>
-        <span style={{ fontSize: 9, color: "var(--slate)" }}>auto</span>
+        <span style={{ fontSize: 9, color: "var(--slate)" }}>automatik</span>
       </span>
       <div
         title="Llogaritet vetë nga NP dhe FTP"

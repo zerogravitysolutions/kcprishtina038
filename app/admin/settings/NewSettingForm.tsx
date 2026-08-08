@@ -2,6 +2,7 @@
 
 import { useTransition, useState } from "react";
 import { upsertSetting } from "./actions";
+import { actionError } from "@/lib/errors";
 
 export function NewSettingForm() {
   const [pending, start] = useTransition();
@@ -17,8 +18,8 @@ export function NewSettingForm() {
         start(async () => {
           try { await upsertSetting(fd); form.reset(); }
           catch (x) {
-            const msg = x instanceof Error ? x.message : String(x);
-            if (!msg.toLowerCase().includes("next_redirect")) setErr(msg);
+            const msg = actionError(x, "Ruajtja e cilësimit dështoi. Provo sërish.");
+            if (msg) setErr(msg);
             else form.reset();
           }
         });

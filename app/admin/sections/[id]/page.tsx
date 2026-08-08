@@ -11,9 +11,7 @@ type Section = {
   slug: string;
   display_order: number;
   name_sq: string;
-  name_en: string;
   description_sq: string | null;
-  description_en: string | null;
   coach_id: string | null;
   active: boolean;
 };
@@ -27,7 +25,7 @@ export default async function EditSectionPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const supabase = await createClient();
   const { data: sec } = await supabase.from("sections")
-    .select("id, slug, display_order, name_sq, name_en, description_sq, description_en, coach_id, active")
+    .select("id, slug, display_order, name_sq, description_sq, coach_id, active")
     .eq("id", id).maybeSingle();
   const row = sec as Section | null;
   if (!row) notFound();
@@ -49,25 +47,14 @@ export default async function EditSectionPage({ params }: { params: Promise<{ id
         </div>
       </div>
       <form action={bound} style={{ display: "grid", gap: 16, maxWidth: 920 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Emri (SQ) *</label>
-            <input name="name_sq" required defaultValue={row.name_sq} />
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label>Emri (EN) *</label>
-            <input name="name_en" required defaultValue={row.name_en} />
-          </div>
+        <div className="field">
+          <label>Emri *</label>
+          <input name="name_sq" required defaultValue={row.name_sq} />
         </div>
 
         <div className="field">
-          <label>Përshkrimi (SQ)</label>
+          <label>Përshkrimi</label>
           <textarea name="description_sq" rows={5} defaultValue={row.description_sq ?? ""} />
-        </div>
-
-        <div className="field">
-          <label>Përshkrimi (EN)</label>
-          <textarea name="description_en" rows={5} defaultValue={row.description_en ?? ""} />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 100px", gap: 16, alignItems: "end" }}>
@@ -85,7 +72,7 @@ export default async function EditSectionPage({ params }: { params: Promise<{ id
             <input name="display_order" type="number" defaultValue={row.display_order} />
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label>Aktiv</label>
+            <label>Statusi</label>
             <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 0", textTransform: "none", letterSpacing: 0, color: "var(--ink)" }}>
               <input type="checkbox" name="active" defaultChecked={row.active} />
               {row.active ? "Aktiv" : "Joaktiv"}

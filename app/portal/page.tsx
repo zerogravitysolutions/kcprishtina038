@@ -48,7 +48,7 @@ export default async function PortalDashboard() {
   const dues = (duesRows as DueRow[] | null) ?? [];
   const unpaidTotal = dues.reduce((s, d) => s + Number(d.amount_eur), 0);
 
-  let raceLine = "Ende nuk je regjistruar në asnjë garë — shfleto kalendarin për t'u regjistruar.";
+  let raceLine = "Ende nuk je regjistruar në asnjë garë — shfleto kalendarin për t’u regjistruar.";
   let daysLabel: string | null = null;
   if (nextReg?.event) {
     const ev = nextReg.event;
@@ -112,7 +112,9 @@ export default async function PortalDashboard() {
         <div className="pcard dark" style={{ background: "var(--ink)", color: "var(--paper)", borderRadius: 16, padding: 24, boxShadow: "0 1px 2px rgba(15,26,46,.06), 0 10px 28px rgba(15,26,46,.10)" }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0, color: "var(--paper)" }}>Anëtarësia</h2>
           <div style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--slate)" }}>
-            {dues.length === 0 ? "Statusi: e paguar · asnjë pagesë e hapur" : `${dues.length} pagesa të papaguara · €${unpaidTotal.toFixed(2)}`}
+            {dues.length === 0
+              ? "E paguar · asnjë pagesë e hapur"
+              : `${dues.length === 1 ? "1 pagesë e papaguar" : `${dues.length} pagesa të papaguara`} · €${unpaidTotal.toFixed(2)}`}
           </div>
           <Link href="/portal/profile" className="btn" style={{ marginTop: 20, background: "transparent", borderColor: "rgba(244,242,236,.3)", color: "var(--paper)" }}>
             Profili & dokumentet →

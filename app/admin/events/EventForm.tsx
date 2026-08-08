@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useTransition, useState } from "react";
 import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
+import { actionError } from "@/lib/errors";
 
 type Initial = {
   title_sq: string;
-  title_en: string | null;
   type: string;
   status: string;
   section_id: string | null;
@@ -16,7 +16,6 @@ type Initial = {
   distance_km: number | null;
   elevation_m: number | null;
   description_sq: string | null;
-  description_en: string | null;
   cover_media_id: string | null;
   strava_url: string | null;
 };
@@ -43,20 +42,16 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
         start(async () => {
           try { await action(fd); }
           catch (x) {
-            const msg = x instanceof Error ? x.message : String(x);
-            if (!msg.toLowerCase().includes("next_redirect")) setErr(msg);
+            const msg = actionError(x, "Ruajtja e eventit dështoi. Provo sërish.");
+            if (msg) setErr(msg);
           }
         });
       }}
       style={{ display: "grid", gap: 16, maxWidth: 920 }}
     >
       <div className="field">
-        <label>Titulli (SQ) *</label>
+        <label>Titulli *</label>
         <input name="title_sq" required defaultValue={initial?.title_sq ?? ""} />
-      </div>
-      <div className="field">
-        <label>Titulli (EN)</label>
-        <input name="title_en" defaultValue={initial?.title_en ?? ""} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
@@ -108,18 +103,14 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
           <input name="distance_km" type="number" step="0.1" defaultValue={initial?.distance_km ?? ""} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Lartësia (m)</label>
+          <label>Ngjitja (m)</label>
           <input name="elevation_m" type="number" defaultValue={initial?.elevation_m ?? ""} />
         </div>
       </div>
 
       <div className="field">
-        <label>Përshkrimi (SQ)</label>
+        <label>Përshkrimi</label>
         <textarea name="description_sq" rows={5} defaultValue={initial?.description_sq ?? ""} />
-      </div>
-      <div className="field">
-        <label>Përshkrimi (EN)</label>
-        <textarea name="description_en" rows={4} defaultValue={initial?.description_en ?? ""} />
       </div>
 
       <div className="field">
@@ -134,7 +125,7 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
           Mbështeten <span className="mono">routes</span>,{" "}
           <span className="mono">segments</span> dhe{" "}
           <span className="mono">activities</span>. Përdorim widget-in zyrtar
-          të Strava-s në faqen publike (vetëm për linke publike).
+          të Strava-s në faqen publike (vetëm për linqe publike).
         </small>
       </div>
 

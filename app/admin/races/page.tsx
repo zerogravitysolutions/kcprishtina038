@@ -73,7 +73,7 @@ export default async function RacesAdminPage() {
   return (
     <>
       <div className="page-head">
-        <div><h1>Garat</h1><div className="sub">{rows.length} në bazë · katalog i kuruar i garave të klubit</div></div>
+        <div><h1>Garat</h1><div className="sub">{rows.length} në bazë · katalog i përzgjedhur i garave të klubit</div></div>
         <Link className="btn btn-ember" href="/admin/races/new">+ Garë e re</Link>
       </div>
 

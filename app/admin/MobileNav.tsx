@@ -12,7 +12,7 @@ export type MobileNavGroup = { group: string; items: MobileNavItem[] };
 /** Albanian display names for roles (the stored value stays the raw role). */
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
-  editor: "Editor",
+  editor: "Redaktor",
   staff: "Staf",
   coach: "Trajner",
   member: "Anëtar",

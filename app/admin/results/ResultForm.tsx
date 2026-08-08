@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTransition, useState } from "react";
+import { actionError } from "@/lib/errors";
 
 type Event = { id: string; title_sq: string; start_at: string };
 type Category = { id: string; name: string; event_id: string };
@@ -40,8 +41,8 @@ export function ResultForm({ action, events, categories, members, initial, submi
         start(async () => {
           try { await action(fd); }
           catch (x) {
-            const msg = x instanceof Error ? x.message : String(x);
-            if (!msg.toLowerCase().includes("next_redirect")) setErr(msg);
+            const msg = actionError(x, "Ruajtja e rezultatit dështoi. Provo sërish.");
+            if (msg) setErr(msg);
           }
         });
       }}
@@ -87,7 +88,7 @@ export function ResultForm({ action, events, categories, members, initial, submi
           <input name="position" type="number" min="1" defaultValue={initial?.position ?? ""} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Koha (sekonda)</label>
+          <label>Koha (në sekonda)</label>
           <input name="time_seconds" type="number" min="0" defaultValue={initial?.time_seconds ?? ""} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>

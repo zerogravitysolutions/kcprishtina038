@@ -1,5 +1,6 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors";
 
 export type JoinResult = { ok: true } | { ok: false; error: string };
 
@@ -82,7 +83,7 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
     const { error: upErr } = await supabase.storage
       .from("media")
       .upload(path, buf, { contentType: file.type, upsert: false });
-    if (upErr) return { ok: false, error: `Ngarkimi i fotos dështoi: ${upErr.message}` };
+    if (upErr) return { ok: false, error: dbError(upErr, "Ngarkimi i fotos dështoi. Provo sërish.") };
     photoStoragePath = path;
   }
 
@@ -105,7 +106,7 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
     if (photoStoragePath) {
       await supabase.storage.from("media").remove([photoStoragePath]).catch(() => {});
     }
-    return { ok: false, error: error.message };
+    return { ok: false, error: dbError(error, "Dërgimi i aplikimit dështoi. Provo sërish.") };
   }
   return { ok: true };
 }

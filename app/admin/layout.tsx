@@ -55,7 +55,7 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
 /** Albanian display names for roles (the stored value stays the raw role). */
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
-  editor: "Editor",
+  editor: "Redaktor",
   staff: "Staf",
   coach: "Trajner",
   member: "Anëtar",
@@ -84,7 +84,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v2.0</span>
+            <span className="sub">Admin · v2.1</span>
           </div>
         </Link>
 

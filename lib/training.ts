@@ -91,7 +91,7 @@ export const TRAINING_FOCUS: { value: string; label: string }[] = [
   { value: "Anaerobic & Sprint", label: "Anaerobic & Sprint – Fuqi shpërthyese dhe sprint (>120% FTP)" },
   { value: "Skills & Strength",  label: "Skills & Strength – Teknikë, kadencë, forcë në biçikletë dhe jashtë saj" },
   { value: "Intervale (HIIT)",   label: "Intervale (HIIT) – Intervale të shkurtra me intensitet të lartë" },
-  { value: "Climbing",           label: "Climbing – Stërvitje ngjitjeje / kodra" },
+  { value: "Climbing",           label: "Climbing – Stërvitje ngjitjesh dhe kodrash" },
   { value: "Kronometër (TT)",    label: "Kronometër (TT) – Provë kohore individuale" },
   { value: "Long Ride",          label: "Long Ride – Dalje e gjatë (vëllim aerobik)" },
   { value: "Dalje grupore",      label: "Dalje grupore – Stërvitje e përbashkët në grup" },

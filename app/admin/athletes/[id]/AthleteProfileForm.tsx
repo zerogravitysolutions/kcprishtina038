@@ -50,7 +50,7 @@ export function AthleteProfileForm({ athleteId, initial }: { athleteId: string; 
           <input type="number" inputMode="numeric" value={ftp} onChange={(e) => setFtp(e.target.value)} placeholder="260" style={{ fontFamily: "var(--font-mono)" }} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>FTP përditësuar</label>
+          <label>FTP përditësuar më</label>
           <input type="date" value={ftpAt} onChange={(e) => setFtpAt(e.target.value)} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>

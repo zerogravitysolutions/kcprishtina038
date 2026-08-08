@@ -167,8 +167,8 @@
     "cta": "Apliko si anëtar",
     "perk": {
       "1": "Stërvitje me trajner të certifikuar — 3× në javë",
-      "2": "Kalendari i garave FÇK & rajonale",
-      "3": "Fanella e klubit + helmetë gjatë sezonit",
+      "2": "Kalendari i garave — FÇK dhe rajonale",
+      "3": "Fanellë e klubit + helmetë për sezonin",
       "4": "Servis i biçikletës me BikePlus",
       "5": "Qasje në kampet stërvitore verore",
       "6": "Komunitet me çiklistë nga gjithë Kosova"
@@ -183,7 +183,7 @@
       "tag": "Para-porosi"
     },
     "p2": {
-      "name": "Bib pantallona",
+      "name": "Pantallona bib",
       "tag": "Para-porosi"
     },
     "p3": {
@@ -244,7 +244,7 @@
   "secs": {
     "eyebrow": "Seksionet",
     "title": "Pesë disiplina, një klub.",
-    "lede": "Zgjidhni një seksion për të parë trajnerin, oraret e stërvitjes, kalendarin e garave dhe çiklistët aktualë."
+    "lede": "Zgjidh një seksion për të parë trajnerin, oraret e stërvitjes, kalendarin e garave dhe çiklistët aktualë."
   },
   "jp": {
     "eyebrow": "Anëtarësia",

@@ -16,7 +16,7 @@ type Params = Promise<{ slug: string }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const m = await getTeamMemberBySlug(slug);
-  if (!m) return { title: "Anëtar nuk u gjet" };
+  if (!m) return { title: "Anëtari nuk u gjet" };
   const url = memberPhotoUrl(m);
   return {
     title: m.full_name,

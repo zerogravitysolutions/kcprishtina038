@@ -1,6 +1,7 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { dbError } from "@/lib/errors";
 
 export type ProfileUpdate = {
   full_name: string;
@@ -13,7 +14,7 @@ export type ProfileUpdate = {
 export async function saveProfile(data: ProfileUpdate): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Nuk je i identifikuar." };
+  if (!user) return { ok: false, error: "Nuk je i kyçur." };
   const updateFn = supabase.from("profiles").update as unknown as (
     row: Record<string, unknown>
   ) => { eq: (col: string, val: string) => Promise<{ error: { message: string } | null }> };
@@ -24,7 +25,7 @@ export async function saveProfile(data: ProfileUpdate): Promise<{ ok: boolean; e
     bio: data.bio,
     metadata: data.metadata,
   }).eq("id", user.id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbError(error, "Ruajtja e profilit dështoi. Provo sërish.") };
   revalidatePath("/portal");
   revalidatePath("/portal/profile");
   return { ok: true };

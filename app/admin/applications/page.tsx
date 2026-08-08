@@ -44,7 +44,7 @@ export default async function ApplicationsPage() {
       </div>
       <div className="table-wrap">
         <table className="t">
-          <thead><tr><th>Emri</th><th>Seksioni</th><th>Përvoja</th><th>Statusi</th><th>Pranuar</th><th>Veprime</th></tr></thead>
+          <thead><tr><th>Emri</th><th>Seksioni</th><th>Përvoja</th><th>Statusi</th><th>Data e aplikimit</th><th>Veprime</th></tr></thead>
           <tbody>
             {rows.length === 0
               ? <tr><td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka aplikime.</td></tr>

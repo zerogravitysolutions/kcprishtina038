@@ -42,7 +42,7 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
         start(async () => {
           const r = await registerForEvent(slug, fd);
           if (r.ok) {
-            setMsg({ ok: true, text: "U regjistrove me sukses! Të dhënat i dërguam te klubi — do të kontaktojmë me detajet." });
+            setMsg({ ok: true, text: "U regjistrove me sukses! Të dhënat i dërguam te klubi — do të të kontaktojmë me detajet." });
             (e.target as HTMLFormElement).reset();
             setDob(""); setGender(""); setCategory("");
           } else {

@@ -5,6 +5,14 @@ import { setEventSponsors } from "./actions";
 
 export type SponsorOption = { id: string; name: string; tier: string };
 
+// Display-only labels — the DB values stay `title` / `technical` / `partner` / `supporter`.
+const TIER_LABEL: Record<string, string> = {
+  title: "Kryesor",
+  technical: "Teknik",
+  partner: "Partner",
+  supporter: "Mbështetës",
+};
+
 export function EventSponsorsPicker({
   eventId,
   sponsors,
@@ -87,7 +95,7 @@ export function EventSponsorsPicker({
                     color: "var(--ember)",
                   }}
                 >
-                  {s.tier}
+                  {TIER_LABEL[s.tier] ?? s.tier}
                 </span>
                 <button
                   type="button"
@@ -134,7 +142,7 @@ export function EventSponsorsPicker({
             <option value="">— Zgjidh —</option>
             {available.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name} · {s.tier}
+                {s.name} · {TIER_LABEL[s.tier] ?? s.tier}
               </option>
             ))}
           </select>

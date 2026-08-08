@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors";
 
 async function assertEditor() {
   const p = await getProfile();
@@ -18,7 +19,6 @@ function slugify(s: string): string {
 function parsePayload(form: FormData): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
   const t   = String(form.get("title_sq") || "").trim();   if (t) patch.title_sq = t;
-  const te  = form.get("title_en");      if (te !== null) patch.title_en = String(te).trim() || null;
   const tp  = String(form.get("type") || "").trim();       if (tp) patch.type = tp;
   const st  = String(form.get("status") || "").trim();     if (st) patch.status = st;
   const sec = form.get("section_id");    if (sec !== null) { const v = String(sec).trim(); patch.section_id = v === "" ? null : v; }
@@ -32,7 +32,6 @@ function parsePayload(form: FormData): Record<string, unknown> {
     const n = parseInt(String(el), 10); if (!isNaN(n)) patch.elevation_m = n;
   } else if (el !== null) patch.elevation_m = null;
   const ds  = form.get("description_sq"); if (ds !== null) patch.description_sq = String(ds).trim() || null;
-  const de  = form.get("description_en"); if (de !== null) patch.description_en = String(de).trim() || null;
   const cov = form.get("cover_media_id"); if (cov !== null) { const v = String(cov).trim(); patch.cover_media_id = v === "" ? null : v; }
   const sv  = form.get("strava_url");     if (sv  !== null) { const v = String(sv).trim();  patch.strava_url     = v === "" ? null : v; }
   return patch;
@@ -48,9 +47,7 @@ function parseSponsorFields(form: FormData): Record<string, unknown> {
   const name = String(form.get("name") || "").trim();   if (name) patch.name = name;
   const tier = String(form.get("tier") || "").trim();   if (tier) patch.tier = tier;
   const rs = form.get("role_sq");      if (rs !== null) patch.role_sq = String(rs).trim() || null;
-  const re = form.get("role_en");      if (re !== null) patch.role_en = String(re).trim() || null;
   const bs = form.get("body_sq");      if (bs !== null) patch.body_sq = String(bs).trim() || null;
-  const be = form.get("body_en");      if (be !== null) patch.body_en = String(be).trim() || null;
   const url = form.get("website_url"); if (url !== null) patch.website_url = String(url).trim() || null;
   const cs = form.get("contract_start"); if (cs !== null) patch.contract_start = String(cs).trim() || null;
   const ce = form.get("contract_end");   if (ce !== null) patch.contract_end = String(ce).trim() || null;
@@ -81,11 +78,11 @@ export async function createEventSponsor(
       .insert(payload as never)
       .select("id")
       .single<{ id: string }>();
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Sponsori nuk u shtua. Provo sërish.") };
     revalidatePath(`/admin/events/${eventId}`);
     return { ok: true, id: data?.id ?? "" };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -102,11 +99,11 @@ export async function updateEventSponsor(
       .from("sponsors")
       .update(patch as never)
       .eq("id", sponsorId);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Ruajtja e sponsorit dështoi. Provo sërish.") };
     revalidatePath(`/admin/events/${eventId}`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -118,11 +115,11 @@ export async function deleteEventSponsor(
     await assertEditor();
     const supabase = await createClient();
     const { error } = await supabase.from("sponsors").delete().eq("id", sponsorId);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Fshirja e sponsorit dështoi. Provo sërish.") };
     revalidatePath(`/admin/events/${eventId}`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -140,7 +137,7 @@ export async function setEventSponsors(
       .from("event_sponsors")
       .delete()
       .eq("event_id", eventId);
-    if (delErr) return { ok: false, error: delErr.message };
+    if (delErr) return { ok: false, error: dbError(delErr, "Ruajtja e sponsorëve dështoi. Provo sërish.") };
 
     if (sponsorIds.length > 0) {
       const rows = sponsorIds.map((sid, i) => ({
@@ -151,12 +148,12 @@ export async function setEventSponsors(
       const { error: insErr } = await supabase
         .from("event_sponsors")
         .insert(rows as never);
-      if (insErr) return { ok: false, error: insErr.message };
+      if (insErr) return { ok: false, error: dbError(insErr, "Ruajtja e sponsorëve dështoi. Provo sërish.") };
     }
     revalidatePath(`/admin/events/${eventId}`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -182,7 +179,7 @@ export async function createEvent(form: FormData): Promise<void> {
   payload.source = "native";
 
   const { error } = await supabase.from("events").insert([payload] as never);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Krijimi i eventit dështoi. Provo sërish."));
   revalidatePath("/admin/events");
   redirect("/admin/events");
 }
@@ -192,7 +189,7 @@ export async function updateEvent(id: string, form: FormData): Promise<void> {
   const supabase = await createClient();
   const patch = parsePayload(form);
   const { error } = await supabase.from("events").update(patch as never).eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(dbError(error, "Ruajtja e eventit dështoi. Provo sërish."));
   revalidatePath("/admin/events");
   redirect("/admin/events");
 }
@@ -202,11 +199,11 @@ export async function deleteEvent(id: string): Promise<{ ok: boolean; error?: st
     await assertEditor();
     const supabase = await createClient();
     const { error } = await supabase.from("events").delete().eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: dbError(error, "Fshirja e eventit dështoi. Provo sërish.") };
     revalidatePath("/admin/events");
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }
 
@@ -228,7 +225,7 @@ export async function setEventCategories(
       .from("event_categories")
       .delete()
       .eq("event_id", eventId);
-    if (delErr) return { ok: false, error: delErr.message };
+    if (delErr) return { ok: false, error: dbError(delErr, "Ruajtja e kategorive dështoi. Provo sërish.") };
 
     if (rows.length > 0) {
       const payload = rows.map((r) => ({
@@ -240,11 +237,11 @@ export async function setEventCategories(
       const { error: insErr } = await supabase
         .from("event_categories")
         .insert(payload as never);
-      if (insErr) return { ok: false, error: insErr.message };
+      if (insErr) return { ok: false, error: dbError(insErr, "Ruajtja e kategorive dështoi. Provo sërish.") };
     }
     revalidatePath(`/admin/events/${eventId}`);
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: dbError(e) };
   }
 }

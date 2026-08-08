@@ -74,8 +74,8 @@ export default async function AdminDashboard() {
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 16 }}>
         <Kpi accent="#0E9384" label="Anëtarë aktivë" value={membersC.count ?? 0} sub={`${membersC.count ?? 0} në bazë`} />
-        <Kpi accent="#E0562D" label="Aplikime në pritje" value={pendingApps} sub={pendingApps > 0 ? "kërkojnë shqyrtim" : "asnjë e re"} tone={pendingApps > 0 ? "warn" : undefined} />
-        <Kpi accent="#16A34A" label="Anëtarësi këtë muaj" value={`${paid}/${duesRows.length}`} sub={duesRows.length === 0 ? "pa pagesa" : `${duesRows.length - paid} pa paguar`} />
+        <Kpi accent="#E0562D" label="Aplikime në pritje" value={pendingApps} sub={pendingApps > 0 ? "kërkojnë shqyrtim" : "asnjë i ri"} tone={pendingApps > 0 ? "warn" : undefined} />
+        <Kpi accent="#16A34A" label="Anëtarësia këtë muaj" value={`${paid}/${duesRows.length}`} sub={duesRows.length === 0 ? "pa pagesa" : `${duesRows.length - paid} pa paguar`} />
         <Kpi accent="#2E90FA" label="Evente të ardhshme" value={eventsC.count ?? 0} sub="të publikuara" />
       </div>
 

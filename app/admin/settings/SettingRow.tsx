@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { upsertSetting, deleteSetting } from "./actions";
+import { actionError } from "@/lib/errors";
 
 export function SettingRow({ row }: { row: { key: string; value: unknown; updated_at: string } }) {
   const [editing, setEditing] = useState(false);
@@ -17,8 +18,8 @@ export function SettingRow({ row }: { row: { key: string; value: unknown; update
     start(async () => {
       try { await upsertSetting(fd); setEditing(false); }
       catch (x) {
-        const msg = x instanceof Error ? x.message : String(x);
-        if (!msg.toLowerCase().includes("next_redirect")) setErr(msg);
+        const msg = actionError(x, "Ruajtja e cilësimit dështoi. Provo sërish.");
+        if (msg) setErr(msg);
         else setEditing(false);
       }
     });

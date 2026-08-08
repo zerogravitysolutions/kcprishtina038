@@ -80,7 +80,7 @@ export function PublishToggle({
               . Formulari i regjistrimit është mbyllur.
             </>
           ) : (
-            <>Rezultatet janë vetëm në admin. Aktivizo për t&apos;i bërë publike (formulari i regjistrimit zhduket automatikisht).</>
+            <>Rezultatet shfaqen vetëm në panelin e adminit. Aktivizo për t’i bërë publike (formulari i regjistrimit zhduket automatikisht).</>
           )}
         </div>
         {msg && (

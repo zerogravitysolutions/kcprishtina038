@@ -13,9 +13,7 @@ type Row = {
   id: string;
   slug: string;
   title_sq: string;
-  title_en: string | null;
   body_sq: string;
-  body_en: string | null;
   status: string;
   tags: string[];
   cover_media_id: string | null;
@@ -34,7 +32,7 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
   const supabase = await createClient();
   const [{ data: rowData }, { data: mediaData }] = await Promise.all([
     supabase.from("news")
-      .select("id, slug, title_sq, title_en, body_sq, body_en, status, tags, cover_media_id, gallery_media_ids, race_event_id, published_at, external_url, race_event:race_events(id, name, race_date)")
+      .select("id, slug, title_sq, body_sq, status, tags, cover_media_id, gallery_media_ids, race_event_id, published_at, external_url, race_event:race_events(id, name, race_date)")
       .eq("id", id).maybeSingle(),
     supabase.from("media").select("id, storage_path, filename, alt, created_at").order("created_at", { ascending: false }).limit(500),
   ]);
@@ -107,7 +105,7 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
                 <>
                   {" "}
                   <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: ".06em" }}>
-                    Sugjerim emri: {signal.nameGuess}
+                    Emri i sugjeruar: {signal.nameGuess}
                   </span>
                 </>
               )}
@@ -124,9 +122,7 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
         media={media}
         initial={{
           title_sq: row.title_sq,
-          title_en: row.title_en,
           body_sq: row.body_sq,
-          body_en: row.body_en,
           status: row.status,
           tags: row.tags ?? [],
           cover_media_id: row.cover_media_id,

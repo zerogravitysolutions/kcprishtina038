@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { dbError } from "@/lib/errors";
 
 const MEMBER_ROLES = ["admin", "editor", "staff", "coach", "member"];
 const MEMBER_STATUSES = ["active", "inactive", "suspended", "pending"];
@@ -35,10 +36,23 @@ export async function adminSignOut() {
 // "Cannot read properties of undefined (reading 'rest')".
 type RpcAny = (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
 
+// These RPCs `raise exception` with their own English text, which no SQLSTATE
+// mapping can recover. Translate the cases an admin can actually hit, then hand
+// anything else to the shared mapper.
+function rpcError(error: { message: string }, fallback: string): string {
+  const m = (error.message ?? "").toLowerCase();
+  if (m.includes("not authorised")) return "Nuk ke leje për këtë veprim.";
+  if (m.includes("application already")) return "Ky aplikim është shqyrtuar tashmë. Rifresko faqen.";
+  if (m.includes("application not found")) return "Aplikimi nuk u gjet.";
+  if (m.includes("demote themselves")) return "Nuk mund ta ndryshosh rolin tënd.";
+  if (m.includes("target profile not found")) return "Përdoruesi nuk u gjet.";
+  return dbError(error, fallback);
+}
+
 export async function approveApplication(appId: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
   const { error } = await (supabase.rpc as unknown as RpcAny).call(supabase, "approve_application", { app_id: appId });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: rpcError(error, "Miratimi i aplikimit dështoi. Provo sërish.") };
   revalidatePath("/admin/applications");
   revalidatePath("/admin/dashboard");
   return { ok: true };
@@ -47,7 +61,7 @@ export async function approveApplication(appId: string): Promise<{ ok: boolean; 
 export async function rejectApplication(appId: string, reason: string | null): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
   const { error } = await (supabase.rpc as unknown as RpcAny).call(supabase, "reject_application", { app_id: appId, reason: reason ?? null });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: rpcError(error, "Refuzimi i aplikimit dështoi. Provo sërish.") };
   revalidatePath("/admin/applications");
   revalidatePath("/admin/dashboard");
   return { ok: true };
@@ -56,7 +70,7 @@ export async function rejectApplication(appId: string, reason: string | null): P
 export async function setUserRole(targetId: string, newRole: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
   const { error } = await (supabase.rpc as unknown as RpcAny).call(supabase, "set_user_role", { target_id: targetId, new_role: newRole });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: rpcError(error, "Ndryshimi i rolit dështoi. Provo sërish.") };
   revalidatePath("/admin/members");
   revalidatePath("/admin/staff");
   return { ok: true };
@@ -84,15 +98,16 @@ export async function createMember(input: { full_name: string; email: string; pa
     email, password, email_confirm: true, user_metadata: { full_name },
   });
   if (cErr || !created?.user) {
-    const msg = cErr?.message ?? "Krijimi i llogarisë dështoi.";
-    return { ok: false, error: /already been registered|exists/i.test(msg) ? "Ky email është i regjistruar tashmë." : msg };
+    const msg = cErr?.message ?? "";
+    if (/already been registered|exists/i.test(msg)) return { ok: false, error: "Ky email është regjistruar tashmë." };
+    return { ok: false, error: dbError(cErr, "Krijimi i llogarisë dështoi.") };
   }
 
   // handle_new_user trigger already inserted a profile (member / pending) — promote it.
   const { error: uErr } = await admin.from("profiles")
     .update({ full_name, role, status: "active", joined_at: new Date().toISOString().slice(0, 10) })
     .eq("id", created.user.id);
-  if (uErr) return { ok: false, error: `Llogaria u krijua, por profili s'u përditësua: ${uErr.message}` };
+  if (uErr) return { ok: false, error: dbError(uErr, "Llogaria u krijua, por profili s’u përditësua.") };
 
   revalidatePath("/admin/members");
   revalidatePath("/admin/dashboard");
@@ -109,12 +124,12 @@ export async function setMemberStatus(targetId: string, status: string): Promise
   let admin;
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
   const { error } = await admin.from("profiles").update({ status }).eq("id", targetId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbError(error, "Ndryshimi i statusit dështoi. Provo sërish.") };
   // Revoke (or restore) the auth session so a deactivated user is cut off
   // immediately everywhere — not just when a page/layout re-checks status.
   // Anything other than "active" bans the login; "active" lifts the ban.
   const { error: banErr } = await admin.auth.admin.updateUserById(targetId, { ban_duration: status === "active" ? "none" : "876000h" });
-  if (banErr) return { ok: false, error: `Statusi u ndryshua, por sesioni s'u përditësua: ${banErr.message}` };
+  if (banErr) return { ok: false, error: dbError(banErr, "Statusi u ndryshua, por sesioni s’u përditësua.") };
   revalidatePath("/admin/members");
   return { ok: true };
 }
@@ -128,7 +143,7 @@ export async function deleteMember(targetId: string): Promise<{ ok: boolean; err
   let admin;
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
   const { error } = await admin.auth.admin.deleteUser(targetId);
-  if (error) return { ok: false, error: `${error.message} — nëse ka të dhëna të lidhura, përdor 'Çaktivizo'.` };
+  if (error) return { ok: false, error: `${dbError(error, "Fshirja e llogarisë dështoi.")} Nëse llogaria ka të dhëna të lidhura, përdor “Çaktivizo”.` };
   revalidatePath("/admin/members");
   revalidatePath("/admin/dashboard");
   return { ok: true };
@@ -159,9 +174,9 @@ export async function updateMemberEmail(targetId: string, newEmail: string): Pro
   let admin;
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
   const { error: aErr } = await admin.auth.admin.updateUserById(targetId, { email, email_confirm: true });
-  if (aErr) return { ok: false, error: /registered|exists|already/i.test(aErr.message) ? "Ky email është i zënë nga një llogari tjetër." : aErr.message };
+  if (aErr) return { ok: false, error: /registered|exists|already/i.test(aErr.message) ? "Ky email është i zënë nga një llogari tjetër." : dbError(aErr, "Ndryshimi i email-it dështoi. Provo sërish.") };
   const { error: pErr } = await admin.from("profiles").update({ email }).eq("id", targetId);
-  if (pErr) return { ok: false, error: `Email-i i hyrjes u ndryshua, por profili s'u sinkronizua: ${pErr.message}` };
+  if (pErr) return { ok: false, error: dbError(pErr, "Email-i i hyrjes u ndryshua, por profili s’u sinkronizua.") };
   revalidatePath("/admin/members");
   return { ok: true };
 }
@@ -176,7 +191,7 @@ export async function updateMemberPassword(targetId: string, newPassword: string
   let admin;
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
   const { error } = await admin.auth.admin.updateUserById(targetId, { password });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbError(error, "Ndryshimi i fjalëkalimit dështoi. Provo sërish.") };
   return { ok: true };
 }
 
@@ -186,7 +201,7 @@ export async function sendPasswordReset(email: string): Promise<{ ok: boolean; e
   if (!gate.ok) return { ok: false, error: gate.error };
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail((email ?? "").trim().toLowerCase(), { redirectTo: await resetRedirect() });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbError(error, "Dërgimi i email-it dështoi. Provo sërish.") };
   return { ok: true };
 }
 
@@ -197,7 +212,7 @@ export async function generateResetLink(email: string): Promise<{ ok: boolean; l
   let admin;
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
   const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email: (email ?? "").trim().toLowerCase(), options: { redirectTo: await resetRedirect() } });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbError(error, "Gjenerimi i lidhjes dështoi. Provo sërish.") };
   const link = (data as { properties?: { action_link?: string } } | null)?.properties?.action_link;
   if (!link) return { ok: false, error: "Nuk u gjenerua lidhja." };
   return { ok: true, link };

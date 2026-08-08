@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { validateCategoryChoice, type Gender } from "@/lib/race-category";
+import { dbError } from "@/lib/errors";
 
 export type RegisterResult = { ok: true } | { ok: false; error: string };
 
@@ -77,7 +78,8 @@ export async function registerForEvent(slug: string, form: FormData): Promise<Re
     if (error.message.toLowerCase().includes("duplicate")) {
       return { ok: false, error: "Je regjistruar tashmë me këtë email për këtë garë." };
     }
-    return { ok: false, error: error.message };
+    console.error("event signup insert failed", error);
+    return { ok: false, error: dbError(error, "Regjistrimi dështoi. Provo sërish.") };
   }
   revalidatePath(`/events/${slug}`);
   return { ok: true };

@@ -1,5 +1,6 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
+import { dbError } from "@/lib/errors";
 
 export type LoginResult = { ok: true; role: string } | { ok: false; error: string };
 
@@ -7,10 +8,7 @@ export async function login(email: string, password: string): Promise<LoginResul
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    const msg = error.message === "Invalid login credentials"
-      ? "Email-i ose fjalëkalimi nuk është i saktë."
-      : error.message;
-    return { ok: false, error: msg };
+    return { ok: false, error: dbError(error, "Kyçja dështoi. Provo sërish.") };
   }
   // Check status + role.
   const { data: { user } } = await supabase.auth.getUser();
@@ -39,6 +37,6 @@ export async function requestPasswordReset(email: string): Promise<{ ok: boolean
       ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/auth/reset-password`
       : `https://kcprishtina038.vercel.app/auth/callback?next=/auth/reset-password`,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: dbError(error, "Dërgimi i email-it dështoi. Provo sërish.") };
   return { ok: true };
 }

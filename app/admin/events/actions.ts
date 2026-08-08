@@ -73,7 +73,7 @@ export async function createEventSponsor(
     const supabase = await createClient();
     const payload = parseSponsorFields(form);
     if (!payload.name) return { ok: false, error: "Emri mungon." };
-    if (!payload.tier) return { ok: false, error: "Tieri mungon." };
+    if (!payload.tier) return { ok: false, error: "Niveli mungon." };
     if (payload.active === undefined) payload.active = true;
     payload.event_id = eventId;
     const { data, error } = await supabase
@@ -164,7 +164,7 @@ export async function createEvent(form: FormData): Promise<void> {
   const me = await assertEditor();
   const payload = parsePayload(form);
   if (!payload.title_sq) throw new Error("Titulli mungon.");
-  if (!payload.type)     throw new Error("Tipi mungon.");
+  if (!payload.type)     throw new Error("Lloji mungon.");
   if (!payload.start_at) throw new Error("Data e fillimit mungon.");
   const supabase = await createClient();
 

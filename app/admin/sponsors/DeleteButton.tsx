@@ -14,14 +14,14 @@ export function DeleteButton({ id, name }: { id: string; name: string }) {
         onClick={() => setOpen(true)}
         style={{ color: "var(--err)" }}
       >
-        Fshi
+        Fshij
       </button>
       <ConfirmModal
         open={open}
         onClose={() => setOpen(false)}
-        title="Fshi sponsorin"
+        title="Fshij sponsorin"
         tone="danger"
-        confirmLabel="Fshi"
+        confirmLabel="Fshij"
         message={<>Sigurt që do ta fshish <strong>{name}</strong>?</>}
         onConfirm={async () => {
           const r = await deleteSponsor(id);

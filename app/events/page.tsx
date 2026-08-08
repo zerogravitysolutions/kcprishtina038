@@ -70,7 +70,7 @@ export default async function EventsIndexPage() {
           <SectionHeading label="Të ardhshme" count={upcoming.length} />
           {upcoming.length === 0 ? (
             <p style={{ color: "var(--ink-3)", marginTop: 16 }}>
-              Asnjë event i ardhshëm aktualisht. Kontrollo më vonë ose ndiq na në Facebook.
+              Për momentin nuk ka evente të ardhshme. Kontrollo më vonë ose ndiqna në Facebook.
             </p>
           ) : (
             <div className="event-card-grid">

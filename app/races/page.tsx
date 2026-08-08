@@ -37,7 +37,7 @@ export default async function RacesPage({ searchParams }: { searchParams: Search
       <PageHero
         eyebrow="Garat"
         title="Kronologjia e garave."
-        subtitle={`${all.length} ngjarje të katalogizuara — kampionate kombëtare, gara rrugore, MTB, dhe etapa ndërkombëtare.`}
+        subtitle={`${all.length} gara të katalogizuara — kampionate kombëtare, gara rrugore, MTB dhe etapa ndërkombëtare.`}
         pickerKey="races"
       />
 

@@ -105,8 +105,8 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
 
       {/* Strava — auto-fills Bazë on paste. */}
       <div className="field" style={{ marginBottom: 0 }}>
-        <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· po lexoj…</span> : null}</label>
-        <input value={stravaUrl} onChange={(e) => setStravaUrl(e.target.value)} placeholder="Ngjit lidhjen — plotëson vetë Bazën" />
+        <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke lexuar…</span> : null}</label>
+        <input value={stravaUrl} onChange={(e) => setStravaUrl(e.target.value)} placeholder="Ngjit lidhjen — Baza plotësohet vetë" />
         {canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} compact /></div>}
       </div>
 

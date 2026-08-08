@@ -21,15 +21,15 @@ export default async function EventsAdminPage() {
   return (
     <>
       <div className="page-head">
-        <div><h1>Events</h1><div className="sub">{rows.length} në bazë</div></div>
+        <div><h1>Eventet</h1><div className="sub">{rows.length} në bazë</div></div>
         <Link className="btn btn-ember" href="/admin/events/new">+ Event i ri</Link>
       </div>
       <div className="table-wrap">
         <table className="t">
-          <thead><tr><th>Title</th><th>Type</th><th>Section</th><th>Start</th><th>Source</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Titulli</th><th>Lloji</th><th>Seksioni</th><th>Fillimi</th><th>Burimi</th><th>Statusi</th><th>Veprime</th></tr></thead>
           <tbody>
             {rows.length === 0
-              ? <tr><td colSpan={7} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka events — krijoni një.</td></tr>
+              ? <tr><td colSpan={7} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka evente — krijo një të ri.</td></tr>
               : rows.map(r => (
                 <tr key={r.id}>
                   <td>
@@ -42,7 +42,7 @@ export default async function EventsAdminPage() {
                   <td className="mono" style={{ textTransform: "uppercase", fontSize: 10.5 }}>{r.source ?? "native"}</td>
                   <td><span className={`badge-st ${r.status === "published" ? "ok" : r.status === "draft" ? "warn" : "err"}`}>{r.status}</span></td>
                   <td className="actions">
-                    <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}`}>Edit</Link>
+                    <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}`}>Ndrysho</Link>
                     <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}/signups`}>Regjistrimet</Link>
                     <Link className="btn btn-ghost btn-sm" href={`/admin/events/${r.id}/results`}>Rezultatet</Link>
                     <DeleteButton id={r.id} title={r.title_sq} />

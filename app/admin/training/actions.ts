@@ -73,7 +73,7 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
       } as never)
       .select("id")
       .single<{ id: string }>();
-    if (rideErr || !ride) return { ok: false, error: rideErr?.message ?? "Nuk u krijua." };
+    if (rideErr || !ride) return { ok: false, error: rideErr?.message ?? "Stërvitja nuk u krijua." };
 
     // Inherit the session base into every rider's entry (still editable).
     const entryBase: Record<string, number> = {};
@@ -370,7 +370,7 @@ export async function resolveStravaUrl(
     if (!raw) return { ok: false, error: "Lidhja mungon." };
     const r = await resolveActivity(raw);
     if (r) return { ok: true, url: r.url, activityId: r.activityId };
-    return { ok: false, error: "S'u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
+    return { ok: false, error: "S’u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -429,7 +429,7 @@ export async function fetchStravaStats(url: string): Promise<
     const raw = (url ?? "").trim();
     if (!raw) return { ok: false, error: "Lidhja mungon." };
     const resolved = await resolveActivity(raw);
-    if (!resolved) return { ok: false, error: "S'u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
+    if (!resolved) return { ok: false, error: "S’u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
 
     // Fixed host + numeric id → no SSRF surface.
     const controller = new AbortController();

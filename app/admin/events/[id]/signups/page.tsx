@@ -85,7 +85,7 @@ export default async function EventSignupsPage({ params }: { params: Promise<{ i
           borderRadius: 8,
         }}
       >
-        <Stat label="Total" value={rows.length} />
+        <Stat label="Gjithsej" value={rows.length} />
         <Stat label="Konfirmuar" value={byStatus.confirmed ?? 0} />
         <Stat label="Në pritje" value={byStatus.pending ?? 0} />
         <Stat label="Listë pritjeje" value={byStatus.waitlisted ?? 0} />
@@ -123,7 +123,7 @@ export default async function EventSignupsPage({ params }: { params: Promise<{ i
                     {label}
                   </h2>
                   <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: ".12em" }}>
-                    {list.length} pjesëmarrës{list.length === 1 ? "" : "ë"}
+                    {list.length} pjesëmarrës
                   </span>
                 </div>
                 <div style={{ overflowX: "auto" }}>
@@ -133,11 +133,11 @@ export default async function EventSignupsPage({ params }: { params: Promise<{ i
                         <Th>#</Th>
                         <Th>Pjesëmarrësi</Th>
                         <Th>Gjinia</Th>
-                        <Th>Dita e lindjes</Th>
+                        <Th>Datëlindja</Th>
                         <Th>Klubi</Th>
                         <Th>Statusi</Th>
                         <Th>Bib</Th>
-                        <Th>Reg.</Th>
+                        <Th>Regj.</Th>
                         <Th>Veprime</Th>
                       </tr>
                     </thead>

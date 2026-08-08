@@ -1,6 +1,5 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { TopProgress } from "@/components/public/TopProgress";
@@ -26,12 +25,10 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies();
-  const locale = (cookieStore.get("kc038_lang")?.value === "en" ? "en" : "sq") as "sq" | "en";
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
+    <html lang="sq">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -42,7 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <TopProgress />
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <NextIntlClientProvider locale="sq" messages={messages}>
           {children}
         </NextIntlClientProvider>
       </body>

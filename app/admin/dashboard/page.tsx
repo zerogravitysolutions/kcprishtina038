@@ -7,6 +7,14 @@ export const revalidate = 0;
 
 type AppRow = { id: string; full_name: string; email: string; experience: string | null; created_at: string; section: { slug: string; name_sq: string } | null };
 
+// Albanian display names for the stored experience values (values stay raw).
+const EXP_LABEL: Record<string, string> = {
+  beginner: "Fillestar",
+  intermediate: "Mesatar",
+  advanced: "I avancuar",
+  racer: "Garues",
+};
+
 function initials(n: string) { return n.trim().split(/\s+/).slice(0, 2).map(s => s[0] || "").join("").toUpperCase() || "?"; }
 function rel(iso: string) {
   const ms = Date.now() - new Date(iso).getTime();
@@ -68,7 +76,7 @@ export default async function AdminDashboard() {
         <Kpi accent="#0E9384" label="Anëtarë aktivë" value={membersC.count ?? 0} sub={`${membersC.count ?? 0} në bazë`} />
         <Kpi accent="#E0562D" label="Aplikime në pritje" value={pendingApps} sub={pendingApps > 0 ? "kërkojnë shqyrtim" : "asnjë e re"} tone={pendingApps > 0 ? "warn" : undefined} />
         <Kpi accent="#16A34A" label="Anëtarësi këtë muaj" value={`${paid}/${duesRows.length}`} sub={duesRows.length === 0 ? "pa pagesa" : `${duesRows.length - paid} pa paguar`} />
-        <Kpi accent="#2E90FA" label="Ngjarje të ardhshme" value={eventsC.count ?? 0} sub="të publikuara" />
+        <Kpi accent="#2E90FA" label="Evente të ardhshme" value={eventsC.count ?? 0} sub="të publikuara" />
       </div>
 
       {/* Applications — card row-list, no table */}
@@ -87,7 +95,7 @@ export default async function AdminDashboard() {
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".02em", color: "var(--ink-3)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.email}</div>
             </div>
             {a.section ? <span className={`tag-sec ${a.section.slug}`}>{a.section.name_sq}</span> : null}
-            {a.experience ? <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-2)" }}>{a.experience}</span> : null}
+            {a.experience ? <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-2)" }}>{EXP_LABEL[a.experience] ?? a.experience}</span> : null}
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-3)", whiteSpace: "nowrap" }}>{rel(a.created_at)}</span>
             <Link className="btn btn-sm btn-ember" href="/admin/applications">Shqyrto</Link>
           </div>

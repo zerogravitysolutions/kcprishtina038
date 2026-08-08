@@ -42,7 +42,7 @@ export default async function EditSponsorPage({ params }: { params: Promise<{ id
   const bound = updateSponsor.bind(null, row.id);
   return (
     <>
-      <div className="page-head"><div><h1>Edit: {row.name}</h1></div></div>
+      <div className="page-head"><div><h1>Ndrysho: {row.name}</h1></div></div>
       <SponsorForm action={bound} initial={row} media={media} submitLabel="Ruaj ndryshimet" />
     </>
   );

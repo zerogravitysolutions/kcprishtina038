@@ -25,7 +25,7 @@ export function SettingRow({ row }: { row: { key: string; value: unknown; update
   }
 
   function remove() {
-    if (!confirm(`Fshi çelësin "${row.key}"?`)) return;
+    if (!confirm(`Fshij çelësin "${row.key}"?`)) return;
     start(async () => {
       const r = await deleteSetting(row.key);
       if (!r.ok) alert(`Gabim: ${r.error}`);
@@ -52,13 +52,13 @@ export function SettingRow({ row }: { row: { key: string; value: unknown; update
       <td className="actions" style={{ verticalAlign: "top" }}>
         {editing ? (
           <>
-            <button type="button" className="btn btn-ember btn-sm" disabled={pending} onClick={save}>{pending ? "..." : "Ruaj"}</button>
+            <button type="button" className="btn btn-ember btn-sm" disabled={pending} onClick={save}>{pending ? "Duke ruajtur…" : "Ruaj"}</button>
             <button type="button" className="btn btn-ghost btn-sm" disabled={pending} onClick={() => { setEditing(false); setValue(JSON.stringify(row.value, null, 2)); }}>Anulo</button>
           </>
         ) : (
           <>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>Edit</button>
-            <button type="button" className="btn btn-ghost btn-sm" disabled={pending} onClick={remove} style={{ color: "var(--err)" }}>Fshi</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>Ndrysho</button>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={pending} onClick={remove} style={{ color: "var(--err)" }}>Fshij</button>
           </>
         )}
       </td>

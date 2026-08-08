@@ -44,7 +44,7 @@ export const RIDE_METRIC_FIELDS: MetricField[] = [
   { key: "avg_hr",          label: "HR mesatar",   group: "hr",     kind: "int", ui: "number",   unit: "bpm", min: 20, max: 260, summary: true, placeholder: "142" },
   { key: "max_hr",          label: "HR maksimal",  group: "hr",     kind: "int", ui: "number",   unit: "bpm", min: 20, max: 260, placeholder: "178" },
   // Power
-  { key: "avg_power_w",     label: "Fuqia mes.",   group: "power",  kind: "int", ui: "number",   unit: "W",   min: 0, placeholder: "210" },
+  { key: "avg_power_w",     label: "Fuqia mesatare", group: "power",  kind: "int", ui: "number",   unit: "W",   min: 0, placeholder: "210" },
   { key: "np_w",            label: "NP",           group: "power",  kind: "int", ui: "number",   unit: "W",   min: 0, placeholder: "235" },
   { key: "ftp_w",           label: "FTP",          group: "power",  kind: "int", ui: "number",   unit: "W",   min: 0, summary: true, placeholder: "260" },
   // Best power
@@ -92,10 +92,10 @@ export const TRAINING_FOCUS: { value: string; label: string }[] = [
   { value: "Skills & Strength",  label: "Skills & Strength – Teknikë, kadencë, forcë në biçikletë dhe jashtë saj" },
   { value: "Intervale (HIIT)",   label: "Intervale (HIIT) – Intervale të shkurtra me intensitet të lartë" },
   { value: "Climbing",           label: "Climbing – Stërvitje ngjitjeje / kodra" },
-  { value: "Kronometër (TT)",    label: "Time Trial – Kronometër / provë kohore" },
+  { value: "Kronometër (TT)",    label: "Kronometër (TT) – Provë kohore individuale" },
   { value: "Long Ride",          label: "Long Ride – Dalje e gjatë (vëllim aerobik)" },
-  { value: "Dalje grupore",      label: "Group Ride – Dalje grupore" },
-  { value: "Garë / Simulim",     label: "Race – Garë ose simulim gare" },
+  { value: "Dalje grupore",      label: "Dalje grupore – Stërvitje e përbashkët në grup" },
+  { value: "Garë / Simulim",     label: "Garë / Simulim – Garë zyrtare ose simulim gare" },
 ];
 
 /** Coerce a raw string from a form input into the DB value for a metric. */
@@ -288,7 +288,7 @@ export function computeBests(entries: EntryLike[]): AthleteBests {
 
 // ------------------------------------------------------------------ weekly
 
-const MONTHS_SHORT_SQ = ["Jan", "Shk", "Mar", "Pri", "Maj", "Qer", "Kor", "Gsh", "Sht", "Tet", "Nën", "Dhj"];
+const MONTHS_SHORT_SQ = ["Jan", "Shk", "Mar", "Pri", "Maj", "Qer", "Kor", "Gus", "Sht", "Tet", "Nën", "Dhj"];
 
 // Monday (local midnight) of the week containing d.
 function mondayOf(d: Date): Date {

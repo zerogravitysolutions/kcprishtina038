@@ -10,7 +10,7 @@ const NOTE_OPTIONS = [
   { v: "DNS", label: "DNS — Nuk filloi" },
   { v: "DSQ", label: "DSQ — Diskualifikuar" },
   { v: "OTL", label: "OTL — Jashtë limitit" },
-  { v: "REL", label: "REL — Relegated" },
+  { v: "REL", label: "REL — Zbritur në renditje" },
   { v: "ABD", label: "ABD — Hoqi dorë" },
 ] as const;
 

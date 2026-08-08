@@ -91,7 +91,7 @@ export function Lightbox({ photos, openIndex, onClose }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Photo viewer"
+      aria-label="Shikuesi i fotove"
       onClick={onClose}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
@@ -156,7 +156,7 @@ export function Lightbox({ photos, openIndex, onClose }: Props) {
       <button
         type="button"
         className="lb-close"
-        aria-label="Close (ESC)"
+        aria-label="Mbyll (ESC)"
         onClick={(e) => { e.stopPropagation(); onClose(); }}
       >
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -168,7 +168,7 @@ export function Lightbox({ photos, openIndex, onClose }: Props) {
         type="button"
         className="lb-btn"
         data-side="prev"
-        aria-label="Previous (←)"
+        aria-label="Foto e mëparshme (←)"
         disabled={index === 0}
         onClick={(e) => { e.stopPropagation(); go(-1); }}
       >
@@ -181,7 +181,7 @@ export function Lightbox({ photos, openIndex, onClose }: Props) {
         type="button"
         className="lb-btn"
         data-side="next"
-        aria-label="Next (→)"
+        aria-label="Foto e radhës (→)"
         disabled={index === last}
         onClick={(e) => { e.stopPropagation(); go(1); }}
       >

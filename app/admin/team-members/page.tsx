@@ -51,7 +51,7 @@ export default async function TeamMembersAdminPage({ searchParams }: { searchPar
           <thead><tr><th>Anëtari</th><th>Pozicionet</th><th>Seksioni</th><th>Renditja</th><th>Veprime</th></tr></thead>
           <tbody>
             {rows.length === 0
-              ? <tr><td colSpan={5} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Pa anëtarë.</td></tr>
+              ? <tr><td colSpan={5} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka anëtarë.</td></tr>
               : rows.map(r => (
                 <tr key={r.id}>
                   <td>
@@ -71,7 +71,7 @@ export default async function TeamMembersAdminPage({ searchParams }: { searchPar
                   <td>{r.section_slug ? <span className={`tag-sec ${r.section_slug}`}>{r.section_slug}</span> : "—"}</td>
                   <td className="mono">{r.display_order}</td>
                   <td className="actions">
-                    <Link className="btn btn-ghost btn-sm" href={`/admin/team-members/${r.id}`}>Edit</Link>
+                    <Link className="btn btn-ghost btn-sm" href={`/admin/team-members/${r.id}`}>Ndrysho</Link>
                     <DeleteButton id={r.id} name={r.full_name} />
                   </td>
                 </tr>

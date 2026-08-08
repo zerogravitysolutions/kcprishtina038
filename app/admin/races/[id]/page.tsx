@@ -41,7 +41,7 @@ export default async function EditRacePage({ params }: { params: Promise<{ id: s
   const bound = updateRaceEvent.bind(null, row.id);
   return (
     <>
-      <div className="page-head"><div><h1>Edit: {row.name}</h1></div></div>
+      <div className="page-head"><div><h1>Ndrysho: {row.name}</h1></div></div>
       <RaceForm action={bound} initial={row} media={media} submitLabel="Ruaj ndryshimet" />
     </>
   );

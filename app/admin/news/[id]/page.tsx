@@ -66,10 +66,10 @@ export default async function EditNewsPage({ params }: { params: Promise<{ id: s
     <>
       <div className="page-head">
         <div>
-          <h1>Edit: {row.title_sq}</h1>
+          <h1>Ndrysho: {row.title_sq}</h1>
           <div className="sub">/news/{row.slug}</div>
         </div>
-        <a className="btn btn-ghost" href={`/news/${row.slug}`} target="_blank">View ↗</a>
+        <a className="btn btn-ghost" href={`/news/${row.slug}`} target="_blank">Shiko ↗</a>
       </div>
 
       {row.race_event && (

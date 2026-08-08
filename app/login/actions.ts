@@ -16,18 +16,18 @@ export async function login(email: string, password: string): Promise<LoginResul
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     await supabase.auth.signOut();
-    return { ok: false, error: "Profili juaj nuk u gjet." };
+    return { ok: false, error: "Profili yt nuk u gjet." };
   }
   const { data } = await supabase.from("profiles")
     .select("role, status").eq("id", user.id).maybeSingle();
   const profile = data as { role: string; status: string } | null;
   if (!profile) {
     await supabase.auth.signOut();
-    return { ok: false, error: "Profili juaj nuk u gjet. Kontaktoni klubin." };
+    return { ok: false, error: "Profili yt nuk u gjet. Kontakto klubin." };
   }
   if (profile.status !== "active") {
     await supabase.auth.signOut();
-    return { ok: false, error: "Llogaria juaj është ende në pritje aprovimi." };
+    return { ok: false, error: "Llogaria jote është ende në pritje të aprovimit." };
   }
   return { ok: true, role: profile.role };
 }

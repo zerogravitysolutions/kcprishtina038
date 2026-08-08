@@ -23,7 +23,7 @@ export function JoinForm() {
     start(async () => {
       const result: JoinResult = await submitApplication(fd);
       if (result.ok) {
-        setMsg({ kind: "ok", text: "Faleminderit! Aplikimi u dërgua. Ju kontaktojmë brenda 5 ditëve pune." });
+        setMsg({ kind: "ok", text: "Faleminderit! Aplikimi u dërgua. Të kontaktojmë brenda 5 ditëve pune." });
         (e.target as HTMLFormElement).reset();
         setPreview(null);
       } else {
@@ -77,7 +77,7 @@ export function JoinForm() {
             <option value="road">Rrugë</option>
             <option value="mtb">MTB</option>
             <option value="gravel">Gravel</option>
-            <option value="track">Trek</option>
+            <option value="track">Pistë</option>
             <option value="youth">Akademia e të rinjve (9–17)</option>
             <option value="women">Programi i femrave</option>
             <option value="unsure">Nuk jam i sigurt — më këshilloni</option>
@@ -94,12 +94,12 @@ export function JoinForm() {
       </div>
       <div className="field">
         <label htmlFor="f-notes">{t("jp.form.notes")}</label>
-        <textarea id="f-notes" name="notes" rows={4} placeholder="Disiplinat tjera, biçikleta që ke, garat ku ke marrë pjesë, etj." />
+        <textarea id="f-notes" name="notes" rows={4} placeholder="Disiplinat e tjera, biçikleta që ke, garat ku ke marrë pjesë, etj." />
       </div>
 
       {/* Profile photo — used for the federation license number */}
       <div className="field">
-        <label htmlFor="f-photo">Foto profili</label>
+        <label htmlFor="f-photo">Fotoja e profilit</label>
         <div className="join-photo">
           <div className="join-photo__preview" aria-hidden="true">
             {preview
@@ -116,7 +116,7 @@ export function JoinForm() {
               onChange={onFile}
             />
             <p className="join-photo__hint">
-              Foto e qartë e fytyrës, sfond i njëtrajtshëm. Përdoret për gjenerimin e numrit të licencës pas miratimit të aplikimit. Madhësia max 5 MB · JPG, PNG ose WebP.
+              Foto e qartë e fytyrës, sfond i njëtrajtshëm. Përdoret për gjenerimin e numrit të licencës pas aprovimit të aplikimit. Madhësia maksimale 5 MB · JPG, PNG ose WebP.
             </p>
           </div>
         </div>
@@ -124,10 +124,10 @@ export function JoinForm() {
 
       <div style={{ display: "flex", gap: 12, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
         <button className="btn btn-ember" type="submit" disabled={pending}>
-          <span>{pending ? "Po dërgon…" : t("jp.form.submit")}</span>
+          <span>{pending ? "Duke dërguar…" : t("jp.form.submit")}</span>
           <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
         </button>
-        <span className="kicker">Marrim përgjigje brenda 5 ditëve pune</span>
+        <span className="kicker">Përgjigjemi brenda 5 ditëve pune</span>
       </div>
     </form>
   );

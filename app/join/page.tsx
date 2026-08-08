@@ -31,7 +31,7 @@ export default async function JoinPage() {
         <div className="container">
           <div className="form-card" style={{ maxWidth: 720, margin: "0 auto" }}>
             <div className="eyebrow"><span>Formulari i aplikimit</span></div>
-            <h2 className="display display-s" style={{ marginTop: 12 }}>Plotëso, dhe ne të kontaktojmë.</h2>
+            <h2 className="display display-s" style={{ marginTop: 12 }}>Plotësoje formularin dhe ne të kontaktojmë.</h2>
             <JoinForm />
           </div>
         </div>

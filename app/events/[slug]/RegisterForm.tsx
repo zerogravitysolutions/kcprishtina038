@@ -42,7 +42,7 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
         start(async () => {
           const r = await registerForEvent(slug, fd);
           if (r.ok) {
-            setMsg({ ok: true, text: "U regjistrove! Të dhënat tua i ke dërguar te klubi — të kontaktojmë me detajet." });
+            setMsg({ ok: true, text: "U regjistrove me sukses! Të dhënat i dërguam te klubi — do të kontaktojmë me detajet." });
             (e.target as HTMLFormElement).reset();
             setDob(""); setGender(""); setCategory("");
           } else {
@@ -106,7 +106,7 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
           <input id="r-email" name="email" type="email" required placeholder="ti@email.com" />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label htmlFor="r-phone">Telefon</label>
+          <label htmlFor="r-phone">Telefoni</label>
           <input id="r-phone" name="phone" type="tel" placeholder="+383 4_ ___ ___" />
         </div>
       </div>
@@ -129,7 +129,7 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
               }
             }}
           >
-            <option value="">— Zgjedh —</option>
+            <option value="">— Zgjidh —</option>
             <option value="m">Mashkull</option>
             <option value="f">Femër</option>
             <option value="other">Tjetër</option>
@@ -145,7 +145,7 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
             disabled={!dob || !gender}
           >
             <option value="">
-              {!dob || !gender ? "— Plotëso datën e lindjes dhe gjininë —" : "— Zgjedh —"}
+              {!dob || !gender ? "— Plotëso datën e lindjes dhe gjininë —" : "— Zgjidh —"}
             </option>
             {CATEGORIES.map((c) => {
               const ok = allowedSet.has(c.v);
@@ -159,7 +159,7 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
                 <option key={c.v} value={c.v} disabled={!ok}>
                   {c.label}
                   {range}
-                  {!ok ? " · jo në kufi" : ""}
+                  {!ok ? " · nuk lejohet" : ""}
                 </option>
               );
             })}
@@ -181,7 +181,7 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
       </div>
 
       <div className="field" style={{ marginBottom: 0 }}>
-        <label htmlFor="r-notes">Shënim (opsionale)</label>
+        <label htmlFor="r-notes">Shënime (opsionale)</label>
         <textarea id="r-notes" name="notes" rows={3} placeholder="Diçka që duhet të dimë" />
       </div>
 
@@ -191,7 +191,7 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
           className="btn btn-ember"
           disabled={pending || !liveCheck.ok}
         >
-          <span>{pending ? "Duke regjistruar…" : "Regjistrohu për garën"}</span>
+          <span>{pending ? "Duke u regjistruar…" : "Regjistrohu për garën"}</span>
           {!pending && (
             <svg className="arrow" viewBox="0 0 14 14" fill="none">
               <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />

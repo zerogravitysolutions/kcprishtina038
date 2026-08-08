@@ -47,7 +47,7 @@ export function ApplicationActions({ id, name, status }: Props) {
         disabled={pending}
         onClick={onApprove}
       >
-        {pending ? "..." : "Aprovo"}
+        {pending ? "…" : "Aprovo"}
       </button>
       <button
         type="button"

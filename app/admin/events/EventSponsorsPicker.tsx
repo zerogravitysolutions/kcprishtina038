@@ -45,7 +45,7 @@ export function EventSponsorsPicker({
     setMsg(null);
     start(async () => {
       const r = await setEventSponsors(eventId, selected);
-      setMsg(r.ok ? { ok: true, text: "Ruajtur ✓" } : { ok: false, text: r.error ?? "" });
+      setMsg(r.ok ? { ok: true, text: "U ruajt ✓" } : { ok: false, text: r.error ?? "" });
       if (r.ok) setTimeout(() => setMsg(null), 1500);
     });
   }
@@ -54,7 +54,7 @@ export function EventSponsorsPicker({
     <div style={{ display: "grid", gap: 14, maxWidth: 720 }}>
       {selected.length === 0 ? (
         <p className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>
-          Asnjë sponsor i lidhur me këtë garë. Zgjedh nga lista poshtë.
+          Asnjë sponsor i lidhur me këtë garë. Zgjidh një nga lista më poshtë.
         </p>
       ) : (
         <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 6 }}>
@@ -131,7 +131,7 @@ export function EventSponsorsPicker({
               e.target.value = "";
             }}
           >
-            <option value="">— Zgjedh —</option>
+            <option value="">— Zgjidh —</option>
             {available.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name} · {s.tier}

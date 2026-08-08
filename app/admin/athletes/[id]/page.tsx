@@ -89,14 +89,14 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
           {/* Totals */}
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap", padding: "14px 16px", background: "var(--paper-2)", borderRadius: 10 }}>
             <Stat label="Stërvitje" value={String(bests.rides)} />
-            <Stat label="KM total" value={bests.total_km > 0 ? fmt(bests.total_km, 0) : "—"} />
-            <Stat label="Orë total" value={bests.total_seconds > 0 ? fmt(toHours(bests.total_seconds), 1) : "—"} />
+            <Stat label="KM gjithsej" value={bests.total_km > 0 ? fmt(bests.total_km, 0) : "—"} />
+            <Stat label="Orë gjithsej" value={bests.total_seconds > 0 ? fmt(toHours(bests.total_seconds), 1) : "—"} />
             <Stat label="HR max" value={bests.max_hr ? String(bests.max_hr) : "—"} />
           </div>
 
           {/* Power curve */}
           <div className="card" style={{ padding: 16 }}>
-            <div className="card-head" style={{ marginBottom: 12 }}><h3>Rekordet e fuqisë</h3><span className="kicker">gjithë kohërave</span></div>
+            <div className="card-head" style={{ marginBottom: 12 }}><h3>Rekordet e fuqisë</h3><span className="kicker">të gjitha kohërat</span></div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: 10 }}>
               {powerCurve.map((p) => (
                 <div key={p.label} style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: 8, textAlign: "center" }}>
@@ -106,7 +106,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
               ))}
             </div>
             <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 12, display: "flex", gap: 18, flexWrap: "wrap" }}>
-              <span>Rideja më e gjatë: <strong style={{ color: "var(--ink)" }}>{bests.longest_km ? `${fmt(bests.longest_km, 1)} km` : "—"}</strong></span>
+              <span>Stërvitja më e gjatë: <strong style={{ color: "var(--ink)" }}>{bests.longest_km ? `${fmt(bests.longest_km, 1)} km` : "—"}</strong></span>
               <span>Ngjitja më e madhe: <strong style={{ color: "var(--ink)" }}>{bests.most_elevation_m ? `${fmt(bests.most_elevation_m, 0)} m` : "—"}</strong></span>
               <span>Fuqia mes. më e mirë: <strong style={{ color: "var(--ink)" }}>{bests.best_avg_power_w ? `${bests.best_avg_power_w} W` : "—"}</strong></span>
             </div>
@@ -133,7 +133,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
       <div className="table-wrap">
         <table className="t">
           <thead>
-            <tr><th>Data</th><th>Stërvitja</th><th>KM</th><th>Kohë</th><th>HR mes</th><th>FTP</th><th>10 min</th><th>RPE</th></tr>
+            <tr><th>Data</th><th>Stërvitja</th><th>KM</th><th>Koha</th><th>HR mes.</th><th>FTP</th><th>10 min</th><th>RPE</th></tr>
           </thead>
           <tbody>
             {recent.length === 0 ? (

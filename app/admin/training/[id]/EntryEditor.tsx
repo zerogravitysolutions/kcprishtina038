@@ -136,7 +136,7 @@ export function EntryEditor({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600 }}>{athlete.full_name}</div>
           <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {!participated ? "Munguar" : summaryLine(summaryFields, values) || "Pa vlera ende"}
+            {!participated ? "Nuk mori pjesë" : summaryLine(summaryFields, values) || "Pa vlera ende"}
           </div>
         </div>
         <div className="mono" style={{ fontSize: 11, width: 66, textAlign: "right", color: msg?.ok === false ? "var(--err)" : pending ? "var(--ink-3)" : "var(--ok)" }}>

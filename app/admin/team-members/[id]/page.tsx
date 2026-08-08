@@ -45,7 +45,7 @@ export default async function EditTeamMemberPage({ params }: { params: Promise<{
 
   return (
     <>
-      <div className="page-head"><div><h1>Edit: {row.first_name} {row.last_name}</h1></div></div>
+      <div className="page-head"><div><h1>Ndrysho: {row.first_name} {row.last_name}</h1></div></div>
       <TeamMemberForm
         action={bound}
         initial={row}

@@ -47,17 +47,8 @@ const CATEGORY_LABELS_SQ: Record<DocumentCategory, string> = {
   other: "Dokumente të tjera",
 };
 
-const CATEGORY_LABELS_EN: Record<DocumentCategory, string> = {
-  regulations: "Regulations",
-  decisions: "Decisions",
-  minutes: "Minutes",
-  declarations: "Declarations",
-  certificates: "Certificates",
-  other: "Other documents",
-};
-
-export function categoryLabel(c: DocumentCategory, locale: "sq" | "en" = "sq"): string {
-  return (locale === "en" ? CATEGORY_LABELS_EN : CATEGORY_LABELS_SQ)[c];
+export function categoryLabel(c: DocumentCategory): string {
+  return CATEGORY_LABELS_SQ[c];
 }
 
 export function documentUrl(d: { storage_path: string }): string {

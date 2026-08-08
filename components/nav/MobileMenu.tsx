@@ -38,7 +38,7 @@ export function MobileMenu({ links, signin, ctaLabel, ctaHref }: Props) {
       <button
         type="button"
         className="nav-mobile-trigger"
-        aria-label="Open menu"
+        aria-label="Hap menynë"
         aria-expanded={open}
         aria-controls="mobile-nav-sheet"
         onClick={() => setOpen((v) => !v)}
@@ -55,13 +55,13 @@ export function MobileMenu({ links, signin, ctaLabel, ctaHref }: Props) {
         className={`nav-mobile-sheet ${open ? "is-open" : ""}`}
         role="dialog"
         aria-modal="true"
-        aria-label="Site navigation"
+        aria-label="Navigimi i faqes"
         aria-hidden={!open}
       >
         <button
           type="button"
           className="nav-mobile-backdrop"
-          aria-label="Close menu"
+          aria-label="Mbyll menynë"
           onClick={() => setOpen(false)}
           tabIndex={open ? 0 : -1}
         />

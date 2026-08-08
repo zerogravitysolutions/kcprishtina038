@@ -31,7 +31,7 @@ export async function uploadMediaFiles(form: FormData): Promise<UploadResult> {
   try {
     const me = await getProfile();
     if (!me || !["admin", "editor"].includes(me.role)) {
-      return { ok: false, error: "Forbidden — vetëm admin / editor mund të ngarkojnë." };
+      return { ok: false, error: "Nuk keni leje — vetëm admin ose editor mund të ngarkojnë." };
     }
     const files = form.getAll("files").filter((f): f is File => f instanceof File);
     if (files.length === 0) return { ok: false, error: "Nuk u ngarkua asnjë skedar." };

@@ -277,7 +277,7 @@ export function raceTypeLabel(t: RaceType | null | undefined): string {
   switch (t) {
     case "road":       return "Rrugore";
     case "mtb":        return "MTB · XCO";
-    case "tt":         return "Kronometer";
+    case "tt":         return "Kronometër";
     case "stage":      return "Etapore";
     case "gravel":     return "Gravel";
     case "cyclocross": return "Cyclocross";

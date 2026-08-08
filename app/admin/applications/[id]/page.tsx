@@ -29,6 +29,12 @@ const EXP_LABEL: Record<string, string> = {
   racer:        "Garues",
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  pending: "Në pritje",
+  approved: "Aprovuar",
+  rejected: "Refuzuar",
+};
+
 export default async function ApplicationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
@@ -57,7 +63,7 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
           <h1>{row.full_name}</h1>
           <div className="sub">
             Aplikoi {new Date(row.created_at).toLocaleDateString("sq", { day: "numeric", month: "long", year: "numeric" })} ·
-            <span className={`badge-st ${row.status === "pending" ? "warn" : row.status === "approved" ? "ok" : "err"}`} style={{ marginLeft: 8 }}>{row.status}</span>
+            <span className={`badge-st ${row.status === "pending" ? "warn" : row.status === "approved" ? "ok" : "err"}`} style={{ marginLeft: 8 }}>{STATUS_LABEL[row.status] ?? row.status}</span>
           </div>
         </div>
         <Link className="btn btn-ghost" href="/admin/applications">← Kthehu te lista</Link>
@@ -85,7 +91,7 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
             <div className="mono" style={{ color: "var(--ink-3)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase" }}>Email</div>
             <div><a href={`mailto:${row.email}`} style={{ color: "var(--ember)" }}>{row.email}</a></div>
 
-            <div className="mono" style={{ color: "var(--ink-3)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase" }}>Telefon</div>
+            <div className="mono" style={{ color: "var(--ink-3)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase" }}>Telefoni</div>
             <div>{row.phone ? <a href={`tel:${row.phone}`}>{row.phone}</a> : <span style={{ color: "var(--ink-3)" }}>—</span>}</div>
 
             <div className="mono" style={{ color: "var(--ink-3)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase" }}>Mosha</div>

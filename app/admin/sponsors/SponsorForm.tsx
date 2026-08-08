@@ -45,12 +45,12 @@ export function SponsorForm({ action, initial, media, submitLabel }: { action: (
           <input name="name" required defaultValue={initial?.name ?? ""} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Tieri *</label>
+          <label>Niveli *</label>
           <select name="tier" defaultValue={initial?.tier ?? "partner"}>
-            <option value="title">Title</option>
-            <option value="technical">Technical</option>
+            <option value="title">Kryesor</option>
+            <option value="technical">Teknik</option>
             <option value="partner">Partner</option>
-            <option value="supporter">Supporter</option>
+            <option value="supporter">Mbështetës</option>
           </select>
         </div>
       </div>
@@ -61,7 +61,7 @@ export function SponsorForm({ action, initial, media, submitLabel }: { action: (
           <input name="role_sq" defaultValue={initial?.role_sq ?? ""} placeholder="Sponsor i përgjithshëm" />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Role (EN)</label>
+          <label>Roli (EN)</label>
           <input name="role_en" defaultValue={initial?.role_en ?? ""} placeholder="Title sponsor" />
         </div>
       </div>
@@ -72,13 +72,13 @@ export function SponsorForm({ action, initial, media, submitLabel }: { action: (
       </div>
 
       <div className="field">
-        <label>Description (EN)</label>
+        <label>Përshkrimi (EN)</label>
         <textarea name="body_en" rows={4} defaultValue={initial?.body_en ?? ""} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 180px 180px 120px", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Website</label>
+          <label>Uebfaqja</label>
           <input name="website_url" type="url" defaultValue={initial?.website_url ?? ""} placeholder="https://" />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
@@ -108,7 +108,7 @@ export function SponsorForm({ action, initial, media, submitLabel }: { action: (
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur..." : submitLabel}</button>
+        <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur…" : submitLabel}</button>
         <Link href="/admin/sponsors" className="btn btn-ghost">Anulo</Link>
       </div>
     </form>

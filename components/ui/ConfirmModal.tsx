@@ -56,7 +56,7 @@ export function ConfirmModal({
                 : undefined
             }
           >
-            {pending ? "Duke proceduar…" : confirmLabel}
+            {pending ? "Duke vazhduar…" : confirmLabel}
           </button>
         </>
       }

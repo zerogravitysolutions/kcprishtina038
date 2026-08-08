@@ -62,7 +62,7 @@ export function PhotoGallery({ photos, className, uniform = false }: Props) {
               key={p.src + i}
               type="button"
               onClick={() => setOpenIndex(i)}
-              aria-label={p.alt || `Photo ${i + 1}`}
+              aria-label={p.alt || `Foto ${i + 1}`}
               className={useMosaic ? `ph g${i + 1}` : "gallery-tile"}
               style={{
                 position: "relative",

@@ -105,9 +105,9 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
           borderRadius: 8,
         }}
       >
-        <Stat label="Startlist" value={rows.length} />
+        <Stat label="Lista e startit" value={rows.length} />
         <Stat label="Me rezultate" value={withResults} />
-        <Stat label="Të pa-regjistruara" value={rows.length - withResults} />
+        <Stat label="Pa rezultat" value={rows.length - withResults} />
       </div>
 
       {rows.length === 0 ? (
@@ -139,7 +139,7 @@ export default async function EventResultsPage({ params }: { params: Promise<{ i
                     {label}
                   </h2>
                   <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: ".12em" }}>
-                    {done}/{list.length} të kompletuara
+                    {done}/{list.length} të plotësuara
                   </span>
                 </div>
                 <div style={{ overflowX: "auto" }}>

@@ -20,7 +20,7 @@ export function DeleteButton({ id, storagePath, title }: { id: string; storagePa
         });
       }}
     >
-      {pending ? "..." : "Fshij"}
+      {pending ? "…" : "Fshij"}
     </button>
   );
 }

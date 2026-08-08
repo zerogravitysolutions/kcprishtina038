@@ -57,7 +57,7 @@ export default async function TeamMemberPage({ params }: { params: Params }) {
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M11 11 L3 3 M3 3 H9 M3 3 V9" stroke="currentColor" strokeWidth="1.5" />
             </svg>
-            <span>Të gjithë ekipin</span>
+            <span>Kthehu te ekipi</span>
           </Link>
 
           <div className="member-hero">
@@ -146,7 +146,7 @@ export default async function TeamMemberPage({ params }: { params: Params }) {
                 <div className="eyebrow"><span>{m.status === "past" ? "Anëtarë të tjerë të mëparshëm" : "Të tjerë në ekip"}</span></div>
               </div>
               <Link href="/team" className="btn btn-ghost" style={{ justifySelf: "start" }}>
-                <span>Të gjithë ekipin</span>
+                <span>Shiko të gjithë ekipin</span>
                 <svg className="arrow" viewBox="0 0 14 14" fill="none">
                   <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
                 </svg>

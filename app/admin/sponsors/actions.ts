@@ -34,7 +34,7 @@ export async function createSponsor(form: FormData): Promise<void> {
   await assertEditor();
   const payload = parsePayload(form);
   if (!payload.name) throw new Error("Emri mungon.");
-  if (!payload.tier) throw new Error("Tieri mungon.");
+  if (!payload.tier) throw new Error("Niveli mungon.");
   const supabase = await createClient();
   const { error } = await supabase.from("sponsors").insert([payload] as never);
   if (error) throw new Error(error.message);

@@ -13,6 +13,15 @@ type NextReg = {
 
 type DueRow = { amount_eur: number; status: string; period: string };
 
+const REG_STATUS_LABELS: Record<string, string> = {
+  registered: "Regjistruar",
+  waitlist: "Listë pritjeje",
+  cancelled: "Anuluar",
+  checked_in: "Paraqitur",
+  dnf: "DNF",
+  dns: "DNS",
+};
+
 export default async function PortalDashboard() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
@@ -39,7 +48,7 @@ export default async function PortalDashboard() {
   const dues = (duesRows as DueRow[] | null) ?? [];
   const unpaidTotal = dues.reduce((s, d) => s + Number(d.amount_eur), 0);
 
-  let raceLine = "Asnjë garë e regjistruar — shfletoni kalendarin për të regjistruar.";
+  let raceLine = "Ende nuk je regjistruar në asnjë garë — shfleto kalendarin për t'u regjistruar.";
   let daysLabel: string | null = null;
   if (nextReg?.event) {
     const ev = nextReg.event;
@@ -77,7 +86,7 @@ export default async function PortalDashboard() {
         <div className="pcard" style={{ background: "var(--white)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 16, padding: 24, boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0 }}>Gara jote e ardhshme</h2>
-            {nextReg ? <span className="kicker" style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--ember)" }}>{nextReg.status}</span> : null}
+            {nextReg ? <span className="kicker" style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--ember)" }}>{REG_STATUS_LABELS[nextReg.status] ?? nextReg.status}</span> : null}
           </div>
 
           {nextReg?.event ? (
@@ -103,7 +112,7 @@ export default async function PortalDashboard() {
         <div className="pcard dark" style={{ background: "var(--ink)", color: "var(--paper)", borderRadius: 16, padding: 24, boxShadow: "0 1px 2px rgba(15,26,46,.06), 0 10px 28px rgba(15,26,46,.10)" }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0, color: "var(--paper)" }}>Anëtarësia</h2>
           <div style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--slate)" }}>
-            {dues.length === 0 ? "Status: paguar / s'ka pagesa të krijuara" : `${dues.length} të papaguara · €${unpaidTotal.toFixed(2)}`}
+            {dues.length === 0 ? "Statusi: e paguar · asnjë pagesë e hapur" : `${dues.length} pagesa të papaguara · €${unpaidTotal.toFixed(2)}`}
           </div>
           <Link href="/portal/profile" className="btn" style={{ marginTop: 20, background: "transparent", borderColor: "rgba(244,242,236,.3)", color: "var(--paper)" }}>
             Profili & dokumentet →

@@ -135,7 +135,7 @@ export function LineChart({ data, color = SERIES }: { data: Point[]; color?: str
 /** Horizontal labelled bars for a per-entity comparison (e.g. km per rider). */
 export function RowBars({ data, color = SERIES }: { data: Point[]; color?: string }) {
   const max = Math.max(1, ...data.map((d) => d.value));
-  if (data.length === 0) return <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>Pa të dhëna këtë muaj.</div>;
+  if (data.length === 0) return <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>Pa të dhëna për këtë periudhë.</div>;
   return (
     <div style={{ display: "grid", gap: 8 }}>
       {data.map((d, i) => (

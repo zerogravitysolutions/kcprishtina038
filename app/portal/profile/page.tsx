@@ -32,8 +32,8 @@ export default async function ProfilePage() {
       </div>
 
       <div style={{ background: "var(--white)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 14, padding: 24 }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0 }}>Personal information</h2>
-        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "4px 0 20px" }}>Your contact details. Used by your section coach and for race registrations.</p>
+        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0 }}>Të dhënat personale</h2>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "4px 0 20px" }}>Të dhënat e tua të kontaktit. Përdoren nga trajneri i seksionit tënd dhe për regjistrimet në gara.</p>
         <ProfileForm initial={full ?? { full_name: profile.full_name, email: profile.email, phone: null, dob: null, bio: null, metadata: null }} />
       </div>
     </>

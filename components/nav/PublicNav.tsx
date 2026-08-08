@@ -1,14 +1,10 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { getProfile } from "@/lib/supabase/server";
-import { LangToggle } from "./LangToggle";
 import { MobileMenu } from "./MobileMenu";
 
 export async function PublicNav() {
   const t = await getTranslations();
-  const cookieStore = await cookies();
-  const locale = (cookieStore.get("kc038_lang")?.value === "en" ? "en" : "sq") as "sq" | "en";
   const profile = await getProfile();
 
   let signinLabel = t("nav.signin");
@@ -55,7 +51,6 @@ export async function PublicNav() {
         </div>
 
         <div className="nav-right">
-          <LangToggle current={locale} />
           <Link
             href={signinHref as never}
             className={`nav-signin nav-signin--desktop ${isAuthed ? "is-authed" : ""}`}

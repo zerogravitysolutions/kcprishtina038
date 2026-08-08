@@ -19,12 +19,12 @@ export default async function SettingsAdminPage() {
   return (
     <>
       <div className="page-head">
-        <div><h1>Settings</h1><div className="sub">{rows.length} cilësime</div></div>
+        <div><h1>Cilësimet</h1><div className="sub">{rows.length} cilësime</div></div>
       </div>
       <NewSettingForm />
       <div className="table-wrap">
         <table className="t">
-          <thead><tr><th style={{ width: 240 }}>Key</th><th>Value (JSON)</th><th style={{ width: 120 }}>Updated</th><th style={{ width: 180 }}>Actions</th></tr></thead>
+          <thead><tr><th style={{ width: 240 }}>Çelësi</th><th>Vlera (JSON)</th><th style={{ width: 120 }}>Përditësuar</th><th style={{ width: 180 }}>Veprime</th></tr></thead>
           <tbody>
             {rows.length === 0
               ? <tr><td colSpan={4} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka cilësime.</td></tr>

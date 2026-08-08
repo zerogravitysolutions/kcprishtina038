@@ -31,11 +31,11 @@ export async function createNews(form: FormData): Promise<void> {
   const status   = String(form.get("status")   || "draft");
   const tags     = String(form.get("tags")     || "").split(",").map(s => s.trim()).filter(Boolean);
   if (!title_sq) throw new Error("Titulli mungon.");
-  if (!body_sq)  throw new Error("Trupi mungon.");
+  if (!body_sq)  throw new Error("Përmbajtja mungon.");
 
   const supabase = await createClient();
   let slug = slugify(title_sq);
-  if (!slug) throw new Error("Titulli nuk gjeneron URL të vlefshme.");
+  if (!slug) throw new Error("Titulli nuk gjeneron një URL të vlefshme.");
   let suffix = 1, candidate = slug;
   for (;;) {
     const { data: existing } = await supabase.from("news").select("id").eq("slug", candidate).maybeSingle();

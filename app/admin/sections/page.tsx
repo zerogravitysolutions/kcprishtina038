@@ -19,10 +19,10 @@ export default async function SectionsAdminPage() {
 
   return (
     <>
-      <div className="page-head"><div><h1>Sections</h1><div className="sub">{rows.length} në bazë</div></div></div>
+      <div className="page-head"><div><h1>Seksionet</h1><div className="sub">{rows.length} në bazë</div></div></div>
       <div className="table-wrap">
         <table className="t">
-          <thead><tr><th>Name</th><th>Slug</th><th>Coach</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Emri</th><th>Slug</th><th>Trajneri</th><th>Renditja</th><th>Statusi</th><th>Veprime</th></tr></thead>
           <tbody>
             {rows.map(r => (
               <tr key={r.id}>
@@ -30,8 +30,8 @@ export default async function SectionsAdminPage() {
                 <td className="mono">{r.slug}</td>
                 <td>{r.coach?.full_name ?? "—"}</td>
                 <td className="mono">{r.display_order}</td>
-                <td><span className={`badge-st ${r.active ? "ok" : "err"}`}>{r.active ? "active" : "inactive"}</span></td>
-                <td className="actions"><Link className="btn btn-ghost btn-sm" href={`/admin/sections/${r.id}`}>Edit</Link></td>
+                <td><span className={`badge-st ${r.active ? "ok" : "err"}`}>{r.active ? "Aktiv" : "Joaktiv"}</span></td>
+                <td className="actions"><Link className="btn btn-ghost btn-sm" href={`/admin/sections/${r.id}`}>Ndrysho</Link></td>
               </tr>
             ))}
           </tbody>

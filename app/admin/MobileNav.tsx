@@ -9,6 +9,15 @@ import { AdminNavIcon, type AdminIcon } from "./AdminNav";
 export type MobileNavItem = { id: string; label: string; href: string; icon: AdminIcon };
 export type MobileNavGroup = { group: string; items: MobileNavItem[] };
 
+/** Albanian display names for roles (the stored value stays the raw role). */
+const ROLE_LABEL: Record<string, string> = {
+  admin: "Admin",
+  editor: "Editor",
+  staff: "Staf",
+  coach: "Trajner",
+  member: "Anëtar",
+};
+
 export function MobileNav({ groups, profileName, profileRole }: { groups: MobileNavGroup[]; profileName: string; profileRole: string }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -33,7 +42,7 @@ export function MobileNav({ groups, profileName, profileRole }: { groups: Mobile
       <button
         type="button"
         className="mobile-nav-toggle"
-        aria-label={open ? "Mbyll menynë" : "Hape menynë"}
+        aria-label={open ? "Mbyll menynë" : "Hap menynë"}
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
       >
@@ -60,7 +69,7 @@ export function MobileNav({ groups, profileName, profileRole }: { groups: Mobile
             <div className="mobile-nav-head">
               <div className="who">
                 <div className="nm">{profileName}</div>
-                <div className="rl">{profileRole}</div>
+                <div className="rl">{ROLE_LABEL[profileRole] ?? profileRole}</div>
               </div>
               <button type="button" aria-label="Mbyll" onClick={() => setOpen(false)} className="mobile-nav-close">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>

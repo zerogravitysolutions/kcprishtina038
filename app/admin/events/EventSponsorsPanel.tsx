@@ -21,10 +21,10 @@ export type EventSponsor = {
 };
 
 const TIERS: { v: string; label: string }[] = [
-  { v: "title",     label: "Title" },
-  { v: "technical", label: "Technical" },
+  { v: "title",     label: "Kryesor" },
+  { v: "technical", label: "Teknik" },
   { v: "partner",   label: "Partner" },
-  { v: "supporter", label: "Supporter" },
+  { v: "supporter", label: "Mbështetës" },
 ];
 
 function logoUrl(path: string | null | undefined): string | null {
@@ -51,7 +51,7 @@ function SponsorFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={initial ? `Edit · ${initial.name}` : "Sponsor i ri për këtë garë"}
+      title={initial ? `Ndrysho · ${initial.name}` : "Sponsor i ri për këtë garë"}
     >
       <form
         onSubmit={(e) => {
@@ -74,7 +74,7 @@ function SponsorFormModal({
             <input name="name" required defaultValue={initial?.name ?? ""} />
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label>Tieri *</label>
+            <label>Niveli *</label>
             <select name="tier" defaultValue={initial?.tier ?? "partner"}>
               {TIERS.map((t) => <option key={t.v} value={t.v}>{t.label}</option>)}
             </select>
@@ -83,7 +83,7 @@ function SponsorFormModal({
 
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Roli (SQ)</label>
-          <input name="role_sq" defaultValue={initial?.role_sq ?? ""} placeholder="Sponsor i gares" />
+          <input name="role_sq" defaultValue={initial?.role_sq ?? ""} placeholder="Sponsor i garës" />
         </div>
 
         <div className="field" style={{ marginBottom: 0 }}>
@@ -93,7 +93,7 @@ function SponsorFormModal({
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 12 }}>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label>Website</label>
+            <label>Faqja e internetit</label>
             <input name="website_url" type="url" defaultValue={initial?.website_url ?? ""} placeholder="https://" />
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
@@ -171,7 +171,7 @@ export function EventSponsorsPanel({
 
       {sponsors.length === 0 ? (
         <p className="mono" style={{ fontSize: 12, color: "var(--ink-3)", padding: "8px 0" }}>
-          Asnjë sponsor për këtë garë. Klikoni “+ Sponsor i ri” për të shtuar.
+          Asnjë sponsor për këtë garë. Kliko “+ Sponsor i ri” për të shtuar një.
         </p>
       ) : (
         <div className="table-wrap">
@@ -179,7 +179,7 @@ export function EventSponsorsPanel({
             <thead>
               <tr>
                 <th>Sponsori</th>
-                <th>Tier</th>
+                <th>Niveli</th>
                 <th>Renditja</th>
                 <th>Statusi</th>
                 <th>Veprime</th>
@@ -206,7 +206,7 @@ export function EventSponsorsPanel({
                               fontFamily: "var(--font-mono)",
                             }}
                           >
-                            no logo
+                            pa logo
                           </div>
                         )}
                         <div>
@@ -228,7 +228,7 @@ export function EventSponsorsPanel({
                     </td>
                     <td className="actions">
                       <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(s)}>
-                        Edit
+                        Ndrysho
                       </button>
                       <button
                         type="button"
@@ -236,7 +236,7 @@ export function EventSponsorsPanel({
                         style={{ color: "var(--err)" }}
                         onClick={() => setDeleting(s)}
                       >
-                        Fshi
+                        Fshij
                       </button>
                     </td>
                   </tr>
@@ -268,12 +268,12 @@ export function EventSponsorsPanel({
       <ConfirmModal
         open={!!deleting}
         onClose={() => setDeleting(null)}
-        title="Fshi sponsorin"
+        title="Fshij sponsorin"
         tone="danger"
-        confirmLabel="Fshi"
+        confirmLabel="Fshij"
         message={
           deleting ? (
-            <>Sigurt që do ta fshish <strong>{deleting.name}</strong> nga kjo garë? Sponsori fshihet nga baza përgjithmonë.</>
+            <>Sigurt që do ta fshish <strong>{deleting.name}</strong> nga kjo garë? Sponsori fshihet përgjithmonë nga baza e të dhënave.</>
           ) : null
         }
         onConfirm={async () => {

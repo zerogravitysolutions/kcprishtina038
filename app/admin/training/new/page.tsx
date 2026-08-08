@@ -40,7 +40,7 @@ export default async function NewRidePage() {
 
       {athletes.length === 0 ? (
         <p style={{ color: "var(--ink-3)" }}>
-          Nuk ka çiklistë aktivë. Shto çiklistë te{" "}
+          Nuk ka çiklistë aktivë. Shto çiklistë tek{" "}
           <Link href="/admin/team-members" style={{ color: "var(--ember)" }}>Ekipi</Link> (me pozicionin “Çiklist/e”).
         </p>
       ) : (

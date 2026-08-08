@@ -73,7 +73,7 @@ export function RaceForm({
           <input name="location" defaultValue={initial?.location ?? ""} placeholder="P.sh. Germi, Prishtinë" />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Tipi</label>
+          <label>Lloji</label>
           <select name="race_type" defaultValue={initial?.race_type ?? ""}>
             <option value="">— Asnjë —</option>
             {RACE_TYPES.map(t => <option key={t.v} value={t.v}>{t.label}</option>)}
@@ -121,7 +121,7 @@ export function RaceForm({
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur..." : submitLabel}</button>
+        <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur…" : submitLabel}</button>
         <Link href="/admin/races" className="btn btn-ghost">Anulo</Link>
       </div>
     </form>

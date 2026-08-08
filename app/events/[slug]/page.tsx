@@ -214,7 +214,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
               )}
               {ev.elevation_m != null && (
                 <div>
-                  <div className="mono" style={{ fontSize: 10, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--ink-3)" }}>Ngritja</div>
+                  <div className="mono" style={{ fontSize: 10, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--ink-3)" }}>Ngjitja</div>
                   <div style={{ marginTop: 4, fontWeight: 600 }}>{ev.elevation_m} m</div>
                 </div>
               )}
@@ -273,7 +273,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
               <div>
                 <div className="cd-status">
                   <span className="cd-dot"></span>
-                  <span>Numëron mbrapsht</span>
+                  <span>Numërimi mbrapsht</span>
                 </div>
                 <p
                   className="mono"
@@ -341,8 +341,8 @@ export default async function EventDetailPage({ params }: { params: Params }) {
               <StravaEmbed url={ev.strava_url} />
             ) : (
               <p style={{ color: "var(--ink-3)", fontSize: 13 }}>
-                Linku i Strava-s nuk u njoh si rrugë, segment ose aktivitet —
-                kontrollo URL-në në panelin e admin.
+                Linku i Stravës nuk u njoh si rrugë, segment ose aktivitet —
+                kontrollo URL-në në panelin e adminit.
               </p>
             )}
 
@@ -473,12 +473,12 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                 <span>Regjistrimi</span>
               </div>
               <h2 className="display display-m" style={{ marginTop: 0, marginBottom: 24 }}>
-                {regOpen ? "Bashkohu në startlist" : "Regjistrimi i mbyllur"}
+                {regOpen ? "Bashkohu në listën e nisjes" : "Regjistrimi është mbyllur"}
               </h2>
 
               {isFb ? (
                 <p style={{ color: "var(--ink-2)", maxWidth: 720, lineHeight: 1.65 }}>
-                  Kjo garë është importuar nga Facebook. Për regjistrim ndiq linkun
+                  Kjo garë është importuar nga Facebook. Për regjistrim, ndiq linkun
                   {ev.external_url && (
                     <>
                       {" "}
@@ -487,7 +487,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                       </a>
                     </>
                   )}
-                  {" "}ose na kontakto direkt.
+                  {" "}ose na kontakto drejtpërdrejt.
                 </p>
               ) : regOpen ? (
                 <RegisterForm slug={ev.slug} eventStartIso={ev.start_at} />
@@ -561,7 +561,7 @@ function ResultsBlock({
 
         {results.length === 0 ? (
           <p style={{ color: "var(--ink-2)" }}>
-            Rezultatet janë publikuar por ende nuk ka të dhëna për t&apos;u shfaqur.
+            Rezultatet janë publikuar, por ende nuk ka të dhëna për t&apos;u shfaqur.
           </p>
         ) : (
           <div style={{ display: "grid", gap: 24 }}>
@@ -588,7 +588,7 @@ function ResultsBlock({
                       {label}
                     </h3>
                     <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: ".12em" }}>
-                      {list.length} pjesëmarrës{list.length === 1 ? "" : "ë"}
+                      {list.length} pjesëmarrës
                     </span>
                   </div>
 
@@ -652,7 +652,7 @@ function ResultsBlock({
                           <ResultsTh>Emri</ResultsTh>
                           <ResultsTh>Klubi</ResultsTh>
                           <ResultsTh>Koha</ResultsTh>
-                          <ResultsTh>Shënim</ResultsTh>
+                          <ResultsTh>Shënime</ResultsTh>
                         </tr>
                       </thead>
                       <tbody>

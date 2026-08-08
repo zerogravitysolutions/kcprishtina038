@@ -31,7 +31,7 @@ export default async function MediaAdminPage({ searchParams }: { searchParams: P
     <>
       <div className="page-head">
         <div>
-          <h1>Media library</h1>
+          <h1>Biblioteka e medias</h1>
           <div className="sub">{total} skedarë · faqja {page}/{pages}</div>
         </div>
       </div>
@@ -40,7 +40,7 @@ export default async function MediaAdminPage({ searchParams }: { searchParams: P
         <Link className={`chip ${src === "facebook" ? "active" : ""}`} href="/admin/media?src=facebook">Facebook</Link>
         <Link className={`chip ${src === "upload" ? "active" : ""}`} href="/admin/media?src=upload">Manualë</Link>
         <div className="spacer" />
-        <span className="meta">{total} total</span>
+        <span className="meta">{total} gjithsej</span>
       </div>
       {rows.length === 0 ? (
         <p style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
@@ -74,10 +74,10 @@ export default async function MediaAdminPage({ searchParams }: { searchParams: P
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 {page > 1 && (
-                  <Link className="btn btn-ghost btn-sm" href={`/admin/media?${new URLSearchParams({ ...(src !== "all" ? { src } : {}), page: String(page - 1) })}`}>← I mëparshëm</Link>
+                  <Link className="btn btn-ghost btn-sm" href={`/admin/media?${new URLSearchParams({ ...(src !== "all" ? { src } : {}), page: String(page - 1) })}`}>← E mëparshme</Link>
                 )}
                 {page < pages && (
-                  <Link className="btn btn-ghost btn-sm" href={`/admin/media?${new URLSearchParams({ ...(src !== "all" ? { src } : {}), page: String(page + 1) })}`}>Tjetri →</Link>
+                  <Link className="btn btn-ghost btn-sm" href={`/admin/media?${new URLSearchParams({ ...(src !== "all" ? { src } : {}), page: String(page + 1) })}`}>Tjetra →</Link>
                 )}
               </div>
             </div>

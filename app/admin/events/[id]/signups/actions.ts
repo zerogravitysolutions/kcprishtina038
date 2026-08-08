@@ -39,7 +39,7 @@ export async function updateSignup(
       const raw = patch.bib_number.trim();
       update.bib_number = raw === "" ? null : Number(raw);
       if (raw !== "" && Number.isNaN(update.bib_number)) {
-        return { ok: false, error: "Numri i biçikletës duhet të jetë numër." };
+        return { ok: false, error: "Numri i startit duhet të jetë numër." };
       }
     }
     if (patch.result_place !== undefined) {
@@ -102,7 +102,7 @@ export async function deleteSignup(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const p = await getProfile();
-    if (!p || p.role !== "admin") return { ok: false, error: "Forbidden — vetëm admin." };
+    if (!p || p.role !== "admin") return { ok: false, error: "Nuk lejohet — vetëm admini." };
     const supabase = await createClient();
     const { error } = await supabase
       .from("event_signups")

@@ -31,10 +31,10 @@ export function NewSettingForm() {
       </div>
       <div className="field" style={{ marginBottom: 0 }}>
         <label>Vlera (JSON ose tekst)</label>
-        <textarea name="value" rows={3} placeholder={'"text" ose 42 ose {"foo":"bar"}'} />
+        <textarea name="value" rows={3} placeholder={'"tekst" ose 42 ose {"foo":"bar"}'} />
       </div>
       <div style={{ alignSelf: "end" }}>
-        <button type="submit" className="btn btn-ember" disabled={pending} style={{ width: "100%" }}>{pending ? "..." : "Shto"}</button>
+        <button type="submit" className="btn btn-ember" disabled={pending} style={{ width: "100%" }}>{pending ? "Duke shtuar…" : "Shto"}</button>
       </div>
       {err && <div style={{ gridColumn: "1 / -1", color: "var(--err)", fontSize: 12, fontFamily: "var(--font-mono)" }}>{err}</div>}
     </form>

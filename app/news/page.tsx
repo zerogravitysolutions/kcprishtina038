@@ -10,7 +10,7 @@ import { getNewsPage } from "@/lib/supabase/fb";
 const PAGE_SIZE = 24;
 
 export const metadata: Metadata = {
-  title: "Lajme",
+  title: "Lajmet",
   description: "Postimet më të reja nga klubi KÇ Prishtina 038.",
   alternates: { canonical: "/news" },
 };
@@ -54,7 +54,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
           {totalPages > 1 && (
             <nav
               className="mono"
-              aria-label="News pagination"
+              aria-label="Faqosja e lajmeve"
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -78,7 +78,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
                 <span />
               )}
               <span style={{ color: "var(--ink-2)" }}>
-                {pageNum} / {totalPages} · {total} {total === 1 ? "post" : "posts"}
+                {pageNum} / {totalPages} · {total} {total === 1 ? "postim" : "postime"}
               </span>
               {pageNum < totalPages ? (
                 <Link

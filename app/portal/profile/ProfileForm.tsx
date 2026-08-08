@@ -9,16 +9,16 @@ type Initial = {
 };
 
 const META_FIELDS = [
-  ["gender", "Gender"],
-  ["address", "Address"],
-  ["city", "City"],
-  ["postal_code", "Postal"],
-  ["nationality", "Nationality"],
-  ["id_number", "ID / Passport number"],
-  ["shoe_eu", "Shoe (EU)"],
-  ["height_cm", "Height (cm)"],
-  ["weight_kg", "Weight (kg)"],
-  ["strava", "Strava handle"],
+  ["gender", "Gjinia"],
+  ["address", "Adresa"],
+  ["city", "Qyteti"],
+  ["postal_code", "Kodi postar"],
+  ["nationality", "Shtetësia"],
+  ["id_number", "Numri i letërnjoftimit / pasaportës"],
+  ["shoe_eu", "Numri i këpucëve (EU)"],
+  ["height_cm", "Gjatësia (cm)"],
+  ["weight_kg", "Pesha (kg)"],
+  ["strava", "Profili në Strava"],
   ["instagram", "Instagram"],
 ] as const;
 
@@ -44,11 +44,11 @@ export function ProfileForm({ initial }: { initial: Initial }) {
       bio: String(fd.get("bio") ?? "").trim() || null,
       metadata: meta,
     };
-    setStatus("Po ruan…"); setStatusColor("var(--ink-3)");
+    setStatus("Duke ruajtur…"); setStatusColor("var(--ink-3)");
     start(async () => {
       const result = await saveProfile(payload);
       if (!result.ok) { setStatus("Gabim: " + result.error); setStatusColor("var(--ember-deep)"); return; }
-      setStatus("Ruajtur · " + new Date().toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit" }));
+      setStatus("U ruajt · " + new Date().toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit" }));
       setStatusColor("var(--ok, #2f8a4e)");
     });
   };
@@ -62,21 +62,21 @@ export function ProfileForm({ initial }: { initial: Initial }) {
     <form onSubmit={onSubmit}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div className="field">
-          <label>First name</label>
+          <label>Emri</label>
           <input type="text" name="first_name" defaultValue={firstName} />
         </div>
         <div className="field">
-          <label>Last name</label>
+          <label>Mbiemri</label>
           <input type="text" name="last_name" defaultValue={lastName} />
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14 }}>
         <div className="field">
-          <label>Date of birth</label>
+          <label>Datëlindja</label>
           <input type="date" name="dob" defaultValue={initial.dob ?? ""} />
         </div>
         <div className="field">
-          <label>Phone</label>
+          <label>Telefoni</label>
           <input type="tel" name="phone" defaultValue={initial.phone ?? ""} />
         </div>
       </div>
@@ -86,46 +86,46 @@ export function ProfileForm({ initial }: { initial: Initial }) {
           <input type="email" name="email" defaultValue={initial.email} disabled style={{ background: "color-mix(in oklab, var(--ink) 4%, var(--white))", color: "var(--ink-3)" }} />
         </div>
         <div className="field">
-          <label>Nationality</label>
+          <label>Shtetësia</label>
           <input type="text" name="meta_nationality" defaultValue={meta.nationality ?? ""} />
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 14 }}>
         <div className="field">
-          <label>Address</label>
+          <label>Adresa</label>
           <input type="text" name="meta_address" defaultValue={meta.address ?? ""} />
         </div>
         <div className="field">
-          <label>City</label>
+          <label>Qyteti</label>
           <input type="text" name="meta_city" defaultValue={meta.city ?? ""} />
         </div>
         <div className="field">
-          <label>Postal</label>
+          <label>Kodi postar</label>
           <input type="text" name="meta_postal_code" defaultValue={meta.postal_code ?? ""} />
         </div>
       </div>
 
       <div className="field" style={{ marginTop: 18 }}>
-        <label>Short bio</label>
+        <label>Biografi e shkurtër</label>
         <textarea name="bio" rows={3} defaultValue={initial.bio ?? ""} />
       </div>
 
-      <h3 style={{ marginTop: 28, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, letterSpacing: "-0.01em" }}>Equipment & socials</h3>
+      <h3 style={{ marginTop: 28, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, letterSpacing: "-0.01em" }}>Pajisjet dhe rrjetet sociale</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 12 }}>
-        <div className="field"><label>Shoe (EU)</label><input type="number" name="meta_shoe_eu" defaultValue={meta.shoe_eu ?? ""} /></div>
-        <div className="field"><label>Height (cm)</label><input type="number" name="meta_height_cm" defaultValue={meta.height_cm ?? ""} /></div>
-        <div className="field"><label>Weight (kg)</label><input type="number" name="meta_weight_kg" defaultValue={meta.weight_kg ?? ""} /></div>
+        <div className="field"><label>Numri i këpucëve (EU)</label><input type="number" name="meta_shoe_eu" defaultValue={meta.shoe_eu ?? ""} /></div>
+        <div className="field"><label>Gjatësia (cm)</label><input type="number" name="meta_height_cm" defaultValue={meta.height_cm ?? ""} /></div>
+        <div className="field"><label>Pesha (kg)</label><input type="number" name="meta_weight_kg" defaultValue={meta.weight_kg ?? ""} /></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14 }}>
-        <div className="field"><label>Strava handle</label><input type="text" name="meta_strava" defaultValue={meta.strava ?? ""} /></div>
+        <div className="field"><label>Profili në Strava</label><input type="text" name="meta_strava" defaultValue={meta.strava ?? ""} /></div>
         <div className="field"><label>Instagram</label><input type="text" name="meta_instagram" defaultValue={meta.instagram ?? ""} /></div>
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, paddingTop: 20, borderTop: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)" }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: statusColor, letterSpacing: ".04em" }}>{status}</span>
         <button className="btn btn-ember" type="submit" disabled={pending}>
-          {pending ? "Po ruan…" : "Save changes"}
+          {pending ? "Duke ruajtur…" : "Ruaj ndryshimet"}
         </button>
       </div>
     </form>

@@ -12,6 +12,13 @@ import { RowActions } from "./RowActions";
 
 export const metadata = { title: "Dokumentet" };
 
+// Display-only labels — DB values stay `public` / `members` / `admin`.
+const VISIBILITY_LABEL: Record<string, string> = {
+  public: "Publike",
+  members: "Anëtarët",
+  admin: "Admin",
+};
+
 export default async function DocumentsAdminPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
@@ -24,7 +31,7 @@ export default async function DocumentsAdminPage() {
       <div className="page-head">
         <div>
           <h1>Dokumentet</h1>
-          <div className="sub">{rows.length} në bazë · PDF vetëm</div>
+          <div className="sub">{rows.length} në bazë · vetëm PDF</div>
         </div>
       </div>
 
@@ -59,7 +66,7 @@ export default async function DocumentsAdminPage() {
                   <td className="mono">{categoryLabel(d.category)}</td>
                   <td>
                     <span className={`badge-st ${d.visibility === "public" ? "ok" : d.visibility === "members" ? "warn" : "err"}`}>
-                      {d.visibility}
+                      {VISIBILITY_LABEL[d.visibility] ?? d.visibility}
                     </span>
                   </td>
                   <td className="mono num">{formatBytes(d.byte_size)}</td>

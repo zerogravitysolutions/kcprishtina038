@@ -91,7 +91,7 @@ export function SignupRow({ eventId, s, index }: { eventId: string; s: Signup; i
             style={{ marginLeft: 6, color: "var(--err)" }}
             onClick={() => setConfirmDel(true)}
           >
-            Fshi
+            Fshij
           </button>
           {msg && (
             <span
@@ -111,9 +111,9 @@ export function SignupRow({ eventId, s, index }: { eventId: string; s: Signup; i
       <ConfirmModal
         open={confirmDel}
         onClose={() => setConfirmDel(false)}
-        title="Fshi regjistrimin"
+        title="Fshij regjistrimin"
         tone="danger"
-        confirmLabel="Fshi"
+        confirmLabel="Fshij"
         message={<>Sigurt që do ta fshish regjistrimin e <strong>{s.full_name}</strong>?</>}
         onConfirm={async () => {
           const r = await deleteSignup(eventId, s.id);

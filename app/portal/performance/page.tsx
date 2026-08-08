@@ -76,7 +76,7 @@ export default async function PortalPerformancePage() {
             {prof?.weight_kg ? <Stat label="Pesha" value={`${prof.weight_kg} kg`} /> : null}
             {(prof?.max_hr || bests.max_hr) ? <Stat label="HR max" value={String(prof?.max_hr || bests.max_hr)} /> : null}
             <Stat label="Stërvitje" value={String(bests.rides)} />
-            {bests.total_km > 0 ? <Stat label="KM total" value={fmt(bests.total_km, 0)} /> : null}
+            {bests.total_km > 0 ? <Stat label="KM gjithsej" value={fmt(bests.total_km, 0)} /> : null}
           </div>
 
           {/* Power curve — only records that exist. */}

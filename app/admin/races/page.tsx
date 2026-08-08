@@ -74,7 +74,7 @@ export default async function RacesAdminPage() {
     <>
       <div className="page-head">
         <div><h1>Garat</h1><div className="sub">{rows.length} në bazë · katalog i kuruar i garave të klubit</div></div>
-        <Link className="btn btn-ember" href="/admin/races/new">+ Gara e re</Link>
+        <Link className="btn btn-ember" href="/admin/races/new">+ Garë e re</Link>
       </div>
 
       {suggestions.length > 0 && (
@@ -106,10 +106,10 @@ export default async function RacesAdminPage() {
       )}
       <div className="table-wrap">
         <table className="t">
-          <thead><tr><th>Emri</th><th>Data</th><th>Vendi</th><th>Tipi</th><th>Organizatori</th><th>Veprime</th></tr></thead>
+          <thead><tr><th>Emri</th><th>Data</th><th>Vendi</th><th>Lloji</th><th>Organizatori</th><th>Veprime</th></tr></thead>
           <tbody>
             {rows.length === 0
-              ? <tr><td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka gara — shtoni një.</td></tr>
+              ? <tr><td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka gara — shto një.</td></tr>
               : rows.map(r => (
                 <tr key={r.id}>
                   <td>
@@ -121,7 +121,7 @@ export default async function RacesAdminPage() {
                   <td className="mono">{r.race_type ? (TYPE_LABEL[r.race_type] ?? r.race_type) : "—"}</td>
                   <td>{r.organizer ?? "—"}</td>
                   <td className="actions">
-                    <Link className="btn btn-ghost btn-sm" href={`/admin/races/${r.id}`}>Edit</Link>
+                    <Link className="btn btn-ghost btn-sm" href={`/admin/races/${r.id}`}>Ndrysho</Link>
                     <DeleteButton id={r.id} name={r.name} />
                   </td>
                 </tr>

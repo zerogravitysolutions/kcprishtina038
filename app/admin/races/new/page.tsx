@@ -49,7 +49,7 @@ export default async function NewRacePage({ searchParams }: { searchParams: Sear
     <>
       <div className="page-head">
         <div>
-          <h1>Gara e re</h1>
+          <h1>Garë e re</h1>
           {sp.link_news_id && (
             <div className="sub">
               Pas krijimit, ky lajm do të lidhet automatikisht me garën

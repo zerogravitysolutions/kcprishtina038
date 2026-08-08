@@ -21,6 +21,14 @@ const ROLE_LABEL: Record<string, string> = {
   member: "Anëtar",
 };
 
+// Albanian display names for the stored statuses (values stay raw).
+const STATUS_LABEL: Record<string, string> = {
+  active: "Aktiv",
+  inactive: "Joaktiv",
+  suspended: "Pezulluar",
+  pending: "Në pritje",
+};
+
 function initials(n: string) { return n.trim().split(/\s+/).slice(0, 2).map(s => s[0] || "").join("").toUpperCase() || "?"; }
 
 type SearchParams = Promise<{ role?: string }>;
@@ -83,10 +91,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     <>
       <div className="page-head">
         <div>
-          <h1>Members</h1>
+          <h1>Anëtarët</h1>
           <div className="sub">
             {rows.length} {roleFilter ? `me rolin "${ROLE_LABEL[roleFilter]}"` : "në bazë"}
-            {canChangeRole ? " · admin mund të shtojë, ndryshojë rolin, çaktivizojë ose fshijë" : ""}
+            {canChangeRole ? " · admini mund të shtojë, të ndryshojë rolin, të çaktivizojë ose të fshijë llogari" : ""}
           </div>
         </div>
       </div>
@@ -108,10 +116,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
                   <td>
                     {canChangeRole
                       ? <RolePicker id={r.id} current={r.role} name={r.full_name} />
-                      : <span className="mono">{r.role}</span>}
+                      : <span className="mono">{ROLE_LABEL[r.role] ?? r.role}</span>}
                   </td>
                   <td className="mono">{r.joined_at ? new Date(r.joined_at).toLocaleDateString("sq", { month: "short", year: "numeric" }) : "—"}</td>
-                  <td><span className={`badge-st ${r.status === "active" ? "ok" : r.status === "pending" ? "warn" : "err"}`}>{r.status}</span></td>
+                  <td><span className={`badge-st ${r.status === "active" ? "ok" : r.status === "pending" ? "warn" : "err"}`}>{STATUS_LABEL[r.status] ?? r.status}</span></td>
                   {canChangeRole ? <td className="actions"><ManageMember id={r.id} name={r.full_name} email={r.email} status={r.status} isSelf={r.id === user.id} /></td> : null}
                 </tr>
               ))}

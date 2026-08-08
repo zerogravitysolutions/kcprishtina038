@@ -78,8 +78,8 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
 
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap", margin: "0 0 20px", padding: "12px 16px", background: "var(--paper-2)", borderRadius: 8 }}>
         <Stat label="Çiklistë" value={String(parts)} />
-        <Stat label="Total KM" value={totalKm > 0 ? fmt(totalKm, 1) : "—"} />
-        <Stat label="Total kohë" value={totalSec > 0 ? formatDurationShort(totalSec) : "—"} />
+        <Stat label="KM gjithsej" value={totalKm > 0 ? fmt(totalKm, 1) : "—"} />
+        <Stat label="Koha gjithsej" value={totalSec > 0 ? formatDurationShort(totalSec) : "—"} />
       </div>
 
       <div style={{ marginBottom: 20 }}>

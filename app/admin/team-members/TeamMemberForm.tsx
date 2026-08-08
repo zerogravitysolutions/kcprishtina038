@@ -26,9 +26,9 @@ type Profile = { id: string; full_name: string; role: string };
 
 const POSITIONS: { value: string; label: string }[] = [
   { value: "president", label: "Kryetar" },
-  { value: "board_member", label: "Anëtar Bordi" },
-  { value: "secretary_general", label: "Sekretar i Përgjithshëm" },
-  { value: "secretary_organizational", label: "Sekretar Organizativ" },
+  { value: "board_member", label: "Anëtar bordi" },
+  { value: "secretary_general", label: "Sekretar i përgjithshëm" },
+  { value: "secretary_organizational", label: "Sekretar organizativ" },
   { value: "commissaire", label: "Komisar" },
   { value: "coach", label: "Trajner" },
   { value: "rider", label: "Çiklist/e" },
@@ -163,7 +163,7 @@ export function TeamMemberForm({
           <span>
             Shfaq këtë çiklist si <strong>Master</strong> në publik
             <small style={{ display: "block", color: "var(--ink-3)", fontSize: 12, marginTop: 2 }}>
-              Vetëm nëse çiklisti regjistrohet zyrtarisht në kategorinë Master të federatës. Pa këtë, kategoria llogaritet vetvetiu nga datëlindja (Elite për 23+ vjeç).
+              Vetëm nëse çiklisti regjistrohet zyrtarisht në kategorinë Master të federatës. Pa këtë, kategoria llogaritet automatikisht nga datëlindja (Elite për 23+ vjeç).
             </small>
           </span>
         </label>
@@ -172,7 +172,7 @@ export function TeamMemberForm({
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur..." : submitLabel}</button>
+        <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur…" : submitLabel}</button>
         <Link href="/admin/team-members" className="btn btn-ghost">Anulo</Link>
       </div>
     </form>

@@ -54,17 +54,17 @@ export function NewsForm({ action, media, initial, submitLabel }: Props) {
       </div>
 
       <div className="field">
-        <label>Title (EN)</label>
+        <label>Titulli (EN)</label>
         <input name="title_en" defaultValue={initial?.title_en ?? ""} />
       </div>
 
       <div className="field">
-        <label>Trupi (SQ) *</label>
+        <label>Përmbajtja (SQ) *</label>
         <textarea name="body_sq" required rows={12} defaultValue={initial?.body_sq ?? ""} />
       </div>
 
       <div className="field">
-        <label>Body (EN)</label>
+        <label>Përmbajtja (EN)</label>
         <textarea name="body_en" rows={8} defaultValue={initial?.body_en ?? ""} />
       </div>
 
@@ -83,12 +83,12 @@ export function NewsForm({ action, media, initial, submitLabel }: Props) {
           <label>Statusi</label>
           <select name="status" defaultValue={initial?.status ?? "draft"}>
             <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="archived">Archived</option>
+            <option value="published">Publikuar</option>
+            <option value="archived">Arkivuar</option>
           </select>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Tags (ndaras me presje)</label>
+          <label>Etiketat (të ndara me presje)</label>
           <input name="tags" defaultValue={(initial?.tags ?? []).join(", ")} placeholder="rrugë, gara, junior" />
         </div>
       </div>
@@ -97,7 +97,7 @@ export function NewsForm({ action, media, initial, submitLabel }: Props) {
 
       <div style={{ display: "flex", gap: 10 }}>
         <button type="submit" className="btn btn-ember" disabled={pending}>
-          {pending ? "Duke ruajtur..." : submitLabel}
+          {pending ? "Duke ruajtur…" : submitLabel}
         </button>
         <Link href="/admin/news" className="btn btn-ghost">Anulo</Link>
       </div>

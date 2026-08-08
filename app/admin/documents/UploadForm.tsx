@@ -32,7 +32,7 @@ export function UploadForm() {
     if (!f) { setFileLabel("Asnjë skedar i zgjedhur"); return; }
     const okType = PDF_TYPES.includes(f.type) || PDF_EXTS.some((e) => f.name.toLowerCase().endsWith(e));
     if (!okType) {
-      setMsg({ ok: false, text: "Vetëm skedarë PDF lejohen." });
+      setMsg({ ok: false, text: "Lejohen vetëm skedarët PDF." });
       if (fileRef.current) fileRef.current.value = "";
       setFileLabel("Asnjë skedar i zgjedhur");
       return;
@@ -77,12 +77,12 @@ export function UploadForm() {
           </select>
         </label>
         <label className="field">
-          <span>Data efektive</span>
+          <span>Data e hyrjes në fuqi</span>
           <input name="effective_date" type="date" />
         </label>
         <label className="field" style={{ gridColumn: "1 / -1" }}>
-          <span>Përshkrimi (opsionale)</span>
-          <textarea name="description" rows={2} placeholder="Përshkrim i shkurtër..." />
+          <span>Përshkrimi (opsional)</span>
+          <textarea name="description" rows={2} placeholder="Përshkrim i shkurtër…" />
         </label>
       </div>
 

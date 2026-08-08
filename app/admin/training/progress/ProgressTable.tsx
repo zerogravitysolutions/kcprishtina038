@@ -34,12 +34,12 @@ const COLS: Col[] = [
   { key: "total_km", label: "KM", numeric: true, value: (r) => r.total_km, render: (r) => (r.total_km > 0 ? fmt(r.total_km, 0) : "—") },
   { key: "total_seconds", label: "Orë", numeric: true, value: (r) => r.total_seconds, render: (r) => (r.total_seconds > 0 ? fmt(toHours(r.total_seconds), 1) : "—") },
   { key: "total_elevation", label: "Ngjitje", numeric: true, value: (r) => r.total_elevation, render: (r) => (r.total_elevation > 0 ? fmt(r.total_elevation, 0) : "—") },
-  { key: "avg_hr", label: "HR mes", numeric: true, value: (r) => r.avg_hr, render: (r) => (r.avg_hr != null ? fmt(r.avg_hr, 0) : "—") },
-  { key: "avg_ftp", label: "FTP mes", numeric: true, value: (r) => r.avg_ftp, render: (r) => (r.avg_ftp != null ? fmt(r.avg_ftp, 0) : "—") },
-  { key: "avg_power", label: "Fuqia mes", numeric: true, value: (r) => r.avg_power, render: (r) => (r.avg_power != null ? fmt(r.avg_power, 0) : "—") },
-  { key: "avg_5m", label: "5m mes", numeric: true, value: (r) => r.avg_5m, render: (r) => (r.avg_5m != null ? fmt(r.avg_5m, 0) : "—") },
-  { key: "avg_10m", label: "10m mes", numeric: true, value: (r) => r.avg_10m, render: (r) => (r.avg_10m != null ? fmt(r.avg_10m, 0) : "—") },
-  { key: "avg_20m", label: "20m mes", numeric: true, value: (r) => r.avg_20m, render: (r) => (r.avg_20m != null ? fmt(r.avg_20m, 0) : "—") },
+  { key: "avg_hr", label: "HR mes.", numeric: true, value: (r) => r.avg_hr, render: (r) => (r.avg_hr != null ? fmt(r.avg_hr, 0) : "—") },
+  { key: "avg_ftp", label: "FTP mes.", numeric: true, value: (r) => r.avg_ftp, render: (r) => (r.avg_ftp != null ? fmt(r.avg_ftp, 0) : "—") },
+  { key: "avg_power", label: "Fuqia mes.", numeric: true, value: (r) => r.avg_power, render: (r) => (r.avg_power != null ? fmt(r.avg_power, 0) : "—") },
+  { key: "avg_5m", label: "5 min mes.", numeric: true, value: (r) => r.avg_5m, render: (r) => (r.avg_5m != null ? fmt(r.avg_5m, 0) : "—") },
+  { key: "avg_10m", label: "10 min mes.", numeric: true, value: (r) => r.avg_10m, render: (r) => (r.avg_10m != null ? fmt(r.avg_10m, 0) : "—") },
+  { key: "avg_20m", label: "20 min mes.", numeric: true, value: (r) => r.avg_20m, render: (r) => (r.avg_20m != null ? fmt(r.avg_20m, 0) : "—") },
 ];
 
 export function ProgressTable({ rows }: { rows: ProgressRow[] }) {
@@ -82,7 +82,7 @@ export function ProgressTable({ rows }: { rows: ProgressRow[] }) {
           >
             {COLS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
           </select>
-          <button type="button" className="pt-dir" onClick={() => setDir((d) => (d === "asc" ? "desc" : "asc"))} aria-label="Kthe renditjen">
+          <button type="button" className="pt-dir" onClick={() => setDir((d) => (d === "asc" ? "desc" : "asc"))} aria-label="Ndërro drejtimin e renditjes">
             {dir === "asc" ? "↑" : "↓"}
           </button>
         </div>

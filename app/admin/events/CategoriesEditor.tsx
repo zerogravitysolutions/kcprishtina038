@@ -45,7 +45,7 @@ export function CategoriesEditor({
     let timer: ReturnType<typeof setTimeout> | null = null;
     start(async () => {
       const r = await setEventCategories(eventId, rows);
-      setMsg(r.ok ? { ok: true, text: "Ruajtur ✓" } : { ok: false, text: r.error ?? "Gabim" });
+      setMsg(r.ok ? { ok: true, text: "U ruajt ✓" } : { ok: false, text: r.error ?? "Gabim" });
       if (r.ok) {
         timer = setTimeout(() => setMsg(null), 1200);
       }

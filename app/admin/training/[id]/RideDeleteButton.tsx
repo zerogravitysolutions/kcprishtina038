@@ -11,14 +11,14 @@ export function RideDeleteButton({ id }: { id: string }) {
   return (
     <>
       <button type="button" className="btn btn-ghost btn-sm" style={{ color: "var(--err)" }} onClick={() => setOpen(true)}>
-        Fshi stërvitjen
+        Fshij stërvitjen
       </button>
       <ConfirmModal
         open={open}
         onClose={() => setOpen(false)}
-        title="Fshi stërvitjen"
+        title="Fshij stërvitjen"
         tone="danger"
-        confirmLabel="Fshi"
+        confirmLabel="Fshij"
         message={<>Kjo do të fshijë stërvitjen dhe të gjitha vlerat e çiklistëve në të. Veprimi s’kthehet.</>}
         onConfirm={async () => {
           const r = await deleteRide(id);

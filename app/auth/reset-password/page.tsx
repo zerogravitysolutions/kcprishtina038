@@ -1,7 +1,7 @@
 import { ResetForm } from "./ResetForm";
 
 export const metadata = {
-  title: "Reseto fjalëkalimin",
+  title: "Rivendos fjalëkalimin",
   robots: { index: false, follow: false },
 };
 
@@ -13,7 +13,7 @@ export default function ResetPasswordPage() {
           <img src="/assets/logo.jpg" alt="" style={{ width: 36, height: 36, borderRadius: 999 }} />
           <div>
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, letterSpacing: "-0.015em" }}>KÇ Prishtina 038</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--ink-3)", marginTop: 3 }}>Reseto fjalëkalimin</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--ink-3)", marginTop: 3 }}>Rivendos fjalëkalimin</div>
           </div>
         </div>
         <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, letterSpacing: "-0.025em", margin: 0 }}>Vendos fjalëkalim të ri.</h1>

@@ -179,27 +179,10 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--font-display); letter-spacing: -0
   height: 2px; background: var(--ember);
 }
 .nav-right { display: flex; align-items: center; gap: 12px; }
-.lang-pill {
-  display: inline-flex; padding: 4px; border-radius: 999px;
-  border: 1px solid color-mix(in oklab, var(--ink) 18%, transparent);
-  background: var(--white);
-  gap: 0;
-}
-.lang-pill button {
-  border: 0; background: transparent; cursor: pointer;
-  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em;
-  padding: 6px 10px; border-radius: 999px;
-  color: var(--ink-3); text-transform: uppercase;
-}
-.lang-pill button.active {
-  background: var(--ink); color: var(--paper);
-}
 @media (max-width: 880px) {
   .nav-links { display: none; }
   .nav-inner { height: 60px; gap: 12px; }
   .nav-signin--desktop, .nav-cta--desktop { display: none; }
-  .lang-pill { padding: 4px; }
-  .lang-pill button { padding: 10px 14px; font-size: 11.5px; min-height: 36px; min-width: 44px; }
 }
 @media (min-width: 881px) {
   .nav-mobile-trigger, .nav-mobile-sheet { display: none !important; }
@@ -1424,8 +1407,7 @@ footer.foot::before {
 
 /* Make sure ALL anchor/button hit areas meet 44x44 minimum on touch */
 @media (hover: none) and (pointer: coarse) {
-  .btn, .nav-mobile-trigger, .nav-mobile-signin,
-  .lang-pill button, .news-card {
+  .btn, .nav-mobile-trigger, .nav-mobile-signin, .news-card {
     min-height: 44px;
   }
   a, button { touch-action: manipulation; }

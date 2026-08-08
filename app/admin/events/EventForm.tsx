@@ -55,27 +55,27 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
         <input name="title_sq" required defaultValue={initial?.title_sq ?? ""} />
       </div>
       <div className="field">
-        <label>Title (EN)</label>
+        <label>Titulli (EN)</label>
         <input name="title_en" defaultValue={initial?.title_en ?? ""} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Tipi *</label>
+          <label>Lloji *</label>
           <select name="type" defaultValue={initial?.type ?? "race"}>
-            <option value="race">Race</option>
-            <option value="ride">Ride</option>
-            <option value="camp">Camp</option>
-            <option value="training">Training</option>
+            <option value="race">Garë</option>
+            <option value="ride">Dalje</option>
+            <option value="camp">Kamp</option>
+            <option value="training">Stërvitje</option>
           </select>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Statusi</label>
           <select name="status" defaultValue={initial?.status ?? "draft"}>
             <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="done">Done</option>
+            <option value="published">Publikuar</option>
+            <option value="cancelled">Anuluar</option>
+            <option value="done">Përfunduar</option>
           </select>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
@@ -118,7 +118,7 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
         <textarea name="description_sq" rows={5} defaultValue={initial?.description_sq ?? ""} />
       </div>
       <div className="field">
-        <label>Description (EN)</label>
+        <label>Përshkrimi (EN)</label>
         <textarea name="description_en" rows={4} defaultValue={initial?.description_en ?? ""} />
       </div>
 
@@ -131,7 +131,7 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
           placeholder="https://www.strava.com/routes/... · /segments/... · /activities/..."
         />
         <small style={{ display: "block", marginTop: 4, color: "var(--ink-3)", fontSize: 11 }}>
-          Mbështetet për <span className="mono">routes</span>,{" "}
+          Mbështeten <span className="mono">routes</span>,{" "}
           <span className="mono">segments</span> dhe{" "}
           <span className="mono">activities</span>. Përdorim widget-in zyrtar
           të Strava-s në faqen publike (vetëm për linke publike).
@@ -162,8 +162,8 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
             Kategoritë e garës
           </legend>
           <div className="sub" style={{ marginBottom: 14, color: "var(--ink-3)", fontSize: 12.5 }}>
-            Zgjedh kategoritë në të cilat do të hapen regjistrimet. Çdo kategori
-            ka kufijtë e veta të moshës (UCI) dhe një numër maksimal opsional.
+            Zgjidh kategoritë në të cilat do të hapen regjistrimet. Çdo kategori
+            ka kufijtë e vet të moshës (UCI) dhe një numër maksimal opsional.
           </div>
           {categoriesSlot}
         </fieldset>
@@ -172,7 +172,7 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur..." : submitLabel}</button>
+        <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur…" : submitLabel}</button>
         <Link href="/admin/events" className="btn btn-ghost">Anulo</Link>
       </div>
     </form>

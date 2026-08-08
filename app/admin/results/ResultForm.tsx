@@ -76,7 +76,7 @@ export function ResultForm({ action, events, categories, members, initial, submi
           </select>
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Ose emër çiklisti (jashtë klubi)</label>
+          <label>Ose emër çiklisti (jashtë klubit)</label>
           <input name="rider_name_override" defaultValue={initial?.rider_name_override ?? ""} placeholder="Mysafir" />
         </div>
       </div>
@@ -104,7 +104,7 @@ export function ResultForm({ action, events, categories, members, initial, submi
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur..." : submitLabel}</button>
+        <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur…" : submitLabel}</button>
         <Link href="/admin/results" className="btn btn-ghost">Anulo</Link>
       </div>
     </form>

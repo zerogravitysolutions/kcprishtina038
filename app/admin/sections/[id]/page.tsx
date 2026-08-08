@@ -44,7 +44,7 @@ export default async function EditSectionPage({ params }: { params: Promise<{ id
     <>
       <div className="page-head">
         <div>
-          <h1>Edit: {row.name_sq}</h1>
+          <h1>Ndrysho: {row.name_sq}</h1>
           <div className="sub">/{row.slug}</div>
         </div>
       </div>
@@ -55,7 +55,7 @@ export default async function EditSectionPage({ params }: { params: Promise<{ id
             <input name="name_sq" required defaultValue={row.name_sq} />
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label>Name (EN) *</label>
+            <label>Emri (EN) *</label>
             <input name="name_en" required defaultValue={row.name_en} />
           </div>
         </div>
@@ -66,7 +66,7 @@ export default async function EditSectionPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="field">
-          <label>Description (EN)</label>
+          <label>Përshkrimi (EN)</label>
           <textarea name="description_en" rows={5} defaultValue={row.description_en ?? ""} />
         </div>
 

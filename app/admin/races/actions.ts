@@ -53,7 +53,7 @@ export async function createRaceEvent(form: FormData): Promise<void> {
   // Auto-generate unique slug if not provided.
   const customSlug = String(form.get("slug") || "").trim();
   let slug = customSlug ? slugify(customSlug) : slugify(`${payload.name} ${String(payload.race_date).slice(0, 4)}`);
-  if (!slug) throw new Error("Emri nuk gjeneron URL të vlefshme.");
+  if (!slug) throw new Error("Nga ky emër nuk mund të krijohet një URL e vlefshme.");
   let suffix = 1, candidate = slug;
   for (;;) {
     const { data: existing } = await supabase.from("race_events").select("id").eq("slug", candidate).maybeSingle();

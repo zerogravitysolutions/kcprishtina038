@@ -49,8 +49,8 @@ export default async function PortalTrainingPage() {
         <>
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap", margin: "22px 0", padding: "16px 20px", background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink, #0f1a2e) 8%, transparent)", borderRadius: 16, boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05)" }}>
             <Stat label="Stërvitje" value={String(bests.rides)} />
-            {bests.total_km > 0 ? <Stat label="KM total" value={fmt(bests.total_km, 0)} /> : null}
-            {bests.total_seconds > 0 ? <Stat label="Orë total" value={fmt(toHours(bests.total_seconds), 1)} /> : null}
+            {bests.total_km > 0 ? <Stat label="KM gjithsej" value={fmt(bests.total_km, 0)} /> : null}
+            {bests.total_seconds > 0 ? <Stat label="Orë gjithsej" value={fmt(toHours(bests.total_seconds), 1)} /> : null}
             {bests.max_hr ? <Stat label="HR max" value={String(bests.max_hr)} /> : null}
           </div>
 

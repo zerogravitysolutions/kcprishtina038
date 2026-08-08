@@ -37,7 +37,7 @@ export default async function EditResultPage({ params }: { params: Promise<{ id:
 
   return (
     <>
-      <div className="page-head"><div><h1>Edit rezultatin</h1></div></div>
+      <div className="page-head"><div><h1>Ndrysho rezultatin</h1></div></div>
       <ResultForm
         action={bound}
         events={(evs as { id: string; title_sq: string; start_at: string }[] | null) ?? []}

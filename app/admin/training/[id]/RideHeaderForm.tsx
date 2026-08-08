@@ -103,7 +103,7 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
 
       {/* Strava — one shared link for the whole exercise (embeds on paste). */}
       <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-        <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· po lexoj…</span> : null}</label>
+        <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke lexuar…</span> : null}</label>
         <input
           value={stravaUrl}
           onChange={(e) => setStravaUrl(e.target.value)}

@@ -14,17 +14,17 @@ export function DeleteButton({ id, title }: { id: string; title: string }) {
         onClick={() => setOpen(true)}
         style={{ color: "var(--err)" }}
       >
-        Fshi
+        Fshij
       </button>
       <ConfirmModal
         open={open}
         onClose={() => setOpen(false)}
-        title="Fshi eventin"
+        title="Fshij eventin"
         tone="danger"
-        confirmLabel="Fshi"
+        confirmLabel="Fshij"
         message={
           <>
-            Sigurt që do ta fshish <strong>{title}</strong>? Regjistrimet dhe rezultatet që e referojnë do të fshihen gjithashtu.
+            Sigurt që do ta fshish <strong>{title}</strong>? Regjistrimet dhe rezultatet e lidhura me të do të fshihen gjithashtu.
           </>
         }
         onConfirm={async () => {

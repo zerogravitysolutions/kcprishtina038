@@ -14,14 +14,14 @@ export function DeleteButton({ id, title }: { id: string; title: string }) {
         onClick={() => setOpen(true)}
         style={{ color: "var(--err)" }}
       >
-        Fshi
+        Fshij
       </button>
       <ConfirmModal
         open={open}
         onClose={() => setOpen(false)}
-        title="Fshi artikullin"
+        title="Fshij artikullin"
         tone="danger"
-        confirmLabel="Fshi"
+        confirmLabel="Fshij"
         message={
           <>
             Sigurt që do ta fshish <strong>{title}</strong>? Ky veprim nuk mund të zhbëhet.

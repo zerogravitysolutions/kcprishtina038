@@ -27,7 +27,7 @@ export async function Footer() {
               <li><Link href="/about">{t("nav.about")}</Link></li>
               <li><Link href={"/about#team" as never}>Ekipi</Link></li>
               <li><Link href={"/about#history" as never}>Historia</Link></li>
-              <li><Link href="/news">Lajme</Link></li>
+              <li><Link href="/news">Lajmet</Link></li>
             </ul>
           </nav>
 

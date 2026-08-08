@@ -71,10 +71,10 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
   const file = form.get("photo");
   if (file instanceof File && file.size > 0) {
     if (!ALLOWED_PHOTO_MIME.has(file.type)) {
-      return { ok: false, error: "Foto duhet të jetë JPG, PNG ose WebP." };
+      return { ok: false, error: "Fotoja duhet të jetë JPG, PNG ose WebP." };
     }
     if (file.size > MAX_PHOTO_BYTES) {
-      return { ok: false, error: "Foto kalon kufirin prej 5 MB." };
+      return { ok: false, error: "Fotoja e kalon kufirin prej 5 MB." };
     }
     const ext = safeExt(file.type);
     const path = `applications/${randomId()}.${ext}`;

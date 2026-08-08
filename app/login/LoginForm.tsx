@@ -27,11 +27,11 @@ export function LoginForm({ next }: { next: string | null }) {
   };
 
   const onForgot = async () => {
-    const email = prompt("Email-i juaj?");
+    const email = prompt("Cili është email-i yt?");
     if (!email) return;
     const result = await requestPasswordReset(email);
     alert(result.ok
-      ? "Email për resetim u dërgua. Kontrolloni inboxin."
+      ? "Email-i për rivendosjen e fjalëkalimit u dërgua. Kontrollo kutinë hyrëse."
       : "Gabim: " + result.error);
   };
 
@@ -51,7 +51,7 @@ export function LoginForm({ next }: { next: string | null }) {
       <div className="field">
         <label>
           Fjalëkalimi
-          <a href="#" tabIndex={-1} onClick={(e) => { e.preventDefault(); onForgot(); }}>Harruat fjalëkalimin?</a>
+          <a href="#" tabIndex={-1} onClick={(e) => { e.preventDefault(); onForgot(); }}>Harrove fjalëkalimin?</a>
         </label>
         <input type="password" name="password" placeholder="••••••••" autoComplete="current-password" required minLength={6} />
       </div>
@@ -64,7 +64,7 @@ export function LoginForm({ next }: { next: string | null }) {
       </div>
 
       <button className="btn btn-ember btn-primary" type="submit" disabled={pending}>
-        {pending ? "Po hyn…" : "Identifikohu"}
+        {pending ? "Duke hyrë…" : "Identifikohu"}
         <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
       </button>
     </form>

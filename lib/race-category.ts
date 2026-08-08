@@ -53,17 +53,17 @@ export function validateCategoryChoice({
   if (def.gender && gender && def.gender !== gender) {
     return {
       ok: false,
-      error: `Kategoria "${def.label}" është për gjini ${def.gender === "m" ? "mashkull" : "femër"}.`,
+      error: `Kategoria "${def.label}" është vetëm për ${def.gender === "m" ? "meshkuj" : "femra"}.`,
     };
   }
   if (dobIso && raceIso) {
     const age = categoryAge(dobIso, raceIso);
     if (age != null) {
       if (def.min != null && age < def.min) {
-        return { ok: false, error: `Kategoria "${def.label}" kërkon mosha ≥ ${def.min} vjeç (gjate vitit të garës). Mosha jote e kategorisë: ${age}.` };
+        return { ok: false, error: `Kategoria "${def.label}" kërkon moshën ${def.min} vjeç e lart (gjatë vitit të garës). Mosha jote e kategorisë: ${age}.` };
       }
       if (def.max != null && age > def.max) {
-        return { ok: false, error: `Kategoria "${def.label}" është për mosha ${def.min}–${def.max} vjeç. Mosha jote e kategorisë: ${age}.` };
+        return { ok: false, error: `Kategoria "${def.label}" është për moshat ${def.min}–${def.max} vjeç. Mosha jote e kategorisë: ${age}.` };
       }
     }
   }

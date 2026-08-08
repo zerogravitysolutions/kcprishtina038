@@ -74,7 +74,7 @@ export async function createMember(input: { full_name: string; email: string; pa
   const password = input.password ?? "";
   const role = MEMBER_ROLES.includes(input.role) ? input.role : "member";
   if (full_name.length < 2) return { ok: false, error: "Shkruaj emrin e plotë." };
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Email-i nuk është valid." };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Email-i nuk është i vlefshëm." };
   if (password.length < 8) return { ok: false, error: "Fjalëkalimi duhet të ketë së paku 8 karaktere." };
 
   let admin;
@@ -104,7 +104,7 @@ export async function setMemberStatus(targetId: string, status: string): Promise
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (targetId === gate.id) return { ok: false, error: "Nuk mund të çaktivizosh llogarinë tënde." };
-  if (!MEMBER_STATUSES.includes(status)) return { ok: false, error: "Status jo valid." };
+  if (!MEMBER_STATUSES.includes(status)) return { ok: false, error: "Statusi nuk është i vlefshëm." };
 
   let admin;
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
@@ -154,7 +154,7 @@ export async function updateMemberEmail(targetId: string, newEmail: string): Pro
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   const email = (newEmail ?? "").trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Email-i nuk është valid." };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Email-i nuk është i vlefshëm." };
 
   let admin;
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }

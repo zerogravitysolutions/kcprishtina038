@@ -37,13 +37,13 @@ export async function uploadDocument(form: FormData): Promise<{ ok: true; slug: 
     const description = String(form.get("description") || "").trim() || null;
     const effectiveDate = String(form.get("effective_date") || "").trim() || null;
 
-    if (!(file instanceof File))   return { ok: false, error: "Asnjë skedar i ngarkuar." };
+    if (!(file instanceof File))   return { ok: false, error: "Nuk u ngarkua asnjë skedar." };
     if (!title)                    return { ok: false, error: "Titulli mungon." };
     if (file.type !== PDF_MIME && !file.name.toLowerCase().endsWith(".pdf")) {
       return { ok: false, error: "Lejohen vetëm skedarët PDF." };
     }
     if (file.size === 0)           return { ok: false, error: "Skedari është bosh." };
-    if (file.size > MAX_BYTES)     return { ok: false, error: `Skedari kalon ${MAX_BYTES / 1024 / 1024} MB.` };
+    if (file.size > MAX_BYTES)     return { ok: false, error: `Skedari e kalon kufirin prej ${MAX_BYTES / 1024 / 1024} MB.` };
 
     const supabase = await createClient();
     let slug = slugify(title);

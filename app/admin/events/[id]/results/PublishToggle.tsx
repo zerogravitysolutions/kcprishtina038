@@ -24,7 +24,7 @@ export function PublishToggle({
         setOn(next);
         setMsg({
           ok: true,
-          text: next ? "Rezultatet u publikuan ✓" : "Rezultatet u tërhoqën",
+          text: next ? "Rezultatet u publikuan ✓" : "Publikimi u hoq",
         });
         setTimeout(() => setMsg(null), 1800);
       } else {
@@ -54,7 +54,7 @@ export function PublishToggle({
           className="mono"
           style={{ fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: on ? "var(--ok)" : "var(--ink-3)" }}
         >
-          {on ? "Publikuar" : "I padukshëm publikisht"}
+          {on ? "Publikuar" : "Nuk është publikuar"}
         </div>
         <div style={{ marginTop: 4, fontSize: 14, color: "var(--ink)" }}>
           {on ? (
@@ -101,7 +101,7 @@ export function PublishToggle({
         disabled={pending}
         className={on ? "btn btn-ghost btn-sm" : "btn btn-ember btn-sm"}
       >
-        {pending ? "…" : on ? "Tërhiq" : "Publiko rezultatet"}
+        {pending ? "…" : on ? "Hiq publikimin" : "Publiko rezultatet"}
       </button>
     </div>
   );

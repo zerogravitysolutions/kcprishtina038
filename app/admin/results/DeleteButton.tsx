@@ -11,7 +11,7 @@ export function DeleteButton({ id }: { id: string }) {
       className="btn btn-ghost btn-sm"
       disabled={pending}
       onClick={() => {
-        if (!confirm("Fshi rezultatin?")) return;
+        if (!confirm("A je i sigurt që do ta fshish rezultatin?")) return;
         start(async () => {
           const r = await deleteResult(id);
           if (!r.ok) alert(`Gabim: ${r.error ?? "i panjohur"}`);
@@ -19,7 +19,7 @@ export function DeleteButton({ id }: { id: string }) {
       }}
       style={{ color: "var(--err)" }}
     >
-      {pending ? "..." : "Fshi"}
+      {pending ? "…" : "Fshij"}
     </button>
   );
 }

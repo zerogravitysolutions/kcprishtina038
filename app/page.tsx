@@ -147,7 +147,7 @@ export default async function Home() {
         </svg>
 
         <div className="rail">
-          <span className="pulse">SEZONI 2026 · ACTIVE</span>
+          <span className="pulse">SEZONI 2026 · AKTIV</span>
           <span>·</span>
           <span>UCI · ECU · FÇK</span>
           <span>·</span>
@@ -156,7 +156,7 @@ export default async function Home() {
 
         <div className="container">
           <div className="hero-top">
-            <div className="l"><span>KÇ Prishtina 038 · est. 2022</span></div>
+            <div className="l"><span>KÇ Prishtina 038 · themeluar 2022</span></div>
             <div className="c">
               <span className="live"><span className="dot"></span> {t("hero.eyebrow")}</span>
             </div>
@@ -199,7 +199,7 @@ export default async function Home() {
                     </div>
                   );
                 }
-                const labels = ["Team riding · hero photo", "Race · portrait", "Training · landscape"] as const;
+                const labels = ["Ekipi në ngasje · foto kryesore", "Garë · portret", "Stërvitje · peizazh"] as const;
                 return <div key={slot} className={`slot ${slot}`}><span>{labels[i]}</span></div>;
               })}
               <div className="stamp">
@@ -220,7 +220,7 @@ export default async function Home() {
           </div>
           <div className="stat">
             <div className="num mono">{stats.raceEvents}</div>
-            <div className="label">Garat e regjistruara</div>
+            <div className="label">Gara të regjistruara</div>
           </div>
           <div className="stat">
             <div className="num mono">{pad2(stats.sectionsActive)}</div>
@@ -302,7 +302,7 @@ export default async function Home() {
                       <div>
                         <div className="cd-status">
                           <span className="cd-dot"></span>
-                          <span>{idx === 0 ? "Gara e radhës" : "Edhe më shumë"}</span>
+                          <span>{idx === 0 ? "Gara e radhës" : "Në kalendar"}</span>
                         </div>
                         <h2
                           className="display"
@@ -541,10 +541,10 @@ export default async function Home() {
       {/* ============ SPONSORS ============ */}
       {sponsors.length > 0 && (() => {
         const tierLabel = (t: string) => {
-          if (t === "title") return "Title sponsor";
-          if (t === "technical") return "Technical partner";
+          if (t === "title") return "Sponsor kryesor";
+          if (t === "technical") return "Sponsor teknik";
           if (t === "partner") return "Partner";
-          if (t === "supporter") return "Supporter";
+          if (t === "supporter") return "Mbështetës";
           return t;
         };
         const tierOrder: Record<string, number> = { title: 0, technical: 1, partner: 2, supporter: 3 };
@@ -608,8 +608,8 @@ export default async function Home() {
                   <h2 className="display display-m" style={{ marginTop: 16 }}>{t("sponsors.title")}</h2>
                 </div>
                 <p className="lede">
-                  Partnerët që e mbajnë rrotullimin tonë — pajisje, logjistikë,
-                  dhe besimi që na lejon të garojmë sezon pas sezoni.
+                  Partnerët që na mbajnë në lëvizje — pajisje, logjistikë dhe
+                  besim që na lejon të garojmë sezon pas sezoni.
                 </p>
               </div>
 

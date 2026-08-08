@@ -3,7 +3,7 @@
     "about": "Klubi",
     "sections": "Seksionet",
     "join": "Bashkohu",
-    "news": "Lajme",
+    "news": "Lajmet",
     "contact": "Kontakti",
     "signin": "Identifikohu",
     "account": "Llogaria ime",
@@ -29,7 +29,7 @@
     "lede": "Klubi çiklistik i Prishtinës. Pesë disiplina, një ekip, një qytet. Garojmë sipas rregullave të UCI dhe FÇK — nga shtigjet e Germisë te kalendari kontinental.",
     "cta": {
       "primary": "Bëhu pjesë e klubit",
-      "ghost": "Shfletoni seksionet"
+      "ghost": "Shfleto seksionet"
     },
     "meta": {
       "founded": "Themeluar",
@@ -82,7 +82,7 @@
       },
       "3": {
         "name": "Shqiponja Osmani Pllana",
-        "role": "Themelueze · Programe të femrave"
+        "role": "Themeluese · Programet e femrave"
       }
     },
     "link": "Lexo historinë e plotë",
@@ -98,7 +98,7 @@
     "lede": "Çdo disiplinë ka trajnerin e vet, kalendarin e vet dhe shtigjet e veta. Por kemi një logo dhe një frymë.",
     "road": {
       "name": "Rrugë",
-      "desc": "Seksioni i parë i klubit. Tre stërvitje në javë me trajnerin Albion Ymerin; kalendar i plotë FÇK, Granfondo i Sharrit dhe Prizrenit, plus etapat rajonale në Shqipëri e Maqedoninë e Veriut."
+      "desc": "Seksioni i parë i klubit. Tre stërvitje në javë me trajnerin Albion Ymerin; kalendar i plotë FÇK, Granfondo i Sharrit dhe Prizrenit, si dhe etapat rajonale në Shqipëri e Maqedoninë e Veriut."
     },
     "mtb": {
       "name": "MTB",
@@ -106,15 +106,15 @@
     },
     "gravel": {
       "name": "Gravel",
-      "desc": "Seksioni më i ri, themeluar 2024. Më pak garë, më shumë eksplorim — ride 80–180 km nëpër rrugët dytësore të Kosovës dhe rajonit, me gravel race serie të përbashkët me Velo Tirana në 2026."
+      "desc": "Seksioni më i ri, themeluar në 2024. Më pak gara, më shumë eksplorim — dalje 80–180 km nëpër rrugët dytësore të Kosovës dhe të rajonit, me një seri garash gravel të përbashkët me Velo Tirana në 2026."
     },
     "youth": {
       "name": "Akademia e të rinjve",
-      "desc": "Misioni më i rëndësishëm i klubit. 18 fëmijë midis 9 dhe 17 vjeç stërviten të shtunën në Germi, me dy tashmë në ekipin kombëtar U17. Gratis për moshat nën 14 vjeç."
+      "desc": "Misioni më i rëndësishëm i klubit. 18 fëmijë midis 9 dhe 17 vjeç stërviten të shtunën në Germi, me dy tashmë në ekipin kombëtar U17. Falas për moshat nën 14 vjeç."
     },
     "women": {
       "name": "Femra",
-      "desc": "Më shumë se një seksion — një rrjet. 11 çiklistë nëpër të gjitha disiplinat, me program mentorimi nga Shqiponja Osmani Pllana. Çdo të diel ride i hapur, me biçikleta për qira nga BikePlus."
+      "desc": "Më shumë se një seksion — një rrjet. 11 çikliste nëpër të gjitha disiplinat, me program mentorimi nga Shqiponja Osmani Pllana. Çdo të diel dalje e hapur, me biçikleta me qira nga BikePlus."
     },
     "go": "Hape seksionin"
   },
@@ -125,16 +125,16 @@
     "cta": "Shih të gjithë ekipin"
   },
   "news": {
-    "eyebrow": "Lajme",
+    "eyebrow": "Lajmet",
     "title": "Nga klubi.",
     "cta": "Të gjitha lajmet",
     "pageTitle": "Lajmet e fundit nga klubi.",
     "pageLede": "Postime, foto dhe lajme direkt nga faqja jonë në Facebook.",
-    "viewOnFb": "Shiko në Facebook",
+    "viewOnFb": "Shih në Facebook",
     "older": "Më të vjetra →",
     "newer": "← Më të reja",
     "empty": "Nuk ka lajme për momentin.",
-    "loading": "Duke ngarkuar...",
+    "loading": "Duke u ngarkuar…",
     "backToList": "← Të gjitha lajmet",
     "gallery": "Galeria",
     "originalOnFb": "Shih postimin origjinal në Facebook",
@@ -144,7 +144,7 @@
   "gallery": {
     "eyebrow": "Galeria",
     "title": "Një vit në fotografi.",
-    "lede": "Stërvitjet, garat, çastet jashtë biçikletës. Kontribuoni fotot tuaja në kanalin Drive të anëtarëve."
+    "lede": "Stërvitjet, garat, çastet jashtë biçikletës. Ndani fotot tuaja në kanalin Drive të anëtarëve."
   },
   "sponsors": {
     "eyebrow": "Sponsorët",
@@ -197,8 +197,8 @@
     "lede": "Klubi është organizatë jofitimprurëse. Buxheti shkon në fanella, udhëtime, kampe dhe akademinë e të rinjve.",
     "donate": {
       "title": "Bëj një donacion",
-      "body": "Kontribute njëhershe ose mujore. Çdo euro shkon në programin e të rinjve.",
-      "cta": "Dono tani"
+      "body": "Kontribute të njëhershme ose mujore. Çdo euro shkon në programin e të rinjve.",
+      "cta": "Dhuro tani"
     },
     "sponsor": {
       "title": "Bëhu sponsor",
@@ -212,7 +212,7 @@
     "address": "Rruga e Maleve 14, 10000 Prishtinë",
     "email": "info@prishtina038.cc",
     "phone": "+383 38 000 000",
-    "hours": "Stërvitje: E martë & e enjte 18:00 · E shtunë 09:00"
+    "hours": "Stërvitje: e martë dhe e enjte 18:00 · e shtunë 09:00"
   },
   "foot": {
     "about": "Klubi",
@@ -254,9 +254,9 @@
       "name": "Emri dhe mbiemri",
       "age": "Mosha",
       "email": "Email",
-      "phone": "Telefon",
+      "phone": "Telefoni",
       "section": "Seksioni i preferuar",
-      "exp": "Përvojë çiklistike",
+      "exp": "Përvoja çiklistike",
       "notes": "Shënime shtesë",
       "submit": "Dërgo aplikimin"
     },
@@ -267,12 +267,12 @@
     },
     "fee": {
       "title": "Anëtarësia",
-      "body": "20–35 € në muaj, varësisht nga seksioni dhe mosha. Akademia e të rinjve është gratis për çiklistët nën 14 vjeç."
+      "body": "20–35 € në muaj, varësisht nga seksioni dhe mosha. Akademia e të rinjve është falas për çiklistët nën 14 vjeç."
     },
     "proc": {
       "1": "Plotëson aplikimin online",
       "2": "Trajneri i seksionit të kontakton për një stërvitje provë",
-      "3": "Të caktohet kategoria dhe oraret",
+      "3": "Caktohen kategoria dhe oraret",
       "4": "Merr fanellën dhe e fillon sezonin",
       "title": "Si funksionon"
     }

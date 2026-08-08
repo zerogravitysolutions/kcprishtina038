@@ -9,6 +9,14 @@ function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map(s => s[0] || "").join("").toUpperCase() || "?";
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  editor: "Redaktor",
+  staff: "Staf",
+  coach: "Trajner",
+  member: "Anëtar",
+};
+
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
@@ -23,14 +31,14 @@ export default async function PortalLayout({ children }: { children: React.React
   const { data: athleteRows } = await supabase.from("team_members").select("id").eq("profile_id", profile.id).limit(1);
   const isAthlete = ((athleteRows as { id: string }[] | null)?.length ?? 0) > 0;
 
-  const roleLine = profile.role === "member" ? "Anëtar" : profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
+  const roleLine = ROLE_LABELS[profile.role] ?? "Anëtar";
   const subline = sectionName ? `${roleLine} · ${sectionName}` : roleLine;
   const ini = initials(profile.full_name);
 
   const bottomItems: PortalItem[] = [
     { href: "/portal", label: "Paneli", icon: "home" },
     ...(isAthlete
-      ? ([{ href: "/portal/training", label: "Stërvitjet", icon: "activity" }, { href: "/portal/performance", label: "Forma", icon: "chart" }] as PortalItem[])
+      ? ([{ href: "/portal/training", label: "Stërvitjet", icon: "activity" }, { href: "/portal/performance", label: "Performanca", icon: "chart" }] as PortalItem[])
       : []),
     { href: "/races", label: "Garat", icon: "trophy" },
     { href: "/portal/profile", label: "Profili", icon: "user" },
@@ -78,7 +86,7 @@ export default async function PortalLayout({ children }: { children: React.React
           <form action={signOut}>
             <button type="submit" className="portal-signout">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 12H3M9 6l-6 6 6 6M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5" /></svg>
-              Çkyçu
+              Dil
             </button>
           </form>
         </div>

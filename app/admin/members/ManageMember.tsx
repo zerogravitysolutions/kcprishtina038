@@ -10,6 +10,14 @@ import {
 
 type Msg = { ok: boolean; text: string } | null;
 
+// Albanian display names for the stored statuses (values stay raw).
+const STATUS_LABEL: Record<string, string> = {
+  active: "Aktiv",
+  inactive: "Joaktiv",
+  suspended: "Pezulluar",
+  pending: "Në pritje",
+};
+
 export function ManageMember({ id, name, email, status, isSelf }: { id: string; name: string; email: string; status: string; isSelf: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -110,7 +118,7 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
             )}
             {!isSelf && (
               <button role="menuitem" className="danger" disabled={pending} onClick={() => {
-                if (!confirm(`Fshi përfundimisht "${name}"? Kjo s'kthehet — për të bllokuar hyrjen pa fshirë, përdor "Çaktivizo".`)) return;
+                if (!confirm(`Fshij përfundimisht "${name}"? Ky veprim s'kthehet — për të bllokuar hyrjen pa e fshirë, përdor "Çaktivizo".`)) return;
                 quick(() => deleteMember(id));
               }}>
                 <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>
@@ -128,7 +136,7 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
             <div className="mm-head">
               <div>
                 <div className="nm">{name}</div>
-                <div className="em">{email} · {status}</div>
+                <div className="em">{email} · {STATUS_LABEL[status] ?? status}</div>
               </div>
               <button type="button" className="mm-x" aria-label="Mbyll" onClick={() => setModalOpen(false)}>✕</button>
             </div>
@@ -152,7 +160,7 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
             </div>
 
             <div className="mm-sec">
-              <h4>Lidhje reset-i</h4>
+              <h4>Rivendosje e fjalëkalimit</h4>
               <div className="mm-row">
                 <button type="button" className="btn btn-sm" disabled={pending} onClick={() => run("reset", () => sendPasswordReset(email), "Email-i me lidhje u dërgua.")}>Dërgo email</button>
                 <button type="button" className="btn btn-sm" disabled={pending} onClick={genLink}>Gjenero lidhje</button>

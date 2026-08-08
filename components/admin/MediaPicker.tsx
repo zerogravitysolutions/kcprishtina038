@@ -118,7 +118,7 @@ export function MediaPicker(props: Props) {
       const now = new Date().toISOString();
       setExtras((prev) => [
         ...result.ids.map<MediaOption>((id) => ({
-          id, storage_path: "", filename: "Uploaded", alt: null, created_at: now,
+          id, storage_path: "", filename: "E ngarkuar", alt: null, created_at: now,
         })),
         ...prev,
       ]);
@@ -139,7 +139,7 @@ export function MediaPicker(props: Props) {
   }
 
   const selectedCount = isMulti ? multi.length : single ? 1 : 0;
-  const label = props.label ?? (isMulti ? "Galeria" : "Imazh");
+  const label = props.label ?? (isMulti ? "Galeria" : "Imazhi");
   const hiddenValue = isMulti ? multi.join(",") : single;
 
   return (
@@ -153,7 +153,7 @@ export function MediaPicker(props: Props) {
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
         <input
           type="search"
-          placeholder="Kërko (emri, alt, ose datë si '2025')..."
+          placeholder="Kërko sipas emrit, tekstit alt ose datës (p.sh. 2025)…"
           value={filter}
           onChange={(e) => { setFilter(e.target.value); setShowCount(80); }}
           style={{ flex: "1 1 240px", minWidth: 240 }}
@@ -181,7 +181,7 @@ export function MediaPicker(props: Props) {
             onClick={clearSelection}
             title="Hiq të gjitha"
           >
-            Pastro {isMulti ? `(${selectedCount})` : ""}
+            Hiq {isMulti ? `(${selectedCount})` : ""}
           </button>
         )}
       </div>
@@ -191,8 +191,8 @@ export function MediaPicker(props: Props) {
 
       <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)", letterSpacing: ".06em", marginBottom: 8 }}>
         {filter
-          ? `${visible.length}/${filtered.length} rezultate · më të rejat më parë`
-          : `Më të rejat ${visible.length}/${sorted.length} · radhitur sipas datës`}
+          ? `${visible.length}/${filtered.length} rezultate · më të rejat së pari`
+          : `${visible.length}/${sorted.length} media · radhitur sipas datës, më të rejat së pari`}
       </div>
 
       {/* Critical: grid-auto-rows pinned to TILE_SIZE so rows can't stretch.
@@ -251,7 +251,7 @@ export function MediaPicker(props: Props) {
               )}
               {!src && (
                 <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--ink-3)", fontFamily: "var(--font-mono)", letterSpacing: ".12em" }}>
-                  Po ngarkohet…
+                  Duke u ngarkuar…
                 </span>
               )}
               {selected && (
@@ -286,12 +286,12 @@ export function MediaPicker(props: Props) {
           style={{ alignSelf: "flex-start", marginTop: 8 }}
           onClick={() => setShowCount((c) => c + 80)}
         >
-          Ngarko {Math.min(80, filtered.length - visible.length)} të tjera ({filtered.length - visible.length} mbeten)
+          Shfaq {Math.min(80, filtered.length - visible.length)} të tjera ({filtered.length - visible.length} mbeten)
         </button>
       )}
 
       <p className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 6 }}>
-        Kliko foton për ta {isMulti ? "shtuar ose hequr nga galeria" : "zgjedhur"} · ngarko të rejat me butonin më lart.
+        Kliko foton për ta {isMulti ? "shtuar ose hequr nga galeria" : "zgjedhur"} · ngarko foto të reja me butonin më lart.
       </p>
     </div>
   );

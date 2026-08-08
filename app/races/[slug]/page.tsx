@@ -17,7 +17,7 @@ type Params = Promise<{ slug: string }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const race = await getRaceEventBySlug(slug);
-  if (!race) return { title: "Garë nuk u gjet" };
+  if (!race) return { title: "Gara nuk u gjet" };
   return {
     title: race.name,
     description: race.description ?? `${race.name} — ${race.location ?? ""}`,

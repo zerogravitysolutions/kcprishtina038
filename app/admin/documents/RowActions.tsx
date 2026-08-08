@@ -76,7 +76,7 @@ export function RowActions({
           Shiko
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEdit(true)}>
-          Edit
+          Ndrysho
         </button>
         <button
           type="button"
@@ -108,7 +108,7 @@ export function RowActions({
               color: "var(--ember)", textDecoration: "none",
             }}
           >
-            Hap në tab të ri ↗
+            Hap në skedë të re ↗
           </a>
         </div>
       </Modal>
@@ -117,7 +117,7 @@ export function RowActions({
       <Modal
         open={edit}
         onClose={() => setEdit(false)}
-        title={`Edit · ${title}`}
+        title={`Ndrysho · ${title}`}
         footer={
           <>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEdit(false)} disabled={pending}>
@@ -161,7 +161,7 @@ export function RowActions({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 12 }}>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Data efektive</label>
+              <label>Data e hyrjes në fuqi</label>
               <input type="date" value={eff} onChange={(e) => setEff(e.target.value)} />
             </div>
             <div className="field" style={{ marginBottom: 0 }}>

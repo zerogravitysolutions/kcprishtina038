@@ -17,7 +17,7 @@ export function ResetForm() {
     start(async () => {
       const result = await updatePassword(pw);
       if (!result.ok) { setMsg({ kind: "err", text: "Gabim: " + result.error }); return; }
-      setMsg({ kind: "ok", text: "Fjalëkalimi u ndryshua. Ridrejtim te identifikimi…" });
+      setMsg({ kind: "ok", text: "Fjalëkalimi u ndryshua. Po të ridrejtojmë te identifikimi…" });
       setTimeout(() => router.push("/login"), 1500);
     });
   };
@@ -33,7 +33,7 @@ export function ResetForm() {
         <input type="password" name="new-pw-confirm" minLength={8} required autoComplete="new-password" />
       </div>
       <button className="btn btn-ember" type="submit" disabled={pending} style={{ width: "100%", justifyContent: "center", marginTop: 22 }}>
-        <span>{pending ? "Po ruan…" : "Ruaj fjalëkalimin"}</span>
+        <span>{pending ? "Duke ruajtur…" : "Ruaj fjalëkalimin"}</span>
         <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
       </button>
       {msg && (

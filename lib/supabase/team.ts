@@ -69,9 +69,9 @@ export async function getTeamMemberBySlug(slug: string): Promise<TeamMemberCard 
 export function positionLabel(pos: TeamPosition, gender: TeamGender | null = "m"): string {
   switch (pos) {
     case "president":                return "Kryetar";
-    case "board_member":             return "Anëtar Bordi";
-    case "secretary_general":        return "Sekretar i Përgjithshëm";
-    case "secretary_organizational": return "Sekretar Organizativ";
+    case "board_member":             return "Anëtar bordi";
+    case "secretary_general":        return "Sekretar i përgjithshëm";
+    case "secretary_organizational": return "Sekretar organizativ";
     case "commissaire":              return "Komisar";
     case "coach":                    return "Trajner";
     case "rider":                    return gender === "f" ? "Çikliste" : "Çiklist";

@@ -50,7 +50,7 @@ export async function PublicNav() {
 
         <div className="nav-links">
           {links.map((l) => (
-            <Link key={l.href} href={l.href as never}>{l.label}</Link>
+            <Link key={l.href} href={l.href as never} prefetch>{l.label}</Link>
           ))}
         </div>
 

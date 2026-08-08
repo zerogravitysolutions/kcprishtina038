@@ -8,6 +8,15 @@ const nextConfig = {
   // Re-enable in Phase VII once all routes exist in app/.
   typedRoutes: false,
 
+  // Client-side router cache. Next 15 defaults dynamic routes to 0s, so every
+  // navigation re-fetches from the server even for prefetched/just-visited
+  // pages. Our public pages are dynamic (locale cookie) but their content is
+  // stable, so cache prefetched/visited routes briefly → back/forth and
+  // prefetched clicks are instant.
+  experimental: {
+    staleTimes: { dynamic: 120, static: 300 },
+  },
+
   images: {
     // Supabase Storage serves our media/ bucket here.
     remotePatterns: [

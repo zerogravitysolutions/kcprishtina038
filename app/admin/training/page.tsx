@@ -13,7 +13,6 @@ type RideRow = {
   id: string;
   ride_date: string;
   focus: string | null;
-  location: string | null;
   section: { slug: string; name_sq: string } | null;
   entries: EntryLite[];
 };
@@ -26,7 +25,7 @@ export default async function TrainingPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("training_rides")
-    .select("id, ride_date, focus, location, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km)")
+    .select("id, ride_date, focus, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km)")
     .order("ride_date", { ascending: false })
     .limit(80);
   const rows = (data as unknown as RideRow[] | null) ?? [];
@@ -67,10 +66,9 @@ export default async function TrainingPage() {
                 <span className="ex-card-title">{title}</span>
                 <span className="ex-card-date">{dateShort}</span>
               </div>
-              {(r.section || r.location) && (
+              {r.section && (
                 <div className="ex-card-meta">
-                  {r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : null}
-                  {r.location ? <span className="ex-card-sub">{r.location}</span> : null}
+                  <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span>
                 </div>
               )}
               {(parts > 0 || km > 0) && (
@@ -98,9 +96,6 @@ export default async function TrainingPage() {
                 <tr key={r.id}>
                   <td>
                     <Link href={`/admin/training/${r.id}`} style={{ fontWeight: 600 }}>{title}</Link>
-                    {r.location ? (
-                      <div style={{ marginTop: 3, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>{r.location}</div>
-                    ) : null}
                   </td>
                   <td className="mono">{dateLong}</td>
                   <td>{r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : "—"}</td>

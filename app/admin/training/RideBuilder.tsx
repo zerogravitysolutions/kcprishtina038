@@ -23,8 +23,6 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
   const [rideDate, setRideDate] = useState(todayISO());
   const [focus, setFocus] = useState("");
   const [sectionId, setSectionId] = useState(sections[0]?.id ?? "");
-  const [location, setLocation] = useState("");
-  const [notes, setNotes] = useState("");
   const [distance, setDistance] = useState("");
   const [duration, setDuration] = useState("");
   const [elevation, setElevation] = useState("");
@@ -70,7 +68,7 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
     start(async () => {
       const r = await createRide({
         ride_date: rideDate,
-        focus, location, notes,
+        focus,
         section_id: sectionId || null,
         athlete_ids: selected,
         distance_km: distance,
@@ -97,6 +95,12 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
             {TRAINING_FOCUS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
         </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label>Seksioni</label>
+          <select name="kc-section" autoComplete="off" value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
+            {sections.map((s) => <option key={s.id} value={s.id}>{s.name_sq}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* Strava — auto-fills Bazë on paste. */}
@@ -104,19 +108,6 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
         <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· po lexoj…</span> : null}</label>
         <input value={stravaUrl} onChange={(e) => setStravaUrl(e.target.value)} placeholder="Ngjit lidhjen — plotëson vetë Bazën" />
         {canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} compact /></div>}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Seksioni</label>
-          <select name="kc-section" autoComplete="off" value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
-            {sections.map((s) => <option key={s.id} value={s.id}>{s.name_sq}</option>)}
-          </select>
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Vendi</label>
-          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Opsionale" />
-        </div>
       </div>
 
       {/* Bazë — shared, inherited by each cyclist. */}
@@ -143,11 +134,6 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
       <div className="field" style={{ marginBottom: 0 }}>
         <label>Çiklistët <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· 1 ose më shumë</span></label>
         <AthletePicker athletes={athletes} value={selected} onChange={setSelected} mode="multi" />
-      </div>
-
-      <div className="field" style={{ marginBottom: 0 }}>
-        <label>Shënime</label>
-        <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsionale" />
       </div>
 
       {err && <div style={{ color: "var(--err)", fontSize: 13, fontFamily: "var(--font-mono)" }}>Gabim: {err}</div>}

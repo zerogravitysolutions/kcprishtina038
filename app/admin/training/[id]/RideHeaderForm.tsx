@@ -11,8 +11,6 @@ export type RideHeader = {
   ride_date: string;
   focus: string | null;
   section_id: string | null;
-  location: string | null;
-  notes: string | null;
   strava_url: string | null;
 };
 
@@ -23,16 +21,14 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
   const [rideDate, setRideDate] = useState(ride.ride_date);
   const [focus, setFocus] = useState(ride.focus ?? "");
   const [sectionId, setSectionId] = useState(ride.section_id ?? sections[0]?.id ?? "");
-  const [location, setLocation] = useState(ride.location ?? "");
-  const [notes, setNotes] = useState(ride.notes ?? "");
   const [stravaUrl, setStravaUrl] = useState(ride.strava_url ?? "");
   const [resolving, startResolve] = useTransition();
 
   const canEmbed = !!stravaActivityId(stravaUrl);
 
   const snapshot = useMemo(
-    () => JSON.stringify({ rideDate, focus, sectionId, location, notes, stravaUrl }),
-    [rideDate, focus, sectionId, location, notes, stravaUrl],
+    () => JSON.stringify({ rideDate, focus, sectionId, stravaUrl }),
+    [rideDate, focus, sectionId, stravaUrl],
   );
 
   const mounted = useRef(false);
@@ -42,7 +38,7 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
       setMsg(null);
       start(async () => {
         const r = await updateRide(ride.id, {
-          ride_date: rideDate, focus, location, notes,
+          ride_date: rideDate, focus,
           section_id: sectionId || null,
           strava_url: stravaUrl,
         });
@@ -105,13 +101,6 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginTop: 12 }}>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label>Vendi</label>
-          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Opsional" />
-        </div>
-      </div>
-
       {/* Strava — one shared link for the whole exercise (embeds on paste). */}
       <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
         <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· po lexoj…</span> : null}</label>
@@ -122,11 +111,6 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
         />
       </div>
       {canEmbed && <div style={{ marginTop: 12 }}><StravaEmbed url={stravaUrl} compact /></div>}
-
-      <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-        <label>Shënime</label>
-        <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </div>
 
       {msg?.ok === false && <div className="mono" style={{ color: "var(--err)", fontSize: 12, marginTop: 10 }}>Gabim: {msg.text}</div>}
     </div>

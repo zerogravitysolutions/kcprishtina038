@@ -17,7 +17,6 @@ type EntryRow = EntryLike & {
   np_w: number | null;
   tss: number | null;
   rpe: number | null;
-  notes: string | null;
   ride: { id: string; ride_date: string; focus: string | null } | null;
 };
 
@@ -34,7 +33,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
     supabase.from("athlete_profiles").select("ftp_w, ftp_updated_at, weight_kg, max_hr, resting_hr, notes").eq("athlete_id", id).maybeSingle(),
     supabase
       .from("ride_entries")
-      .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, rpe, notes, ride:training_rides(id, ride_date, focus)")
+      .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, rpe, ride:training_rides(id, ride_date, focus)")
       .eq("athlete_id", id),
   ]);
 

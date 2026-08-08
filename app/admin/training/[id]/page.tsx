@@ -35,7 +35,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
   const [{ data: rideData }, { data: entryData }, { data: sectionRows }, { data: athleteRows }] = await Promise.all([
     supabase
       .from("training_rides")
-      .select("id, ride_date, focus, section_id, location, notes, strava_url")
+      .select("id, ride_date, focus, section_id, strava_url")
       .eq("id", id)
       .maybeSingle(),
     supabase

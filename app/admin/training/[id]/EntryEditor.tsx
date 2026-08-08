@@ -14,13 +14,12 @@ export type EntryRow = {
   participated: boolean;
   set_ftp: boolean;
   strava_url: string | null;
-  notes: string | null;
   [key: string]: unknown; // metric columns
 };
 
 export type EntryAthlete = { id: string; full_name: string; section_slug: string | null; weight_kg: number | null; ftp_w: number | null };
 
-// Groups always visible on expand vs. behind the "më shumë" toggle.
+// All metric groups are shown when a cyclist card is expanded (no "more" toggle).
 const PRIMARY_GROUPS: MetricGroupKey[] = ["core", "hr", "power"];
 const SECONDARY_GROUPS: MetricGroupKey[] = ["bests", "effort", "extra"];
 
@@ -45,14 +44,12 @@ export function EntryEditor({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
-  const [more, setMore] = useState(false);
   const [pending, startSave] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(entry));
   const [participated, setParticipated] = useState(entry.participated);
   const [setFtp, setSetFtp] = useState(entry.set_ftp);
-  const [notes, setNotes] = useState(entry.notes ?? "");
 
   function setField(key: string, val: string) {
     setValues((s) => ({ ...s, [key]: val }));
@@ -75,8 +72,8 @@ export function EntryEditor({
 
   // Snapshot that changes whenever any editable value changes.
   const snapshot = useMemo(
-    () => JSON.stringify({ values, participated, setFtp, notes }),
-    [values, participated, setFtp, notes],
+    () => JSON.stringify({ values, participated, setFtp }),
+    [values, participated, setFtp],
   );
 
   const mounted = useRef(false);
@@ -99,7 +96,7 @@ export function EntryEditor({
       metrics.tss = computedTss != null ? String(computedTss) : "";
       startSave(async () => {
         const r = await updateEntry(rideId, entry.id, {
-          participated, set_ftp: setFtp, notes, metrics,
+          participated, set_ftp: setFtp, metrics,
         });
         setMsg(r.ok ? { ok: true, text: "Ruajtur ✓" } : { ok: false, text: r.error });
         if (r.ok) setTimeout(() => setMsg(null), 1400);
@@ -170,19 +167,9 @@ export function EntryEditor({
             } />
           ))}
 
-          <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 6 }} onClick={() => setMore((m) => !m)}>
-            {more ? "− Më pak" : "+ Më shumë metrika (fuqia më e mirë, përpjekja…)"}
-          </button>
-
-          {more && SECONDARY_GROUPS.map((g) => (
+          {SECONDARY_GROUPS.map((g) => (
             <MetricGroup key={g} groupKey={g} values={values} onChange={setField} computed={computedDisplay} />
           ))}
-
-          {/* Notes */}
-          <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-            <label>Shënime</label>
-            <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ndjesitë, vërejtjet, incidentet…" />
-          </div>
 
           {msg?.ok === false && (
             <div className="mono" style={{ color: "var(--err)", fontSize: 12, marginTop: 10 }}>Gabim: {msg.text}</div>

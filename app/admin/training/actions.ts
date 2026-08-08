@@ -39,8 +39,6 @@ export type CreateRideInput = {
   ride_date: string;
   focus?: string;
   section_id?: string | null;
-  location?: string;
-  notes?: string;
   strava_url?: string;
   athlete_ids: string[];
 } & BaseSrc;
@@ -68,8 +66,6 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
         ride_date: input.ride_date,
         focus: input.focus?.trim() || null,
         section_id: input.section_id || null,
-        location: input.location?.trim() || null,
-        notes: input.notes?.trim() || null,
         strava_url: stravaUrl,
         strava_activity_id: stravaAid ? Number(stravaAid) : null,
         created_by: me.id,
@@ -101,8 +97,6 @@ export type RidePatch = {
   ride_date?: string;
   focus?: string;
   section_id?: string | null;
-  location?: string;
-  notes?: string;
   strava_url?: string;
 };
 
@@ -117,8 +111,6 @@ export async function updateRide(id: string, patch: RidePatch): Promise<Result> 
     }
     if (patch.focus !== undefined) update.focus = patch.focus.trim() || null;
     if (patch.section_id !== undefined) update.section_id = patch.section_id || null;
-    if (patch.location !== undefined) update.location = patch.location.trim() || null;
-    if (patch.notes !== undefined) update.notes = patch.notes.trim() || null;
     if (patch.strava_url !== undefined) {
       const u = patch.strava_url.trim();
       update.strava_url = u || null;
@@ -204,7 +196,6 @@ export type EntryPatch = {
   participated?: boolean;
   set_ftp?: boolean;
   strava_url?: string;
-  notes?: string;
   metrics?: Record<string, string>; // field key -> raw string (duration already in seconds)
 };
 
@@ -220,7 +211,6 @@ export async function updateEntry(
 
     if (patch.participated !== undefined) update.participated = !!patch.participated;
     if (patch.set_ftp !== undefined) update.set_ftp = !!patch.set_ftp;
-    if (patch.notes !== undefined) update.notes = patch.notes.trim() || null;
     if (patch.strava_url !== undefined) {
       const u = patch.strava_url.trim();
       update.strava_url = u || null;

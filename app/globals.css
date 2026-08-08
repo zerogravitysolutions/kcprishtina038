@@ -1686,10 +1686,14 @@ footer.foot::before {
   gap: 20px;
   align-items: center;
   padding: 20px 12px;
+  border: 0;
   border-bottom: 1px solid color-mix(in oklab, var(--ink) 8%, transparent);
   text-decoration: none; color: inherit;
   transition: background .15s, transform .18s;
   border-radius: 4px;
+  /* rendered as a <button> that opens the in-page reader */
+  width: 100%; text-align: left; font: inherit; cursor: pointer;
+  background: none; -webkit-appearance: none; appearance: none;
 }
 .docs-item__inner:hover {
   background: var(--paper-2);
@@ -2176,3 +2180,13 @@ footer.foot::before {
   .join-photo { flex-direction: column; }
   .join-photo__preview { width: 100%; height: 200px; }
 }
+
+/* ---- Document reader modal (read-only, no download) ---- */
+.docv-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(15, 26, 46, .62); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 3vh 2vw; }
+.docv-modal { width: min(980px, 96vw); height: min(92vh, 100%); background: #fff; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 60px -12px rgba(15, 26, 46, .5); }
+.docv-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid color-mix(in oklab, var(--ink) 8%, transparent); flex-shrink: 0; }
+.docv-title { font-family: var(--font-display); font-weight: 600; font-size: 15.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.docv-close { width: 36px; height: 36px; flex-shrink: 0; border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent); background: #fff; border-radius: 8px; cursor: pointer; color: var(--ink-2); font-size: 15px; line-height: 1; }
+.docv-close:hover { background: var(--paper-2); color: var(--ink); }
+.docv-frame { flex: 1; width: 100%; border: 0; background: var(--paper-2); }
+@media (max-width: 600px) { .docv-backdrop { padding: 0; } .docv-modal { width: 100vw; height: 100dvh; border-radius: 0; } }

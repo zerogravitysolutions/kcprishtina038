@@ -151,6 +151,18 @@ export function InvoiceRow({ inv, canWrite }: { inv: InvoiceView; canWrite: bool
           </span>
         </td>
         <td className="actions">
+          {/* New tab, like every other document in the admin panel: the print
+              view is a dead end, and staff are usually mid-way through a month
+              they do not want to lose. */}
+          <a
+            className="btn btn-ghost btn-sm"
+            href={`/invoice/${inv.id}`}
+            target="_blank"
+            rel="noopener"
+            style={{ marginRight: 6 }}
+          >
+            Printo ↗
+          </a>
           {!canWrite ? (
             <span className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>Vetëm shikim</span>
           ) : settled ? (

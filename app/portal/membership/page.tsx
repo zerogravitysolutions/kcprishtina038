@@ -463,6 +463,19 @@ function InvoiceCard({ due, plan }: { due: DueRow; plan: string | null }) {
           Faturë e regjistruar para se planet e anëtarësisë të hynin në sistem, prandaj nuk ka plan të lidhur.
         </p>
       ) : null}
+
+      {/* The printable document. New tab, so the member does not lose this
+          list; /invoice/[id] is chrome-free on purpose and prints as a sheet. */}
+      <p style={{ ...MONO, margin: "12px 0 0" }}>
+        <a
+          href={`/invoice/${due.id}`}
+          target="_blank"
+          rel="noopener"
+          style={{ color: "var(--ember)", textDecoration: "underline" }}
+        >
+          {status === "paid" ? "Shiko dhe printo vërtetimin ↗" : "Shiko dhe printo faturën ↗"}
+        </a>
+      </p>
     </div>
   );
 }

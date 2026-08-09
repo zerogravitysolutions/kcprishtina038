@@ -1,0 +1,330 @@
+/* =========================================================
+   KÇ Prishtina 038 — printable invoice (/invoice/[id])
+   A standalone sheet. No nav, no footer: the public chrome is
+   rendered per-page in this app, not by the root layout, so a
+   top-level route is naturally clean to print.
+   Tokens come from app/globals.css (imported by the root layout).
+   ========================================================= */
+
+.inv-shell {
+  min-height: 100vh;
+  background: var(--paper, #f4f2ec);
+  padding: clamp(16px, 4vw, 44px) clamp(12px, 4vw, 32px);
+}
+
+/* The toolbar sits ABOVE the sheet so it is obviously not part of
+   the document, and disappears entirely when printing. */
+.inv-bar {
+  width: min(820px, 100%);
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.inv-bar__hint {
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-3, #2a3858);
+  margin: 0;
+}
+.inv-print {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  background: var(--ember, #c25a2d);
+  color: #fff;
+  font-family: var(--font-body, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 11px 22px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.inv-print:hover { background: var(--ember-deep, #9b4220); }
+.inv-print:disabled { opacity: .6; cursor: default; }
+
+/* ---------------------------------------------------------- the sheet */
+.inv-sheet {
+  width: min(820px, 100%);
+  margin: 0 auto;
+  background: #fff;
+  color: var(--ink, #0f1a2e);
+  border: 1px solid rgba(15, 26, 46, .1);
+  border-radius: 14px;
+  padding: clamp(20px, 5vw, 46px);
+  box-shadow: 0 1px 2px rgba(15, 26, 46, .04), 0 12px 34px rgba(15, 26, 46, .07);
+}
+
+/* ---- letterhead ---- */
+.inv-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 26px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--ink, #0f1a2e);
+}
+.inv-club__name {
+  font-family: var(--font-display, sans-serif);
+  font-weight: 700;
+  font-size: clamp(20px, 3vw, 26px);
+  letter-spacing: -.025em;
+  line-height: 1.1;
+  margin: 0;
+}
+.inv-club__legal {
+  font-size: 13px;
+  color: var(--ink-2, #1b2742);
+  margin: 4px 0 0;
+}
+.inv-club__lines {
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--ink-3, #2a3858);
+  margin: 9px 0 0;
+}
+.inv-club__lines span { display: block; }
+
+.inv-ident { text-align: right; margin-left: auto; }
+.inv-ident__kicker {
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--ink-3, #2a3858);
+}
+.inv-ident__no {
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  font-size: clamp(20px, 3.4vw, 28px);
+  letter-spacing: -.01em;
+  line-height: 1.15;
+  margin-top: 3px;
+  font-feature-settings: "tnum" 1;
+}
+/* A bare uuid as the headline needs to shrink or it wraps badly. */
+.inv-ident__no.is-uuid { font-size: clamp(12px, 2.2vw, 15px); word-break: break-all; letter-spacing: 0; }
+.inv-ident__uuid {
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--ink-3, #2a3858);
+  margin-top: 8px;
+  word-break: break-all;
+}
+.inv-ident__uuid b { display: block; font-weight: 400; color: var(--ink-2, #1b2742); }
+
+/* ---- meta strip ---- */
+.inv-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(15, 26, 46, .12);
+}
+.inv-meta__lab,
+.inv-lab {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-3, #2a3858);
+}
+.inv-meta__val {
+  font-size: 14.5px;
+  font-weight: 600;
+  margin-top: 3px;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---- billed to ---- */
+.inv-to { padding: 18px 0 4px; }
+.inv-to__name {
+  font-family: var(--font-display, sans-serif);
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -.015em;
+  margin-top: 4px;
+}
+.inv-to__mail {
+  font-family: var(--font-mono, monospace);
+  font-size: 12.5px;
+  color: var(--ink-2, #1b2742);
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+/* ---- line items ---- */
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+.inv-table th {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-3, #2a3858);
+  font-weight: 500;
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(15, 26, 46, .18);
+}
+.inv-table td {
+  padding: 14px 10px;
+  font-size: 14.5px;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(15, 26, 46, .08);
+}
+.inv-table th:first-child, .inv-table td:first-child { padding-left: 0; }
+.inv-table th:last-child, .inv-table td:last-child { padding-right: 0; text-align: right; }
+.inv-table .num { text-align: right; font-feature-settings: "tnum" 1; white-space: nowrap; }
+.inv-item__name { font-weight: 600; }
+.inv-item__sub {
+  display: block;
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+  color: var(--ink-3, #2a3858);
+  margin-top: 3px;
+}
+
+.inv-total {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 18px;
+  padding: 16px 0 0;
+}
+.inv-total__val {
+  font-family: var(--font-display, sans-serif);
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: -.02em;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---- blocks (status, payment, note) ---- */
+.inv-block {
+  margin-top: 18px;
+  padding: 15px 17px;
+  border: 1px solid rgba(15, 26, 46, .12);
+  border-radius: 12px;
+  background: color-mix(in oklab, #0f1a2e 3%, #fff);
+}
+.inv-block p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; }
+.inv-block p:first-of-type { margin-top: 6px; }
+.inv-block__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.inv-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.inv-badge.ok   { color: #16a34a; }
+.inv-badge.warn { color: #b54708; }
+.inv-badge.err  { color: #b42318; }
+
+.inv-pay__rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px 20px;
+  margin-top: 10px;
+}
+.inv-pay__val {
+  font-family: var(--font-mono, monospace);
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-top: 2px;
+  word-break: break-word;
+  font-feature-settings: "tnum" 1;
+}
+
+.inv-foot {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(15, 26, 46, .12);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--ink-3, #2a3858);
+}
+.inv-foot p { margin: 0; }
+.inv-foot p + p { margin-top: 4px; }
+
+.inv-err {
+  width: min(560px, 100%);
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid rgba(15, 26, 46, .1);
+  border-radius: 14px;
+  padding: 26px;
+}
+
+/* ---------------------------------------------------------- phone */
+@media (max-width: 620px) {
+  .inv-head { gap: 16px; }
+  .inv-ident { text-align: left; margin-left: 0; }
+  .inv-total { justify-content: space-between; }
+  .inv-table th:nth-child(2), .inv-table td:nth-child(2) { display: none; }
+}
+
+/* ---------------------------------------------------------- print
+   The club works off phones, so this has to produce a clean A4 from
+   a mobile browser's "Print → Save as PDF" as well as a desktop. */
+@media print {
+  @page { size: A4 portrait; margin: 14mm; }
+
+  html, body { background: #fff !important; }
+  .inv-shell { min-height: 0; padding: 0; background: #fff !important; }
+
+  /* Nothing interactive belongs on paper. */
+  .no-print, .inv-bar { display: none !important; }
+
+  .inv-sheet {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #fff !important;
+  }
+  /* Black on white — printers dither our navy into mud otherwise. */
+  .inv-sheet, .inv-sheet * { color: #000 !important; background: transparent !important; }
+  .inv-block { border-color: #000 !important; }
+  .inv-badge { border-color: #000 !important; }
+  .inv-head { border-bottom-color: #000 !important; }
+  .inv-meta, .inv-table th, .inv-table td, .inv-foot { border-color: #000 !important; }
+
+  /* Keep a section whole rather than splitting a two-line block across
+     pages; the document is one page in practice, this is the safety net. */
+  .inv-head, .inv-meta, .inv-to, .inv-table, .inv-total, .inv-block, .inv-foot {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .inv-table { page-break-inside: auto; }
+  a { text-decoration: none !important; }
+
+  /* Restore the second column even when printing from a narrow phone. */
+  .inv-table th:nth-child(2), .inv-table td:nth-child(2) { display: table-cell !important; }
+  .inv-ident { text-align: right !important; margin-left: auto !important; }
+}

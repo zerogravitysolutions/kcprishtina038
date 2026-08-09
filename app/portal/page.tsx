@@ -1,5 +1,6 @@
 import { createClient, getProfile } from "@/lib/supabase/server";
-import { formatEur } from "@/lib/finance";
+import { billingMode, effectiveStatus, formatEur, outstandingTotal } from "@/lib/finance";
+import type { DuesStatus, MembershipStatus } from "@/lib/supabase/types";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -12,7 +13,8 @@ type NextReg = {
   event: { id: string; title_sq: string; start_at: string; location: string | null; distance_km: number | null; elevation_m: number | null } | null;
 };
 
-type DueRow = { amount_eur: number; status: string; period: string };
+type DueRow = { amount_eur: number; status: DuesStatus; period: string; due_date: string | null };
+type MembershipRow = { amount_eur: number; billable: boolean; status: MembershipStatus; start_date: string };
 
 const REG_STATUS_LABELS: Record<string, string> = {
   registered: "Regjistruar",
@@ -31,7 +33,7 @@ export default async function PortalDashboard() {
 
   const nowIso = new Date().toISOString();
 
-  const [{ data: nextRegs }, { data: duesRows }] = await Promise.all([
+  const [{ data: nextRegs }, { data: duesRows }, { data: membershipRows }] = await Promise.all([
     supabase.from("event_registrations")
       .select("status, category:event_categories(name), event:events!inner(id, title_sq, start_at, location, distance_km, elevation_m)")
       .eq("member_id", profile.id)
@@ -39,15 +41,39 @@ export default async function PortalDashboard() {
       .order("event(start_at)", { ascending: true })
       .limit(1),
     supabase.from("dues")
-      .select("amount_eur, status, period")
+      .select("amount_eur, status, period, due_date")
       .eq("member_id", profile.id)
       .in("status", ["unpaid", "overdue"])
       .order("period", { ascending: true }),
+    // Only to word the membership card: a racer owes nothing by design, and
+    // "e paguar" would be the wrong sentence for someone never invoiced.
+    supabase.from("memberships")
+      .select("amount_eur, billable, status, start_date")
+      .eq("member_id", profile.id)
+      .order("start_date", { ascending: false })
+      .limit(5),
   ]);
 
   const nextReg = (nextRegs as NextReg[] | null)?.[0] ?? null;
   const dues = (duesRows as DueRow[] | null) ?? [];
-  const unpaidTotal = dues.reduce((s, d) => s + Number(d.amount_eur), 0);
+  const unpaidTotal = outstandingTotal(dues);
+  const overdueCount = dues.filter((d) => effectiveStatus(d) === "overdue").length;
+  const memberships = (membershipRows as MembershipRow[] | null) ?? [];
+  const membership = memberships.find((m) => m.status === "active") ?? memberships[0] ?? null;
+  const mode = membership ? billingMode(membership) : null;
+
+  // One line, and it must agree with /portal/membership: no invoice open is not
+  // the same claim as "paid", and a racer is outside billing altogether.
+  const duesLine =
+    unpaidTotal > 0
+      ? `${dues.length === 1 ? "1 faturë e hapur" : `${dues.length} fatura të hapura`} · ${formatEur(unpaidTotal)}${overdueCount > 0 ? " · në vonesë" : ""}`
+      : mode === "non_billable"
+        ? "Garues · nuk faturohesh"
+        : mode === "waived"
+          ? "E falur · pa pagesë mujore"
+          : !membership
+            ? "Anëtarësia nuk është regjistruar ende"
+            : "Asnjë faturë e hapur";
 
   let raceLine = "Ende nuk je regjistruar në asnjë garë — shfleto kalendarin për t’u regjistruar.";
   let daysLabel: string | null = null;
@@ -74,11 +100,9 @@ export default async function PortalDashboard() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          {unpaidTotal > 0 ? (
-            <a className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13 }} href="mailto:info@prishtina038.cc?subject=Anëtarësia">Paguaj anëtarësinë · {formatEur(unpaidTotal)}</a>
-          ) : (
-            <span className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13, opacity: 0.6, pointerEvents: "none" }}>Anëtarësia e paguar ✓</span>
-          )}
+          <Link className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13 }} href="/portal/membership">
+            {unpaidTotal > 0 ? `Për të paguar · ${formatEur(unpaidTotal)}` : "Anëtarësia & faturat"}
+          </Link>
           <Link className="btn btn-ember" style={{ padding: "10px 14px", fontSize: 13 }} href={"/races" as never}>Garat e klubit</Link>
         </div>
       </div>
@@ -113,13 +137,16 @@ export default async function PortalDashboard() {
         <div className="pcard dark" style={{ background: "var(--ink)", color: "var(--paper)", borderRadius: 16, padding: 24, boxShadow: "0 1px 2px rgba(15,26,46,.06), 0 10px 28px rgba(15,26,46,.10)" }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0, color: "var(--paper)" }}>Anëtarësia</h2>
           <div style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--slate)" }}>
-            {dues.length === 0
-              ? "E paguar · asnjë faturë e hapur"
-              : `${dues.length === 1 ? "1 faturë e papaguar" : `${dues.length} fatura të papaguara`} · ${formatEur(unpaidTotal)}`}
+            {duesLine}
           </div>
-          <Link href="/portal/profile" className="btn" style={{ marginTop: 20, background: "transparent", borderColor: "rgba(244,242,236,.3)", color: "var(--paper)" }}>
-            Profili & dokumentet →
-          </Link>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 20 }}>
+            <Link href="/portal/membership" className="btn" style={{ background: "transparent", borderColor: "rgba(244,242,236,.3)", color: "var(--paper)" }}>
+              Anëtarësia & faturat →
+            </Link>
+            <Link href="/portal/profile" style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--slate)", textDecoration: "underline" }}>
+              Profili & dokumentet
+            </Link>
+          </div>
         </div>
       </div>
     </>

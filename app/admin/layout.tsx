@@ -94,7 +94,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v2.2</span>
+            <span className="sub">Admin · v2.3</span>
           </div>
         </Link>
 

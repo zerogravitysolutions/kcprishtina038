@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export type IconName = "home" | "activity" | "chart" | "user" | "trophy" | "grid";
+export type IconName = "home" | "activity" | "chart" | "user" | "trophy" | "grid" | "wallet";
 export type PortalItem = { href: string; label: string; icon: IconName };
 
 function Icon({ name }: { name: IconName }) {
@@ -15,6 +15,7 @@ function Icon({ name }: { name: IconName }) {
     case "user": return <svg {...p}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></svg>;
     case "trophy": return <svg {...p}><path d="M7 4h10v4a5 5 0 0 1-10 0V4Z" /><path d="M5 4H3v2a3 3 0 0 0 3 3M19 4h2v2a3 3 0 0 1-3 3M9 21h6M12 15v6" /></svg>;
     case "grid": return <svg {...p}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>;
+    case "wallet": return <svg {...p}><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H17a2 2 0 0 1 2 2v1" /><rect x="3" y="8" width="18" height="11" rx="2.5" /><circle cx="16.5" cy="13.5" r="1.1" /></svg>;
   }
 }
 

@@ -35,11 +35,16 @@ export default async function PortalLayout({ children }: { children: React.React
   const subline = sectionName ? `${roleLine} · ${sectionName}` : roleLine;
   const ini = initials(profile.full_name);
 
+  // A rider's tab bar is already at five items, which is the most a phone can
+  // hold before the labels start truncating, so "Anëtarësia" does NOT become a
+  // sixth tab for them — they reach it from the dashboard card and the profile
+  // page. A non-riding member has only three tabs and nothing to do in the
+  // portal except money, so for them it earns a tab.
   const bottomItems: PortalItem[] = [
     { href: "/portal", label: "Paneli", icon: "home" },
     ...(isAthlete
       ? ([{ href: "/portal/training", label: "Stërvitjet", icon: "activity" }, { href: "/portal/performance", label: "Performanca", icon: "chart" }] as PortalItem[])
-      : []),
+      : ([{ href: "/portal/membership", label: "Anëtarësia", icon: "wallet" }] as PortalItem[])),
     { href: "/races", label: "Garat", icon: "trophy" },
     { href: "/portal/profile", label: "Profili", icon: "user" },
   ];
@@ -64,6 +69,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
         <div className="portal-group">Hapësira jote</div>
         <PortalLink href="/portal" label="Paneli" icon="home" />
+        <PortalLink href="/portal/membership" label="Anëtarësia & faturat" icon="wallet" />
         <PortalLink href="/portal/profile" label="Profili & dokumentet" icon="user" />
 
         {isAthlete && (

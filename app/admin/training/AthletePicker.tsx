@@ -51,10 +51,14 @@ export function AthletePicker({
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderBottom: "1px solid var(--line)" }}>
         <input
           type="search"
+          aria-label="Kërko çiklist"
           placeholder="Kërko çiklist…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          style={{ border: 0, outline: 0, background: "transparent", fontSize: 14, flex: 1, minHeight: 32 }}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          className="athlete-search"
         />
         {mode === "multi" && (
           <>
@@ -77,6 +81,7 @@ export function AthletePicker({
               <button
                 key={a.id}
                 type="button"
+                className="athlete-chip"
                 onClick={() => toggle(a.id)}
                 aria-pressed={on}
                 style={{

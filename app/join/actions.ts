@@ -32,6 +32,7 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
   const section    = String(form.get("section")    ?? "").trim();
   const experience = String(form.get("experience") ?? "").trim();
   const notes      = String(form.get("notes")      ?? "").trim();
+  const plan       = String(form.get("plan")       ?? "").trim();
 
   // Derive age (in full years) from DOB so the existing `applications.age`
   // column keeps a numeric value for filtering / federation forms.
@@ -66,6 +67,22 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
     sectionId = (sec as { id: string } | null)?.id ?? null;
   }
 
+  // Resolve the chosen academy tier against the plans that actually exist, so
+  // the posted code is never trusted. If the catalogue is empty or unreadable
+  // (e.g. the migration has not run yet) the picker was not rendered either,
+  // and the application goes through without a plan rather than failing.
+  let planId: string | null = null;
+  const { data: planRows } = await supabase
+    .from("membership_plans")
+    .select("id, code")
+    .eq("active", true);
+  const plans = (planRows as { id: string; code: string }[] | null) ?? [];
+  if (plans.length > 0) {
+    const match = plans.find((p) => p.code === plan);
+    if (!match) return { ok: false, error: "Zgjidh një plan anëtarësie." };
+    planId = match.id;
+  }
+
   // Optional profile photo: validate and upload to media/applications/ before
   // we insert the application row, so the row carries the storage path.
   let photoStoragePath: string | null = null;
@@ -98,6 +115,9 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
     notes: notes || null,
     photo_storage_path: photoStoragePath,
   };
+  // Only sent when a plan was resolved, so the insert still works against a
+  // database where applications.plan_id does not exist yet.
+  if (planId) row.plan_id = planId;
   const { error } = await supabase
     .from("applications")
     .insert(row as never);

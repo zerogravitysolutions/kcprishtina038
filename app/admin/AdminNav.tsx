@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 
 export type AdminIcon =
   | "grid" | "inbox" | "users" | "team" | "layers" | "calendar" | "flag"
-  | "activity" | "bike" | "chart" | "news" | "image" | "file" | "star" | "settings";
+  | "activity" | "bike" | "chart" | "news" | "image" | "file" | "star" | "settings"
+  | "euro" | "receipt";
 
 export type AdminNavItem = { id: string; label: string; href: string; icon: AdminIcon };
 export type AdminNavGroup = { group: string; items: AdminNavItem[] };
@@ -28,6 +29,8 @@ export function AdminNavIcon({ name }: { name: AdminIcon }) {
     case "file": return <svg {...p}><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" /><path d="M14 3v5h5" /></svg>;
     case "star": return <svg {...p}><path d="m12 3 2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 18l-5.9 3 1.2-6.5L2.5 9.9 9.1 9 12 3Z" /></svg>;
     case "settings": return <svg {...p}><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1l2.1-2.1M17 7l2.1-2.1" /></svg>;
+    case "euro": return <svg {...p}><path d="M17 5.5A6.5 6.5 0 0 0 7.5 12 6.5 6.5 0 0 0 17 18.5" /><path d="M4 10.5h8M4 13.5h8" /></svg>;
+    case "receipt": return <svg {...p}><path d="M5 3v18l2.5-1.5L10 21l2-1.5L14 21l2.5-1.5L19 21V3H5Z" /><path d="M9 8h6M9 12h6" /></svg>;
   }
 }
 

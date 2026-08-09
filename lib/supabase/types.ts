@@ -15,6 +15,9 @@ export type AttendanceStatus = "present" | "absent" | "late" | "excused";
 export type ContentStatus = "draft" | "published" | "archived";
 export type SponsorTier = "title" | "technical" | "partner" | "supporter";
 export type TrainingRideKind = "group" | "solo";
+// memberships.status and dues.paid_method are text + CHECK, not enums.
+export type MembershipStatus = "active" | "paused" | "ended";
+export type PaidMethod = "cash" | "bank" | "online" | "waived";
 
 export interface Database {
   public: {
@@ -69,7 +72,12 @@ export interface Database {
           email: string;
           phone: string | null;
           age: number | null;
+          // Date of birth, "YYYY-MM-DD" (migration 20260518000010). Optional on
+          // the /join form, and copied onto the profile at enrolment.
+          dob: string | null;
           section_id: string | null;
+          // Chosen academy tier on /join. Null on applications that predate plans.
+          plan_id: string | null;
           experience: string | null;
           notes: string | null;
           status: ApplicationStatus;
@@ -213,15 +221,54 @@ export interface Database {
         Insert: { name: string; tier: SponsorTier; role_sq?: string | null; role_en?: string | null; body_sq?: string | null; body_en?: string | null; website_url?: string | null; contract_start?: string | null; contract_end?: string | null; display_order?: number; active?: boolean };
         Update: Partial<Database["public"]["Tables"]["sponsors"]["Row"]>;
       };
+      membership_plans: {
+        Row: {
+          id: string; code: string; name_sq: string;
+          description_sq: string | null;
+          // null only on a non-billable tier ("Garues"); a billable plan is
+          // required by CHECK to carry a price.
+          amount_eur: number | null;
+          // false = structurally outside billing, never invoiced.
+          billable: boolean;
+          display_order: number; active: boolean;
+          created_at: string; updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["membership_plans"]["Row"]> & {
+          code: string; name_sq: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["membership_plans"]["Row"]>;
+      };
+      memberships: {
+        Row: {
+          id: string; member_id: string; plan_id: string;
+          // Frozen from the plan at creation, so a later price change never
+          // restates existing rows. 0 with billable = true means a paying tier
+          // waived for this rider (e.g. under 14).
+          amount_eur: number;
+          // Copied from the plan. false = a racer who does not pay at all —
+          // distinct from an amount of 0, and never invoiced.
+          billable: boolean;
+          start_date: string; end_date: string | null;
+          status: MembershipStatus;
+          notes: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["memberships"]["Row"]> & {
+          member_id: string; plan_id: string; start_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["memberships"]["Row"]>;
+      };
       dues: {
         Row: {
           id: string; member_id: string; period: string;
           amount_eur: number; status: DuesStatus;
-          paid_at: string | null; paid_method: string | null;
+          paid_at: string | null; paid_method: PaidMethod | null;
           recorded_by: string | null; notes: string | null;
+          membership_id: string | null; due_date: string | null;
+          invoice_no: string | null;
           created_at: string; updated_at: string;
         };
-        Insert: { member_id: string; period: string; amount_eur: number; status?: DuesStatus; paid_at?: string | null; paid_method?: string | null; notes?: string | null };
+        Insert: { member_id: string; period: string; amount_eur: number; status?: DuesStatus; paid_at?: string | null; paid_method?: PaidMethod | null; notes?: string | null; membership_id?: string | null; due_date?: string | null; invoice_no?: string | null };
         Update: Partial<Database["public"]["Tables"]["dues"]["Row"]>;
       };
       attendance: {
@@ -427,6 +474,16 @@ export interface Database {
       approve_application: { Args: { app_id: string }; Returns: string };
       reject_application:  { Args: { app_id: string; reason?: string | null }; Returns: string };
       set_user_role:       { Args: { target_id: string; new_role: UserRole }; Returns: string };
+      // p_period is any date inside the month; the function normalises it.
+      generate_dues_for_period: { Args: { p_period: string }; Returns: number };
+      // Puts a member on a plan and returns the id of the ACTIVE membership
+      // afterwards — the same row when nothing changed or the change was a
+      // correction, a brand-new one when an invoiced membership was closed and
+      // reopened. Service-role only; see migration 20260808000002, section E.
+      set_member_plan: {
+        Args: { p_member_id: string; p_plan_id: string; p_amount: number; p_billable: boolean; p_start: string };
+        Returns: string;
+      };
       current_role:        { Args: Record<string, never>; Returns: UserRole | null };
       has_role:            { Args: { roles: UserRole[] }; Returns: boolean };
       is_coach_of:         { Args: { target_section_id: string }; Returns: boolean };
@@ -446,3 +503,18 @@ export interface Database {
     };
   };
 }
+
+// Shorthands for the academy finance tables. The rest of the app spells these
+// out inline; these two are aliased because the plans / memberships / invoices
+// screens pass the rows around a lot.
+export type MembershipPlan = Database["public"]["Tables"]["membership_plans"]["Row"];
+export type MembershipPlanInsert = Database["public"]["Tables"]["membership_plans"]["Insert"];
+export type MembershipPlanUpdate = Database["public"]["Tables"]["membership_plans"]["Update"];
+
+export type Membership = Database["public"]["Tables"]["memberships"]["Row"];
+export type MembershipInsert = Database["public"]["Tables"]["memberships"]["Insert"];
+export type MembershipUpdate = Database["public"]["Tables"]["memberships"]["Update"];
+
+export type Due = Database["public"]["Tables"]["dues"]["Row"];
+export type DueInsert = Database["public"]["Tables"]["dues"]["Insert"];
+export type DueUpdate = Database["public"]["Tables"]["dues"]["Update"];

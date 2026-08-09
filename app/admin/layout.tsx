@@ -38,6 +38,16 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
     ],
   },
   {
+    // Mirrors the dues_write_staff policy (migration 0006): admin + staff move
+    // money, and only admin edits the plans themselves.
+    group: "Financat",
+    items: [
+      { id: "finance", label: "Faturat", href: "/admin/finance", icon: "receipt", allow: ["admin", "staff"] },
+      { id: "finance-reports", label: "Raportet e pagesave", href: "/admin/finance/reports", icon: "chart", allow: ["admin", "staff"] },
+      { id: "finance-plans", label: "Planet e anëtarësisë", href: "/admin/finance/plans", icon: "euro", allow: ["admin"] },
+    ],
+  },
+  {
     group: "Përmbajtja",
     items: [
       { id: "news", label: "Lajmet", href: "/admin/news", icon: "news", allow: ["admin", "editor"] },
@@ -84,7 +94,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v2.1</span>
+            <span className="sub">Admin · v2.2</span>
           </div>
         </Link>
 

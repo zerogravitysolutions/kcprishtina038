@@ -107,6 +107,11 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
         <input
           value={stravaUrl}
           onChange={(e) => setStravaUrl(e.target.value)}
+          inputMode="url"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
           placeholder="Ngjit lidhjen e aktivitetit"
         />
       </div>

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { StravaEmbed } from "@/components/public/StravaEmbed";
 import { createRide, fetchStravaStats } from "./actions";
 import { AthletePicker, type AthleteOption } from "./AthletePicker";
+import { NumericInput } from "@/components/admin/NumericInput";
 import { parseDurationToSeconds, formatDurationHMS, TRAINING_FOCUS } from "@/lib/training";
 import { stravaActivityId } from "@/lib/strava";
 
@@ -106,7 +107,16 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
       {/* Strava — auto-fills Bazë on paste. */}
       <div className="field" style={{ marginBottom: 0 }}>
         <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke lexuar…</span> : null}</label>
-        <input value={stravaUrl} onChange={(e) => setStravaUrl(e.target.value)} placeholder="Ngjit lidhjen — Baza plotësohet vetë" />
+        <input
+          value={stravaUrl}
+          onChange={(e) => setStravaUrl(e.target.value)}
+          inputMode="url"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="Ngjit lidhjen — Baza plotësohet vetë"
+        />
         {canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} compact /></div>}
       </div>
 
@@ -118,15 +128,15 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           <div className="field" style={{ marginBottom: 0 }}>
             <label style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span>Distanca</span><span style={{ fontSize: 9, color: "var(--slate)", letterSpacing: 0, textTransform: "none" }}>km</span></label>
-            <input type="number" inputMode="decimal" step="0.1" value={distance} onChange={(e) => setDistance(e.target.value)} placeholder="42.5" style={{ fontFamily: "var(--font-mono)" }} />
+            <NumericInput kind="decimal" value={distance} onChange={setDistance} placeholder="42.5" ariaLabel="Distanca (km)" />
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span>Kohëzgjatja</span><span style={{ fontSize: 9, color: "var(--slate)", letterSpacing: 0, textTransform: "none" }}>h:min</span></label>
-            <input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="1:25:00" style={{ fontFamily: "var(--font-mono)" }} />
+            <label style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span>Kohëzgjatja</span><span style={{ fontSize: 9, color: "var(--slate)", letterSpacing: 0, textTransform: "none" }}>min</span></label>
+            <NumericInput kind="duration" value={duration} onChange={setDuration} placeholder="90" hint="90 = 1:30:00" ariaLabel="Kohëzgjatja në minuta" />
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
             <label style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span>Ngjitja</span><span style={{ fontSize: 9, color: "var(--slate)", letterSpacing: 0, textTransform: "none" }}>m</span></label>
-            <input type="number" inputMode="numeric" value={elevation} onChange={(e) => setElevation(e.target.value)} placeholder="650" style={{ fontFamily: "var(--font-mono)" }} />
+            <NumericInput kind="int" value={elevation} onChange={setElevation} placeholder="650" ariaLabel="Ngjitja (m)" />
           </div>
         </div>
       </div>

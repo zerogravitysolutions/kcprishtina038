@@ -17,9 +17,10 @@ export type MetricField = {
   ui: MetricUi;         // how the client renders it
   unit?: string;
   step?: number;
-  min?: number;
-  max?: number;
+  min?: number;                 // validated on the SERVER (coerceMetric), not by the browser
+  max?: number;                 // idem
   placeholder?: string;
+  hint?: string;        // tiny helper line under the input (Albanian)
   summary?: boolean;    // shown in the collapsed one-line summary
   computed?: boolean;   // derived (read-only) — not typed by the coach
 };
@@ -38,7 +39,7 @@ export const METRIC_GROUPS: { key: MetricGroupKey; label: string }[] = [
 export const RIDE_METRIC_FIELDS: MetricField[] = [
   // Core
   { key: "distance_km",     label: "Distanca",     group: "core",   kind: "num", ui: "number",   unit: "km",  step: 0.1, min: 0, summary: true, placeholder: "42.5" },
-  { key: "moving_seconds",  label: "Kohëzgjatja",  group: "core",   kind: "int", ui: "duration", summary: true, placeholder: "1:25:00" },
+  { key: "moving_seconds",  label: "Kohëzgjatja",  group: "core",   kind: "int", ui: "duration", unit: "min", summary: true, placeholder: "90", hint: "90 = 1:30:00" },
   { key: "elevation_m",     label: "Ngjitja",      group: "core",   kind: "int", ui: "number",   unit: "m",   min: 0, placeholder: "650" },
   // Heart rate
   { key: "avg_hr",          label: "HR mesatar",   group: "hr",     kind: "int", ui: "number",   unit: "bpm", min: 20, max: 260, summary: true, placeholder: "142" },
@@ -98,39 +99,86 @@ export const TRAINING_FOCUS: { value: string; label: string }[] = [
   { value: "Garë / Simulim",     label: "Garë / Simulim – Garë zyrtare ose simulim gare" },
 ];
 
+/**
+ * "42,5" → "42.5". Albanian phone keyboards emit "," as the decimal separator,
+ * and parseFloat("42,5") silently returns 42 — a real data-loss bug. Applied on
+ * the SERVER (coerceMetric / actions.ts) so a value can never reach the DB with
+ * its fraction dropped, whatever the client does.
+ */
+export function normalizeDecimal(raw: string): string {
+  return (raw ?? "").trim().replace(/,/g, ".");
+}
+
+/**
+ * Strict decimal parse — null when the string is not a plain number.
+ *
+ * The coach's inputs are type="text" + inputMode (a numeric KEYPAD, not a
+ * numeric FIELD), so any character can reach the server, and parseFloat /
+ * parseInt are far too forgiving to be the last line of defence: "42..5" and a
+ * stray second comma "42,,5" both come back as 42, "1.234.5" as 1.234, "650m"
+ * as 650, "1e3" as 1000, "Infinity" as Infinity. Every one of those is a
+ * silently wrong number in the DB. Rejecting them turns silent corruption into
+ * a visible Albanian error the coach can act on.
+ *
+ * A trailing separator ("42.") IS accepted: the entry form autosaves while the
+ * coach types, and flashing an error between "42." and "42.5" would be noise.
+ */
+export function parseStrictNumber(raw: string): number | null {
+  const s = normalizeDecimal(raw);
+  if (!/^-?(\d+(\.\d*)?|\.\d+)$/.test(s)) return null;
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : null;
+}
+
 /** Coerce a raw string from a form input into the DB value for a metric. */
 export function coerceMetric(
   field: MetricField,
   raw: string,
 ): { ok: true; value: number | string | null } | { ok: false; error: string } {
-  const v = (raw ?? "").trim();
+  const v = normalizeDecimal(raw);
   if (v === "") return { ok: true, value: null };
-  if (field.kind === "text") return { ok: true, value: v };
+  if (field.kind === "text") return { ok: true, value: (raw ?? "").trim() };
   // moving_seconds / elapsed_seconds arrive already converted to a plain
-  // integer string by the client (see EntryEditor), so ui:"duration" still
-  // parses here as an int.
-  const n = field.kind === "int" ? parseInt(v, 10) : parseFloat(v);
-  if (Number.isNaN(n)) return { ok: false, error: `${field.label}: numër i pavlefshëm.` };
+  // integer string of SECONDS by the client (see EntryEditor / RideBuilder), so
+  // ui:"duration" normally parses here as an int. A clock string is accepted
+  // too, so a direct call — or a client that skipped the conversion — cannot be
+  // silently truncated to 1 second by parseInt("1:25:00"). A BARE number stays
+  // seconds here (never minutes): the minutes shortcut is resolved client-side
+  // by parseDurationToSeconds before the value is sent.
+  if (field.ui === "duration" && v.includes(":")) {
+    const sec = parseDurationToSeconds(v);
+    if (sec == null) return { ok: false, error: `${field.label}: kohë e pavlefshme.` };
+    return { ok: true, value: sec };
+  }
+  const parsed = parseStrictNumber(v);
+  if (parsed == null) return { ok: false, error: `${field.label}: numër i pavlefshëm.` };
+  const n = field.kind === "int" ? Math.round(parsed) : parsed;
   if (field.min != null && n < field.min) return { ok: false, error: `${field.label}: minimumi ${field.min}.` };
   if (field.max != null && n > field.max) return { ok: false, error: `${field.label}: maksimumi ${field.max}.` };
-  return { ok: true, value: field.kind === "int" ? Math.round(n) : n };
+  return { ok: true, value: n };
 }
 
 // ------------------------------------------------------------------ duration
 
-/** Parse "1:23:45", "23:45", or bare minutes ("90") → seconds. Empty → null. */
+/**
+ * Parse "1:23:45", "23:45", or bare minutes ("90", "90,5") → seconds. Empty →
+ * null. The bare-minutes form is what a phone keypad can actually type: the
+ * numeric keyboard has no ":" key. Pasted clock strings still work.
+ */
 export function parseDurationToSeconds(input: string): number | null {
-  const s = (input ?? "").trim();
+  const s = normalizeDecimal(input);
   if (s === "") return null;
   if (s.includes(":")) {
+    // Strict: parseInt would read "1:2a:00" as 1:02:00 instead of rejecting it,
+    // and this now runs on the server too (coerceMetric).
+    if (!/^\d{1,3}(:\d{1,2}){1,2}$/.test(s)) return null;
     const parts = s.split(":").map((p) => parseInt(p, 10));
-    if (parts.some((p) => Number.isNaN(p))) return null;
     let sec = 0;
     for (const p of parts) sec = sec * 60 + p; // supports h:m:s and m:s
     return sec;
   }
-  const mins = parseFloat(s);
-  if (Number.isNaN(mins)) return null;
+  const mins = parseStrictNumber(s); // rejects "90min", "1e3", "42..5"
+  if (mins == null || mins < 0) return null;
   return Math.round(mins * 60); // bare number = minutes
 }
 

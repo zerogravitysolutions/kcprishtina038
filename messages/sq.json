@@ -110,7 +110,7 @@
     },
     "youth": {
       "name": "Akademia e të rinjve",
-      "desc": "Misioni më i rëndësishëm i klubit. 18 fëmijë midis 9 dhe 17 vjeç stërviten të shtunën në Germi, me dy tashmë në ekipin kombëtar U17. Falas për moshat nën 14 vjeç."
+      "desc": "Misioni më i rëndësishëm i klubit. 18 fëmijë midis 9 dhe 17 vjeç stërviten të shtunën në Germi, me dy tashmë në ekipin kombëtar U17."
     },
     "women": {
       "name": "Femra",
@@ -267,7 +267,7 @@
     },
     "fee": {
       "title": "Anëtarësia",
-      "body": "20–35 € në muaj, varësisht nga seksioni dhe mosha. Akademia e të rinjve është falas për çiklistët nën 14 vjeç."
+      "body": "Tre plane anëtarësie. Akademia I — €20.00 në muaj: këshilla dhe plan stërvitjeje, pa përcjellje nga trajneri dhe pa stërvitje të përbashkëta. Akademia II — €40.00 në muaj: trajner profesionist dhe stërvitje të përbashkëta dy herë në javë. Garues — pa pagesë mujore ndaj klubit; plan i mbyllur, vetëm për garues me performancë të zhvilluar, ku hyhet pas vlerësimit të trajnerit."
     },
     "proc": {
       "1": "Plotëson aplikimin online",

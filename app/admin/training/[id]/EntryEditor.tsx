@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateEntry, removeEntry } from "../actions";
+import { NumericInput, type NumericKind } from "@/components/admin/NumericInput";
 import {
   RIDE_METRIC_FIELDS, METRIC_GROUPS, type MetricField, type MetricGroupKey,
   formatDurationHMS, parseDurationToSeconds, wPerKg, computeIntensity, computeTss,
@@ -244,24 +245,26 @@ function MetricDisplay({ field, value }: { field: MetricField; value: string }) 
 }
 
 function MetricInput({ field, value, onChange }: { field: MetricField; value: string; onChange: (v: string) => void }) {
-  const isNum = field.ui === "number";
   return (
     <label className="field" style={{ marginBottom: 0, gap: 4 }}>
       <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <span>{field.label}</span>
         {field.unit && <span style={{ fontSize: 9, color: "var(--slate)" }}>{field.unit}</span>}
       </span>
-      <input
+      <NumericInput
+        kind={metricKind(field)}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        type={isNum ? "number" : "text"}
-        inputMode={isNum ? (field.kind === "int" ? "numeric" : "decimal") : undefined}
-        step={field.step}
-        min={field.min}
-        max={field.max}
-        placeholder={field.placeholder ?? (field.ui === "duration" ? "1:23:00" : "")}
-        style={{ width: "100%", fontFamily: "var(--font-mono)", fontSize: 13.5 }}
+        onChange={onChange}
+        placeholder={field.placeholder}
+        hint={field.hint}
+        ariaLabel={field.unit ? `${field.label} (${field.unit})` : field.label}
       />
     </label>
   );
+}
+
+/** Metric definition → keypad. Durations are typed as bare minutes on a phone. */
+function metricKind(field: MetricField): NumericKind {
+  if (field.ui === "duration") return "duration";
+  return field.kind === "num" ? "decimal" : "int";
 }

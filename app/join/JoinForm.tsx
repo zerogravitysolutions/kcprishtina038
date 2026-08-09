@@ -1,9 +1,20 @@
 "use client";
 import { useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { planAmountLabel } from "@/lib/finance";
 import { submitApplication, type JoinResult } from "./actions";
 
-export function JoinForm() {
+/** The columns of membership_plans the picker renders. Fetched in page.tsx. */
+export type JoinPlanOption = {
+  id: string;
+  code: string;
+  name_sq: string;
+  description_sq: string | null;
+  amount_eur: number | string | null;
+  billable: boolean;
+};
+
+export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
   const t = useTranslations();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
@@ -42,6 +53,33 @@ export function JoinForm() {
     <form onSubmit={onSubmit} style={{ marginTop: 32 }}>
       <input type="text" name="_gotcha" tabIndex={-1} autoComplete="off" style={{ position: "absolute", left: -9999, width: 1, height: 1 }} />
       <div style={msgStyle}>{msg?.text}</div>
+
+      {/* The plan — the first and biggest decision, so it frames the fields
+          below. The price line comes from the plan row, never from the code:
+          a non-billable tier renders "Pa pagesë mujore" instead of an amount. */}
+      {plans.length > 0 && (
+        <fieldset className="plan-picker">
+          <legend className="plan-picker__legend">Plani i anëtarësisë</legend>
+          <p className="plan-picker__hint">
+            Zgjidh planin që të përshtatet. Trajneri mund ta rishikojë zgjedhjen bashkë me ty pas vlerësimit.
+          </p>
+          <div className="plan-grid">
+            {plans.map((p) => (
+              <label className="plan-card" key={p.id}>
+                <span className="plan-card__top">
+                  <input type="radio" name="plan" value={p.code} required />
+                  <span className="plan-card__name">{p.name_sq}</span>
+                </span>
+                <span className="plan-card__price">{planAmountLabel(p)}</span>
+                {p.description_sq && <span className="plan-card__desc">{p.description_sq}</span>}
+                {!p.billable && (
+                  <span className="plan-card__note">Përzgjidhet pas vlerësimit të trajnerit</span>
+                )}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <div className="form-row">
         <div className="field">

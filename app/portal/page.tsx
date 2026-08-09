@@ -1,4 +1,5 @@
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { formatEur } from "@/lib/finance";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -74,7 +75,7 @@ export default async function PortalDashboard() {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           {unpaidTotal > 0 ? (
-            <a className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13 }} href="mailto:info@prishtina038.cc?subject=Anëtarësia">Paguaj anëtarësinë · €{unpaidTotal.toFixed(2).replace(/\.00$/, "")}</a>
+            <a className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13 }} href="mailto:info@prishtina038.cc?subject=Anëtarësia">Paguaj anëtarësinë · {formatEur(unpaidTotal)}</a>
           ) : (
             <span className="btn btn-ghost" style={{ padding: "10px 14px", fontSize: 13, opacity: 0.6, pointerEvents: "none" }}>Anëtarësia e paguar ✓</span>
           )}
@@ -113,8 +114,8 @@ export default async function PortalDashboard() {
           <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0, color: "var(--paper)" }}>Anëtarësia</h2>
           <div style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--slate)" }}>
             {dues.length === 0
-              ? "E paguar · asnjë pagesë e hapur"
-              : `${dues.length === 1 ? "1 pagesë e papaguar" : `${dues.length} pagesa të papaguara`} · €${unpaidTotal.toFixed(2)}`}
+              ? "E paguar · asnjë faturë e hapur"
+              : `${dues.length === 1 ? "1 faturë e papaguar" : `${dues.length} fatura të papaguara`} · ${formatEur(unpaidTotal)}`}
           </div>
           <Link href="/portal/profile" className="btn" style={{ marginTop: 20, background: "transparent", borderColor: "rgba(244,242,236,.3)", color: "var(--paper)" }}>
             Profili & dokumentet →

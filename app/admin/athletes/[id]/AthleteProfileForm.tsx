@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { upsertAthleteProfile } from "@/app/admin/training/actions";
-import { wPerKg } from "@/lib/training";
+import { NumericInput } from "@/components/admin/NumericInput";
+import { normalizeDecimal, wPerKg } from "@/lib/training";
 
 export type ProfileInitial = {
   ftp_w: number | null;
@@ -24,7 +25,8 @@ export function AthleteProfileForm({ athleteId, initial }: { athleteId: string; 
   const [restHr, setRestHr] = useState(initial.resting_hr != null ? String(initial.resting_hr) : "");
   const [notes, setNotes] = useState(initial.notes ?? "");
 
-  const wkg = wPerKg(ftp ? parseInt(ftp, 10) : null, weight ? parseFloat(weight) : null);
+  // normalizeDecimal: the coach may type "68,5" — parseFloat would read 68.
+  const wkg = wPerKg(ftp ? parseInt(ftp, 10) : null, weight ? parseFloat(normalizeDecimal(weight)) : null);
 
   function save() {
     setMsg(null);
@@ -47,7 +49,7 @@ export function AthleteProfileForm({ athleteId, initial }: { athleteId: string; 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>FTP (W)</label>
-          <input type="number" inputMode="numeric" value={ftp} onChange={(e) => setFtp(e.target.value)} placeholder="260" style={{ fontFamily: "var(--font-mono)" }} />
+          <NumericInput kind="int" value={ftp} onChange={setFtp} placeholder="260" ariaLabel="FTP (W)" />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>FTP përditësuar më</label>
@@ -55,15 +57,15 @@ export function AthleteProfileForm({ athleteId, initial }: { athleteId: string; 
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Pesha (kg)</label>
-          <input type="number" inputMode="decimal" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="68.5" style={{ fontFamily: "var(--font-mono)" }} />
+          <NumericInput kind="decimal" value={weight} onChange={setWeight} placeholder="68.5" ariaLabel="Pesha (kg)" />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>HR maksimal</label>
-          <input type="number" inputMode="numeric" value={maxHr} onChange={(e) => setMaxHr(e.target.value)} placeholder="190" style={{ fontFamily: "var(--font-mono)" }} />
+          <NumericInput kind="int" value={maxHr} onChange={setMaxHr} placeholder="190" ariaLabel="HR maksimal (bpm)" />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>HR në qetësi</label>
-          <input type="number" inputMode="numeric" value={restHr} onChange={(e) => setRestHr(e.target.value)} placeholder="48" style={{ fontFamily: "var(--font-mono)" }} />
+          <NumericInput kind="int" value={restHr} onChange={setRestHr} placeholder="48" ariaLabel="HR në qetësi (bpm)" />
         </div>
       </div>
 

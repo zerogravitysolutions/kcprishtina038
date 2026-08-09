@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
-import { RIDE_METRIC_FIELDS, RIDE_METRIC_BY_KEY, coerceMetric } from "@/lib/training";
+import { RIDE_METRIC_FIELDS, RIDE_METRIC_BY_KEY, coerceMetric, normalizeDecimal, parseStrictNumber } from "@/lib/training";
 import { stravaActivityId, isStravaAppLink, parseStravaUrl } from "@/lib/strava";
 import { dbError } from "@/lib/errors";
 
@@ -280,10 +280,14 @@ export type ProfilePatch = {
 function intField(raw: string | undefined, label: string, min?: number, max?: number):
   { ok: true; value: number | null } | { ok: false; error: string } {
   if (raw === undefined) return { ok: true, value: null };
-  const v = raw.trim();
+  // normalizeDecimal: "68,5" → "68.5"; commas would truncate silently.
+  // parseStrictNumber: the field is type="text", so "1.250" or "260W" must be
+  // rejected rather than read as 1 / 260 by parseInt.
+  const v = normalizeDecimal(raw);
   if (v === "") return { ok: true, value: null };
-  const n = parseInt(v, 10);
-  if (Number.isNaN(n)) return { ok: false, error: `${label}: numër i pavlefshëm.` };
+  const parsed = parseStrictNumber(v);
+  if (parsed == null) return { ok: false, error: `${label}: numër i pavlefshëm.` };
+  const n = Math.round(parsed);
   if (min != null && n < min) return { ok: false, error: `${label}: minimumi ${min}.` };
   if (max != null && n > max) return { ok: false, error: `${label}: maksimumi ${max}.` };
   return { ok: true, value: n };
@@ -308,11 +312,13 @@ export async function upsertAthleteProfile(athleteId: string, patch: ProfilePatc
     row.resting_hr = restHr.value;
 
     if (patch.weight_kg !== undefined) {
-      const w = patch.weight_kg.trim();
+      // Albanian keyboards produce "," — parseFloat("68,5") is 68, i.e. silent
+      // data loss. Normalised here, on the server, so no client can bypass it.
+      const w = normalizeDecimal(patch.weight_kg);
       if (w === "") row.weight_kg = null;
       else {
-        const n = parseFloat(w);
-        if (Number.isNaN(n) || n < 0) return { ok: false, error: "Pesha: numër i pavlefshëm." };
+        const n = parseStrictNumber(w);
+        if (n == null || n < 0) return { ok: false, error: "Pesha: numër i pavlefshëm." };
         row.weight_kg = n;
       }
     }

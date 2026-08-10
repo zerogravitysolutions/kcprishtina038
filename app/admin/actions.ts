@@ -134,16 +134,95 @@ export async function setMemberStatus(targetId: string, status: string): Promise
   return { ok: true };
 }
 
-/** Permanently delete a member's auth user (profile cascades). */
-export async function deleteMember(targetId: string): Promise<{ ok: boolean; error?: string }> {
+// ---------- Deleting an account vs. keeping the books ----------
+//
+// Deleting the auth user deletes the profile (auth.users -> profiles is ON
+// DELETE CASCADE), and the profile used to take `dues` and `memberships` with
+// it — i.e. removing a login silently erased the club's invoices, paid ones
+// included. Migration 20260810000001 changed both of those FKs to ON DELETE
+// RESTRICT, so the DATABASE now refuses; nothing here has to be remembered for
+// the accounting record to survive.
+//
+// What is left for this layer is the explanation. A RESTRICT violation reaches
+// us through GoTrue as an opaque 500 ("Database error deleting user"), so we
+// count the history FIRST and tell the admin, in Albanian, exactly what exists
+// and what to do instead. The post-delete branch below is the backstop for
+// anything the pre-check could not see.
+
+type FinancialHistory = { dues: number; memberships: number };
+
+/** How much accounting history hangs off this member. `null` = we could not
+ * find out, which is NOT the same as "nothing is there" — see the caller: an
+ * unverifiable delete is refused rather than attempted. */
+async function financialHistory(
+  admin: ReturnType<typeof createAdminClient>,
+  targetId: string,
+): Promise<FinancialHistory | null> {
+  const [d, m] = await Promise.all([
+    admin.from("dues").select("id", { count: "exact", head: true }).eq("member_id", targetId),
+    admin.from("memberships").select("id", { count: "exact", head: true }).eq("member_id", targetId),
+  ]);
+  if (d.error || m.error) return null;
+  return { dues: d.count ?? 0, memberships: m.count ?? 0 };
+}
+
+/** Point the admin at deactivation, which already revokes access completely. */
+const USE_DEACTIVATE =
+  "Përdor “Çaktivizo llogarinë”: hyrja i bllokohet menjëherë, ndërsa historiku financiar i mbetet klubit.";
+
+function historyRefusal(h: FinancialHistory): string {
+  const parts: string[] = [];
+  if (h.dues) parts.push(h.dues === 1 ? "1 faturë" : `${h.dues} fatura`);
+  if (h.memberships) parts.push(h.memberships === 1 ? "1 anëtarësi" : `${h.memberships} anëtarësi`);
+  // Name what actually exists — a member can have a membership without ever
+  // having been invoiced (a racer, or someone enrolled mid-month).
+  const what = h.dues ? "Faturat" : "Anëtarësitë";
+  return `Ky anëtar ka ${parts.join(" dhe ")} në histori. ${what} janë regjistri kontabël i klubit dhe nuk fshihen bashkë me llogarinë. ${USE_DEACTIVATE}`;
+}
+
+/** Permanently delete a member's auth user — only when nothing is booked
+ * against them. Members WITH financial history are refused here and, if this
+ * check is ever bypassed, by the foreign keys themselves. */
+export async function deleteMember(targetId: string): Promise<{ ok: boolean; error?: string; blocked?: boolean }> {
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (targetId === gate.id) return { ok: false, error: "Nuk mund të fshish llogarinë tënde." };
 
   let admin;
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
+
+  const history = await financialHistory(admin, targetId);
+  // Could not read the history at all. Deleting anyway would rest the club's
+  // books on migration 20260810000001 already being applied to THIS database —
+  // and on a database where it is not, the old ON DELETE CASCADE would take the
+  // invoices without a word. An irreversible action does not get to assume; it
+  // asks again.
+  if (!history) {
+    return {
+      ok: false,
+      blocked: true,
+      error: `Nuk u verifikua dot nëse ky anëtar ka fatura ose anëtarësi, prandaj fshirja nuk u krye. Provo sërish pas pak. ${USE_DEACTIVATE}`,
+    };
+  }
+  if (history.dues > 0 || history.memberships > 0) {
+    return { ok: false, blocked: true, error: historyRefusal(history) };
+  }
+
   const { error } = await admin.auth.admin.deleteUser(targetId);
-  if (error) return { ok: false, error: `${dbError(error, "Fshirja e llogarisë dështoi.")} Nëse llogaria ka të dhëna të lidhura, përdor “Çaktivizo”.` };
+  if (error) {
+    // The Auth Admin API wraps a Postgres constraint failure in its own 500, so
+    // there is no SQLSTATE to map — match the wording and answer with the same
+    // guidance rather than "Veprimi nuk u krye. Provo sërish."
+    const raw = (error.message ?? "").toLowerCase();
+    if (/database error|foreign key|constraint|violates|conflict/.test(raw)) {
+      return {
+        ok: false,
+        blocked: true,
+        error: `Baza e të dhënave nuk e lejoi fshirjen — llogaria ka të dhëna që klubi i ruan (fatura, anëtarësi ose regjistrime). ${USE_DEACTIVATE}`,
+      };
+    }
+    return { ok: false, error: dbError(error, "Fshirja e llogarisë dështoi. Provo sërish.") };
+  }
   revalidatePath("/admin/members");
   revalidatePath("/admin/dashboard");
   return { ok: true };

@@ -32,6 +32,10 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [msg, setMsg] = useState<Record<string, Msg>>({});
+  // Set when the delete was refused because the member has accounting history.
+  // Its own dialog, not an alert(): the admin needs to read a reason and then
+  // do the other thing, so the alternative is a button right there.
+  const [blocked, setBlocked] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -55,6 +59,15 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
   }, [menuOpen]);
 
   useEffect(() => {
+    if (!blocked) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setBlocked(null); };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+  }, [blocked]);
+
+  useEffect(() => {
     if (!modalOpen) return;
     setEmailVal(email); setPwVal(""); setLink(null); setCopied(false); setMsg({});
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setModalOpen(false); };
@@ -70,6 +83,30 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
     start(async () => {
       const r = await fn();
       if (r.ok) router.refresh();
+      else alert(r.error ?? "Veprimi dështoi.");
+    });
+  }
+
+  // Delete is the one action that can be REFUSED rather than fail: a member with
+  // invoices or memberships is accounting history the club keeps. Show the
+  // reason and the way out instead of a bare error.
+  function removeAccount() {
+    setMenuOpen(false);
+    if (!confirm(`Fshij përfundimisht “${name}”? Ky veprim s’kthehet — për t’i bllokuar hyrjen pa e fshirë, përdor “Çaktivizo llogarinë”.`)) return;
+    start(async () => {
+      const r = await deleteMember(id);
+      if (r.ok) { router.refresh(); return; }
+      if (r.blocked) { setBlocked(r.error ?? "Kjo llogari nuk mund të fshihet sepse ka histori financiare."); return; }
+      alert(r.error ?? "Veprimi dështoi.");
+    });
+  }
+
+  // Offered inside the refusal dialog — the supported way to remove someone who
+  // has already been invoiced.
+  function deactivateFromBlocked() {
+    start(async () => {
+      const r = await setMemberStatus(id, "inactive");
+      if (r.ok) { setBlocked(null); router.refresh(); }
       else alert(r.error ?? "Veprimi dështoi.");
     });
   }
@@ -117,16 +154,43 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
               </button>
             )}
             {!isSelf && (
-              <button role="menuitem" className="danger" disabled={pending} onClick={() => {
-                if (!confirm(`Fshij përfundimisht "${name}"? Ky veprim s’kthehet — për të bllokuar hyrjen pa e fshirë, përdor "Çaktivizo".`)) return;
-                quick(() => deleteMember(id));
-              }}>
+              <button role="menuitem" className="danger" disabled={pending} onClick={removeAccount}>
                 <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>
                 Fshij llogarinë
               </button>
             )}
           </div>
         </>,
+        document.body,
+      )}
+
+      {blocked && mounted && createPortal(
+        <div className="mm-backdrop" onClick={() => setBlocked(null)}>
+          <div className="mm-panel" role="alertdialog" aria-label={`Fshirja e ${name} nuk lejohet`} onClick={(e) => e.stopPropagation()}>
+            <div className="mm-head">
+              <div>
+                <div className="nm">Llogaria nuk fshihet</div>
+                <div className="em">{name} · {email}</div>
+              </div>
+              <button type="button" className="mm-x" aria-label="Mbyll" onClick={() => setBlocked(null)}>✕</button>
+            </div>
+
+            <div className="mm-sec">
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--text-2)" }}>{blocked}</p>
+            </div>
+
+            <div className="mm-row" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="btn btn-sm" onClick={() => setBlocked(null)}>Mbyll</button>
+              {/* Anything but 'inactive' can still be deactivated — a 'pending'
+                  or 'suspended' account is not yet cut off the same way. */}
+              {status !== "inactive" && (
+                <button type="button" className="btn btn-sm" disabled={pending} onClick={deactivateFromBlocked}>
+                  Çaktivizo llogarinë
+                </button>
+              )}
+            </div>
+          </div>
+        </div>,
         document.body,
       )}
 

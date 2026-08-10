@@ -135,7 +135,14 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
   const collectedRows = invoices.filter((i) => effectiveStatus(i) === "paid");
   const waivedRows = invoices.filter((i) => effectiveStatus(i) === "waived");
   const outstandingRows = invoices.filter(isOutstanding);
-  const billed = sumEur(invoices);
+  // "Faturuar" EXCLUDES waived invoices, for two reasons that are the same
+  // reason: a forgiven invoice is neither income nor debt, so counting it here
+  // would (a) break this row's own arithmetic — Faturuar would no longer equal
+  // Arkëtuar + Pa arkëtuar — and (b) put a different euro figure under the word
+  // "Faturuar" than /admin/finance/reports shows for the same month. The waived
+  // total is reported on its own line below.
+  const billedRows = invoices.filter((i) => effectiveStatus(i) !== "waived");
+  const billed = sumEur(billedRows);
   const collected = sumEur(collectedRows);
   const outstanding = outstandingTotal(invoices);
   const collectable = collected + outstanding;
@@ -184,7 +191,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
           <h1>Financat</h1>
           <div className="sub">
             Faturat mujore të akademisë për {label}. <Link href="/admin/finance/plans">Planet</Link>
-            {" · "}<Link href="/admin/finance/reports">Raportet e pagesave</Link>
+            {" · "}<Link href="/admin/finance/reports">Raportet financiare</Link>
           </div>
         </div>
         <GenerateInvoices
@@ -195,7 +202,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
       </div>
 
       <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", marginBottom: 16 }}>
-        <Kpi accent="#2E90FA" label="Faturuar" value={formatEur(billed)} sub={`${invoiceCount(invoices.length)} · ${label}`} />
+        <Kpi accent="#2E90FA" label="Faturuar" value={formatEur(billed)} sub={`${invoiceCount(billedRows.length)} · ${label}`} />
         <Kpi accent="#16A34A" label="Arkëtuar" value={formatEur(collected)} sub={`${invoiceCount(collectedRows.length)} të paguara`} />
         <Kpi accent="#E0562D" label="Pa arkëtuar" value={formatEur(outstanding)} sub={`${invoiceCount(outstandingRows.length)} të hapura`} />
         <Kpi
@@ -220,7 +227,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
 
       {waivedRows.length > 0 ? (
         <div className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 12px" }}>
-          {invoiceCount(waivedRows.length)} të falura ({formatEur(sumEur(waivedRows))}) nuk llogariten te arkëtimi.
+          {invoiceCount(waivedRows.length)} të falura ({formatEur(sumEur(waivedRows))}) nuk llogariten as te faturimi, as te arkëtimi, as te borxhi.
         </div>
       ) : null}
 

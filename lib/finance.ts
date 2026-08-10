@@ -95,10 +95,36 @@ export function formatEur(n: number | string | null | undefined): string {
   return `€${toNumber(n).toFixed(2)}`;
 }
 
-/** Coerces the numeric-as-string Supabase sends back. Null/NaN → 0. */
-function toNumber(v: number | string | null | undefined): number {
+/**
+ * Coerces the numeric-as-string Supabase sends back. Null/NaN → 0.
+ *
+ * numeric(8,2) arrives from PostgREST as a STRING, so `a + b` on two raw
+ * amounts concatenates instead of adding ("20" + "40" = "2040"). Every sum in
+ * the reports goes through here.
+ */
+export function toEuros(v: number | string | null | undefined): number {
   const n = typeof v === "string" ? Number(v) : v;
   return typeof n === "number" && Number.isFinite(n) ? n : 0;
+}
+
+/** Internal alias kept so the helpers below read as they always did. */
+const toNumber = toEuros;
+
+/**
+ * A percentage, or null when there is nothing to take a percentage OF. Never
+ * returns NaN or Infinity: a rate with an empty denominator is not "0%", it is
+ * "no invoices", and the caller has to say so in words.
+ */
+export function collectionRate(collected: number, collectable: number): number | null {
+  if (!Number.isFinite(collected) || !Number.isFinite(collectable)) return null;
+  if (collectable <= 0) return null;
+  return Math.round((collected / collectable) * 100);
+}
+
+/** An average that refuses to divide by zero. Null when there is nobody. */
+export function averageEur(total: number, count: number): number | null {
+  if (count <= 0 || !Number.isFinite(total)) return null;
+  return total / count;
 }
 
 /**
@@ -201,6 +227,102 @@ export function parsePeriodParam(param: string | null | undefined): string {
   const month0 = Number(m[2]) - 1;
   if (month0 < 0 || month0 > 11) return currentPeriod();
   return periodOf(Number(m[1]), month0);
+}
+
+/** ["2026-01-01", … n periods], the window a report iterates over. */
+export function periodRange(start: string, count: number): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < Math.max(0, count); i++) out.push(shiftPeriod(start, i));
+  return out;
+}
+
+/** "2026-08-01" → "2026-01-01", the first month of the same year. */
+export function yearStartPeriod(period: string): string {
+  const d = parseDateOnly(period);
+  if (!d) return period;
+  return periodOf(d.getFullYear(), 0);
+}
+
+/**
+ * The month a PAYMENT landed in: "2026-08-14T09:12:00+02:00" → "2026-08-01".
+ * dues.paid_at is a timestamptz, so it is read through Date and bucketed by the
+ * server's local calendar — the same calendar every other date on the page is
+ * rendered in. Null/unparseable → null, never a silent "this month".
+ */
+export function periodOfTimestamp(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return periodOf(d.getFullYear(), d.getMonth());
+}
+
+/**
+ * Whether a membership that ENDED on `endDate` and one that STARTED on
+ * `startDate` are the same rider carrying on, i.e. a tier change rather than a
+ * departure plus an arrival. set_member_plan closes the old row on the day
+ * BEFORE the new one starts, so the normal gap is exactly one day; the 31-day
+ * tolerance also catches a change entered by hand a few weeks late. Callers
+ * must already have checked that both rows belong to the same member.
+ */
+export function isTierChangeGap(endDate: string, startDate: string, maxGapDays = 31): boolean {
+  const end = parseDateOnly(endDate);
+  const start = parseDateOnly(startDate);
+  if (!end || !start) return false;
+  const days = Math.round((start.getTime() - end.getTime()) / 86_400_000);
+  // -1 tolerates a row closed on the new row's own start date (an inclusive /
+  // exclusive slip when a change was entered by hand).
+  return days >= -1 && days <= maxGapDays;
+}
+
+/** The subset of a memberships row the coverage helper needs. */
+export type MembershipLike = {
+  id: string;
+  member_id: string;
+  status: MembershipStatus;
+  /** "YYYY-MM-DD". end_date null = still running. */
+  start_date: string;
+  end_date: string | null;
+};
+
+/**
+ * The membership in force for `period`, ONE row per member — the same pick
+ * generate_dues_for_period makes, so "what we should invoice" on a report and
+ * "what the generator will actually invoice" cannot drift apart:
+ *   - 'paused' is the one status that means do not bill;
+ *   - an 'ended' row with no end date is malformed and is ignored, because
+ *     treating it as open-ended would bill it forever;
+ *   - the row must have started by the end of the month and not have ended
+ *     before it began;
+ *   - when two rows touch the same month (a backdated start), the latest start
+ *     wins, then the latest end, an open-ended row first, then the id so the
+ *     result is deterministic.
+ * Dates are "YYYY-MM-DD", so plain string comparison orders them correctly.
+ * Money is deliberately NOT considered here: filtering on billable inside the
+ * pick would let an older billable row win over a racer's current one.
+ */
+export function coveringMemberships<T extends MembershipLike>(rows: T[], period: string): T[] {
+  const nextPeriod = shiftPeriod(period, 1);
+  const best = new Map<string, T>();
+  for (const m of rows) {
+    if (m.status === "paused") continue;
+    if (m.status !== "active" && !m.end_date) continue;
+    if (!(m.start_date < nextPeriod)) continue;
+    if (m.end_date && m.end_date < period) continue;
+    const held = best.get(m.member_id);
+    if (!held || coverageBeats(m, held)) best.set(m.member_id, m);
+  }
+  return [...best.values()];
+}
+
+/** "latest start desc, end desc nulls first, id" as a comparison. */
+function coverageBeats(a: MembershipLike, b: MembershipLike): boolean {
+  if (a.start_date !== b.start_date) return a.start_date > b.start_date;
+  if (a.end_date !== b.end_date) {
+    if (!a.end_date) return true;
+    if (!b.end_date) return false;
+    return a.end_date > b.end_date;
+  }
+  return a.id < b.id;
 }
 
 // ------------------------------------------------------------------ status

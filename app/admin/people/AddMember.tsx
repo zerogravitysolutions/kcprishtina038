@@ -40,13 +40,13 @@ export function AddMember() {
   }
 
   if (!open) {
-    return <button className="btn btn-ember" onClick={() => setOpen(true)}>+ Shto anëtar</button>;
+    return <button className="btn btn-ember" onClick={() => setOpen(true)}>+ Krijo llogari</button>;
   }
 
   return (
     <div className="card">
       <div className="card-head">
-        <h3>Shto anëtar</h3>
+        <h3>Krijo llogari</h3>
         <button className="kicker" style={{ background: "none", border: 0, cursor: "pointer", color: "var(--text-3)" }} onClick={() => setOpen(false)}>Mbyll ✕</button>
       </div>
       <form onSubmit={submit}>
@@ -76,7 +76,8 @@ export function AddMember() {
           {err && <span style={{ color: "var(--err)", fontSize: 12.5 }}>{err}</span>}
         </div>
         <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)" }}>
-          Llogaria krijohet aktive — anëtari mund të kyçet menjëherë me këtë email dhe fjalëkalim.
+          Llogaria krijohet aktive — anëtari mund të kyçet menjëherë me këtë email dhe fjalëkalim. Në faqen publike
+          “Ekipi” nuk shfaqet derisa t’i shtosh edhe rreshtin e ekipit me “Shto në ekip”.
         </div>
       </form>
     </div>

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { dbError } from "@/lib/errors";
+import { slugifyName, splitName, uniqueSlug } from "@/lib/slug";
 
 // Enrolment = turning an approved application into a real cyclist:
 // an auth user + profile, a membership (which IS the payment schedule) and,
@@ -105,6 +106,100 @@ async function findAuthUserIdByEmail(admin: AdminClient, email: string): Promise
     if (data.users.length < 200) return null;
   }
   return null;
+}
+
+// ---------- the roster row: making an enrolled rider visible to the coach ----
+
+// Enrolment used to create the account, the profile, the membership and the
+// first invoice — and NOT a team_members row. The club's two identity tables
+// serve different systems:
+//
+//   profiles(id)      → money   (dues.member_id, memberships.member_id)
+//   team_members(id)  → training + the public roster
+//                       (ride_entries.athlete_id, athlete_profiles.athlete_id)
+//
+// so an enrolled academy rider was billable and, at the same time, invisible to
+// their coach: the athlete picker reads team_members, and they had no row
+// there. This creates that row and links it via team_members.profile_id.
+//
+// STATUS — a deliberate choice, not a default. public.team_status has exactly
+// two values, 'active' and 'past', and app/team/page.tsx renders BOTH: 'active'
+// under Bordi/Trajnerët/Çiklistët, 'past' under "Anëtarët e mëparshëm". There
+// is no unlisted state, so 'past' would publish the new rider anyway AND
+// misfile them as a former member. 'active' is therefore the only defensible
+// value: it is truthful, and it is the only one the training athlete picker
+// accepts (it filters status='active' + positions contains 'rider'), which is
+// the whole point of creating the row. Only the name (and, through the card,
+// the derived age category) becomes public — no photo and no bio are written
+// here. If the club wants review-before-publish, that needs a third enum value
+// and a migration; see the notes for this change.
+//
+// It must never cost the club an enrolment: every failure below is swallowed
+// into a warning. The member and their invoices matter more than the roster.
+
+type RosterInput = {
+  memberId: string;
+  fullName: string;
+  dob: string | null;
+  sectionId: string | null;
+};
+
+async function ensureRosterRow(admin: AdminClient, input: RosterInput): Promise<string | null> {
+  const { first, last, full } = splitName(input.fullName);
+  // full_name / first_name / last_name are all NOT NULL.
+  if (!first || !last || !full) return "Anëtari u regjistrua, por nuk u shtua në ekip sepse emri nuk ndahet në emër dhe mbiemër. Shtoje me dorë te Njerëzit.";
+
+  // Idempotent: a second click, or a member who is already on the roster.
+  const { data: linked, error: linkedErr } = await admin
+    .from("team_members").select("id").eq("profile_id", input.memberId).limit(1);
+  if (linkedErr) return "Anëtari u regjistrua, por nuk u verifikua dot nëse është në ekip. Kontrollo te Njerëzit.";
+  if ((linked ?? []).length > 0) return null;
+
+  // Already on the roster by name but never linked (added by hand before they
+  // applied). Link that row instead of creating a second one for one human.
+  const { data: sameName } = await admin
+    .from("team_members").select("id").is("profile_id", null).ilike("full_name", full).limit(2);
+  const candidates = (sameName as { id: string }[] | null) ?? [];
+  if (candidates.length === 1) {
+    const { error } = await admin.from("team_members").update({ profile_id: input.memberId }).eq("id", candidates[0].id);
+    return error
+      ? "Anëtari u regjistrua, por lidhja me rreshtin ekzistues në ekip dështoi. Lidhe te Njerëzit."
+      : null;
+  }
+
+  // section_slug is text on the roster, a uuid on the application.
+  let sectionSlug: string | null = null;
+  if (input.sectionId) {
+    const { data: sec } = await admin.from("sections").select("slug").eq("id", input.sectionId).maybeSingle();
+    sectionSlug = (sec as { slug: string } | null)?.slug ?? null;
+  }
+
+  // slug is NOT NULL, unique, and check (slug ~ '^[a-z][a-z0-9-]*$') — the
+  // helper transliterates ë→e / ç→c and guarantees a leading letter.
+  const base = slugifyName(full);
+  const slug = await uniqueSlug(base, async (candidate) => {
+    const { data } = await admin.from("team_members").select("id").eq("slug", candidate).maybeSingle();
+    return !!data;
+  });
+
+  const { error } = await admin.from("team_members").insert([{
+    slug,
+    full_name: full,
+    first_name: first,
+    last_name: last,
+    dob: input.dob,
+    // positions is NOT NULL with check (array_length(positions, 1) >= 1); an
+    // enrolled applicant is a rider, which is also what makes them selectable
+    // in training.
+    positions: ["rider"],
+    section_slug: sectionSlug,
+    status: "active",
+    profile_id: input.memberId,
+    display_order: 100,
+  }]);
+  return error
+    ? "Anëtari u regjistrua, por nuk u shtua në listën e ekipit, prandaj trajneri s’e sheh ende në stërvitje. Shtoje te Njerëzit."
+    : null;
 }
 
 // ---------- types ----------
@@ -356,11 +451,36 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
   const { error: rpcErr } = await (supabase.rpc as unknown as RpcAny).call(supabase, "approve_application", { app_id: input.appId });
   if (rpcErr) return { ok: false, error: approveError(rpcErr) };
 
+  // --- 8. the roster row = the athlete identity -----------------------------
+  // Without it the new member is billable but invisible to their coach: the
+  // training athlete picker reads team_members, not profiles.
+  //
+  // It runs LAST, on purpose. The row is PUBLIC the moment it exists (see
+  // ensureRosterRow), so it must not be written while the enrolment can still
+  // fail: a membership, invoice or approval error above would otherwise leave a
+  // child's name on kcprishtina038.cc for an enrolment that never happened.
+  // It stays best-effort — a failure here degrades to a warning, because the
+  // member and their invoices matter more than the roster.
+  try {
+    const rosterWarning = await ensureRosterRow(admin, {
+      memberId,
+      fullName,
+      dob: app.dob,
+      sectionId: app.section_id,
+    });
+    if (rosterWarning) warning = warning ? `${warning} ${rosterWarning}` : rosterWarning;
+  } catch {
+    const msg = "Anëtari u regjistrua, por shtimi në listën e ekipit dështoi. Shtoje te Njerëzit që trajneri ta shohë në stërvitje.";
+    warning = warning ? `${warning} ${msg}` : msg;
+  }
+
   revalidatePath("/admin/applications");
   revalidatePath(`/admin/applications/${input.appId}`);
-  revalidatePath("/admin/members");
+  revalidatePath("/admin/people");
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/finance");
+  // The enrolment now also writes a public roster row.
+  revalidatePath("/team");
 
   return { ok: true, password, linked, billable, amountEur: amount, startDate, invoiceNo, warning };
 }

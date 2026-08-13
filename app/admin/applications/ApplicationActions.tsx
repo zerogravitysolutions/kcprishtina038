@@ -103,7 +103,7 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
           : done.billable && <div style={MUTED}>Nuk u gjenerua asnjë faturë tani. Gjeneroje te Financat kur ta duash.</div>}
         {done.warning && <div style={{ color: "var(--warn)", fontSize: 12.5, lineHeight: 1.6 }}>{done.warning}</div>}
         <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-          <Link className="btn btn-sm" href="/admin/members">Shko te anëtarët</Link>
+          <Link className="btn btn-sm" href="/admin/people">Shko te njerëzit</Link>
           {done.billable && <Link className="btn btn-sm btn-ghost" href="/admin/finance">Financat</Link>}
         </div>
       </div>
@@ -246,6 +246,13 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
 
       <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)", lineHeight: 1.7 }}>
         Aprovimi krijon llogarinë e anëtarit, profilin dhe planin e pagesave. Nëse email-i ka tashmë llogari, ajo lidhet me këtë aplikim.
+        <br />
+        {/* The roster row is what makes the person selectable in training — and
+            the same row is rendered on the public /team page. The admin must
+            know that before pressing the button, not afterwards. */}
+        Aprovimi e shton personin edhe në regjistrin e ekipit si çiklist aktiv, prandaj emri i tij shfaqet menjëherë në
+        faqen publike <em>Ekipi</em> (pa foto dhe pa biografi). Nëse nuk e do publik, hiqe ose vendose si “ish-anëtar”
+        te Njerëzit menjëherë pas aprovimit.
       </div>
     </form>
   );

@@ -18,8 +18,11 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
   {
     group: "Regjistri",
     items: [
-      { id: "members", label: "Anëtarët (llogaritë)", href: "/admin/members", icon: "users", allow: ["admin", "editor", "staff"] },
-      { id: "team-members", label: "Ekipi (publik)", href: "/admin/team-members", icon: "team", allow: ["admin", "editor"] },
+      // One entry, one list. "Anëtarët (llogaritë)" and "Ekipi (publik)" were
+      // the same people seen through two tables; /admin/people shows each
+      // person once and says which facets they have. The role bar is the union
+      // of the two old ones — every write is still gated on the server.
+      { id: "people", label: "Njerëzit", href: "/admin/people", icon: "users", allow: ["admin", "editor", "staff"] },
       { id: "sections", label: "Seksionet", href: "/admin/sections", icon: "layers", allow: ["admin", "editor", "staff"] },
     ],
   },
@@ -94,7 +97,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v2.5</span>
+            <span className="sub">Admin · v2.6</span>
           </div>
         </Link>
 

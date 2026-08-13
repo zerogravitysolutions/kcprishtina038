@@ -5,24 +5,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { dbError } from "@/lib/errors";
+// Same gate /admin/people uses — one definition, so the merged screen cannot
+// widen what "admin only" means here.
+import { requireAdmin } from "./guards";
 
 const MEMBER_ROLES = ["admin", "editor", "staff", "coach", "member"];
 const MEMBER_STATUSES = ["active", "inactive", "suspended", "pending"];
-
-/** Confirm the caller is a signed-in, ACTIVE admin. Returns their id or an error.
- * Re-reads role AND status every call so a demoted/deactivated admin loses access
- * immediately (Server Actions are standalone POST endpoints; the layout's status
- * gate never runs for them). */
-async function requireAdmin(): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Nuk je i kyçur." };
-  const { data } = await supabase.from("profiles").select("role, status").eq("id", user.id).maybeSingle();
-  const p = data as { role: string; status: string } | null;
-  if (!p || p.status !== "active") return { ok: false, error: "Llogaria jote nuk është aktive." };
-  if (p.role !== "admin") return { ok: false, error: "Vetëm admini mund ta bëjë këtë veprim." };
-  return { ok: true, id: user.id };
-}
 
 export async function adminSignOut() {
   const supabase = await createClient();
@@ -71,7 +59,7 @@ export async function setUserRole(targetId: string, newRole: string): Promise<{ 
   const supabase = await createClient();
   const { error } = await (supabase.rpc as unknown as RpcAny).call(supabase, "set_user_role", { target_id: targetId, new_role: newRole });
   if (error) return { ok: false, error: rpcError(error, "Ndryshimi i rolit dështoi. Provo sërish.") };
-  revalidatePath("/admin/members");
+  revalidatePath("/admin/people");
   revalidatePath("/admin/staff");
   return { ok: true };
 }
@@ -109,7 +97,7 @@ export async function createMember(input: { full_name: string; email: string; pa
     .eq("id", created.user.id);
   if (uErr) return { ok: false, error: dbError(uErr, "Llogaria u krijua, por profili s’u përditësua.") };
 
-  revalidatePath("/admin/members");
+  revalidatePath("/admin/people");
   revalidatePath("/admin/dashboard");
   return { ok: true };
 }
@@ -130,7 +118,7 @@ export async function setMemberStatus(targetId: string, status: string): Promise
   // Anything other than "active" bans the login; "active" lifts the ban.
   const { error: banErr } = await admin.auth.admin.updateUserById(targetId, { ban_duration: status === "active" ? "none" : "876000h" });
   if (banErr) return { ok: false, error: dbError(banErr, "Statusi u ndryshua, por sesioni s’u përditësua.") };
-  revalidatePath("/admin/members");
+  revalidatePath("/admin/people");
   return { ok: true };
 }
 
@@ -223,7 +211,7 @@ export async function deleteMember(targetId: string): Promise<{ ok: boolean; err
     }
     return { ok: false, error: dbError(error, "Fshirja e llogarisë dështoi. Provo sërish.") };
   }
-  revalidatePath("/admin/members");
+  revalidatePath("/admin/people");
   revalidatePath("/admin/dashboard");
   return { ok: true };
 }
@@ -256,7 +244,7 @@ export async function updateMemberEmail(targetId: string, newEmail: string): Pro
   if (aErr) return { ok: false, error: /registered|exists|already/i.test(aErr.message) ? "Ky email është i zënë nga një llogari tjetër." : dbError(aErr, "Ndryshimi i email-it dështoi. Provo sërish.") };
   const { error: pErr } = await admin.from("profiles").update({ email }).eq("id", targetId);
   if (pErr) return { ok: false, error: dbError(pErr, "Email-i i hyrjes u ndryshua, por profili s’u sinkronizua.") };
-  revalidatePath("/admin/members");
+  revalidatePath("/admin/people");
   return { ok: true };
 }
 

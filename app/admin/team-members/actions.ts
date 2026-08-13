@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { slugifyName, uniqueSlug } from "@/lib/slug";
 
 const POSITIONS = [
   "president", "board_member",
@@ -16,11 +17,6 @@ async function assertEditor() {
   const p = await getProfile();
   if (!p || !["admin", "editor"].includes(p.role)) throw new Error("forbidden");
   return p;
-}
-
-function slugify(s: string): string {
-  return s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 60).replace(/-+$/, "");
 }
 
 function parsePayload(form: FormData): Record<string, unknown> {
@@ -59,21 +55,19 @@ export async function createTeamMember(form: FormData): Promise<void> {
     throw new Error("Zgjidh së paku një pozicion.");
   }
   const supabase = await createClient();
-  let slug = slugify(`${payload.first_name} ${payload.last_name}`);
-  if (!slug) throw new Error("Nga ky emër nuk del një URL e vlefshme. Përdor së paku një shkronjë ose numër.");
-  let suffix = 1, candidate = slug;
-  for (;;) {
-    const { data: existing } = await supabase.from("team_members").select("id").eq("slug", candidate).maybeSingle();
-    if (!existing) { slug = candidate; break; }
-    suffix++; candidate = `${slug}-${suffix}`;
-  }
-  payload.slug = slug;
+  // Shared with the enrolment path and /admin/people so every insert produces a
+  // slug the column's own check constraint accepts (must START with a letter).
+  const base = slugifyName(`${payload.first_name} ${payload.last_name}`);
+  payload.slug = await uniqueSlug(base, async (candidate) => {
+    const { data } = await supabase.from("team_members").select("id").eq("slug", candidate).maybeSingle();
+    return !!data;
+  });
   payload.status = payload.status ?? "active";
   const { error } = await supabase.from("team_members").insert([payload] as never);
   if (error) throw new Error(dbError(error, "Ruajtja e anëtarit dështoi. Provo sërish."));
-  revalidatePath("/admin/team-members");
+  revalidatePath("/admin/people");
   revalidatePath("/team");
-  redirect("/admin/team-members");
+  redirect("/admin/people");
 }
 
 export async function updateTeamMember(id: string, form: FormData): Promise<void> {
@@ -82,9 +76,9 @@ export async function updateTeamMember(id: string, form: FormData): Promise<void
   const patch = parsePayload(form);
   const { error } = await supabase.from("team_members").update(patch as never).eq("id", id);
   if (error) throw new Error(dbError(error, "Ruajtja e anëtarit dështoi. Provo sërish."));
-  revalidatePath("/admin/team-members");
+  revalidatePath("/admin/people");
   revalidatePath("/team");
-  redirect("/admin/team-members");
+  redirect("/admin/people");
 }
 
 export async function deleteTeamMember(id: string): Promise<{ ok: boolean; error?: string }> {
@@ -93,7 +87,7 @@ export async function deleteTeamMember(id: string): Promise<{ ok: boolean; error
     const supabase = await createClient();
     const { error } = await supabase.from("team_members").delete().eq("id", id);
     if (error) return { ok: false, error: dbError(error, "Fshirja e anëtarit dështoi. Provo sërish.") };
-    revalidatePath("/admin/team-members");
+    revalidatePath("/admin/people");
     revalidatePath("/team");
     return { ok: true };
   } catch (e) {

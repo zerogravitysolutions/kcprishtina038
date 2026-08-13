@@ -41,7 +41,7 @@ export default async function NewRidePage() {
       {athletes.length === 0 ? (
         <p style={{ color: "var(--ink-3)" }}>
           Nuk ka çiklistë aktivë. Shto çiklistë tek{" "}
-          <Link href="/admin/team-members" style={{ color: "var(--ember)" }}>Ekipi</Link> (me pozicionin “Çiklist/e”).
+          <Link href="/admin/people" style={{ color: "var(--ember)" }}>Njerëzit</Link> (me pozicionin “Çiklist/e”).
         </p>
       ) : (
         <RideBuilder athletes={athletes} sections={sections} />

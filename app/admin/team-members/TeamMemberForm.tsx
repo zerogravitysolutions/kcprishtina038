@@ -174,7 +174,7 @@ export function TeamMemberForm({
 
       <div style={{ display: "flex", gap: 10 }}>
         <button type="submit" className="btn btn-ember" disabled={pending}>{pending ? "Duke ruajtur…" : submitLabel}</button>
-        <Link href="/admin/team-members" className="btn btn-ghost">Anulo</Link>
+        <Link href="/admin/people" className="btn btn-ghost">Anulo</Link>
       </div>
     </form>
   );

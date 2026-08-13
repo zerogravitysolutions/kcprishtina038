@@ -18,6 +18,14 @@ export type TrainingRideKind = "group" | "solo";
 // memberships.status and dues.paid_method are text + CHECK, not enums.
 export type MembershipStatus = "active" | "paused" | "ended";
 export type PaidMethod = "cash" | "bank" | "online" | "waived";
+// club_funds / club_expenses are text + CHECK too (migration 20260810000002).
+export type ClubFundKind = "sponsor" | "project" | "donation" | "grant" | "other";
+/** 'pledged' is agreed money that is NOT in the bank. Never counted as cash. */
+export type ClubFundStatus = "received" | "pledged";
+export type ExpenseStatus = "paid" | "unpaid";
+/** Who actually handed over the money. 'member' = the club owes them it back. */
+export type ExpensePaidBy = "club" | "member";
+export type ExpensePaymentMethod = "cash" | "transfer";
 
 export interface Database {
   public: {
@@ -271,6 +279,72 @@ export interface Database {
         Insert: { member_id: string; period: string; amount_eur: number; status?: DuesStatus; paid_at?: string | null; paid_method?: PaidMethod | null; notes?: string | null; membership_id?: string | null; due_date?: string | null; invoice_no?: string | null };
         Update: Partial<Database["public"]["Tables"]["dues"]["Row"]>;
       };
+      expense_categories: {
+        Row: {
+          id: string; code: string; name_sq: string;
+          description_sq: string | null;
+          display_order: number; active: boolean;
+          created_at: string; updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["expense_categories"]["Row"]> & {
+          code: string; name_sq: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["expense_categories"]["Row"]>;
+      };
+      club_funds: {
+        Row: {
+          id: string; title: string;
+          // Received on, or — for a pledge — agreed/expected on.
+          occurred_on: string;
+          amount_eur: number;
+          kind: ClubFundKind;
+          // Required by CHECK when kind = 'sponsor'.
+          sponsor_id: string | null;
+          status: ClubFundStatus;
+          reference: string | null;
+          notes: string | null;
+          recorded_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["club_funds"]["Row"]> & {
+          title: string; occurred_on: string; amount_eur: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["club_funds"]["Row"]>;
+      };
+      club_expenses: {
+        Row: {
+          id: string;
+          occurred_on: string;
+          category_id: string;
+          description: string;
+          // NULL ON PURPOSE: a real cost with no agreed price yet. It is NOT
+          // zero — sum it with sumAmounts() from lib/finance, never sumEur().
+          amount_eur: number | null;
+          // NULL = the club itself ("Klubi"), not "unknown".
+          beneficiary_member_id: string | null;
+          // NULL = no invoice was issued. Never the string "pa fature".
+          invoice_no: string | null;
+          payment_method: ExpensePaymentMethod | null;
+          paid_by: ExpensePaidBy;
+          // Set iff paid_by = 'member' (club_expenses_paid_by_ck).
+          paid_by_member_id: string | null;
+          // Whose budget the cost draws on — independent of whether that sponsor
+          // has transferred anything yet (see club_funds.status).
+          funding_sponsor_id: string | null;
+          status: ExpenseStatus;
+          // Only a member-fronted cost can be reimbursed, often in kind, which
+          // is why the note IS the record.
+          reimbursed: boolean;
+          reimbursed_note: string | null;
+          notes: string | null;
+          recorded_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["club_expenses"]["Row"]> & {
+          occurred_on: string; category_id: string; description: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["club_expenses"]["Row"]>;
+      };
       attendance: {
         Row: {
           id: string; member_id: string; session_date: string;
@@ -518,3 +592,18 @@ export type MembershipUpdate = Database["public"]["Tables"]["memberships"]["Upda
 export type Due = Database["public"]["Tables"]["dues"]["Row"];
 export type DueInsert = Database["public"]["Tables"]["dues"]["Insert"];
 export type DueUpdate = Database["public"]["Tables"]["dues"]["Update"];
+
+// Club money that is not membership dues: the funds coming in and the expense
+// ledger going out (migration 20260810000002). Aliased for the same reason as
+// the rows above — the funds / expenses screens pass them around a lot.
+export type ExpenseCategory = Database["public"]["Tables"]["expense_categories"]["Row"];
+export type ExpenseCategoryInsert = Database["public"]["Tables"]["expense_categories"]["Insert"];
+export type ExpenseCategoryUpdate = Database["public"]["Tables"]["expense_categories"]["Update"];
+
+export type ClubFund = Database["public"]["Tables"]["club_funds"]["Row"];
+export type ClubFundInsert = Database["public"]["Tables"]["club_funds"]["Insert"];
+export type ClubFundUpdate = Database["public"]["Tables"]["club_funds"]["Update"];
+
+export type ClubExpense = Database["public"]["Tables"]["club_expenses"]["Row"];
+export type ClubExpenseInsert = Database["public"]["Tables"]["club_expenses"]["Insert"];
+export type ClubExpenseUpdate = Database["public"]["Tables"]["club_expenses"]["Update"];

@@ -1,0 +1,500 @@
+"use client";
+
+import { useEffect, useState, useTransition, type CSSProperties } from "react";
+import { useRouter } from "next/navigation";
+import { Modal } from "@/components/ui/Modal";
+import { NumericInput } from "@/components/admin/NumericInput";
+import { actionError } from "@/lib/errors";
+import {
+  EXPENSE_PAYMENT_METHODS, EXPENSE_PAYMENT_METHOD_LABEL, EXPENSE_STATUS_LABEL, formatEur,
+} from "@/lib/finance";
+import { parseStrictNumber } from "@/lib/training";
+import type { ExpensePaidBy, ExpensePaymentMethod, ExpenseStatus } from "@/lib/supabase/types";
+import { createExpense, updateExpense, type ExpenseInput } from "./actions";
+
+// ------------------------------------------------------------------ types
+
+/** One club_expenses row, flattened by the page — never embedded joins. */
+export type ExpenseView = {
+  id: string;
+  occurred_on: string;
+  category_id: string;
+  category_name: string;
+  description: string;
+  /** numeric arrives from PostgREST as a string; null means "no price yet". */
+  amount_eur: number | string | null;
+  beneficiary_member_id: string | null;
+  invoice_no: string | null;
+  payment_method: ExpensePaymentMethod | null;
+  paid_by: ExpensePaidBy;
+  paid_by_member_id: string | null;
+  funding_sponsor_id: string | null;
+  status: ExpenseStatus;
+  reimbursed: boolean;
+  reimbursed_note: string | null;
+  notes: string | null;
+};
+
+export type CategoryOption = { id: string; name_sq: string; active: boolean };
+export type MemberOption = { id: string; full_name: string; active: boolean };
+export type SponsorOption = { id: string; name: string; active: boolean };
+
+export type ExpenseOptions = {
+  categories: CategoryOption[];
+  members: MemberOption[];
+  sponsors: SponsorOption[];
+};
+
+// ------------------------------------------------------------------ helpers
+
+export function todayIso(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
+ * "Paguar nga" is ONE select whose value is either the club or a person. That
+ * is not cosmetic: club_expenses_paid_by_ck requires paid_by and
+ * paid_by_member_id to agree in both directions, and two independent controls
+ * would let the user build the contradiction in the first place.
+ */
+const CLUB = "club";
+
+type FormState = {
+  date: string;
+  categoryId: string;
+  description: string;
+  amount: string;
+  beneficiary: string;
+  invoiceNo: string;
+  method: ExpensePaymentMethod | "";
+  payer: string;
+  sponsor: string;
+  status: ExpenseStatus;
+  reimbursed: boolean;
+  reimbursedNote: string;
+  notes: string;
+};
+
+function blankState(categories: CategoryOption[]): FormState {
+  const firstActive = categories.find((c) => c.active);
+  return {
+    date: todayIso(),
+    categoryId: firstActive?.id ?? "",
+    description: "",
+    amount: "",
+    beneficiary: "",
+    invoiceNo: "",
+    method: "cash",
+    payer: CLUB,
+    sponsor: "",
+    status: "paid",
+    reimbursed: false,
+    reimbursedNote: "",
+    notes: "",
+  };
+}
+
+function stateOf(e: ExpenseView): FormState {
+  return {
+    date: e.occurred_on,
+    categoryId: e.category_id,
+    description: e.description,
+    amount: e.amount_eur === null || e.amount_eur === undefined ? "" : String(e.amount_eur),
+    beneficiary: e.beneficiary_member_id ?? "",
+    invoiceNo: e.invoice_no ?? "",
+    method: e.payment_method ?? "",
+    payer: e.paid_by === "member" && e.paid_by_member_id ? e.paid_by_member_id : CLUB,
+    sponsor: e.funding_sponsor_id ?? "",
+    status: e.status,
+    reimbursed: e.reimbursed,
+    reimbursedNote: e.reimbursed_note ?? "",
+    notes: e.notes ?? "",
+  };
+}
+
+function toInput(s: FormState): ExpenseInput {
+  const payerIsMember = s.payer !== CLUB && s.payer !== "";
+  return {
+    occurred_on: s.date,
+    category_id: s.categoryId,
+    description: s.description,
+    amount_eur: s.amount,
+    beneficiary_member_id: s.beneficiary || null,
+    invoice_no: s.invoiceNo,
+    payment_method: s.method,
+    paid_by: payerIsMember ? "member" : "club",
+    paid_by_member_id: payerIsMember ? s.payer : null,
+    funding_sponsor_id: s.sponsor || null,
+    status: s.status,
+    reimbursed: payerIsMember ? s.reimbursed : false,
+    reimbursed_note: s.reimbursedNote,
+    notes: s.notes,
+  };
+}
+
+/**
+ * The same three CHECK constraints, checked while the user types so the save
+ * button can explain itself instead of failing. The server repeats all of it —
+ * this is the courtesy, not the guarantee.
+ */
+function problemOf(s: FormState): string | null {
+  if (!s.date) return "Data e shpenzimit mungon.";
+  if (!s.categoryId) return "Zgjidh një kategori për shpenzimin.";
+  if (!s.description.trim()) return "Shkruaj se për çfarë është ky shpenzim.";
+  if (s.amount.trim() && parseStrictNumber(s.amount) === null) {
+    return "Shuma duhet të jetë numër, p.sh. 40 ose 40,5. Lëre bosh nëse çmimi nuk është caktuar ende.";
+  }
+  if (s.amount.trim() && (parseStrictNumber(s.amount) ?? 0) < 0) {
+    return "Shuma nuk mund të jetë negative.";
+  }
+  // club_expenses_unpaid_no_payer_ck
+  if (s.status === "unpaid" && s.payer !== CLUB) {
+    return "Një shpenzim i papaguar nuk mund të ketë pagues individual — askush nuk i ka dhënë ende paratë.";
+  }
+  return null;
+}
+
+function memberName(members: MemberOption[], id: string | null): string | null {
+  if (!id) return null;
+  return members.find((m) => m.id === id)?.full_name ?? null;
+}
+
+/** Active people first, past members below, so the common case is one tap. */
+function MemberOptions({ members }: { members: MemberOption[] }) {
+  const active = members.filter((m) => m.active);
+  const past = members.filter((m) => !m.active);
+  return (
+    <>
+      {active.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+      {past.length > 0 ? (
+        <optgroup label="Të mëparshëm">
+          {past.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+        </optgroup>
+      ) : null}
+    </>
+  );
+}
+
+const labelInline: CSSProperties = {
+  display: "flex", alignItems: "center", gap: 8, textTransform: "none",
+  letterSpacing: 0, fontSize: 13, fontFamily: "var(--font-body)", color: "var(--text-2)",
+};
+
+// ------------------------------------------------------------------ modal
+
+export function ExpenseFormModal({
+  open, onClose, options, expense,
+}: {
+  open: boolean;
+  onClose: () => void;
+  options: ExpenseOptions;
+  /** Absent = a new expense. */
+  expense?: ExpenseView;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [s, setS] = useState<FormState>(() => (expense ? stateOf(expense) : blankState(options.categories)));
+  const [err, setErr] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
+
+  // Reopening the modal must show the row as it is NOW, not as it was when the
+  // list was first rendered.
+  useEffect(() => {
+    if (!open) return;
+    setS(expense ? stateOf(expense) : blankState(options.categories));
+    setErr(null);
+    setShowMore(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, expense?.id]);
+
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
+    setS((prev) => ({ ...prev, [k]: v }));
+
+  const payerIsMember = s.payer !== CLUB && s.payer !== "";
+  const payerName = memberName(options.members, payerIsMember ? s.payer : null);
+  const amountNumber = s.amount.trim() ? parseStrictNumber(s.amount) : null;
+  const problem = problemOf(s);
+  const isEdit = !!expense;
+
+  // A category the row already uses but which has since been retired still has
+  // to appear, or editing anything else would silently re-file the expense.
+  const categories = options.categories.filter((c) => c.active || c.id === s.categoryId);
+
+  function save() {
+    setErr(null);
+    if (problem) { setErr(problem); return; }
+    start(async () => {
+      try {
+        const r = expense
+          ? await updateExpense(expense.id, toInput(s))
+          : await createExpense(toInput(s));
+        if (!r.ok) { setErr(r.error); return; }
+        onClose();
+        router.refresh();
+      } catch (e) {
+        const msg = actionError(e, "Ruajtja e shpenzimit dështoi. Provo sërish.");
+        if (msg) setErr(msg);
+        else { onClose(); router.refresh(); }
+      }
+    });
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? "Ndrysho shpenzimin" : "Shto shpenzim"}
+      footer={
+        <>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} disabled={pending}>
+            Anulo
+          </button>
+          <button
+            type="button"
+            className="btn btn-ember btn-sm"
+            onClick={save}
+            disabled={pending || !!problem}
+            title={problem ?? undefined}
+          >
+            {pending ? "Duke ruajtur…" : isEdit ? "Ruaj ndryshimet" : "Ruaj shpenzimin"}
+          </button>
+        </>
+      }
+    >
+      {/* ---- fast path: what gets typed in the shop ---- */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="ex-date">Data</label>
+          <input id="ex-date" type="date" value={s.date} onChange={(e) => set("date", e.target.value)} />
+        </div>
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="ex-amount">Shuma (€)</label>
+          <NumericInput
+            kind="decimal"
+            value={s.amount}
+            onChange={(v) => set("amount", v)}
+            placeholder="p.sh. 40,5"
+            ariaLabel="Shuma në euro"
+            hint={s.amount.trim() ? undefined : "Lëre bosh nëse çmimi s’është caktuar ende"}
+          />
+        </div>
+      </div>
+
+      <div className="field" style={{ marginTop: 14 }}>
+        <label htmlFor="ex-cat">Kategoria</label>
+        <select id="ex-cat" value={s.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
+          <option value="">Zgjidh kategorinë…</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name_sq}{c.active ? "" : " (joaktive)"}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="ex-desc">Përshkrimi</label>
+        <input
+          id="ex-desc"
+          value={s.description}
+          onChange={(e) => set("description", e.target.value)}
+          placeholder="p.sh. goma të reja për garën e Prizrenit"
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="ex-benef">Për kë (ciklisti)</label>
+        <select id="ex-benef" value={s.beneficiary} onChange={(e) => set("beneficiary", e.target.value)}>
+          <option value="">Klubi</option>
+          <MemberOptions members={options.members} />
+        </select>
+        <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
+          Lëre te “Klubi” nëse shpenzimi nuk është për një person të caktuar.
+        </div>
+      </div>
+
+      {/* ---- who paid: the one that carries a debt ---- */}
+      <div className="field">
+        <label htmlFor="ex-payer">Paguar nga</label>
+        <select
+          id="ex-payer"
+          value={s.payer}
+          onChange={(e) => {
+            const v = e.target.value;
+            // Switching back to the club drops the reimbursement with it:
+            // club_expenses_reimbursed_ck, made unreachable instead of caught.
+            setS((prev) => ({
+              ...prev,
+              payer: v,
+              reimbursed: v === CLUB ? false : prev.reimbursed,
+              reimbursedNote: v === CLUB ? "" : prev.reimbursedNote,
+            }));
+          }}
+        >
+          <option value={CLUB}>Klubi</option>
+          <MemberOptions members={options.members} />
+        </select>
+        {s.status === "unpaid" && payerIsMember ? (
+          <div className="mm-msg err" style={{ marginTop: 4 }}>
+            Një shpenzim i papaguar nuk mund të ketë pagues individual — askush nuk i ka dhënë ende
+            paratë.{" "}
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ marginLeft: 6 }}
+              onClick={() => setS((p) => ({ ...p, payer: CLUB, reimbursed: false, reimbursedNote: "" }))}
+            >
+              Vendos “Klubi”
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {payerIsMember ? (
+        <div
+          style={{
+            border: "1px solid color-mix(in oklab, var(--warn) 30%, transparent)",
+            background: "var(--warn-bg)",
+            borderRadius: "var(--r-sm)",
+            padding: "12px 14px",
+            marginBottom: 14,
+          }}
+        >
+          <div style={{ fontSize: 13.5, color: "var(--text-1)", lineHeight: 1.6 }}>
+            {s.reimbursed ? (
+              <>Klubi ia ka kthyer <strong>{payerName ?? "këtij personi"}</strong> këto para.</>
+            ) : (
+              <>
+                Klubi ia ka borxh <strong>{payerName ?? "këtij personi"}</strong>
+                {amountNumber !== null ? <> {formatEur(amountNumber)}</> : " këtë shpenzim (pa shumë të caktuar)"}
+                , derisa të shënohet si i rimbursuar.
+              </>
+            )}
+          </div>
+          <div className="field" style={{ marginTop: 10, marginBottom: s.reimbursed ? 14 : 0 }}>
+            <label style={labelInline}>
+              <input
+                type="checkbox"
+                checked={s.reimbursed}
+                onChange={(e) => set("reimbursed", e.target.checked)}
+                style={{ width: 16, height: 16 }}
+              />
+              Është rimbursuar
+            </label>
+          </div>
+          {s.reimbursed ? (
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label htmlFor="ex-rnote">Si u rimbursua</label>
+              <input
+                id="ex-rnote"
+                value={s.reimbursedNote}
+                onChange={(e) => set("reimbursedNote", e.target.value)}
+                placeholder="p.sh. i kam rimbursuar me naftë"
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* ---- secondary group: visible, but out of the way ---- */}
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        onClick={() => setShowMore((v) => !v)}
+        style={{ marginBottom: 14 }}
+      >
+        {showMore ? "Fshihi detajet" : "Detajet: faturë, mënyra, statusi, burimi"}
+      </button>
+
+      {showMore ? (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label htmlFor="ex-inv">Nr. i faturës</label>
+              <input
+                id="ex-inv"
+                value={s.invoiceNo}
+                onChange={(e) => set("invoiceNo", e.target.value)}
+                placeholder="Pa faturë"
+              />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label htmlFor="ex-method">Mënyra e pagesës</label>
+              <select
+                id="ex-method"
+                value={s.method}
+                onChange={(e) => set("method", e.target.value as ExpensePaymentMethod | "")}
+              >
+                <option value="">E pashënuar</option>
+                {EXPENSE_PAYMENT_METHODS.map((m) => (
+                  <option key={m} value={m}>{EXPENSE_PAYMENT_METHOD_LABEL[m]}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="field" style={{ marginTop: 14 }}>
+            <label htmlFor="ex-status">Statusi</label>
+            <select
+              id="ex-status"
+              value={s.status}
+              onChange={(e) => set("status", e.target.value as ExpenseStatus)}
+            >
+              <option value="paid">{EXPENSE_STATUS_LABEL.paid}</option>
+              <option value="unpaid">{EXPENSE_STATUS_LABEL.unpaid}</option>
+            </select>
+            {s.status === "unpaid" ? (
+              <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
+                Kosto e regjistruar që s’është shlyer ende. Nuk hyn në bilanc derisa të paguhet.
+              </div>
+            ) : null}
+          </div>
+
+          <div className="field">
+            <label htmlFor="ex-sponsor">Burimi (buxheti i sponsorit)</label>
+            <select id="ex-sponsor" value={s.sponsor} onChange={(e) => set("sponsor", e.target.value)}>
+              <option value="">Pa burim të caktuar</option>
+              {options.sponsors.filter((sp) => sp.active || sp.id === s.sponsor).map((sp) => (
+                <option key={sp.id} value={sp.id}>
+                  {sp.name}{sp.active ? "" : " (joaktiv)"}
+                </option>
+              ))}
+            </select>
+            <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
+              Zgjidhe edhe nëse sponsori nuk i ka transferuar ende paratë.
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="ex-notes">Shënim</label>
+            <textarea
+              id="ex-notes"
+              rows={2}
+              value={s.notes}
+              onChange={(e) => set("notes", e.target.value)}
+              placeholder="Çdo gjë që duhet mbajtur mend për këtë shpenzim"
+            />
+          </div>
+        </>
+      ) : null}
+
+      {err ? <div className="mm-msg err">{err}</div> : null}
+    </Modal>
+  );
+}
+
+// ------------------------------------------------------------------ trigger
+
+export function NewExpenseButton({ options }: { options: ExpenseOptions }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="btn btn-ember" onClick={() => setOpen(true)}>
+        Shto shpenzim
+      </button>
+      <ExpenseFormModal open={open} onClose={() => setOpen(false)} options={options} />
+    </>
+  );
+}

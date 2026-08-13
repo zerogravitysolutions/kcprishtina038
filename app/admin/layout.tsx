@@ -46,8 +46,20 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
     group: "Financat",
     items: [
       { id: "finance", label: "Faturat", href: "/admin/finance", icon: "receipt", allow: ["admin", "staff"] },
+      // The three club-money screens (migration 20260810000002). Same bar as
+      // the invoices — club_funds / club_expenses are admin + staff, and the
+      // expense ledger shows what the club pays individual people, so it is
+      // never widened to editors or coaches.
+      // Icons are reused from the existing AdminIcon set on purpose — that
+      // union lives in AdminNav.tsx, which this change deliberately leaves
+      // alone: "euro" for the club's own money, "inbox" for what comes in,
+      // "file" for the cost ledger.
+      { id: "finance-treasury", label: "Arka e klubit", href: "/admin/finance/treasury", icon: "euro", allow: ["admin", "staff"] },
+      { id: "finance-funds", label: "Hyrjet e klubit", href: "/admin/finance/funds", icon: "inbox", allow: ["admin", "staff"] },
+      { id: "finance-expenses", label: "Shpenzimet", href: "/admin/finance/expenses", icon: "file", allow: ["admin", "staff"] },
       { id: "finance-reports", label: "Raportet financiare", href: "/admin/finance/reports", icon: "chart", allow: ["admin", "staff"] },
-      { id: "finance-plans", label: "Planet e anëtarësisë", href: "/admin/finance/plans", icon: "euro", allow: ["admin"] },
+      // "layers" reads as stacked tiers, and frees "euro" for the club's arka.
+      { id: "finance-plans", label: "Planet e anëtarësisë", href: "/admin/finance/plans", icon: "layers", allow: ["admin"] },
     ],
   },
   {
@@ -97,7 +109,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v2.6</span>
+            <span className="sub">Admin · v2.7</span>
           </div>
         </Link>
 

@@ -668,7 +668,7 @@ export function emptyAmountTotal(): AmountTotal {
 
 /**
  * Membership CASH IN: invoices whose money was actually collected. Same rule
- * as /admin/finance/reports — a waived invoice is neither income nor debt, and
+ * as the Pasqyra financiare — a waived invoice is neither income nor debt, and
  * an unpaid one is not income at all. The caller decides the window (it holds
  * the paid_at filter); this only decides what counts as money.
  */

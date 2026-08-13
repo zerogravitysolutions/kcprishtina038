@@ -65,7 +65,7 @@ export async function updatePlan(planId: string, input: PlanInput): Promise<Plan
       .eq("id", planId);
     if (error) return { ok: false, error: dbError(error, "Ruajtja e planit dështoi. Provo sërish.") };
 
-    revalidatePath("/admin/finance/plans");
+    revalidatePath("/admin/plans");
     revalidatePath("/admin/finance");
     revalidatePath("/join");
     return { ok: true };

@@ -197,7 +197,6 @@ export function ExpenseFormModal({
   const [pending, start] = useTransition();
   const [s, setS] = useState<FormState>(() => (expense ? stateOf(expense) : blankState(options.categories)));
   const [err, setErr] = useState<string | null>(null);
-  const [showMore, setShowMore] = useState(false);
 
   // Reopening the modal must show the row as it is NOW, not as it was when the
   // list was first rendered.
@@ -205,7 +204,6 @@ export function ExpenseFormModal({
     if (!open) return;
     setS(expense ? stateOf(expense) : blankState(options.categories));
     setErr(null);
-    setShowMore(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, expense?.id]);
 
@@ -398,89 +396,93 @@ export function ExpenseFormModal({
         </div>
       ) : null}
 
-      {/* ---- secondary group: visible, but out of the way ---- */}
-      <button
-        type="button"
-        className="btn btn-ghost btn-sm"
-        onClick={() => setShowMore((v) => !v)}
-        style={{ marginBottom: 14 }}
+      {/* ---- secondary group: always visible, just clearly secondary ----
+          These four used to hide behind a "Detajet" toggle, which meant the
+          status — the field that decides whether the cost is in the balance at
+          all — was one tap away from being forgotten. They stay below the fast
+          path and under their own heading, so the form still reads top-down on
+          a phone, but nothing is hidden. */}
+      <div
+        style={{
+          borderTop: "1px solid var(--line-strong)",
+          paddingTop: 14,
+          marginTop: 4,
+        }}
       >
-        {showMore ? "Fshihi detajet" : "Detajet: faturë, mënyra, statusi, burimi"}
-      </button>
+        <div className="kicker" style={{ marginBottom: 12 }}>Detajet</div>
 
-      {showMore ? (
-        <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div className="field" style={{ marginBottom: 0 }}>
-              <label htmlFor="ex-inv">Nr. i faturës</label>
-              <input
-                id="ex-inv"
-                value={s.invoiceNo}
-                onChange={(e) => set("invoiceNo", e.target.value)}
-                placeholder="Pa faturë"
-              />
+        <div className="field">
+          <label htmlFor="ex-status">Statusi</label>
+          <select
+            id="ex-status"
+            value={s.status}
+            onChange={(e) => set("status", e.target.value as ExpenseStatus)}
+          >
+            <option value="paid">{EXPENSE_STATUS_LABEL.paid}</option>
+            <option value="unpaid">{EXPENSE_STATUS_LABEL.unpaid}</option>
+          </select>
+          {s.status === "unpaid" ? (
+            <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
+              Kosto e regjistruar që s’është shlyer ende. Nuk hyn në bilanc derisa të paguhet.
             </div>
-            <div className="field" style={{ marginBottom: 0 }}>
-              <label htmlFor="ex-method">Mënyra e pagesës</label>
-              <select
-                id="ex-method"
-                value={s.method}
-                onChange={(e) => set("method", e.target.value as ExpensePaymentMethod | "")}
-              >
-                <option value="">E pashënuar</option>
-                {EXPENSE_PAYMENT_METHODS.map((m) => (
-                  <option key={m} value={m}>{EXPENSE_PAYMENT_METHOD_LABEL[m]}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+          ) : null}
+        </div>
 
-          <div className="field" style={{ marginTop: 14 }}>
-            <label htmlFor="ex-status">Statusi</label>
+        {/* auto-fit, not a hard 1fr 1fr: on a narrow phone these two drop onto
+            separate lines instead of squeezing the amounts. */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14 }}>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="ex-method">Mënyra e pagesës</label>
             <select
-              id="ex-status"
-              value={s.status}
-              onChange={(e) => set("status", e.target.value as ExpenseStatus)}
+              id="ex-method"
+              value={s.method}
+              onChange={(e) => set("method", e.target.value as ExpensePaymentMethod | "")}
             >
-              <option value="paid">{EXPENSE_STATUS_LABEL.paid}</option>
-              <option value="unpaid">{EXPENSE_STATUS_LABEL.unpaid}</option>
-            </select>
-            {s.status === "unpaid" ? (
-              <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
-                Kosto e regjistruar që s’është shlyer ende. Nuk hyn në bilanc derisa të paguhet.
-              </div>
-            ) : null}
-          </div>
-
-          <div className="field">
-            <label htmlFor="ex-sponsor">Burimi (buxheti i sponsorit)</label>
-            <select id="ex-sponsor" value={s.sponsor} onChange={(e) => set("sponsor", e.target.value)}>
-              <option value="">Pa burim të caktuar</option>
-              {options.sponsors.filter((sp) => sp.active || sp.id === s.sponsor).map((sp) => (
-                <option key={sp.id} value={sp.id}>
-                  {sp.name}{sp.active ? "" : " (joaktiv)"}
-                </option>
+              <option value="">E pashënuar</option>
+              {EXPENSE_PAYMENT_METHODS.map((m) => (
+                <option key={m} value={m}>{EXPENSE_PAYMENT_METHOD_LABEL[m]}</option>
               ))}
             </select>
-            <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
-              Zgjidhe edhe nëse sponsori nuk i ka transferuar ende paratë.
-            </div>
           </div>
-
-          <div className="field">
-            <label htmlFor="ex-notes">Shënim</label>
-            <textarea
-              id="ex-notes"
-              rows={2}
-              value={s.notes}
-              onChange={(e) => set("notes", e.target.value)}
-              placeholder="Çdo gjë që duhet mbajtur mend për këtë shpenzim"
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="ex-inv">Nr. i faturës</label>
+            <input
+              id="ex-inv"
+              value={s.invoiceNo}
+              onChange={(e) => set("invoiceNo", e.target.value)}
+              placeholder="Pa faturë"
             />
           </div>
-        </>
-      ) : null}
+        </div>
 
-      {err ? <div className="mm-msg err">{err}</div> : null}
+        <div className="field" style={{ marginTop: 14 }}>
+          <label htmlFor="ex-sponsor">Burimi (buxheti i sponsorit)</label>
+          <select id="ex-sponsor" value={s.sponsor} onChange={(e) => set("sponsor", e.target.value)}>
+            <option value="">Pa burim të caktuar</option>
+            {options.sponsors.filter((sp) => sp.active || sp.id === s.sponsor).map((sp) => (
+              <option key={sp.id} value={sp.id}>
+                {sp.name}{sp.active ? "" : " (joaktiv)"}
+              </option>
+            ))}
+          </select>
+          <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
+            Zgjidhe edhe nëse sponsori nuk i ka transferuar ende paratë.
+          </div>
+        </div>
+
+        <div className="field" style={{ marginBottom: 0 }}>
+          <label htmlFor="ex-notes">Shënim</label>
+          <textarea
+            id="ex-notes"
+            rows={2}
+            value={s.notes}
+            onChange={(e) => set("notes", e.target.value)}
+            placeholder="Çdo gjë që duhet mbajtur mend për këtë shpenzim"
+          />
+        </div>
+      </div>
+
+      {err ? <div className="mm-msg err" style={{ marginTop: 14 }}>{err}</div> : null}
     </Modal>
   );
 }

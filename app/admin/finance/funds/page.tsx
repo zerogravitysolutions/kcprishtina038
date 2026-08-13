@@ -146,7 +146,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
           <h1>Hyrjet e klubit</h1>
           <div className="sub">
             Paratë që hyjnë pa qenë kuota anëtarësie: sponsorizime, projekte, grante dhe donacione.{" "}
-            <Link href="/admin/finance/treasury">Arka e klubit</Link>
+            <Link href="/admin/finance/overview">Arka e klubit</Link>
             {" · "}<Link href="/admin/finance">Faturat e anëtarëve</Link>
           </div>
         </div>
@@ -266,7 +266,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
       </div>
 
       <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", marginTop: 12, lineHeight: 1.7 }}>
-        Vetëm paratë e pranuara hyjnë në bilancin te <Link href="/admin/finance/treasury">Arka e klubit</Link>.
+        Vetëm paratë e pranuara hyjnë në bilancin te <Link href="/admin/finance/overview">Arka e klubit</Link>.
         {canDelete ? "" : " Fshirja e një hyrjeje bëhet vetëm nga admini — ti mund ta ndryshosh."}
       </p>
     </>

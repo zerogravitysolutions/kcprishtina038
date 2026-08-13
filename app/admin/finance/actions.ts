@@ -47,7 +47,7 @@ function todayIso(): string {
 // dashboard both read dues too — nudge them after every write.
 function revalidateFinance() {
   revalidatePath("/admin/finance");
-  revalidatePath("/admin/finance/reports");
+  revalidatePath("/admin/finance/overview");
   revalidatePath("/admin/dashboard");
   revalidatePath("/portal");
 }

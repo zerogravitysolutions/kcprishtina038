@@ -100,11 +100,11 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
         </div>
         {done.invoiceNo
           ? <div style={MUTED}>Fatura e parë u gjenerua: <span className="mono">{done.invoiceNo}</span></div>
-          : done.billable && <div style={MUTED}>Nuk u gjenerua asnjë faturë tani. Gjeneroje te Financat kur ta duash.</div>}
+          : done.billable && <div style={MUTED}>Nuk u gjenerua asnjë faturë tani. Gjeneroje te Faturat e anëtarëve kur ta duash.</div>}
         {done.warning && <div style={{ color: "var(--warn)", fontSize: 12.5, lineHeight: 1.6 }}>{done.warning}</div>}
         <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
           <Link className="btn btn-sm" href="/admin/people">Shko te njerëzit</Link>
-          {done.billable && <Link className="btn btn-sm btn-ghost" href="/admin/finance">Financat</Link>}
+          {done.billable && <Link className="btn btn-sm btn-ghost" href="/admin/finance">Faturat e anëtarëve</Link>}
         </div>
       </div>
     );

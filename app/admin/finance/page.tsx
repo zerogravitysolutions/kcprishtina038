@@ -14,7 +14,7 @@ import { InvoiceRow, type InvoiceView } from "./InvoiceRow";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export const metadata = { title: "Financat" };
+export const metadata = { title: "Faturat e anëtarëve" };
 
 // dues_select_staff / dues_write_staff (migration 0006) — admin + staff.
 const FINANCE_ROLES = ["admin", "staff"];
@@ -70,32 +70,28 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
   const query = (sp.q ?? "").trim();
 
   const supabase = await createClient();
-  const [invoiceRes, debtRes] = await Promise.all([
-    // Ordered before the cap: an unordered limit would return an arbitrary
-    // slice, so which invoices got dropped would change between refreshes.
-    supabase
-      .from("dues")
-      .select(SELECT)
-      .eq("period", period)
-      .order("created_at", { ascending: true })
-      .limit(ROW_CAP),
-    // Every still-open invoice, all periods — this is what "who is behind"
-    // means; a member overdue since May must count even in August's view.
-    supabase
-      .from("dues")
-      .select("member_id, period, due_date, status, amount_eur")
-      .in("status", ["unpaid", "overdue"])
-      .order("period", { ascending: true })
-      .limit(2000),
-  ]);
+  // ONE select: the invoices of the selected month, which is exactly what this
+  // screen shows. The all-periods debt read that used to sit next to it (and
+  // fed two KPIs about rows that are not on screen) now lives once, on the
+  // Pasqyra financiare — three copies of that figure was how the panel started
+  // printing different euros under the same word.
+  //
+  // Ordered before the cap: an unordered limit would return an arbitrary slice,
+  // so which invoices got dropped would change between refreshes.
+  const invoiceRes = await supabase
+    .from("dues")
+    .select(SELECT)
+    .eq("period", period)
+    .order("created_at", { ascending: true })
+    .limit(ROW_CAP);
 
-  const loadError = invoiceRes.error ?? debtRes.error;
+  const loadError = invoiceRes.error;
   if (loadError) {
     return (
       <>
         <div className="page-head">
           <div>
-            <h1>Financat</h1>
+            <h1>Faturat e anëtarëve</h1>
             <div className="sub">Faturat mujore të akademisë.</div>
           </div>
         </div>
@@ -112,8 +108,6 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
   }
 
   const raw = (invoiceRes.data as unknown as DueRow[] | null) ?? [];
-  const openDues = (debtRes.data as unknown as
-    { member_id: string; period: string; due_date: string | null; status: DuesStatus; amount_eur: number }[] | null) ?? [];
 
   const invoices: InvoiceView[] = raw.map((d) => ({
     id: d.id,
@@ -139,20 +133,12 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
   // reason: a forgiven invoice is neither income nor debt, so counting it here
   // would (a) break this row's own arithmetic — Faturuar would no longer equal
   // Arkëtuar + Pa arkëtuar — and (b) put a different euro figure under the word
-  // "Faturuar" than /admin/finance/reports shows for the same month. The waived
-  // total is reported on its own line below.
+  // "Faturuar" than the Pasqyra shows for the same month. The waived total is
+  // reported on its own line below.
   const billedRows = invoices.filter((i) => effectiveStatus(i) !== "waived");
   const billed = sumEur(billedRows);
   const collected = sumEur(collectedRows);
   const outstanding = outstandingTotal(invoices);
-  const collectable = collected + outstanding;
-  const rate = collectable > 0 ? Math.round((collected / collectable) * 100) : 0;
-
-  // Members behind on ANY invoice, in any month.
-  const overdueMembers = new Set(
-    openDues.filter((d) => effectiveStatus(d) === "overdue").map((d) => d.member_id),
-  );
-  const totalDebt = outstandingTotal(openDues);
 
   // ---- filtered list -------------------------------------------------------
   const needle = query.toLowerCase();
@@ -188,10 +174,12 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
     <>
       <div className="page-head">
         <div>
-          <h1>Financat</h1>
+          <h1>Faturat e anëtarëve</h1>
           <div className="sub">
-            Faturat mujore të akademisë për {label}. <Link href="/admin/finance/plans">Planet</Link>
-            {" · "}<Link href="/admin/finance/reports">Raportet financiare</Link>
+            Faturat mujore të akademisë për {label}.{" "}
+            <Link href="/admin/finance/overview?v=borxhet">Borxhi i anëtarëve</Link>
+            {" · "}<Link href="/admin/finance/overview?v=anetaresia">Të hyrat e akademisë</Link>
+            {profile.role === "admin" ? <>{" · "}<Link href="/admin/plans">Planet</Link></> : null}
           </div>
         </div>
         <GenerateInvoices
@@ -201,28 +189,14 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
         />
       </div>
 
+      {/* Exactly the totals of the rows on screen — a table footer, not a
+          report. The collection rate and the all-periods member debt used to
+          sit here too; both summarised data that is NOT in this list, off a
+          300-row cap, and both now live once on the Pasqyra financiare. */}
       <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", marginBottom: 16 }}>
         <Kpi accent="#2E90FA" label="Faturuar" value={formatEur(billed)} sub={`${invoiceCount(billedRows.length)} · ${label}`} />
         <Kpi accent="#16A34A" label="Arkëtuar" value={formatEur(collected)} sub={`${invoiceCount(collectedRows.length)} të paguara`} />
         <Kpi accent="#E0562D" label="Pa arkëtuar" value={formatEur(outstanding)} sub={`${invoiceCount(outstandingRows.length)} të hapura`} />
-        <Kpi
-          accent="#0E9384"
-          label="Arkëtimi"
-          value={collectable > 0 ? `${rate}%` : "Pa fatura"}
-          sub={
-            collectable > 0
-              ? "nga shuma e arkëtueshme"
-              : invoices.length > 0
-                ? "të gjitha faturat e këtij muaji janë falur"
-                : "asgjë për t’u arkëtuar këtë muaj"
-          }
-        />
-        <Kpi
-          accent="#B42318"
-          label="Në vonesë"
-          value={String(overdueMembers.size)}
-          sub={`${overdueMembers.size === 1 ? "anëtar" : "anëtarë"} · borxh gjithsej ${formatEur(totalDebt)}`}
-        />
       </div>
 
       {waivedRows.length > 0 ? (

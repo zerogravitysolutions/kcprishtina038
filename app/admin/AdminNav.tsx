@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 export type AdminIcon =
   | "grid" | "inbox" | "users" | "team" | "layers" | "calendar" | "flag"
   | "activity" | "bike" | "chart" | "news" | "image" | "file" | "star" | "settings"
-  | "euro" | "receipt";
+  | "euro" | "receipt" | "tag";
 
 export type AdminNavItem = { id: string; label: string; href: string; icon: AdminIcon };
 export type AdminNavGroup = { group: string; items: AdminNavItem[] };
@@ -31,20 +31,39 @@ export function AdminNavIcon({ name }: { name: AdminIcon }) {
     case "settings": return <svg {...p}><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1l2.1-2.1M17 7l2.1-2.1" /></svg>;
     case "euro": return <svg {...p}><path d="M17 5.5A6.5 6.5 0 0 0 7.5 12 6.5 6.5 0 0 0 17 18.5" /><path d="M4 10.5h8M4 13.5h8" /></svg>;
     case "receipt": return <svg {...p}><path d="M5 3v18l2.5-1.5L10 21l2-1.5L14 21l2.5-1.5L19 21V3H5Z" /><path d="M9 8h6M9 12h6" /></svg>;
+    // A priced tier, for "Planet e anëtarësisë". It sits next to Seksionet,
+    // which already owns "layers" — two identical glyphs one under the other in
+    // the same group is a menu you have to read instead of scan.
+    case "tag": return <svg {...p}><path d="M13 3H5a2 2 0 0 0-2 2v8l8.6 8.6a2 2 0 0 0 2.8 0l7.2-7.2a2 2 0 0 0 0-2.8L13 3Z" /><circle cx="7.6" cy="7.6" r="1.3" /></svg>;
   }
 }
 
-function useActive(href: string) {
-  const pathname = usePathname();
-  if (!pathname) return false;
-  if (href === "/admin/dashboard") return pathname === "/admin/dashboard";
-  // Progresi mujor lives under /admin/training/progress — keep it distinct from the list.
-  if (href === "/admin/training") return pathname === "/admin/training" || (pathname.startsWith("/admin/training/") && !pathname.startsWith("/admin/training/progress"));
-  return pathname === href || pathname.startsWith(href + "/");
+/**
+ * Which single nav item is active for a pathname — longest match wins.
+ *
+ * A plain `startsWith` rule lights up two items whenever one nav href is a
+ * prefix of another (/admin/finance and /admin/finance/expenses,
+ * /admin/training and /admin/training/progress). Rather than hand-patching each
+ * collision as it appears, the rule itself is fixed: of every item whose href
+ * the pathname sits under, only the MOST specific one is active. Hrefs are
+ * unique, so exactly one item can win.
+ *
+ * Both the sidebar and the mobile drawer call this, so the two can never
+ * disagree about what is selected.
+ */
+export function activeNavHref(pathname: string | null, groups: AdminNavGroup[]): string | null {
+  if (!pathname) return null;
+  let best: string | null = null;
+  for (const g of groups) {
+    for (const it of g.items) {
+      if (pathname !== it.href && !pathname.startsWith(it.href + "/")) continue;
+      if (best === null || it.href.length > best.length) best = it.href;
+    }
+  }
+  return best;
 }
 
-function Item({ item }: { item: AdminNavItem }) {
-  const active = useActive(item.href);
+function Item({ item, active }: { item: AdminNavItem; active: boolean }) {
   return (
     <Link href={item.href as never} className={`nav-item ${active ? "active" : ""}`} aria-current={active ? "page" : undefined}>
       <span className="ic"><AdminNavIcon name={item.icon} /></span>
@@ -54,12 +73,14 @@ function Item({ item }: { item: AdminNavItem }) {
 }
 
 export function AdminSideNav({ groups }: { groups: AdminNavGroup[] }) {
+  const pathname = usePathname();
+  const active = activeNavHref(pathname, groups);
   return (
     <>
       {groups.map((g) => (
         <div key={g.group}>
           <div className="nav-group">{g.group}</div>
-          {g.items.map((it) => <Item key={it.id} item={it} />)}
+          {g.items.map((it) => <Item key={it.id} item={it} active={it.href === active} />)}
         </div>
       ))}
     </>

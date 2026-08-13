@@ -24,6 +24,12 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
       // of the two old ones — every write is still gated on the server.
       { id: "people", label: "Njerëzit", href: "/admin/people", icon: "users", allow: ["admin", "editor", "staff"] },
       { id: "sections", label: "Seksionet", href: "/admin/sections", icon: "layers", allow: ["admin", "editor", "staff"] },
+      // A membership plan is a catalogue row like a section: an admin-managed
+      // tier, shown on the public registration form, that a person gets put
+      // into. The screen itself counts members per tier and has no money
+      // movement on it, so it belongs to the register, not to Financat. The
+      // money view of the tiers lives on the Pasqyra ("Sipas planit").
+      { id: "plans", label: "Planet e anëtarësisë", href: "/admin/plans", icon: "tag", allow: ["admin"] },
     ],
   },
   {
@@ -41,25 +47,24 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
     ],
   },
   {
-    // Mirrors the dues_write_staff policy (migration 0006): admin + staff move
-    // money, and only admin edits the plans themselves.
+    // Mirrors the dues_write_staff / club_funds / club_expenses policies
+    // (migrations 0006 and 20260810000002): admin + staff move money, and the
+    // expense ledger shows what the club pays individual people, so this group
+    // is never widened to editors or coaches.
+    //
+    // The group is split on ONE axis: where money is WRITTEN versus where the
+    // position is READ. Three ledgers — member invoices, money in, money out —
+    // and one place that reads them all. "Arka e klubit" and "Raportet
+    // financiare" were two read screens that printed the same debt, the same
+    // billed total and the same collection rate off differently capped
+    // queries; they are now two views of Pasqyra financiare (?v=), where each
+    // figure is computed once.
     group: "Financat",
     items: [
-      { id: "finance", label: "Faturat", href: "/admin/finance", icon: "receipt", allow: ["admin", "staff"] },
-      // The three club-money screens (migration 20260810000002). Same bar as
-      // the invoices — club_funds / club_expenses are admin + staff, and the
-      // expense ledger shows what the club pays individual people, so it is
-      // never widened to editors or coaches.
-      // Icons are reused from the existing AdminIcon set on purpose — that
-      // union lives in AdminNav.tsx, which this change deliberately leaves
-      // alone: "euro" for the club's own money, "inbox" for what comes in,
-      // "file" for the cost ledger.
-      { id: "finance-treasury", label: "Arka e klubit", href: "/admin/finance/treasury", icon: "euro", allow: ["admin", "staff"] },
+      { id: "finance", label: "Faturat e anëtarëve", href: "/admin/finance", icon: "receipt", allow: ["admin", "staff"] },
       { id: "finance-funds", label: "Hyrjet e klubit", href: "/admin/finance/funds", icon: "inbox", allow: ["admin", "staff"] },
       { id: "finance-expenses", label: "Shpenzimet", href: "/admin/finance/expenses", icon: "file", allow: ["admin", "staff"] },
-      { id: "finance-reports", label: "Raportet financiare", href: "/admin/finance/reports", icon: "chart", allow: ["admin", "staff"] },
-      // "layers" reads as stacked tiers, and frees "euro" for the club's arka.
-      { id: "finance-plans", label: "Planet e anëtarësisë", href: "/admin/finance/plans", icon: "layers", allow: ["admin"] },
+      { id: "finance-overview", label: "Pasqyra financiare", href: "/admin/finance/overview", icon: "euro", allow: ["admin", "staff"] },
     ],
   },
   {
@@ -109,7 +114,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v2.7</span>
+            <span className="sub">Admin · v2.8</span>
           </div>
         </Link>
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AdminNavIcon, type AdminIcon } from "./AdminNav";
+import { AdminNavIcon, activeNavHref, type AdminIcon } from "./AdminNav";
 
 export type MobileNavItem = { id: string; label: string; href: string; icon: AdminIcon };
 export type MobileNavGroup = { group: string; items: MobileNavItem[] };
@@ -22,6 +22,10 @@ export function MobileNav({ groups, profileName, profileRole }: { groups: Mobile
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+  // The same longest-match-wins rule the sidebar uses, from the same helper:
+  // exactly one item is selected, and the drawer can never disagree with the
+  // sidebar behind it.
+  const activeHref = activeNavHref(pathname, groups);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -80,9 +84,14 @@ export function MobileNav({ groups, profileName, profileRole }: { groups: Mobile
                 <div key={g.group}>
                   <div className="mobile-nav-group">{g.group}</div>
                   {g.items.map(it => {
-                    const active = pathname === it.href || (it.href !== "/admin/dashboard" && pathname?.startsWith(it.href + "/"));
+                    const active = it.href === activeHref;
                     return (
-                      <Link key={it.id} href={it.href} className={`mobile-nav-item ${active ? "active" : ""}`}>
+                      <Link
+                        key={it.id}
+                        href={it.href}
+                        className={`mobile-nav-item ${active ? "active" : ""}`}
+                        aria-current={active ? "page" : undefined}
+                      >
                         <span className="ic"><AdminNavIcon name={it.icon} /></span>{it.label}
                       </Link>
                     );

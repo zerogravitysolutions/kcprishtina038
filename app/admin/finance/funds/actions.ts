@@ -161,7 +161,7 @@ function normalize(input: FundInput): { ok: true; row: FundRowValues } | { ok: f
 // money too. Nudge them all after every write.
 function revalidateFunds() {
   revalidatePath("/admin/finance/funds");
-  revalidatePath("/admin/finance/treasury");
+  revalidatePath("/admin/finance/overview");
   revalidatePath("/admin/dashboard");
 }
 

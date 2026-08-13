@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
@@ -9,6 +8,7 @@ import {
 } from "@/lib/finance";
 import type { ExpensePaidBy, ExpensePaymentMethod, ExpenseStatus } from "@/lib/supabase/types";
 import { NewExpenseButton, type ExpenseOptions, type ExpenseView } from "./ExpenseForm";
+import { ExpenseFilters, ALL } from "./ExpenseFilters";
 import { ExpenseRow } from "./ExpenseRow";
 
 export const dynamic = "force-dynamic";
@@ -51,20 +51,11 @@ type SearchParams = Promise<{
   y?: string; cat?: string; b?: string; st?: string; sp?: string; pb?: string; owed?: string; q?: string;
 }>;
 
-/** .filter-bar styles chips and search inputs, not selects. */
-const SEL: CSSProperties = {
-  fontFamily: "var(--font-body)", fontSize: 13, padding: "7px 10px",
-  borderRadius: "var(--r-xs)", border: "1px solid var(--line-strong)",
-  background: "var(--surface-1)", color: "var(--text-1)", maxWidth: 210,
-};
-
 const STATUS_FILTERS = [
   { value: "all", label: "Të gjitha" },
   { value: "paid", label: "Paguar" },
   { value: "unpaid", label: "Papaguar" },
 ];
-
-const ALL = "all";
 
 /** "1 shpenzim" / "3 shpenzime" — a bare count reads wrong in the singular. */
 function expenseCount(n: number): string {
@@ -289,8 +280,8 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         <div>
           <h1>Shpenzimet e klubit</h1>
           <div className="sub">
-            Çka del nga arka e klubit — {yearLabel}. <Link href="/admin/finance">Faturat</Link>
-            {" · "}<Link href="/admin/finance/reports">Raportet financiare</Link>
+            Çka del nga arka e klubit — {yearLabel}. <Link href="/admin/finance">Faturat e anëtarëve</Link>
+            {" · "}<Link href="/admin/finance/overview">Pasqyra financiare</Link>
             {isAdmin ? <>{" · "}<Link href="/admin/finance/expenses/categories">Kategoritë</Link></> : null}
           </div>
         </div>
@@ -366,52 +357,18 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         {filtered ? <Link className="chip" href={`${base}?y=${year}`}>Pastro filtrat</Link> : null}
       </div>
 
-      <form method="get" action={base} className="filter-bar">
-        <label className="meta" htmlFor="f-year">Viti</label>
-        <select id="f-year" name="y" defaultValue={year} style={SEL}>
-          {years.map((y) => <option key={y} value={y}>{y}</option>)}
-          <option value={ALL}>Të gjitha vitet</option>
-        </select>
-
-        <label className="meta" htmlFor="f-cat">Kategoria</label>
-        <select id="f-cat" name="cat" defaultValue={categoryFilter} style={SEL}>
-          <option value={ALL}>Të gjitha</option>
-          {categoryRows.map((c) => (
-            <option key={c.id} value={c.id}>{c.name_sq}{c.active ? "" : " (joaktive)"}</option>
-          ))}
-        </select>
-
-        <label className="meta" htmlFor="f-benef">Për kë</label>
-        <select id="f-benef" name="b" defaultValue={beneficiaryFilter} style={SEL}>
-          <option value={ALL}>Të gjithë</option>
-          <option value="club">Vetëm klubi</option>
-          {memberRows.map((m) => (
-            <option key={m.id} value={m.id}>{m.full_name}</option>
-          ))}
-        </select>
-
-        <label className="meta" htmlFor="f-payer">Paguar nga</label>
-        <select id="f-payer" name="pb" defaultValue={payerFilter} style={SEL}>
-          <option value={ALL}>Të gjithë</option>
-          <option value="club">Klubi</option>
-          {memberRows.map((m) => (
-            <option key={m.id} value={m.id}>{m.full_name}</option>
-          ))}
-        </select>
-
-        <label className="meta" htmlFor="f-sp">Burimi</label>
-        <select id="f-sp" name="sp" defaultValue={sponsorFilter} style={SEL}>
-          <option value={ALL}>Të gjitha</option>
-          <option value="none">Pa burim</option>
-          {sponsorRows.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-
-        {statusFilter !== ALL ? <input type="hidden" name="st" value={statusFilter} /> : null}
-        {owedOnly ? <input type="hidden" name="owed" value="1" /> : null}
-
-        <input type="search" name="q" defaultValue={query} placeholder="Kërko përshkrim, faturë…" aria-label="Kërko shpenzim" />
-        <button type="submit" className="btn btn-sm">Filtro</button>
-      </form>
+      <ExpenseFilters
+        base={base}
+        thisYear={String(thisYear)}
+        years={years}
+        categories={categoryRows.map((c) => ({ value: c.id, label: `${c.name_sq}${c.active ? "" : " (joaktive)"}` }))}
+        members={memberRows.map((m) => ({ value: m.id, label: m.full_name }))}
+        sponsors={sponsorRows.map((s) => ({ value: s.id, label: s.name }))}
+        value={{
+          y: year, cat: categoryFilter, b: beneficiaryFilter, st: statusFilter,
+          sp: sponsorFilter, pb: payerFilter, owed: owedOnly, q: query,
+        }}
+      />
 
       {raw.length >= ROW_CAP ? (
         <div className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 10px" }}>

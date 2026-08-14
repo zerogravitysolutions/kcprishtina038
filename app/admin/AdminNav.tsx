@@ -8,7 +8,20 @@ export type AdminIcon =
   | "activity" | "bike" | "chart" | "news" | "image" | "file" | "star" | "settings"
   | "euro" | "receipt" | "tag";
 
-export type AdminNavItem = { id: string; label: string; href: string; icon: AdminIcon };
+export type AdminNavItem = {
+  id: string;
+  label: string;
+  href: string;
+  icon: AdminIcon;
+  /**
+   * Extra path prefixes this row owns for the ACTIVE state only — never
+   * rendered, never linked. Some real screens have no row of their own
+   * (/admin/applications, /admin/athletes/[id], /admin/team-members/[id]);
+   * without this the sidebar goes blank the moment you open one.
+   * Prefixes must stay disjoint across rows so the winner is unambiguous.
+   */
+  owns?: string[];
+};
 export type AdminNavGroup = { group: string; items: AdminNavItem[] };
 
 export function AdminNavIcon({ name }: { name: AdminIcon }) {
@@ -54,10 +67,15 @@ export function AdminNavIcon({ name }: { name: AdminIcon }) {
 export function activeNavHref(pathname: string | null, groups: AdminNavGroup[]): string | null {
   if (!pathname) return null;
   let best: string | null = null;
+  let bestLen = -1;
   for (const g of groups) {
     for (const it of g.items) {
-      if (pathname !== it.href && !pathname.startsWith(it.href + "/")) continue;
-      if (best === null || it.href.length > best.length) best = it.href;
+      // `owns` competes on the length of the MATCHED prefix, not on the row's
+      // own href, so an owned sub-tree still loses to a row that sits deeper.
+      for (const base of it.owns ? [it.href, ...it.owns] : [it.href]) {
+        if (pathname !== base && !pathname.startsWith(base + "/")) continue;
+        if (base.length > bestLen) { bestLen = base.length; best = it.href; }
+      }
     }
   }
   return best;
@@ -77,9 +95,16 @@ export function AdminSideNav({ groups }: { groups: AdminNavGroup[] }) {
   const active = activeNavHref(pathname, groups);
   return (
     <>
+      {/* Two groups carry no heading — Paneli at the top and Cilësimet at the
+          bottom, positions that label themselves. They stay REAL groups with
+          real items so activeNavHref() keeps seeing them; moving Cilësimet into
+          .side-foot would drop it out of the array the active rule iterates and
+          the only way to light it again would be a startsWith rule.
+          Key on the first item's id, not on g.group: the two empty headings
+          would collide as React keys. */}
       {groups.map((g) => (
-        <div key={g.group}>
-          <div className="nav-group">{g.group}</div>
+        <div key={g.items[0]?.id ?? g.group}>
+          {g.group ? <div className="nav-group">{g.group}</div> : null}
           {g.items.map((it) => <Item key={it.id} item={it} active={it.href === active} />)}
         </div>
       ))}

@@ -1,11 +1,23 @@
 import Link from "next/link";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { ApplicationActions } from "../applications/ApplicationActions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-type AppRow = { id: string; full_name: string; email: string; experience: string | null; created_at: string; section: { slug: string; name_sq: string } | null };
+type AppRow = { id: string; full_name: string; email: string; status: string; experience: string | null; created_at: string; section: { slug: string; name_sq: string } | null };
+
+// Approving and rejecting are admin + staff in SQL. An editor may read an
+// application, so they still get the row and the "Shqyrto" link, but no control
+// they cannot use is rendered — the same threading /admin/applications does.
+const ACT_ROLES = ["admin", "staff"];
+
+// The whole pending queue, not a teaser. 50 is far above any real backlog; the
+// archive (approved and rejected, all 100 rows) stays behind the card's
+// "Shiko të gjitha →" link, which is the only path to it now that Aplikimet has
+// no nav row of its own.
+const QUEUE_LIMIT = 50;
 
 // Albanian display names for the stored experience values (values stay raw).
 const EXP_LABEL: Record<string, string> = {
@@ -49,7 +61,7 @@ export default async function AdminDashboard() {
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("applications").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("dues").select("status").gte("period", monthStart).lt("period", monthEnd),
-    supabase.from("applications").select("id, full_name, email, experience, created_at, section:sections(slug, name_sq)").eq("status", "pending").order("created_at", { ascending: false }).limit(4),
+    supabase.from("applications").select("id, full_name, email, status, experience, created_at, section:sections(slug, name_sq)").eq("status", "pending").order("created_at", { ascending: false }).limit(QUEUE_LIMIT),
     supabase.from("events").select("id", { count: "exact", head: true }).eq("status", "published").gte("start_at", nowIso),
   ]);
 
@@ -58,6 +70,7 @@ export default async function AdminDashboard() {
   const appList = (apps.data as AppRow[] | null) ?? [];
   const first = profile.full_name.split(" ")[0];
   const pendingApps = appsC.count ?? 0;
+  const canAct = ACT_ROLES.includes(profile.role);
 
   return (
     <>
@@ -79,10 +92,18 @@ export default async function AdminDashboard() {
         <Kpi accent="#2E90FA" label="Evente të ardhshme" value={eventsC.count ?? 0} sub="të publikuara" />
       </div>
 
-      {/* Applications — card row-list, no table */}
+      {/* The pending queue itself — card row-list, no table.
+          This card used to be four rows with a "Shqyrto" button that linked to
+          the bare list, so nothing on it could actually be acted on. It is now
+          the whole queue with the real controls from /admin/applications, and
+          each name deep-links to its own review page. */}
       <div style={{ ...CARD, marginTop: 24, overflow: "hidden", padding: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px", borderBottom: "1px solid var(--line)" }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em", margin: 0, color: "var(--ink)" }}>Aplikimet e fundit</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "18px 22px", borderBottom: "1px solid var(--line)" }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em", margin: 0, color: "var(--ink)" }}>
+            Aplikimet në pritje{appList.length > 0 ? ` (${appList.length})` : ""}
+          </h3>
+          {/* The archive — approved and rejected — lives only behind this link
+              now. Do not remove it. */}
           <Link href="/admin/applications" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--ember)" }}>Shiko të gjitha →</Link>
         </div>
         {appList.length === 0 ? (
@@ -90,14 +111,14 @@ export default async function AdminDashboard() {
         ) : appList.map((a, i) => (
           <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", padding: "14px 22px", borderTop: i > 0 ? "1px solid var(--line)" : "none" }}>
             <div style={AVATAR}>{initials(a.full_name)}</div>
-            <div style={{ minWidth: 0, flex: "1 1 190px", lineHeight: 1.3 }}>
+            <Link href={`/admin/applications/${a.id}`} style={{ minWidth: 0, flex: "1 1 190px", lineHeight: 1.3, color: "inherit" }}>
               <div style={{ fontWeight: 600, color: "var(--ink)" }}>{a.full_name}</div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".02em", color: "var(--ink-3)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.email}</div>
-            </div>
+            </Link>
             {a.section ? <span className={`tag-sec ${a.section.slug}`}>{a.section.name_sq}</span> : null}
             {a.experience ? <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-2)" }}>{EXP_LABEL[a.experience] ?? a.experience}</span> : null}
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-3)", whiteSpace: "nowrap" }}>{rel(a.created_at)}</span>
-            <Link className="btn btn-sm btn-ember" href="/admin/applications">Shqyrto</Link>
+            <ApplicationActions id={a.id} name={a.full_name} status={a.status} canAct={canAct} />
           </div>
         ))}
       </div>

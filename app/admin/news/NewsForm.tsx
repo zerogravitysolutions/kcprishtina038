@@ -78,7 +78,7 @@ export function NewsForm({ action, media, initial, submitLabel }: Props) {
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Etiketat (të ndara me presje)</label>
-          <input name="tags" defaultValue={(initial?.tags ?? []).join(", ")} placeholder="rrugë, gara, junior" />
+          <input name="tags" defaultValue={(initial?.tags ?? []).join(", ")} placeholder="rrugë, gara, junior" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
         </div>
       </div>
 

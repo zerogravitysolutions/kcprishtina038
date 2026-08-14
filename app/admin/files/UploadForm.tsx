@@ -1,7 +1,9 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { uploadDocument } from "./actions";
+// The actions stay under /admin/documents even though the screen moved: the
+// path is a server-action module boundary, not a route.
+import { uploadDocument } from "../documents/actions";
 
 const CATEGORIES = [
   { value: "regulations",  label: "Rregulloret" },

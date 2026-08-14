@@ -208,7 +208,7 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
             <div className="mm-sec">
               <h4>Ndrysho email-in</h4>
               <div className="mm-row">
-                <input type="email" value={emailVal} onChange={(e) => setEmailVal(e.target.value)} autoComplete="off" />
+                <input type="email" inputMode="email" value={emailVal} onChange={(e) => setEmailVal(e.target.value)} autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
                 <button type="button" className="btn btn-sm" disabled={pending || emailVal.trim().toLowerCase() === email.toLowerCase()} onClick={() => run("email", () => updateMemberEmail(id, emailVal), "Email-i u ndryshua.")}>Ruaj</button>
               </div>
               <M k="email" />
@@ -217,7 +217,7 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
             <div className="mm-sec">
               <h4>Vendos fjalëkalim të ri</h4>
               <div className="mm-row">
-                <input type="text" value={pwVal} onChange={(e) => setPwVal(e.target.value)} placeholder="min. 8 karaktere" autoComplete="new-password" />
+                <input type="text" value={pwVal} onChange={(e) => setPwVal(e.target.value)} placeholder="min. 8 karaktere" autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
                 <button type="button" className="btn btn-sm" disabled={pending || pwVal.length < 8} onClick={() => run("pw", () => updateMemberPassword(id, pwVal), "Fjalëkalimi u vendos.", () => setPwVal(""))}>Vendos</button>
               </div>
               <M k="pw" />

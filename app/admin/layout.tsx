@@ -7,23 +7,47 @@ import type { UserRole } from "@/lib/supabase/types";
 import { MobileNav } from "./MobileNav";
 import { AdminSideNav, type AdminNavGroup, type AdminIcon } from "./AdminNav";
 
-const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: string; href: string; icon: AdminIcon; allow?: UserRole[] }> }> = [
+/**
+ * The admin menu: 4 headings, 16 rows.
+ *
+ * A heading is spent only where it separates one block of rows from another.
+ * The two singletons that book-end the list — Paneli at the top, Cilësimet at
+ * the bottom — carry `group: ""` and render with no label (see AdminSideNav and
+ * MobileNav); their position says what they are. They stay real groups with
+ * real items so activeNavHref() keeps seeing them.
+ *
+ * Every `allow` below either matches the page's own gate or narrows onto it.
+ * An item with no `allow` is visible to a coach too, so no row is left without
+ * one.
+ */
+const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: string; href: string; icon: AdminIcon; allow?: UserRole[]; owns?: string[] }> }> = [
   {
-    group: "Hapësira e punës",
+    group: "",
     items: [
-      { id: "dashboard", label: "Paneli", href: "/admin/dashboard", icon: "grid", allow: ["admin", "editor", "staff"] },
-      { id: "applications", label: "Aplikimet", href: "/admin/applications", icon: "inbox", allow: ["admin", "editor", "staff"] },
+      // Aplikimet no longer has a row: the dashboard IS the pending queue now,
+      // with the real approve/reject actions on each line. The archive
+      // (approved + rejected) stays one click away behind the card's
+      // "Shiko të gjitha →" link to /admin/applications.
+      // …so Paneli owns the /admin/applications sub-tree for the active state:
+      // it is a real, reachable screen with no row of its own, and without this
+      // the whole sidebar would go unlit while you stand on it.
+      { id: "dashboard", label: "Paneli", href: "/admin/dashboard", icon: "grid", allow: ["admin", "editor", "staff"], owns: ["/admin/applications"] },
     ],
   },
   {
-    group: "Regjistri",
+    group: "Klubi",
     items: [
       // One entry, one list. "Anëtarët (llogaritë)" and "Ekipi (publik)" were
       // the same people seen through two tables; /admin/people shows each
       // person once and says which facets they have. The role bar is the union
       // of the two old ones — every write is still gated on the server.
-      { id: "people", label: "Njerëzit", href: "/admin/people", icon: "users", allow: ["admin", "editor", "staff"] },
-      { id: "sections", label: "Seksionet", href: "/admin/sections", icon: "layers", allow: ["admin", "editor", "staff"] },
+      // /admin/team-members is a redirect stub, but /admin/team-members/new and
+      // /[id] are the real roster editor and are linked only from here — so
+      // Njerëzit owns that sub-tree for the active state.
+      { id: "people", label: "Njerëzit", href: "/admin/people", icon: "users", allow: ["admin", "editor", "staff"], owns: ["/admin/team-members", "/admin/members"] },
+      // admin + editor, matching the page gate and sections_write_admin. Staff
+      // used to see this row and get bounced straight back to the dashboard.
+      { id: "sections", label: "Seksionet", href: "/admin/sections", icon: "layers", allow: ["admin", "editor"] },
       // A membership plan is a catalogue row like a section: an admin-managed
       // tier, shown on the public registration form, that a person gets put
       // into. The screen itself counts members per tier and has no money
@@ -33,17 +57,27 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
     ],
   },
   {
-    group: "Kalendari",
+    // "Kalendari" and "Stërvitja" were two headings over two rows each. A club
+    // event, an attended race, a training session and its rollup are all "what
+    // happened on the bike" — and for a coach that heading sits over their
+    // entire sidebar either way.
+    group: "Aktiviteti",
     items: [
-      { id: "events", label: "Eventet", href: "/admin/events", icon: "calendar", allow: ["admin", "editor", "staff"] },
+      // admin + editor, which is what events_write_editor (migration
+      // 20260517000006) already enforces. The nav, the page gate and
+      // assertEditor() disagreed
+      // three ways: staff saw a row that bounced them, and a coach could submit
+      // an edit that RLS silently refused.
+      { id: "events", label: "Eventet", href: "/admin/events", icon: "calendar", allow: ["admin", "editor"] },
       { id: "races", label: "Garat (katalogu)", href: "/admin/races", icon: "flag", allow: ["admin", "editor"] },
-    ],
-  },
-  {
-    group: "Stërvitja",
-    items: [
-      { id: "training", label: "Stërvitjet", href: "/admin/training", icon: "activity" },
-      { id: "progress", label: "Progresi", href: "/admin/training/progress", icon: "chart" },
+      // Written out rather than left empty. Both pages gate on the same four
+      // roles, which is exactly what an absent `allow` produces today — but
+      // only by accident of the current UserRole union, and a new role would
+      // silently inherit training.
+      { id: "training", label: "Stërvitjet", href: "/admin/training", icon: "activity", allow: ["admin", "editor", "staff", "coach"] },
+      // The athlete profile is reachable only from the progress table, so
+      // Progresi owns /admin/athletes for the active state.
+      { id: "progress", label: "Progresi", href: "/admin/training/progress", icon: "chart", allow: ["admin", "editor", "staff", "coach"], owns: ["/admin/athletes"] },
     ],
   },
   {
@@ -71,13 +105,24 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
     group: "Përmbajtja",
     items: [
       { id: "news", label: "Lajmet", href: "/admin/news", icon: "news", allow: ["admin", "editor"] },
-      { id: "media", label: "Biblioteka e medias", href: "/admin/media", icon: "image", allow: ["admin", "editor"] },
-      { id: "documents", label: "Dokumentet", href: "/admin/documents", icon: "file", allow: ["admin", "editor"] },
+      // "Biblioteka e medias" + "Dokumentet" in one row. Both are "a club file,
+      // uploaded, given a URL", both are gated admin + editor at the page and in
+      // RLS, so the ?v= merge needs no per-tab gating. The media half is a
+      // read-only grid with zero actions and did not earn a top-level line;
+      // documents keeps its full CRUD one click away.
+      // Icon "image", not "file" — Shpenzimet already owns "file".
+      { id: "files", label: "Skedarët", href: "/admin/files", icon: "image", allow: ["admin", "editor"] },
+      // Sponsorët stays here, not under Financat: the screen edits a brand
+      // (tier, logo, website, contract end) and is gated admin + editor, while
+      // every Financat row is admin + staff. Moving it would either widen
+      // Financat to editors or hide it from them.
       { id: "sponsors", label: "Sponsorët", href: "/admin/sponsors", icon: "star", allow: ["admin", "editor"] },
     ],
   },
   {
-    group: "Sistemi",
+    // No heading: one admin-only row pinned at the bottom of the list. It stays
+    // a real item in a real group so activeNavHref() is untouched.
+    group: "",
     items: [{ id: "settings", label: "Cilësimet", href: "/admin/settings", icon: "settings", allow: ["admin"] }],
   },
 ];
@@ -104,7 +149,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const visibleGroups: AdminNavGroup[] = NAV_GROUPS.map(g => ({
     group: g.group,
-    items: g.items.filter(it => !it.allow || it.allow.includes(profile.role)).map(it => ({ id: it.id, label: it.label, href: it.href, icon: it.icon })),
+    items: g.items.filter(it => !it.allow || it.allow.includes(profile.role)).map(it => ({ id: it.id, label: it.label, href: it.href, icon: it.icon, owns: it.owns })),
   })).filter(g => g.items.length > 0);
 
   return (
@@ -114,7 +159,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v3.0</span>
+            <span className="sub">Admin · v3.1</span>
           </div>
         </Link>
 

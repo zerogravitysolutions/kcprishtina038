@@ -227,7 +227,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
           {periodParam(period) !== periodParam(currentPeriod())
             ? <input type="hidden" name="p" value={periodParam(period)} /> : null}
           {statusFilter !== "all" ? <input type="hidden" name="st" value={statusFilter} /> : null}
-          <input type="search" name="q" defaultValue={query} placeholder="Kërko anëtar…" aria-label="Kërko anëtar" />
+          <input type="search" name="q" defaultValue={query} placeholder="Kërko anëtar…" aria-label="Kërko anëtar" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} />
           <button type="submit" className="btn btn-sm">Kërko</button>
           {query ? <Link className="chip" href={link({ q: "" })}>Pastro</Link> : null}
         </form>

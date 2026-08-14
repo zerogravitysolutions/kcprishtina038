@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useTransition, useState } from "react";
 import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
+import { NumericInput } from "@/components/admin/NumericInput";
 import { actionError } from "@/lib/errors";
+import { formNumError } from "@/lib/numeric";
+
+/** Mirrors the server checks in app/admin/events/actions.ts. */
+const NUM_FIELDS = [
+  { name: "distance_km", label: "Distanca", kind: "decimal" as const, min: 0, max: 100000 },
+  { name: "elevation_m", label: "Ngjitja", kind: "int" as const, min: 0, max: 100000 },
+];
 
 type Initial = {
   title_sq: string;
@@ -39,6 +47,12 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
         e.preventDefault();
         setErr(null);
         const fd = new FormData(e.currentTarget);
+        // The number fields are type="text" now (so the phone shows a keypad and
+        // "42,5" survives). The action re-checks these; this copy only exists so
+        // the admin reads WHICH field is wrong — React masks a thrown Server
+        // Action message in production.
+        const numErr = formNumError(fd, NUM_FIELDS);
+        if (numErr) { setErr(numErr); return; }
         start(async () => {
           try { await action(fd); }
           catch (x) {
@@ -99,12 +113,12 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
           <input name="location" defaultValue={initial?.location ?? ""} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Distanca (km)</label>
-          <input name="distance_km" type="number" step="0.1" defaultValue={initial?.distance_km ?? ""} />
+          <label htmlFor="ev-distance">Distanca (km)</label>
+          <NumericInput id="ev-distance" name="distance_km" kind="decimal" defaultValue={initial?.distance_km ?? ""} placeholder="p.sh. 42,5" />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Ngjitja (m)</label>
-          <input name="elevation_m" type="number" defaultValue={initial?.elevation_m ?? ""} />
+          <label htmlFor="ev-elevation">Ngjitja (m)</label>
+          <NumericInput id="ev-elevation" name="elevation_m" kind="int" defaultValue={initial?.elevation_m ?? ""} placeholder="p.sh. 650" />
         </div>
       </div>
 
@@ -118,6 +132,10 @@ export function EventForm({ action, initial, sections, media, submitLabel, categ
         <input
           name="strava_url"
           type="url"
+          inputMode="url"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           defaultValue={initial?.strava_url ?? ""}
           placeholder="https://www.strava.com/routes/... · /segments/... · /activities/..."
         />

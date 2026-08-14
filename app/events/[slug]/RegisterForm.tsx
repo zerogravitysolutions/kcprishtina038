@@ -78,7 +78,15 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
       <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div className="field" style={{ marginBottom: 0 }}>
           <label htmlFor="r-name">Emri i plotë *</label>
-          <input id="r-name" name="full_name" type="text" required placeholder="P.sh. Albion Ymeri" />
+          <input
+            id="r-name"
+            name="full_name"
+            type="text"
+            required
+            placeholder="P.sh. Albion Ymeri"
+            autoComplete="name"
+            autoCapitalize="words"
+          />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label htmlFor="r-dob">Data e lindjes *</label>
@@ -103,11 +111,30 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
       <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div className="field" style={{ marginBottom: 0 }}>
           <label htmlFor="r-email">Email *</label>
-          <input id="r-email" name="email" type="email" required placeholder="ti@email.com" />
+          <input
+            id="r-email"
+            name="email"
+            type="email"
+            inputMode="email"
+            required
+            placeholder="ti@email.com"
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label htmlFor="r-phone">Telefoni</label>
-          <input id="r-phone" name="phone" type="tel" placeholder="+383 4_ ___ ___" />
+          <input
+            id="r-phone"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            placeholder="+383 4_ ___ ___"
+            autoComplete="tel"
+            autoCorrect="off"
+          />
         </div>
       </div>
 
@@ -175,7 +202,14 @@ export function RegisterForm({ slug, eventStartIso }: { slug: string; eventStart
       <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div className="field" style={{ marginBottom: 0 }}>
           <label htmlFor="r-club">Klubi</label>
-          <input id="r-club" name="club" type="text" placeholder="KÇ Prishtina 038" />
+          <input
+            id="r-club"
+            name="club"
+            type="text"
+            placeholder="KÇ Prishtina 038"
+            autoComplete="organization"
+            autoCapitalize="words"
+          />
         </div>
         <div className="field" style={{ marginBottom: 0 }} />
       </div>

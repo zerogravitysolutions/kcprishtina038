@@ -2,6 +2,9 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { updateSection } from "../actions";
+// A COMPONENT import from a "use client" module — safe in an RSC (a value
+// import would not be).
+import { NumericInput } from "@/components/admin/NumericInput";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -68,8 +71,8 @@ export default async function EditSectionPage({ params }: { params: Promise<{ id
             </select>
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
-            <label>Renditja</label>
-            <input name="display_order" type="number" defaultValue={row.display_order} />
+            <label htmlFor="se-order">Renditja</label>
+            <NumericInput id="se-order" name="display_order" kind="int" defaultValue={row.display_order} />
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
             <label>Statusi</label>

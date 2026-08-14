@@ -187,6 +187,10 @@ export function ExpenseFilters({
         onChange={(e) => setQ(e.target.value)}
         placeholder="Kërko përshkrim, faturë…"
         aria-label="Kërko shpenzim"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
       />
 
       {/* Always rendered at a fixed width: a status that appears and disappears

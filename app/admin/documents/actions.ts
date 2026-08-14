@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import type { DocumentCategory, DocumentVisibility } from "@/lib/supabase/documents";
 import { dbError } from "@/lib/errors";
+import { ORDER_FIELD, parseNumField } from "@/lib/numeric";
 import type { TableRow, TableUpdate } from "@/lib/supabase/types";
 
 const PDF_MIME = "application/pdf";
@@ -92,7 +93,7 @@ export async function uploadDocument(form: FormData): Promise<{ ok: true; slug: 
       return { ok: false, error: dbError(dbErr, "Ruajtja e dokumentit dështoi. Provo sërish.") };
     }
 
-    revalidatePath("/admin/documents");
+    revalidatePath("/admin/files");
     revalidatePath("/documents");
     return { ok: true, slug };
   } catch (e) {
@@ -117,14 +118,15 @@ export async function updateDocument(id: string, form: FormData): Promise<{ ok: 
     if (desc !== null) patch.description = String(desc).trim() || null;
     const eff = form.get("effective_date");
     if (eff !== null) patch.effective_date = String(eff).trim() || null;
+    // type="text" + inputMode (see components/admin/NumericInput): the browser
+    // no longer filters the value, so this is the only check on it.
     const ord = form.get("display_order");
     if (ord !== null && String(ord).trim() !== "") {
-      const n = parseInt(String(ord), 10);
-      if (!isNaN(n)) patch.display_order = n;
+      patch.display_order = parseNumField(ord, ORDER_FIELD) ?? undefined;
     }
     const { error } = await supabase.from("documents").update(patch).eq("id", id);
     if (error) return { ok: false, error: dbError(error, "Ruajtja e dokumentit dështoi. Provo sërish.") };
-    revalidatePath("/admin/documents");
+    revalidatePath("/admin/files");
     revalidatePath("/documents");
     return { ok: true };
   } catch (e) {
@@ -139,7 +141,7 @@ export async function deleteDocument(id: string, storagePath: string): Promise<{
     const { error: dbErr } = await supabase.from("documents").delete().eq("id", id);
     if (dbErr) return { ok: false, error: dbError(dbErr, "Fshirja e dokumentit dështoi. Provo sërish.") };
     await supabase.storage.from("media").remove([storagePath]);
-    revalidatePath("/admin/documents");
+    revalidatePath("/admin/files");
     revalidatePath("/documents");
     return { ok: true };
   } catch (e) {

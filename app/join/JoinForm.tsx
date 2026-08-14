@@ -84,7 +84,15 @@ export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
       <div className="form-row">
         <div className="field">
           <label htmlFor="f-name">{t("jp.form.name")}</label>
-          <input id="f-name" name="name" type="text" placeholder="P.sh. Albion Ymeri" required />
+          <input
+            id="f-name"
+            name="name"
+            type="text"
+            placeholder="P.sh. Albion Ymeri"
+            required
+            autoComplete="name"
+            autoCapitalize="words"
+          />
         </div>
         <div className="field">
           <label htmlFor="f-dob">Data e lindjes</label>
@@ -101,11 +109,30 @@ export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
       <div className="form-row">
         <div className="field">
           <label htmlFor="f-email">{t("jp.form.email")}</label>
-          <input id="f-email" name="email" type="email" placeholder="ti@email.com" required />
+          <input
+            id="f-email"
+            name="email"
+            type="email"
+            inputMode="email"
+            placeholder="ti@email.com"
+            required
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
         </div>
         <div className="field">
           <label htmlFor="f-phone">{t("jp.form.phone")}</label>
-          <input id="f-phone" name="phone" type="tel" placeholder="+383 4_ ___ ___" />
+          <input
+            id="f-phone"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            placeholder="+383 4_ ___ ___"
+            autoComplete="tel"
+            autoCorrect="off"
+          />
         </div>
       </div>
       <div className="form-row">

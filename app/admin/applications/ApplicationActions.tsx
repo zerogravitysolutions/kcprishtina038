@@ -6,6 +6,8 @@ import Link from "next/link";
 import { rejectApplication } from "../actions";
 import { enrolApplication, type EnrolResult } from "./actions";
 import { billingMode, currentPeriod, formatEur, periodLabel, periodParam, planAmountLabel, shiftPeriod } from "@/lib/finance";
+import { NumericInput } from "@/components/admin/NumericInput";
+import { parseStrictNumber } from "@/lib/numeric";
 
 export type PlanOption = {
   id: string;
@@ -68,7 +70,10 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
 
   const plan = planOf(plans, planId);
   const billable = plan?.billable === true;
-  const amountNum = amount.trim() === "" ? NaN : Number(amount);
+  // parseStrictNumber, not Number(): the field is a decimal keypad, so "40,5"
+  // is what an Albanian phone actually sends, and Number("40,5") is NaN — the
+  // admin would have been told the amount was invalid for a valid amount.
+  const amountNum = amount.trim() === "" ? NaN : parseStrictNumber(amount) ?? NaN;
   const hasAmount = Number.isFinite(amountNum) && amountNum >= 0;
   // Null while the field is empty, so a half-typed amount doesn't flash
   // "e falur" at the admin.
@@ -160,6 +165,7 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!planId) { setError("Zgjidh një plan anëtarësie."); return; }
+    if (billable && !hasAmount) { setError("Shuma mujore duhet të jetë numër, p.sh. 40 ose 40,5."); return; }
     start(async () => {
       setError(null);
       const r = await enrolApplication({
@@ -191,15 +197,14 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
 
         {billable && (
           <div className="field" style={{ margin: 0 }}>
-            <label>Shuma mujore (€)</label>
-            <input
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
+            <label htmlFor="ap-amount">Shuma mujore (€)</label>
+            <NumericInput
+              id="ap-amount"
+              kind="decimal"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={setAmount}
               required
+              ariaLabel="Shuma mujore në euro"
             />
           </div>
         )}

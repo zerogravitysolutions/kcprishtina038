@@ -3,6 +3,7 @@
 import { useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { NumericInput } from "@/components/admin/NumericInput";
 import { actionError } from "@/lib/errors";
 import { createCategory, deleteCategory, updateCategory } from "./actions";
 
@@ -84,12 +85,7 @@ export function CategoryCard({ category }: { category: CategoryView }) {
 
       <div className="field">
         <label htmlFor={`co-${category.id}`}>Renditja</label>
-        <input
-          id={`co-${category.id}`}
-          inputMode="numeric"
-          value={order}
-          onChange={(e) => setOrder(e.target.value)}
-        />
+        <NumericInput id={`co-${category.id}`} kind="int" value={order} onChange={setOrder} />
         <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
           Numri më i vogël del më lart në listën e kategorive.
         </div>
@@ -209,13 +205,7 @@ export function NewCategoryCard() {
 
       <div className="field">
         <label htmlFor="new-cat-order">Renditja</label>
-        <input
-          id="new-cat-order"
-          inputMode="numeric"
-          value={order}
-          onChange={(e) => setOrder(e.target.value)}
-          placeholder="p.sh. 120"
-        />
+        <NumericInput id="new-cat-order" kind="int" value={order} onChange={setOrder} placeholder="p.sh. 120" />
       </div>
 
       <button type="button" className="btn btn-ember btn-sm" onClick={create} disabled={pending || !name.trim()}>

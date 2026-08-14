@@ -28,6 +28,19 @@ export function isPgError(e: unknown): e is PgError {
 /** Shown when nothing matched — deliberately vague but still actionable. */
 export const GENERIC_DB_ERROR = "Veprimi nuk u krye. Provo sërish.";
 
+/**
+ * Thrown by our OWN validators (see parseNumField in lib/numeric.ts): the
+ * message is finished Albanian copy naming the field, so dbError() must hand it
+ * back untouched instead of flattening it into the generic sentence — which is
+ * what `catch (e) { return { ok:false, error: dbError(e) } }` used to do.
+ */
+export class UserError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UserError";
+  }
+}
+
 // ------------------------------------------------------------------ code maps
 
 // SQLSTATE codes with a single sensible message. Keys are UPPERCASE, matching
@@ -171,6 +184,8 @@ function fromMessage(haystack: string, raw: string): string | null {
  */
 export function dbError(err: unknown, fallback: string = GENERIC_DB_ERROR): string {
   if (err == null) return fallback;
+  // Our own validators speak Albanian already — never translate them again.
+  if (err instanceof UserError) return err.message;
 
   const e = isPgError(err) ? err : null;
   const raw = typeof err === "string" ? err : e?.message ?? "";

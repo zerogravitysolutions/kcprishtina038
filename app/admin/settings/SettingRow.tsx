@@ -41,6 +41,9 @@ export function SettingRow({ row }: { row: { key: string; value: unknown; update
           <textarea
             value={value}
             onChange={e => setValue(e.target.value)}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             rows={Math.min(10, Math.max(2, value.split("\n").length))}
             style={{ width: "100%", fontFamily: "var(--font-mono)", fontSize: 12, padding: 8, border: "1px solid var(--line-strong)", borderRadius: 6, background: "var(--white)", color: "var(--ink)" }}
           />

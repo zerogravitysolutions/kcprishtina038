@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { ORDER_FIELD, parseNumField } from "@/lib/numeric";
 import { slugifyName, uniqueSlug } from "@/lib/slug";
 import type { TableInsert, TableUpdate, TeamPosition } from "@/lib/supabase/types";
 
@@ -38,8 +39,11 @@ function parsePayload(form: FormData): TableUpdate<"team_members"> {
   const st  = String(form.get("status") || "").trim(); if (st) patch.status = st as "active" | "past";
   const ea  = form.get("ended_at"); if (ea !== null) { const v = String(ea).trim(); patch.ended_at = v || null; }
   const bio = form.get("bio");      if (bio !== null) patch.bio = String(bio).trim() || null;
-  const ord = form.get("display_order"); if (ord !== null && String(ord).trim() !== "") {
-    const n = parseInt(String(ord), 10); if (!isNaN(n)) patch.display_order = n;
+  // type="text" + inputMode (see components/admin/NumericInput): the browser no
+  // longer filters the value, so this is the only check on it.
+  const ord = form.get("display_order");
+  if (ord !== null && String(ord).trim() !== "") {
+    patch.display_order = parseNumField(ord, ORDER_FIELD) ?? undefined;
   }
   const pid = form.get("profile_id"); if (pid !== null) { const v = String(pid).trim(); patch.profile_id = v === "" ? null : v; }
   const positions = form.getAll("positions").map(v => String(v)).filter((p): p is TeamPosition => (POSITIONS as readonly string[]).includes(p));

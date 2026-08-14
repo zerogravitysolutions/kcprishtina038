@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
+import { NumericInput } from "@/components/admin/NumericInput";
 import { actionError } from "@/lib/errors";
+import { ORDER_FIELD, formNumError } from "@/lib/numeric";
 
 type Initial = {
   name: string;
@@ -47,6 +49,11 @@ export function RaceForm({
         e.preventDefault();
         setErr(null);
         const fd = new FormData(e.currentTarget);
+        // "Renditja" is type="text" + inputMode now (numeric keypad on a phone).
+        // The action re-checks it; this copy names the field, which a thrown
+        // Server Action message cannot do in production.
+        const numErr = formNumError(fd, [{ name: "display_order", ...ORDER_FIELD }]);
+        if (numErr) { setErr(numErr); return; }
         start(async () => {
           try { await action(fd); }
           catch (x) {
@@ -100,11 +107,20 @@ export function RaceForm({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>URL e jashtme</label>
-          <input name="external_url" type="url" defaultValue={initial?.external_url ?? ""} placeholder="https://..." />
+          <input
+            name="external_url"
+            type="url"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            defaultValue={initial?.external_url ?? ""}
+            placeholder="https://..."
+          />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Renditja</label>
-          <input name="display_order" type="number" defaultValue={initial?.display_order ?? 100} />
+          <label htmlFor="ra-order">Renditja</label>
+          <NumericInput id="ra-order" name="display_order" kind="int" defaultValue={initial?.display_order ?? 100} />
         </div>
       </div>
 

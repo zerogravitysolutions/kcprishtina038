@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateSignup, deleteSignup } from "./actions";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { NumericInput } from "@/components/admin/NumericInput";
 
 export type Signup = {
   id: string;
@@ -78,7 +79,7 @@ export function SignupRow({ eventId, s, index }: { eventId: string; s: Signup; i
           </select>
         </td>
         <td style={{ padding: "12px 8px", width: 70 }}>
-          <input value={bib} onChange={(e) => setBib(e.target.value)} placeholder="#" style={{ width: "100%" }} />
+          <NumericInput kind="int" value={bib} onChange={setBib} placeholder="#" ariaLabel="Numri i startit" style={{ width: "100%" }} />
         </td>
         <td className="mono" style={{ padding: "12px 8px", fontSize: 11, color: "var(--ink-3)" }}>{createdAt}</td>
         <td style={{ padding: "12px 8px", whiteSpace: "nowrap" }}>

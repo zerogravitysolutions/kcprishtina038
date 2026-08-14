@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useTransition, useState } from "react";
 import { MediaPicker, type MediaOption } from "@/components/admin/MediaPicker";
+import { NumericInput } from "@/components/admin/NumericInput";
 import { actionError } from "@/lib/errors";
+import { ORDER_FIELD, formNumError } from "@/lib/numeric";
 
 type Initial = {
   first_name: string;
@@ -65,6 +67,11 @@ export function TeamMemberForm({
         // Clear & re-add positions[]
         fd.delete("positions");
         positions.forEach(p => fd.append("positions", p));
+        // "Renditja" is type="text" + inputMode now (numeric keypad on a phone).
+        // The action re-checks it; this copy names the field, which a thrown
+        // Server Action message cannot do in production.
+        const numErr = formNumError(fd, [{ name: "display_order", ...ORDER_FIELD }]);
+        if (numErr) { setErr(numErr); return; }
         start(async () => {
           try { await action(fd); }
           catch (x) {
@@ -78,11 +85,11 @@ export function TeamMemberForm({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Emri *</label>
-          <input name="first_name" required defaultValue={initial?.first_name ?? ""} />
+          <input name="first_name" required autoCapitalize="words" autoComplete="off" defaultValue={initial?.first_name ?? ""} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Mbiemri *</label>
-          <input name="last_name" required defaultValue={initial?.last_name ?? ""} />
+          <input name="last_name" required autoCapitalize="words" autoComplete="off" defaultValue={initial?.last_name ?? ""} />
         </div>
       </div>
 
@@ -124,7 +131,16 @@ export function TeamMemberForm({
 
       <div className="field">
         <label>URL e jashtme e fotos (opsionale)</label>
-        <input name="external_photo_url" type="url" defaultValue={initial?.external_photo_url ?? ""} placeholder="https://..." />
+        <input
+          name="external_photo_url"
+          type="url"
+          inputMode="url"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          defaultValue={initial?.external_photo_url ?? ""}
+          placeholder="https://..."
+        />
       </div>
 
       <div className="field">
@@ -145,8 +161,8 @@ export function TeamMemberForm({
           <input name="ended_at" type="date" defaultValue={initial?.ended_at ?? ""} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
-          <label>Renditja</label>
-          <input name="display_order" type="number" defaultValue={initial?.display_order ?? 100} />
+          <label htmlFor="tm-order">Renditja</label>
+          <NumericInput id="tm-order" name="display_order" kind="int" defaultValue={initial?.display_order ?? 100} />
         </div>
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Profili i lidhur</label>

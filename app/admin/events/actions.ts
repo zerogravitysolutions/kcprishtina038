@@ -4,11 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { ORDER_FIELD, parseNumField } from "@/lib/numeric";
 import type { EventStatus, EventType, SponsorTier, TableInsert, TableUpdate } from "@/lib/supabase/types";
 
+// admin + editor, which is what events_write_editor (migration 20260517000006)
+// already enforces. This check used to let a coach through: the write then went
+// to the database and was silently refused, so the coach saw a save that
+// changed nothing. Narrowing here matches the app to the RLS truth.
 async function assertEditor() {
   const p = await getProfile();
-  if (!p || !["admin", "editor", "coach"].includes(p.role)) throw new Error("forbidden");
+  if (!p || !["admin", "editor"].includes(p.role)) throw new Error("forbidden");
   return p;
 }
 
@@ -28,12 +33,13 @@ function parsePayload(form: FormData): TableUpdate<"events"> {
   const sa  = String(form.get("start_at") || "").trim();   if (sa) patch.start_at = new Date(sa).toISOString();
   const ea  = form.get("end_at");        if (ea !== null) { const v = String(ea).trim(); patch.end_at = v ? new Date(v).toISOString() : null; }
   const loc = form.get("location");      if (loc !== null) patch.location = String(loc).trim() || null;
-  const dk  = form.get("distance_km");   if (dk !== null && String(dk).trim() !== "") {
-    const n = parseFloat(String(dk)); if (!isNaN(n)) patch.distance_km = n;
-  } else if (dk !== null) patch.distance_km = null;
-  const el  = form.get("elevation_m");   if (el !== null && String(el).trim() !== "") {
-    const n = parseInt(String(el), 10); if (!isNaN(n)) patch.elevation_m = n;
-  } else if (el !== null) patch.elevation_m = null;
+  // The two number fields are type="text" + inputMode (numeric keypad on a
+  // phone, "42,5" tolerated), so the browser no longer filters anything: this
+  // is the only bound check left. parseFloat would have read "42,5" as 42.
+  const dk  = form.get("distance_km");
+  if (dk !== null) patch.distance_km = parseNumField(dk, { label: "Distanca", min: 0, max: 100000 });
+  const el  = form.get("elevation_m");
+  if (el !== null) patch.elevation_m = parseNumField(el, { label: "Ngjitja", kind: "int", min: 0, max: 100000 });
   const ds  = form.get("description_sq"); if (ds !== null) patch.description_sq = String(ds).trim() || null;
   const cov = form.get("cover_media_id"); if (cov !== null) { const v = String(cov).trim(); patch.cover_media_id = v === "" ? null : v; }
   const sv  = form.get("strava_url");     if (sv  !== null) { const v = String(sv).trim();  patch.strava_url     = v === "" ? null : v; }
@@ -55,8 +61,9 @@ function parseSponsorFields(form: FormData): TableUpdate<"sponsors"> {
   const url = form.get("website_url"); if (url !== null) patch.website_url = String(url).trim() || null;
   const cs = form.get("contract_start"); if (cs !== null) patch.contract_start = String(cs).trim() || null;
   const ce = form.get("contract_end");   if (ce !== null) patch.contract_end = String(ce).trim() || null;
-  const ord = form.get("display_order"); if (ord !== null && String(ord).trim() !== "") {
-    const n = parseInt(String(ord), 10); if (!isNaN(n)) patch.display_order = n;
+  const ord = form.get("display_order");
+  if (ord !== null && String(ord).trim() !== "") {
+    patch.display_order = parseNumField(ord, ORDER_FIELD) ?? undefined;
   }
   const act = form.get("active");
   if (act !== null) patch.active = act === "on" || act === "true" || act === "1";

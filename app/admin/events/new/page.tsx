@@ -10,7 +10,7 @@ export const revalidate = 0;
 export default async function NewEventPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
-  if (!["admin","editor","coach"].includes(profile.role)) redirect("/admin/dashboard");
+  if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
   const [{ data: secs }, { data: mediaData }] = await Promise.all([
     supabase.from("sections").select("id, name_sq").eq("active", true).order("display_order"),

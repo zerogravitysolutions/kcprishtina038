@@ -2237,3 +2237,15 @@ footer.foot::before {
 .docv-close:hover { background: var(--paper-2); color: var(--ink); }
 .docv-frame { flex: 1; width: 100%; border: 0; background: var(--paper-2); }
 @media (max-width: 600px) { .docv-backdrop { padding: 0; } .docv-modal { width: 100vw; height: 100dvh; border-radius: 0; } }
+
+/* ---------- Touch: every form control on the public site + member portal ----
+   iOS Safari zooms the whole page when a field under 16px takes focus, and the
+   zoom does NOT come back on blur — the join form was unusable on a phone
+   after the first tap. 44px is the smallest reliable finger target. Checkboxes,
+   radios and file pickers are excluded: min-height applies to those replaced
+   elements too and would stretch a 16px checkbox into a 44px sliver. */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+  select,
+  textarea { min-height: 44px; font-size: 16px; }
+}

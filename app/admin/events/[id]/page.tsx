@@ -31,7 +31,7 @@ type Category = { id: string; name: string; max_riders: number | null; display_o
 export default async function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
-  if (!["admin","editor","coach"].includes(profile.role)) redirect("/admin/dashboard");
+  if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const { id } = await params;
   const supabase = await createClient();
   const [

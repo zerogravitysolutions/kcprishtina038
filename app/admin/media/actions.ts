@@ -82,7 +82,7 @@ export async function uploadMediaFiles(form: FormData): Promise<UploadResult> {
       return { ok: false, error: lastErr };
     }
 
-    revalidatePath("/admin/media");
+    revalidatePath("/admin/files");
     // Picker hosts revalidate themselves via router.refresh() after the call.
     return { ok: true, ids, skipped };
   } catch (e) {

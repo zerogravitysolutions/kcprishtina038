@@ -600,6 +600,7 @@ table.t .person .nm small { font-family: var(--font-mono); font-size: 10px; lett
 /* ---------- Numeric entry fields (components/admin/NumericInput) ----------
    These are type="text" + inputMode, so they keep the tabular mono look the
    old type="number" inputs had, without the spinners / scroll-wheel edits. */
+input.num { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
 .field input.num { font-family: var(--font-mono); font-feature-settings: "tnum" 1; width: 100%; min-width: 0; }
 .num-hint { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .03em; color: var(--text-3); margin-top: -2px; }
 
@@ -615,9 +616,14 @@ table.t .person .nm small { font-family: var(--font-mono); font-size: 10px; lett
    radios and file pickers are excluded — min-height applies to those replaced
    elements too and would stretch a 13px checkbox into a 44px sliver. */
 @media (hover: none) and (pointer: coarse) {
-  .field input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-  .field select,
-  .field textarea { min-height: 44px; font-size: 16px; }
+  /* Bare element selectors, not just `.field input`: the start numbers and
+     finish places are typed straight into table cells, and the filter bars sit
+     outside a .field too. admin.css only ships with the /admin routes. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+  select,
+  textarea { min-height: 44px; font-size: 16px; }
+  /* .filter-bar wins on specificity (0,2,1), so it has to be named. */
+  .filter-bar input[type="search"] { min-height: 44px; font-size: 16px; }
   .athlete-search,
   .field input.athlete-search { min-height: 44px; font-size: 16px; }
   .athlete-chip { min-height: 44px !important; }

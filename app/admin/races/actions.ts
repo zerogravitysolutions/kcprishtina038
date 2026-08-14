@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { ORDER_FIELD, parseNumField } from "@/lib/numeric";
 import type { TableInsert, TableRow, TableUpdate } from "@/lib/supabase/types";
 
 const RACE_TYPES: readonly NonNullable<TableRow<"race_events">["race_type"]>[] =
@@ -41,9 +42,11 @@ function parsePayload(form: FormData): TableUpdate<"race_events"> {
     // Stored as a comma-separated hidden input; parse into a uuid[].
     patch.gallery_media_ids = String(gal).split(",").map((s) => s.trim()).filter(Boolean);
   }
+  // type="text" + inputMode (see components/admin/NumericInput): the browser no
+  // longer filters the value, so this is the only check on it.
   const ord         = form.get("display_order");
   if (ord !== null && String(ord).trim() !== "") {
-    const n = parseInt(String(ord), 10); if (!isNaN(n)) patch.display_order = n;
+    patch.display_order = parseNumField(ord, ORDER_FIELD) ?? undefined;
   }
   return patch;
 }

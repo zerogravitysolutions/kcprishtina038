@@ -1,58 +1,21 @@
-import { createClient, getProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { DeleteButton } from "./DeleteButton";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-type Row = {
-  id: string;
-  position: number | null;
-  event: { title_sq: string; start_at: string } | null;
-  member: { full_name: string } | null;
-  rider_name_override: string | null;
-  category: { name: string } | null;
-};
-
-export default async function ResultsAdminPage() {
-  const profile = await getProfile();
-  if (!profile) redirect("/login");
-  if (!["admin","editor","coach"].includes(profile.role)) redirect("/admin/dashboard");
-  const supabase = await createClient();
-  const { data } = await supabase.from("results")
-    .select("id, position, event:events(title_sq, start_at), member:profiles(full_name), rider_name_override, category:event_categories(name)")
-    .order("created_at", { ascending: false }).limit(200);
-  const rows = (data as Row[] | null) ?? [];
-
-  return (
-    <>
-      <div className="page-head">
-        <div><h1>Rezultatet</h1><div className="sub">{rows.length} në bazë</div></div>
-        <Link className="btn btn-ember" href="/admin/results/new">+ Rezultat i ri</Link>
-      </div>
-      <div className="table-wrap">
-        <table className="t">
-          <thead><tr><th style={{ width: 50 }}>Poz.</th><th>Eventi</th><th>Çiklisti</th><th>Kategoria</th><th>Data</th><th>Veprime</th></tr></thead>
-          <tbody>
-            {rows.length === 0
-              ? <tr><td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Nuk ka rezultate — shto një.</td></tr>
-              : rows.map(r => (
-                <tr key={r.id}>
-                  <td className="mono" style={{ fontSize: 18 }}>{r.position ? String(r.position).padStart(2, "0") : "—"}</td>
-                  <td>{r.event?.title_sq ?? "—"}</td>
-                  <td>{r.member?.full_name ?? r.rider_name_override ?? "—"}</td>
-                  <td className="mono">{r.category?.name ?? "—"}</td>
-                  <td className="mono">{r.event?.start_at ? new Date(r.event.start_at).toLocaleDateString("sq") : "—"}</td>
-                  <td className="actions">
-                    <Link className="btn btn-ghost btn-sm" href={`/admin/results/${r.id}`}>Ndrysho</Link>
-                    <DeleteButton id={r.id} />
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  );
+// This was a second results editor, unreachable from anywhere in the UI: no nav
+// row, no link. It wrote public.results, and nothing in the app reads that
+// table — not the public event page (which renders event_signups.result_place),
+// not the portal, not /races. A working editor feeding storage no surface
+// renders is not capability, and keeping two of them guarantees that one day
+// the same race is recorded twice and the public page shows one of them.
+//
+// Per-rider results live on event_signups and are edited at
+// /admin/events/[id]/results, which is reachable from the event detail page and
+// publishes straight to /events/[slug].
+//
+// The public.results rows are NOT dropped: they may be the only record of some
+// 2023–2025 placings, and removing the editor already stops the divergence.
+//
+// redirect (307), never permanentRedirect: a 308 would be cached in the owner's
+// browser forever if the panel is reorganised again.
+export default function ResultsRedirect() {
+  redirect("/admin/events");
 }

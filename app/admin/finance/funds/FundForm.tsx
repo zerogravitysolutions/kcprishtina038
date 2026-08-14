@@ -196,6 +196,7 @@ export function FundDialog({
         <div className="field">
           <label htmlFor={`a-${id}`}>Shuma (€)</label>
           <NumericInput
+            id={`a-${id}`}
             kind="decimal"
             value={amount}
             onChange={setAmount}

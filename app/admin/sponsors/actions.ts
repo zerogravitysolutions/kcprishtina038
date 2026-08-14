@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { ORDER_FIELD, parseNumField } from "@/lib/numeric";
 import type { SponsorTier, TableInsert, TableUpdate } from "@/lib/supabase/types";
 
 async function assertEditor() {
@@ -22,8 +23,11 @@ function parsePayload(form: FormData): TableUpdate<"sponsors"> {
   const url = form.get("website_url"); if (url !== null) patch.website_url = String(url).trim() || null;
   const cs = form.get("contract_start"); if (cs !== null) patch.contract_start = String(cs).trim() || null;
   const ce = form.get("contract_end");   if (ce !== null) patch.contract_end = String(ce).trim() || null;
-  const ord = form.get("display_order"); if (ord !== null && String(ord).trim() !== "") {
-    const n = parseInt(String(ord), 10); if (!isNaN(n)) patch.display_order = n;
+  // type="text" + inputMode (see components/admin/NumericInput): the browser no
+  // longer filters the value, so this is the only check on it.
+  const ord = form.get("display_order");
+  if (ord !== null && String(ord).trim() !== "") {
+    patch.display_order = parseNumField(ord, ORDER_FIELD) ?? undefined;
   }
   patch.active = String(form.get("active") || "off") === "on";
   const logo = form.get("logo_media_id");

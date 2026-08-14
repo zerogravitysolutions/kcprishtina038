@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { numFieldError, parseNumField, ORDER_FIELD } from "@/lib/numeric";
 
 export type CategoryResult = { ok: true } | { ok: false; error: string };
 
@@ -58,14 +59,13 @@ function coerce(input: CategoryInput): { ok: true; value: {
   if (!name) return { ok: false, error: "Emri i kategorisë mungon." };
   if (name.length > 80) return { ok: false, error: "Emri është shumë i gjatë. Shkurtoje." };
 
-  const rawOrder = (input.display_order ?? "").trim().replace(",", ".");
-  let order = 0;
-  if (rawOrder) {
-    const parsed = Number(rawOrder);
-    if (!Number.isFinite(parsed)) return { ok: false, error: "Renditja duhet të jetë numër i plotë." };
-    order = Math.round(parsed);
-    if (order < 0 || order > 9999) return { ok: false, error: "Renditja duhet të jetë mes 0 dhe 9999." };
-  }
+  // The same parser every other display_order in the app uses. The local
+  // Number() version this replaces read "1e3" as 1000 and "0x10" as 16, and
+  // ROUNDED "1.5" to 2 while its own message promised a whole number — the
+  // field is type="text" + inputMode now, so all three could really be typed.
+  const ordErr = numFieldError(input.display_order, ORDER_FIELD);
+  if (ordErr) return { ok: false, error: ordErr };
+  const order = parseNumField(input.display_order, ORDER_FIELD) ?? 0;
 
   return {
     ok: true,

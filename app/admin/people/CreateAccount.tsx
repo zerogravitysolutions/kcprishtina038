@@ -73,11 +73,11 @@ export function CreateAccount({ teamMemberId, name }: { teamMemberId: string; na
         <form onSubmit={(e) => { e.preventDefault(); submit(); }}>
           <div className="field">
             <label>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="emri@kcprishtina038.cc" autoComplete="off" required />
+            <input type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="emri@kcprishtina038.cc" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
           </div>
           <div className="field">
             <label>Fjalëkalimi fillestar (min. 8)</label>
-            <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
+            <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
           </div>
           <div className="field">
             <label>Roli</label>

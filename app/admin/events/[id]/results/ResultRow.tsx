@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { updateSignup } from "../signups/actions";
+import { NumericInput } from "@/components/admin/NumericInput";
 import type { Signup } from "../signups/SignupRow";
 
 const NOTE_OPTIONS = [
@@ -60,18 +61,26 @@ export function ResultRow({ eventId, s, index }: { eventId: string; s: Signup; i
         </div>
       </td>
       <td style={{ padding: "12px 8px", width: 90 }}>
-        <input
+        <NumericInput
+          kind="int"
           value={place}
-          onChange={(e) => setPlace(e.target.value)}
+          onChange={setPlace}
           placeholder="—"
-          style={{ width: "100%", textAlign: "center", fontFamily: "var(--font-mono)" }}
+          ariaLabel="Vendi"
+          style={{ width: "100%", textAlign: "center" }}
         />
       </td>
       <td style={{ padding: "12px 8px", width: 140 }}>
+        {/* Not a NumericInput: a finish time carries ":" and "." separators, and
+            a bare numeric keypad on a phone hides both. */}
         <input
           value={time}
           onChange={(e) => setTime(e.target.value)}
           placeholder="hh:mm:ss"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
           style={{ width: "100%", fontFamily: "var(--font-mono)" }}
         />
       </td>

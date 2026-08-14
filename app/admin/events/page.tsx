@@ -27,7 +27,9 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function EventsAdminPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
-  if (!["admin","editor","coach"].includes(profile.role)) redirect("/admin/dashboard");
+  // admin + editor everywhere under /admin/events, matching events_write_editor.
+  // A coach could reach this screen and edit, but the database refused the write.
+  if (!["admin","editor"].includes(profile.role)) redirect("/admin/dashboard");
   const supabase = await createClient();
   const { data } = await supabase.from("events")
     .select("id, title_sq, type, status, source, start_at, location, section:sections(name_sq)")

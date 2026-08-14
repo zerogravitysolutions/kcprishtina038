@@ -153,9 +153,14 @@ export function MediaPicker(props: Props) {
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
         <input
           type="search"
+          aria-label="Kërko në bibliotekën e medias"
           placeholder="Kërko sipas emrit, tekstit alt ose datës (p.sh. 2025)…"
           value={filter}
           onChange={(e) => { setFilter(e.target.value); setShowCount(80); }}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
           style={{ flex: "1 1 240px", minWidth: 240 }}
         />
         <button

@@ -3,8 +3,12 @@
 import { useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { updateDocument, deleteDocument } from "./actions";
+import { NumericInput } from "@/components/admin/NumericInput";
+// The actions stay under /admin/documents even though the screen moved: the
+// path is a server-action module boundary, not a route.
+import { updateDocument, deleteDocument } from "../documents/actions";
 import type { DocumentCategory, DocumentVisibility } from "@/lib/supabase/documents";
+import { ORDER_FIELD, numFieldError } from "@/lib/numeric";
 
 const CATEGORIES: { value: DocumentCategory; label: string }[] = [
   { value: "regulations",  label: "Rregulloret" },
@@ -51,6 +55,10 @@ export function RowActions({
 
   function save() {
     setSaveMsg(null);
+    // "Renditja" is type="text" + inputMode (numeric keypad on a phone), so the
+    // browser filters nothing. updateDocument re-checks the same bound.
+    const ordErr = numFieldError(ord, ORDER_FIELD);
+    if (ordErr) { setSaveMsg({ ok: false, text: ordErr }); return; }
     start(async () => {
       const fd = new FormData();
       fd.set("title", t);
@@ -165,8 +173,8 @@ export function RowActions({
               <input type="date" value={eff} onChange={(e) => setEff(e.target.value)} />
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Renditja</label>
-              <input type="number" value={ord} onChange={(e) => setOrd(e.target.value)} />
+              <label htmlFor={`do-${id}`}>Renditja</label>
+              <NumericInput id={`do-${id}`} kind="int" value={ord} onChange={setOrd} />
             </div>
           </div>
           {saveMsg && (

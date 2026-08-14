@@ -45,7 +45,7 @@ export function LoginForm({ next }: { next: string | null }) {
 
       <div className="field">
         <label>Email</label>
-        <input type="email" name="email" placeholder="emri@email.com" autoComplete="email" required />
+        <input type="email" inputMode="email" name="email" placeholder="emri@email.com" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
       </div>
 
       <div className="field">

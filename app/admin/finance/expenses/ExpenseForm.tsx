@@ -342,6 +342,7 @@ export function ExpenseFormModal({
         <div className="field" style={{ marginBottom: 0 }}>
           <label htmlFor="ex-amount">Shuma (€)</label>
           <NumericInput
+            id="ex-amount"
             kind="decimal"
             value={s.amount}
             onChange={(v) => set("amount", v)}

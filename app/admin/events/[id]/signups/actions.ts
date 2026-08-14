@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { parseNumField } from "@/lib/numeric";
 import type { EventSignupStatus, TableUpdate } from "@/lib/supabase/types";
 
 async function assertEditor() {
@@ -39,19 +40,19 @@ export async function updateSignup(
       }
       update.status = status;
     }
+    // Both fields are type="text" + inputMode now (a numeric keypad on the
+    // phone the commissaire uses at the finish line), so the browser filters
+    // nothing: parseNumField is the whole check. Number() used to let "1e3" and
+    // " 12 " through as a start number.
     if (patch.bib_number !== undefined) {
-      const raw = patch.bib_number.trim();
-      update.bib_number = raw === "" ? null : Number(raw);
-      if (raw !== "" && Number.isNaN(update.bib_number)) {
-        return { ok: false, error: "Numri i startit duhet të jetë numër." };
-      }
+      update.bib_number = parseNumField(patch.bib_number, {
+        label: "Numri i startit", kind: "int", min: 0, max: 99999,
+      });
     }
     if (patch.result_place !== undefined) {
-      const raw = patch.result_place.trim();
-      update.result_place = raw === "" ? null : Number(raw);
-      if (raw !== "" && Number.isNaN(update.result_place)) {
-        return { ok: false, error: "Vendi duhet të jetë numër." };
-      }
+      update.result_place = parseNumField(patch.result_place, {
+        label: "Vendi", kind: "int", min: 1, max: 99999,
+      });
     }
     if (patch.result_time !== undefined) {
       const v = (patch.result_time ?? "").trim();

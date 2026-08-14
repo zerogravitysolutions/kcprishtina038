@@ -28,11 +28,11 @@ export function NewSettingForm() {
     >
       <div className="field" style={{ marginBottom: 0 }}>
         <label>Çelësi</label>
-        <input name="key" required placeholder="my_key" pattern="^[a-z][a-z0-9_]*$" />
+        <input name="key" required placeholder="my_key" pattern="^[a-z][a-z0-9_]*$" title="Vetëm shkronja të vogla, numra dhe nënvijë." autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
       </div>
       <div className="field" style={{ marginBottom: 0 }}>
         <label>Vlera (JSON ose tekst)</label>
-        <textarea name="value" rows={3} placeholder={'"tekst" ose 42 ose {"foo":"bar"}'} />
+        <textarea name="value" rows={3} placeholder={'"tekst" ose 42 ose {"foo":"bar"}'} autoCapitalize="none" autoCorrect="off" spellCheck={false} />
       </div>
       <div style={{ alignSelf: "end" }}>
         <button type="submit" className="btn btn-ember" disabled={pending} style={{ width: "100%" }}>{pending ? "Duke shtuar…" : "Shto"}</button>

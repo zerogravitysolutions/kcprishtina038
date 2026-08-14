@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { normalizeDecimal, parseStrictNumber } from "@/lib/numeric";
 
 export type PlanResult = { ok: true } | { ok: false; error: string };
 
@@ -41,10 +42,12 @@ export async function updatePlan(planId: string, input: PlanInput): Promise<Plan
     // so the owner reads a sentence instead of a constraint violation.
     let amount: number | null = null;
     if (input.billable) {
-      const raw = input.amount_eur.trim().replace(",", ".");
+      const raw = normalizeDecimal(input.amount_eur);
       if (!raw) return { ok: false, error: "Një plan me pagesë duhet të ketë çmim mujor." };
-      const parsed = Number(raw);
-      if (!Number.isFinite(parsed)) return { ok: false, error: "Çmimi duhet të jetë numër, p.sh. 40 ose 40.50." };
+      // parseStrictNumber, not Number(): "40..5" and "1e3" both slip past
+      // Number() as a plausible price.
+      const parsed = parseStrictNumber(raw);
+      if (parsed == null) return { ok: false, error: "Çmimi duhet të jetë numër, p.sh. 40 ose 40,5." };
       if (parsed <= 0) {
         return { ok: false, error: "Çmimi mujor duhet të jetë më i madh se 0. Për një plan pa pagesë, hiq shenjën te “Faturohet çdo muaj”." };
       }

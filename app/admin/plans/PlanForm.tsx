@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { NumericInput } from "@/components/admin/NumericInput";
 import { actionError } from "@/lib/errors";
 import { planAmountLabel } from "@/lib/finance";
 import { updatePlan } from "./actions";
@@ -109,13 +110,17 @@ export function PlanForm({ plan, canWrite }: { plan: PlanView; canWrite: boolean
       {billable ? (
         <div className="field">
           <label htmlFor={`amount-${plan.id}`}>Çmimi mujor (€)</label>
-          <input
+          {/* updatePlan already tolerates "40,5" and rejects everything else
+              with an Albanian sentence — this just gives it the right keypad
+              and tidies the comma away on blur. */}
+          <NumericInput
             id={`amount-${plan.id}`}
-            inputMode="decimal"
+            kind="decimal"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={setAmount}
             placeholder="p.sh. 40"
             disabled={!canWrite}
+            ariaLabel="Çmimi mujor në euro"
           />
         </div>
       ) : null}

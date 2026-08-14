@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { ORDER_FIELD, parseNumField } from "@/lib/numeric";
 import type { TableUpdate } from "@/lib/supabase/types";
 
 async function assertEditor() {
@@ -22,8 +23,11 @@ export async function updateSection(id: string, form: FormData): Promise<void> {
     const v = String(co).trim();
     patch.coach_id = v === "" ? null : v;
   }
-  const ord = form.get("display_order"); if (ord !== null && String(ord).trim() !== "") {
-    const n = parseInt(String(ord), 10); if (!isNaN(n)) patch.display_order = n;
+  // type="text" + inputMode (see components/admin/NumericInput): the browser no
+  // longer filters the value, so this is the only check on it.
+  const ord = form.get("display_order");
+  if (ord !== null && String(ord).trim() !== "") {
+    patch.display_order = parseNumField(ord, ORDER_FIELD) ?? undefined;
   }
   patch.active = String(form.get("active") || "off") === "on";
 

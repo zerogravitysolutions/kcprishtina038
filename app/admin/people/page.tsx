@@ -225,7 +225,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
         <form method="get" action="/admin/people" style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {view !== "all" && <input type="hidden" name="view" value={view} />}
           {roleFilter && <input type="hidden" name="role" value={roleFilter} />}
-          <input type="search" name="q" defaultValue={q} placeholder="Kërko sipas emrit…" aria-label="Kërko person" />
+          <input type="search" name="q" defaultValue={q} placeholder="Kërko sipas emrit…" aria-label="Kërko person" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} />
           <button type="submit" className="btn btn-sm">Kërko</button>
           {q && <Link className="btn btn-ghost btn-sm" href={href({ q: "" })}>Pastro</Link>}
         </form>

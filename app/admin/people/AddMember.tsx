@@ -53,15 +53,15 @@ export function AddMember() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>
           <div className="field" style={{ margin: 0 }}>
             <label>Emri i plotë</label>
-            <input value={f.full_name} onChange={(e) => setF({ ...f, full_name: e.target.value })} placeholder="Filan Fisteku" autoComplete="off" required />
+            <input value={f.full_name} onChange={(e) => setF({ ...f, full_name: e.target.value })} placeholder="Filan Fisteku" autoComplete="off" autoCapitalize="words" required />
           </div>
           <div className="field" style={{ margin: 0 }}>
             <label>Email</label>
-            <input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="emri@kcprishtina038.cc" autoComplete="off" required />
+            <input type="email" inputMode="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="emri@kcprishtina038.cc" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
           </div>
           <div className="field" style={{ margin: 0 }}>
             <label>Fjalëkalimi (min. 8)</label>
-            <input type="text" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} placeholder="fjalëkalim fillestar" autoComplete="new-password" required />
+            <input type="text" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} placeholder="fjalëkalim fillestar" autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
           </div>
           <div className="field" style={{ margin: 0 }}>
             <label>Roli</label>

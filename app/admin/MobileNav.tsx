@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AdminNavIcon, activeNavHref, type AdminIcon } from "./AdminNav";
+import { AdminNavIcon, activeNavHref, type AdminNavItem, type AdminNavGroup } from "./AdminNav";
 
-export type MobileNavItem = { id: string; label: string; href: string; icon: AdminIcon };
-export type MobileNavGroup = { group: string; items: MobileNavItem[] };
+// Aliases of the sidebar's own types, never a second copy: a hand-written twin
+// silently dropped `owns` here, and the drawer would then have lit a different
+// row than the sidebar behind it on /admin/applications and /admin/athletes.
+export type MobileNavItem = AdminNavItem;
+export type MobileNavGroup = AdminNavGroup;
 
 /** Albanian display names for roles (the stored value stays the raw role). */
 const ROLE_LABEL: Record<string, string> = {
@@ -80,9 +83,12 @@ export function MobileNav({ groups, profileName, profileRole }: { groups: Mobile
               </button>
             </div>
             <nav className="mobile-nav-list">
+              {/* Same conditional heading as the sidebar: the unheaded groups
+                  (Paneli, Cilësimet) render their items with no label, and the
+                  key is the first item's id because two empty strings collide. */}
               {groups.map(g => (
-                <div key={g.group}>
-                  <div className="mobile-nav-group">{g.group}</div>
+                <div key={g.items[0]?.id ?? g.group}>
+                  {g.group ? <div className="mobile-nav-group">{g.group}</div> : null}
                   {g.items.map(it => {
                     const active = it.href === activeHref;
                     return (

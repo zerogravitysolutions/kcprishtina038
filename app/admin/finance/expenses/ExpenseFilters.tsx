@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+// ALL is declared in a plain module, NOT here: the page that renders this bar
+// is a Server Component, and a value exported from a "use client" file reaches
+// the server as a client-reference proxy rather than as the string.
+import { ALL, ALL_YEARS_LABEL } from "../filters";
 
 /** .filter-bar styles chips and search inputs, not selects. */
 const SEL: CSSProperties = {
@@ -9,8 +13,6 @@ const SEL: CSSProperties = {
   borderRadius: "var(--r-xs)", border: "1px solid var(--line-strong)",
   background: "var(--surface-1)", color: "var(--text-1)", maxWidth: 210,
 };
-
-export const ALL = "all";
 
 export type FilterOption = { value: string; label: string };
 
@@ -137,9 +139,12 @@ export function ExpenseFilters({
       onSubmit={(e) => { e.preventDefault(); apply(sel, q, value); }}
     >
       <label className="meta" htmlFor="f-year">Viti</label>
+      {/* Newest year first and the catch-all LAST: the default window is the
+          current year, and a default listed under "të gjitha" reads as if the
+          screen were showing everything. */}
       <select id="f-year" name="y" value={sel.y} onChange={(e) => setSelect("y", e.target.value)} style={SEL}>
         {years.map((y) => <option key={y} value={y}>{y}</option>)}
-        <option value={ALL}>Të gjitha vitet</option>
+        <option value={ALL}>{ALL_YEARS_LABEL}</option>
       </select>
 
       <label className="meta" htmlFor="f-cat">Kategoria</label>

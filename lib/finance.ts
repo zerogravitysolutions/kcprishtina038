@@ -554,12 +554,26 @@ export const EXPENSE_PAYMENT_METHOD_LABEL: Record<ExpensePaymentMethod, string> 
 
 export const EXPENSE_PAYMENT_METHODS: ExpensePaymentMethod[] = ["cash", "transfer"];
 
+// ---------------------------------------------------- unresolved references
+//
+// A money row may point at a category, a person or a sponsor the page could not
+// resolve — the record was deleted, or it sits outside the name list the screen
+// loaded. The row itself is real and its amount is real, so it MUST still
+// render: a finance screen that shows nothing is worse than one that shows a
+// row with a missing label, exactly as an unresolvable plan renders "Plan i
+// arkivuar" elsewhere in the panel. These are the three sentences to use, in
+// one place so every screen says the same thing.
+
+export const UNKNOWN_CATEGORY_LABEL = "Kategori e panjohur";
+export const UNKNOWN_MEMBER_LABEL = "Person i panjohur";
+export const UNKNOWN_SPONSOR_LABEL = "Sponsor i panjohur";
+
 /**
  * Who paid, for display. 'club' is the club itself; 'member' is a person who
  * fronted the money, so the NAME is the answer — "Anëtar" alone would hide
  * which of them the club owes. `nameOf` resolves a team_members id; when it
- * cannot (a rider no longer loaded on the page) the generic label is the
- * honest fallback.
+ * cannot (a person deleted, or outside the name list this screen loaded) the
+ * row still renders, saying that the name is the part that is missing.
  */
 export function paidByLabel(
   expense: { paid_by: ExpensePaidBy; paid_by_member_id?: string | null },
@@ -568,10 +582,16 @@ export function paidByLabel(
   if (expense.paid_by !== "member") return EXPENSE_PAID_BY_LABEL.club;
   const id = expense.paid_by_member_id;
   const name = id && nameOf ? nameOf(id) : null;
-  return name?.trim() || EXPENSE_PAID_BY_LABEL.member;
+  return name?.trim() || UNKNOWN_MEMBER_LABEL;
 }
 
-/** Beneficiary for display: a NULL beneficiary is the club, not "unknown". */
+/**
+ * Beneficiary for display: a NULL beneficiary is the club, not "unknown".
+ *
+ * An id that does NOT resolve is a different thing again and must not read
+ * "Klubi" — that would move a rider's cost onto the club's own line in front of
+ * whoever is reading. It says so instead.
+ */
 export function beneficiaryLabel(
   expense: { beneficiary_member_id?: string | null },
   nameOf?: (memberId: string) => string | null | undefined,
@@ -579,7 +599,7 @@ export function beneficiaryLabel(
   const id = expense.beneficiary_member_id;
   if (!id) return "Klubi";
   const name = nameOf ? nameOf(id) : null;
-  return name?.trim() || "Klubi";
+  return name?.trim() || UNKNOWN_MEMBER_LABEL;
 }
 
 /**

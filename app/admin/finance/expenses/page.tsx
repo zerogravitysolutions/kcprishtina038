@@ -3,12 +3,15 @@ import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
 import {
-  amountTotalLabel, amountTotalValue, formatEur, isOwedToMember, owedToMembers, owedToMembersTotal,
-  sumAmounts,
+  UNKNOWN_CATEGORY_LABEL, UNKNOWN_MEMBER_LABEL, amountTotalLabel, amountTotalValue, formatEur,
+  isOwedToMember, owedToMembers, owedToMembersTotal, sumAmounts,
 } from "@/lib/finance";
 import type { ExpensePaidBy, ExpensePaymentMethod, ExpenseStatus } from "@/lib/supabase/types";
 import { NewExpenseButton, type ExpenseOptions, type ExpenseView } from "./ExpenseForm";
-import { ExpenseFilters, ALL } from "./ExpenseFilters";
+// Components and types only from the "use client" module; ALL is a VALUE and
+// comes from the plain one, or the server would see a module proxy.
+import { ExpenseFilters } from "./ExpenseFilters";
+import { ALL, ALL_TIME_NOTE, currentYear, parseYearParam, yearChoices, yearSpan, yearWindowLabel } from "../filters";
 import { ExpenseRow } from "./ExpenseRow";
 
 export const dynamic = "force-dynamic";
@@ -70,11 +73,10 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   const isAdmin = profile.role === "admin";
 
   const sp = await searchParams;
-  const thisYear = new Date().getFullYear();
+  const thisYear = currentYear();
   // Their sheets are per-year ("2024-2025", "2026"), so the year is the frame,
-  // not a filter you have to remember to set.
-  const yearParam = (sp.y ?? "").trim();
-  const year = yearParam === ALL ? ALL : /^\d{4}$/.test(yearParam) ? yearParam : String(thisYear);
+  // not a filter you have to remember to set: no ?y= means THIS year.
+  const year = parseYearParam(sp.y);
   const categoryFilter = (sp.cat ?? ALL).trim() || ALL;
   const beneficiaryFilter = (sp.b ?? ALL).trim() || ALL;
   const statusFilter = STATUS_FILTERS.some((s) => s.value === sp.st) ? sp.st! : ALL;
@@ -176,7 +178,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     id: e.id,
     occurred_on: e.occurred_on,
     category_id: e.category_id,
-    category_name: categoryName.get(e.category_id) ?? "Pa kategori",
+    // A deleted category must not take the row down with it: the euros are
+    // real, only the label is gone.
+    category_name: categoryName.get(e.category_id) ?? UNKNOWN_CATEGORY_LABEL,
     description: e.description,
     amount_eur: e.amount_eur,
     beneficiary_member_id: e.beneficiary_member_id,
@@ -215,7 +219,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     if (needle) {
       const hay = [
         e.description, e.notes ?? "", e.invoice_no ?? "", e.category_name,
-        e.beneficiary_member_id ? memberName.get(e.beneficiary_member_id) ?? "" : "Klubi",
+        e.beneficiary_member_id ? memberName.get(e.beneficiary_member_id) ?? UNKNOWN_MEMBER_LABEL : "Klubi",
       ].join(" ").toLowerCase();
       if (!hay.includes(needle)) return false;
     }
@@ -244,10 +248,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
 
   // ---- year picker ---------------------------------------------------------
   const oldest = (oldestRes.data as unknown as { occurred_on: string }[] | null)?.[0]?.occurred_on;
-  const firstYear = oldest ? Number(oldest.slice(0, 4)) : thisYear;
-  const years: string[] = [];
-  for (let y = thisYear; y >= Math.min(firstYear, thisYear); y--) years.push(String(y));
-  if (year !== ALL && !years.includes(year)) years.unshift(year);
+  const years = yearChoices(yearSpan(oldest), year);
 
   const base = "/admin/finance/expenses";
   const link = (over: Partial<Record<"y" | "cat" | "b" | "st" | "sp" | "pb" | "owed" | "q", string>>) => {
@@ -257,7 +258,8 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     };
     const merged = { ...current, ...over };
     const params = new URLSearchParams();
-    if (merged.y && merged.y !== String(thisYear)) params.set("y", merged.y);
+    // The current year is the default, so it is left out of the querystring.
+    if (merged.y && merged.y !== thisYear) params.set("y", merged.y);
     if (merged.cat && merged.cat !== ALL) params.set("cat", merged.cat);
     if (merged.b && merged.b !== ALL) params.set("b", merged.b);
     if (merged.st && merged.st !== ALL) params.set("st", merged.st);
@@ -269,7 +271,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     return s ? `${base}?${s}` : base;
   };
 
-  const yearLabel = year === ALL ? "të gjitha vitet" : year;
+  const yearLabel = yearWindowLabel(year);
   const filtered =
     categoryFilter !== ALL || beneficiaryFilter !== ALL || statusFilter !== ALL
     || sponsorFilter !== ALL || payerFilter !== ALL || owedOnly || !!query;
@@ -314,7 +316,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
           sub={
             owedDebts.length === 0
               ? "asnjë shpenzim i pa rimbursuar"
-              : `${owedDebts.length} ${owedDebts.length === 1 ? "person" : "persona"}${owedTotal.missing > 0 ? ` · ${owedTotal.missing} pa shumë` : ""} · të gjitha vitet`
+              : `${owedDebts.length} ${owedDebts.length === 1 ? "person" : "persona"}${owedTotal.missing > 0 ? ` · ${owedTotal.missing} pa shumë` : ""} · ${ALL_TIME_NOTE}`
           }
         />
       </div>
@@ -333,7 +335,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
                 href={link({ owed: "1", y: ALL, st: ALL, cat: ALL, b: ALL, sp: ALL, q: "", pb: d.memberId })}
                 style={{ textDecoration: "none" }}
               >
-                {memberName.get(d.memberId) ?? "Anëtar"} · {amountTotalLabel({ total: d.total, missing: d.missing, counted: d.count - d.missing })}
+                {memberName.get(d.memberId) ?? UNKNOWN_MEMBER_LABEL} · {amountTotalLabel({ total: d.total, missing: d.missing, counted: d.count - d.missing })}
               </Link>
             ))}
           </div>
@@ -354,12 +356,20 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         <Link className={`chip ${owedOnly ? "active" : ""}`} href={link({ owed: owedOnly ? "" : "1" })}>
           Më ka mbetur borxh
         </Link>
-        {filtered ? <Link className="chip" href={`${base}?y=${year}`}>Pastro filtrat</Link> : null}
+        {/* Clears every filter but KEEPS the year window. */}
+        {filtered ? (
+          <Link
+            className="chip"
+            href={link({ cat: ALL, b: ALL, st: ALL, sp: ALL, pb: ALL, owed: "", q: "" })}
+          >
+            Pastro filtrat
+          </Link>
+        ) : null}
       </div>
 
       <ExpenseFilters
         base={base}
-        thisYear={String(thisYear)}
+        thisYear={thisYear}
         years={years}
         categories={categoryRows.map((c) => ({ value: c.id, label: `${c.name_sq}${c.active ? "" : " (joaktive)"}` }))}
         members={memberRows.map((m) => ({ value: m.id, label: m.full_name }))}
@@ -383,7 +393,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
               <th>Data</th>
               <th>Shpenzimi</th>
               <th>Për kë</th>
-              <th>Shuma</th>
+              {/* .num on the header as well as the cell, or the title sits left
+                  of the digits it names. */}
+              <th className="num">Shuma</th>
               <th>Paguar nga</th>
               <th>Statusi</th>
               <th>Veprime</th>

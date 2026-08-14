@@ -22,7 +22,7 @@ export function Kpi({
  * screen where its detail lives — the totals stay here, the rows do not.
  */
 export function OutsideCard({
-  title, value, note, tone, href, hrefLabel,
+  title, value, note, tone, href, hrefLabel, window,
 }: {
   title: string;
   value: string;
@@ -30,6 +30,12 @@ export function OutsideCard({
   tone: "warn" | "err" | "neutral";
   href: string;
   hrefLabel: string;
+  /**
+   * The window the figure covers, printed beside it. Some of these are annual
+   * flows and some are positions that deliberately ignore the year (open debt,
+   * open pledges); a reader cannot tell which by looking, so each one says.
+   */
+  window: string;
 }) {
   const color = tone === "err" ? "var(--err)" : tone === "warn" ? "var(--warn)" : "var(--text-2)";
   return (
@@ -37,7 +43,17 @@ export function OutsideCard({
       <div className="card-head">
         <h3 style={{ fontSize: 14.5 }}>{title}</h3>
       </div>
-      <div className="mono" style={{ fontSize: 22, fontWeight: 600, color, letterSpacing: "-0.01em" }}>{value}</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+        <span
+          className="mono"
+          style={{ fontSize: 22, fontWeight: 600, color, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}
+        >
+          {value}
+        </span>
+        <span className="mono" style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--text-3)" }}>
+          {window}
+        </span>
+      </div>
       <p style={{ margin: "10px 0 0", fontSize: 13, color: "var(--text-2)", lineHeight: 1.65 }}>{note}</p>
       <Link
         href={href}

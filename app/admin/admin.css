@@ -277,7 +277,16 @@ table.t tbody tr:last-child td { border-bottom: 0; }
 table.t td { color: var(--text-2); }
 table.t td.mono { font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.02em; color: var(--text-1); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 table.t td.right { text-align: right; }
-table.t td.num { font-family: var(--font-mono); text-align: right; color: var(--text-1); font-feature-settings: "tnum" 1; }
+/* A money column is right-aligned in the BODY and in the HEAD, from the same
+   rule. Styling only the cell is what made "Premtuar | Pranuar | Shpenzuar" sit
+   above the left edge of digits that hug the right one — the header and its
+   column have to be told the same thing or they drift the moment a figure grows
+   a digit. tabular-nums on top, so the digits line up vertically too. */
+table.t td.num, table.t thead th.num { text-align: right; }
+table.t td.num, table.t td.mono, table.t thead th.num {
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+}
+table.t td.num { font-family: var(--font-mono); color: var(--text-1); }
 table.t td.actions { white-space: nowrap; }
 table.t td.actions .btn { padding: 5px 10px; font-size: 11.5px; }
 table.t a:not(.btn) { color: var(--text-1); }
@@ -376,7 +385,10 @@ table.t .person .nm small { font-family: var(--font-mono); font-size: 10px; lett
 .between { justify-content: space-between; }
 .mt-8 { margin-top: 8px; } .mt-12 { margin-top: 12px; } .mt-16 { margin-top: 16px; } .mt-20 { margin-top: 20px; } .mt-24 { margin-top: 24px; }
 .muted { color: var(--text-3); }
-.mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
+/* font-variant-numeric next to the feature setting: the KPI figures and the bar
+   labels are money too, and tabular digits are what keeps a column of euros
+   lined up when one row reads €90.00 and the next €2840.00. */
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 
 /* ---------- Mobile hamburger nav ---------- */
 .mobile-nav-toggle { display: none; width: 44px; height: 44px; padding: 0; background: transparent; border: 0; color: var(--text-1); cursor: pointer; align-items: center; justify-content: center; margin-right: 4px; }

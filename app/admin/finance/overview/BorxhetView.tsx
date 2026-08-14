@@ -3,9 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
 import { RowBars } from "../../training/charts";
 import {
-  AGING_BUCKETS, AGING_BUCKET_LABEL, agingBucket, amountTotalLabel, averageEur, daysOverdue,
-  formatEur, outstandingTotal, owedToMembers, owedToMembersTotal, periodLabel, periodParam,
-  sumEur, toEuros, type AgingBucket,
+  AGING_BUCKETS, AGING_BUCKET_LABEL, UNKNOWN_MEMBER_LABEL, agingBucket, amountTotalLabel,
+  averageEur, daysOverdue, formatEur, outstandingTotal, owedToMembers, owedToMembersTotal,
+  periodLabel, periodParam, sumEur, toEuros, type AgingBucket,
 } from "@/lib/finance";
 import type { MembershipStatus } from "@/lib/supabase/types";
 import {
@@ -303,13 +303,16 @@ export async function BorxhetView() {
                   <tr>
                     <th>Personi</th>
                     <th>Shpenzime</th>
-                    <th>Shuma</th>
+                    <th className="num">Shuma</th>
                   </tr>
                 </thead>
                 <tbody>
                   {clubDebts.map((d) => (
                     <tr key={d.memberId}>
-                      <td>{teamMemberName.get(d.memberId) ?? "Person i panjohur"}</td>
+                      {/* The shared constant, not a copy of the sentence: this
+                          is the same "the name is what is missing, not the
+                          money" the expense ledger prints for the same person. */}
+                      <td>{teamMemberName.get(d.memberId) ?? UNKNOWN_MEMBER_LABEL}</td>
                       <td className="mono" data-lab="Shpenzime">
                         <span>
                           {expenseCount(d.count)}

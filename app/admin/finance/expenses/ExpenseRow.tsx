@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { actionError } from "@/lib/errors";
 import {
-  EXPENSE_PAYMENT_METHOD_LABEL, EXPENSE_STATUS_LABEL, EXPENSE_STATUS_TONE,
+  EXPENSE_PAYMENT_METHOD_LABEL, EXPENSE_STATUS_LABEL, EXPENSE_STATUS_TONE, UNKNOWN_SPONSOR_LABEL,
   beneficiaryLabel, expenseAmountLabel, formatDate, invoiceNoLabel, isOwedToMember, paidByLabel,
 } from "@/lib/finance";
 import { deleteExpense, setReimbursed } from "./actions";
@@ -33,8 +33,11 @@ export function ExpenseRow({
   const [err, setErr] = useState<string | null>(null);
 
   const nameOf = (id: string) => options.members.find((m) => m.id === id)?.full_name ?? null;
+  // A cost charged to a sponsor whose row is gone (or outside the list this
+  // page loaded) still says it is charged to somebody — dropping the line would
+  // quietly turn a sponsored cost into a club cost.
   const sponsorName = expense.funding_sponsor_id
-    ? options.sponsors.find((s) => s.id === expense.funding_sponsor_id)?.name ?? null
+    ? options.sponsors.find((s) => s.id === expense.funding_sponsor_id)?.name ?? UNKNOWN_SPONSOR_LABEL
     : null;
 
   const owed = isOwedToMember(expense);

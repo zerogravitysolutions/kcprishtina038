@@ -246,7 +246,9 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
               <th>Anëtari</th>
               <th>Plani</th>
               <th>Fatura</th>
-              <th>Shuma</th>
+              {/* .num on the header as well, or the title sits left of its
+                  right-aligned digits. */}
+              <th className="num">Shuma</th>
               <th>Afati</th>
               <th>Statusi</th>
               <th>Veprime</th>

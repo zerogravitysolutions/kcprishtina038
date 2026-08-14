@@ -1,6 +1,7 @@
 import type { createClient } from "@/lib/supabase/server";
-import type { DueLike, ExpenseLike } from "@/lib/finance";
+import { periodOfTimestamp, type DueLike, type ExpenseLike } from "@/lib/finance";
 import type { DuesStatus, ExpensePaidBy, ExpenseStatus } from "@/lib/supabase/types";
+import { ALL } from "../filters";
 
 /** The request-scoped Supabase client the pages already build. */
 type Client = Awaited<ReturnType<typeof createClient>>;
@@ -41,6 +42,7 @@ export function overviewHref(view: OverviewView, w: OverviewWindow = {}): string
 // quietly cut short is not a total. At club scale none are reached.
 export const OPEN_DUES_CAP = 5000;
 export const OWED_CAP = 500;
+export const PAID_DUES_CAP = 5000;
 
 /** One still-open invoice, in the shape every view here needs. */
 export type OpenDueRow = DueLike & {
@@ -75,6 +77,66 @@ export async function readOpenDues(supabase: Client) {
     .limit(OPEN_DUES_CAP);
   const rows = (res.data as unknown as OpenDueRow[] | null) ?? [];
   return { rows, error: res.error, truncated: rows.length >= OPEN_DUES_CAP };
+}
+
+/** One collected membership invoice, in the shape the cash-in figures need. */
+export type PaidDueRow = DueLike & {
+  id: string;
+  amount_eur: number | string | null;
+  status: DuesStatus;
+  period: string;
+  paid_at: string | null;
+};
+
+/**
+ * MEMBERSHIP CASH-IN, written exactly once.
+ *
+ * "Hyrjet e klubit" and the Pasqyra both have to print how much academy money
+ * came in during a window, and the owner asked for those two numbers to be the
+ * same number. So they share this read, `yearOfPayment()` below and
+ * membershipIncome() from lib/finance — same rows, same bucketing, same helper,
+ * therefore the same euros. Deriving it a second time anywhere is how the panel
+ * previously ended up with two figures under one word.
+ */
+export async function readPaidDues(supabase: Client) {
+  const res = await supabase
+    .from("dues")
+    .select("id, amount_eur, status, period, paid_at")
+    .eq("status", "paid")
+    .order("paid_at", { ascending: false })
+    .limit(PAID_DUES_CAP);
+  const rows = (res.data as unknown as PaidDueRow[] | null) ?? [];
+  return { rows, error: res.error, truncated: rows.length >= PAID_DUES_CAP };
+}
+
+/**
+ * The calendar year a PAYMENT landed in, read in local time like every other
+ * paid_at bucketing in the panel. Null (a legacy paid invoice with no
+ * timestamp) belongs to no year and is reported apart rather than folded into
+ * the current one.
+ */
+export function yearOfPayment(paidAt: string | null | undefined): string | null {
+  return periodOfTimestamp(paidAt)?.slice(0, 4) ?? null;
+}
+
+/** The collected invoices inside a year window; "all" keeps every row. */
+export function paidDuesInYear<T extends { paid_at: string | null }>(rows: T[], year: string): T[] {
+  return year === ALL ? rows : rows.filter((d) => yearOfPayment(d.paid_at) === year);
+}
+
+/** Paid invoices carrying no payment date — they cannot be placed in a year. */
+export function undatedPaidCount(rows: Array<{ paid_at: string | null }>): number {
+  return rows.filter((d) => !yearOfPayment(d.paid_at)).length;
+}
+
+/**
+ * The sentence that admits them, written once because it appears under a year
+ * figure on two screens and the verb has to agree with the count.
+ */
+export function undatedPaidNote(n: number): string {
+  return n === 1
+    ? "Një pagesë e shënuar si e paguar nuk ka datë pagese dhe nuk vendoset dot në një vit — nuk është llogaritur këtu."
+    : `${n} pagesa të shënuara si të paguara nuk kanë datë pagese dhe nuk vendosen dot në një vit — nuk janë llogaritur këtu.`;
 }
 
 /** One club expense somebody fronted and has not been paid back for. */

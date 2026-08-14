@@ -1,6 +1,7 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import type { TableInsert } from "@/lib/supabase/types";
 
 export type JoinResult = { ok: true } | { ok: false; error: string };
 
@@ -104,7 +105,7 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
     photoStoragePath = path;
   }
 
-  const row: Record<string, unknown> = {
+  const row: TableInsert<"applications"> = {
     full_name: name,
     email,
     phone: phone || null,
@@ -120,7 +121,7 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
   if (planId) row.plan_id = planId;
   const { error } = await supabase
     .from("applications")
-    .insert(row as never);
+    .insert(row);
   if (error) {
     // If the row insert failed but we already uploaded a photo, try to clean it up
     if (photoStoragePath) {

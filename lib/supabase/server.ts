@@ -1,5 +1,5 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { createClient as createSbClient } from "@supabase/supabase-js";
+import { createClient as createSbClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import type { Database, UserRole, MemberStatus } from "./types";
@@ -20,6 +20,14 @@ export const createClient = cache(async () => {
     );
   }
   const cookieStore = await cookies();
+  // TYPES ONLY, no runtime effect. @supabase/ssr@0.5 declares createServerClient
+  // as returning SupabaseClient<Database, SchemaName, Schema> — the 3-generic
+  // shape of supabase-js 2.4x. The installed supabase-js (2.105) inserted a
+  // `SchemaNameOrClientOptions` generic in slot 2, so ssr hands our Schema
+  // OBJECT to the SchemaName SLOT; the mismatch is swallowed by skipLibCheck and
+  // every table then resolves to `never`. That is what forced the `as never`
+  // casts all over the repo. Re-assert the correct shape until @supabase/ssr is
+  // upgraded to a release built against supabase-js 2.10x.
   return createServerClient<Database>(
     url,
     key,
@@ -37,7 +45,7 @@ export const createClient = cache(async () => {
         },
       },
     }
-  );
+  ) as unknown as SupabaseClient<Database>;
 });
 
 /**

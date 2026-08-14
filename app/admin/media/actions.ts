@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import type { TableInsert } from "@/lib/supabase/types";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB per file
@@ -53,7 +54,7 @@ export async function uploadMediaFiles(form: FormData): Promise<UploadResult> {
         .upload(path, buf, { contentType: file.type, upsert: false });
       if (upErr) { lastErr = dbError(upErr, "Ngarkimi i skedarit dështoi. Provo sërish."); skipped++; continue; }
 
-      const row: Record<string, unknown> = {
+      const row: TableInsert<"media"> = {
         storage_path: path,
         filename: file.name || `${crypto.randomUUID()}.${extFor(file.type)}`,
         mime_type: file.type,
@@ -63,10 +64,7 @@ export async function uploadMediaFiles(form: FormData): Promise<UploadResult> {
       };
       const { data: inserted, error: dbErr } = await supabase
         .from("media")
-        // Cast through unknown: generated Database types don't cover the
-        // `media` table since it's outside the typed surface, but the row
-        // shape above is correct.
-        .insert(row as never)
+        .insert(row)
         .select("id")
         .single<{ id: string }>();
 

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import type { EventStatus, EventType, SponsorTier, TableInsert, TableUpdate } from "@/lib/supabase/types";
 
 async function assertEditor() {
   const p = await getProfile();
@@ -16,11 +17,13 @@ function slugify(s: string): string {
     .replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 80).replace(/-+$/, "");
 }
 
-function parsePayload(form: FormData): Record<string, unknown> {
-  const patch: Record<string, unknown> = {};
+function parsePayload(form: FormData): TableUpdate<"events"> {
+  const patch: TableUpdate<"events"> = {};
   const t   = String(form.get("title_sq") || "").trim();   if (t) patch.title_sq = t;
-  const tp  = String(form.get("type") || "").trim();       if (tp) patch.type = tp;
-  const st  = String(form.get("status") || "").trim();     if (st) patch.status = st;
+  // type / status come from fixed <select>s and are re-checked by the Postgres
+  // enums, so the narrowing cast is the only thing the form cannot prove.
+  const tp  = String(form.get("type") || "").trim();       if (tp) patch.type = tp as EventType;
+  const st  = String(form.get("status") || "").trim();     if (st) patch.status = st as EventStatus;
   const sec = form.get("section_id");    if (sec !== null) { const v = String(sec).trim(); patch.section_id = v === "" ? null : v; }
   const sa  = String(form.get("start_at") || "").trim();   if (sa) patch.start_at = new Date(sa).toISOString();
   const ea  = form.get("end_at");        if (ea !== null) { const v = String(ea).trim(); patch.end_at = v ? new Date(v).toISOString() : null; }
@@ -42,10 +45,11 @@ function parsePayload(form: FormData): Record<string, unknown> {
 // setEventSponsors below for any callers still wanting to pin existing
 // global sponsors via the m2m table.
 
-function parseSponsorFields(form: FormData): Record<string, unknown> {
-  const patch: Record<string, unknown> = {};
+function parseSponsorFields(form: FormData): TableUpdate<"sponsors"> {
+  const patch: TableUpdate<"sponsors"> = {};
   const name = String(form.get("name") || "").trim();   if (name) patch.name = name;
-  const tier = String(form.get("tier") || "").trim();   if (tier) patch.tier = tier;
+  // Fixed <select>; the sponsor_tier enum re-checks it server-side.
+  const tier = String(form.get("tier") || "").trim();   if (tier) patch.tier = tier as SponsorTier;
   const rs = form.get("role_sq");      if (rs !== null) patch.role_sq = String(rs).trim() || null;
   const bs = form.get("body_sq");      if (bs !== null) patch.body_sq = String(bs).trim() || null;
   const url = form.get("website_url"); if (url !== null) patch.website_url = String(url).trim() || null;
@@ -68,14 +72,19 @@ export async function createEventSponsor(
   try {
     await assertEditor();
     const supabase = await createClient();
-    const payload = parseSponsorFields(form);
-    if (!payload.name) return { ok: false, error: "Emri mungon." };
-    if (!payload.tier) return { ok: false, error: "Niveli mungon." };
-    if (payload.active === undefined) payload.active = true;
-    payload.event_id = eventId;
+    const fields = parseSponsorFields(form);
+    if (!fields.name) return { ok: false, error: "Emri mungon." };
+    if (!fields.tier) return { ok: false, error: "Niveli mungon." };
+    const payload = {
+      ...fields,
+      name: fields.name,
+      tier: fields.tier,
+      active: fields.active === undefined ? true : fields.active,
+      event_id: eventId,
+    };
     const { data, error } = await supabase
       .from("sponsors")
-      .insert(payload as never)
+      .insert(payload)
       .select("id")
       .single<{ id: string }>();
     if (error) return { ok: false, error: dbError(error, "Sponsori nuk u shtua. Provo sërish.") };
@@ -97,7 +106,7 @@ export async function updateEventSponsor(
     const patch = parseSponsorFields(form);
     const { error } = await supabase
       .from("sponsors")
-      .update(patch as never)
+      .update(patch)
       .eq("id", sponsorId);
     if (error) return { ok: false, error: dbError(error, "Ruajtja e sponsorit dështoi. Provo sërish.") };
     revalidatePath(`/admin/events/${eventId}`);
@@ -147,7 +156,7 @@ export async function setEventSponsors(
       }));
       const { error: insErr } = await supabase
         .from("event_sponsors")
-        .insert(rows as never);
+        .insert(rows);
       if (insErr) return { ok: false, error: dbError(insErr, "Ruajtja e sponsorëve dështoi. Provo sërish.") };
     }
     revalidatePath(`/admin/events/${eventId}`);
@@ -159,13 +168,19 @@ export async function setEventSponsors(
 
 export async function createEvent(form: FormData): Promise<void> {
   const me = await assertEditor();
-  const payload = parsePayload(form);
-  if (!payload.title_sq) throw new Error("Titulli mungon.");
-  if (!payload.type)     throw new Error("Lloji mungon.");
-  if (!payload.start_at) throw new Error("Data e fillimit mungon.");
+  const fields = parsePayload(form);
+  if (!fields.title_sq) throw new Error("Titulli mungon.");
+  if (!fields.type)     throw new Error("Lloji mungon.");
+  if (!fields.start_at) throw new Error("Data e fillimit mungon.");
   const supabase = await createClient();
+  const payload: TableInsert<"events"> = {
+    ...fields,
+    title_sq: fields.title_sq,
+    type: fields.type,
+    start_at: fields.start_at,
+  };
 
-  let slug = slugify(payload.title_sq as string);
+  let slug = slugify(payload.title_sq);
   if (slug) {
     let suffix = 1, candidate = slug;
     for (;;) {
@@ -178,7 +193,7 @@ export async function createEvent(form: FormData): Promise<void> {
   payload.created_by = me.id;
   payload.source = "native";
 
-  const { error } = await supabase.from("events").insert([payload] as never);
+  const { error } = await supabase.from("events").insert([payload]);
   if (error) throw new Error(dbError(error, "Krijimi i eventit dështoi. Provo sërish."));
   revalidatePath("/admin/events");
   redirect("/admin/events");
@@ -188,7 +203,7 @@ export async function updateEvent(id: string, form: FormData): Promise<void> {
   await assertEditor();
   const supabase = await createClient();
   const patch = parsePayload(form);
-  const { error } = await supabase.from("events").update(patch as never).eq("id", id);
+  const { error } = await supabase.from("events").update(patch).eq("id", id);
   if (error) throw new Error(dbError(error, "Ruajtja e eventit dështoi. Provo sërish."));
   revalidatePath("/admin/events");
   redirect("/admin/events");
@@ -236,7 +251,7 @@ export async function setEventCategories(
       }));
       const { error: insErr } = await supabase
         .from("event_categories")
-        .insert(payload as never);
+        .insert(payload);
       if (insErr) return { ok: false, error: dbError(insErr, "Ruajtja e kategorive dështoi. Provo sërish.") };
     }
     revalidatePath(`/admin/events/${eventId}`);

@@ -9,9 +9,15 @@ import { dbError } from "@/lib/errors";
 // the last two into numbers; this rejects them.
 import { parseStrictNumber } from "@/lib/training";
 import type { ExpensePaidBy, ExpensePaymentMethod, ExpenseStatus } from "@/lib/supabase/types";
+// Plain module, not the client one: a "use server" file may only EXPORT async
+// functions, so these constants have to live somewhere both sides can import.
+import {
+  RECEIPT_ALLOWED_MIME, RECEIPT_MAX_BYTES, isReceiptPath, newReceiptPath, sniffImageMime,
+} from "./receipt";
 
 export type ExpenseResult = { ok: true } | { ok: false; error: string };
 export type ExpenseCreated = { ok: true; id: string } | { ok: false; error: string };
+export type ReceiptUploaded = { ok: true; path: string } | { ok: false; error: string };
 
 // club_expenses_write_staff (migration 20260810000002) — money is admin + staff.
 const WRITE_ROLES = ["admin", "staff"];
@@ -63,6 +69,8 @@ export type ExpenseInput = {
   reimbursed: boolean;
   reimbursed_note: string;
   notes: string;
+  /** Storage path returned by uploadReceipt(), or null for "no photo". */
+  receipt_path: string | null;
 };
 
 type ExpensePayload = {
@@ -80,6 +88,7 @@ type ExpensePayload = {
   reimbursed: boolean;
   reimbursed_note: string | null;
   notes: string | null;
+  receipt_path: string | null;
 };
 
 const STATUSES: ExpenseStatus[] = ["paid", "unpaid"];
@@ -188,6 +197,16 @@ function coerceExpense(
     };
   }
 
+  // 4. club_expenses_receipt_path_ck — the path is minted by uploadReceipt()
+  //    and never typed, so anything that is not exactly one of ours is a
+  //    tampered payload, not a user mistake. Rejecting it here keeps the row
+  //    from ever pointing outside receipts/, which is what makes the delete
+  //    paths below safe.
+  const receiptRaw = clean(input.receipt_path);
+  if (receiptRaw && !isReceiptPath(receiptRaw)) {
+    return { ok: false, error: "Fotoja e faturës nuk është e vlefshme. Ngarkoje sërish." };
+  }
+
   return {
     ok: true,
     value: {
@@ -207,8 +226,129 @@ function coerceExpense(
       reimbursed,
       reimbursed_note: reimbursed ? clean(input.reimbursed_note) : null,
       notes: clean(input.notes),
+      receipt_path: receiptRaw,
     },
   };
+}
+
+// ------------------------------------------------------------ receipt photo
+
+/**
+ * Delete a receipt object, but ONLY if no expense still points at it.
+ *
+ * Every caller here is a "the photo is going away" path — replaced, detached,
+ * or the whole expense deleted — and in each one the row has already stopped
+ * referencing the path. The re-check is against the case where it has NOT:
+ * two admins editing the same expense in two tabs, where the loser's save
+ * would otherwise blank out a photo the winner's row is still displaying.
+ * An orphaned object costs the club nothing; a row whose receipt 404s costs it
+ * the document.
+ *
+ * Failures are swallowed on purpose: storage is not the ledger. A cleanup that
+ * fails must never turn a saved expense into a failed one.
+ */
+async function removeReceiptObject(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  path: string | null | undefined,
+): Promise<void> {
+  if (!path || !isReceiptPath(path)) return;
+  try {
+    const { data, error } = await supabase
+      .from("club_expenses")
+      .select("id")
+      .eq("receipt_path", path)
+      .limit(1);
+    if (error) return;
+    if (((data as { id: string }[] | null) ?? []).length > 0) return;
+    await supabase.storage.from("media").remove([path]);
+  } catch {
+    // Orphan over a broken save.
+  }
+}
+
+/**
+ * Take the photo the browser just compressed and put it in the bucket.
+ *
+ * Separate from createExpense/updateExpense because the owner is standing in a
+ * shop: he photographs the slip while he is still typing the amount, sees the
+ * thumbnail appear, and only then saves. Bundling the bytes into the save
+ * would mean he learns the upload failed after everything else was already
+ * correct — and would push the Server Action body past the 1 MB Next.js
+ * accepts for a request that also carries the whole form.
+ *
+ * The object is written BEFORE any row references it, exactly like the
+ * applicant photo in app/join/actions.ts. The window in which it is
+ * unreferenced is closed by the form: it discards what it uploaded if the user
+ * cancels, and discardReceipt() below refuses to delete anything a row has
+ * since claimed.
+ */
+export async function uploadReceipt(form: FormData): Promise<ReceiptUploaded> {
+  try {
+    await assertStaff();
+
+    const file = form.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      return { ok: false, error: "Nuk u zgjodh asnjë foto." };
+    }
+    // The client already converted to JPEG; this is the bypass check.
+    if (!RECEIPT_ALLOWED_MIME.includes(file.type)) {
+      return { ok: false, error: "Fotoja duhet të jetë JPG, PNG ose WebP." };
+    }
+    if (file.size > RECEIPT_MAX_BYTES) {
+      return {
+        ok: false,
+        error: `Fotoja e kalon kufirin prej ${Math.round(RECEIPT_MAX_BYTES / 1024)} KB. Provo ta bësh sërish më afër faturës.`,
+      };
+    }
+
+    // THE check, not the declared one: file.type is a header the client wrote,
+    // so the extension and the stored content type are both derived from the
+    // magic number instead. A document renamed .jpg (which the browser skips
+    // compressing when it is already small) and a hand-made POST both stop here.
+    const buf = await file.arrayBuffer();
+    const mime = sniffImageMime(new Uint8Array(buf.slice(0, 12)));
+    if (!mime || !RECEIPT_ALLOWED_MIME.includes(mime)) {
+      return { ok: false, error: "Kjo skedë nuk është foto. Ngarko një foto JPG, PNG ose WebP." };
+    }
+
+    const path = newReceiptPath(mime);
+    const supabase = await createClient();
+    const { error } = await supabase.storage.from("media").upload(path, buf, {
+      contentType: mime,
+      upsert: false,
+      // The path is random and the object is never overwritten (there is no
+      // storage UPDATE policy for receipts/), so it is safe to cache forever.
+      cacheControl: "31536000",
+    });
+    if (error) {
+      return { ok: false, error: dbError(error, "Ngarkimi i fotos dështoi. Provo sërish.") };
+    }
+    return { ok: true, path };
+  } catch (e) {
+    return { ok: false, error: dbError(e, "Ngarkimi i fotos dështoi. Provo sërish.") };
+  }
+}
+
+/**
+ * Throw away a photo that was uploaded and then abandoned — the user tapped
+ * "Hiq foton", replaced it, or closed the form without saving.
+ *
+ * It is a public POST endpoint like any Server Action, so it may only ever
+ * touch an unreferenced object under receipts/. Both halves of that sentence
+ * are enforced, and neither is negotiable: without the prefix check this is a
+ * "delete any object in the bucket" endpoint for staff, and without the
+ * reference check it is a "delete any expense's receipt" endpoint.
+ */
+export async function discardReceipt(path: string): Promise<ExpenseResult> {
+  try {
+    await assertStaff();
+    if (!isReceiptPath(path)) return { ok: false, error: "Fotoja nuk u gjet." };
+    const supabase = await createClient();
+    await removeReceiptObject(supabase, path);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: dbError(e, "Heqja e fotos dështoi. Provo sërish.") };
+  }
 }
 
 /** A retired category may keep its old rows but must not collect new ones. */
@@ -241,7 +381,7 @@ export async function createExpense(input: ExpenseInput): Promise<ExpenseCreated
 
     const { data, error } = await supabase
       .from("club_expenses")
-      .insert({ ...coerced.value, recorded_by: me.id } as never)
+      .insert({ ...coerced.value, recorded_by: me.id })
       .select("id")
       .single<{ id: string }>();
     if (error || !data) {
@@ -268,9 +408,9 @@ export async function updateExpense(id: string, input: ExpenseInput): Promise<Ex
     const supabase = await createClient();
     const { data: current, error: readErr } = await supabase
       .from("club_expenses")
-      .select("id, category_id")
+      .select("id, category_id, receipt_path")
       .eq("id", id)
-      .maybeSingle<{ id: string; category_id: string }>();
+      .maybeSingle<{ id: string; category_id: string; receipt_path: string | null }>();
     if (readErr) return { ok: false, error: dbError(readErr, "Leximi i shpenzimit dështoi.") };
     if (!current) return { ok: false, error: "Ky shpenzim nuk ekziston më. Rifresko faqen." };
 
@@ -283,10 +423,17 @@ export async function updateExpense(id: string, input: ExpenseInput): Promise<Ex
 
     const { error } = await supabase
       .from("club_expenses")
-      .update(coerced.value as never)
+      .update(coerced.value)
       .eq("id", id);
     if (error) {
       return { ok: false, error: dbError(error, "Ruajtja e shpenzimit dështoi. Provo sërish.") };
+    }
+
+    // Replacing or detaching a receipt takes the old JPEG with it — otherwise
+    // every corrected photo leaves a copy of the club's paperwork sitting in a
+    // public bucket that nothing points at and nobody will ever find again.
+    if (current.receipt_path && current.receipt_path !== coerced.value.receipt_path) {
+      await removeReceiptObject(supabase, current.receipt_path);
     }
 
     revalidate();
@@ -340,7 +487,7 @@ export async function setReimbursed(
         // longer stands, and leaving it behind would read as though the debt
         // had been paid twice.
         reimbursed_note: input.reimbursed ? clean(input.note) : null,
-      } as never)
+      })
       .eq("id", id);
     if (error) {
       return { ok: false, error: dbError(error, "Shënimi i rimbursimit dështoi. Provo sërish.") };
@@ -385,9 +532,9 @@ export async function deleteExpense(id: string): Promise<ExpenseResult> {
     const supabase = await createClient();
     const { data: current, error: readErr } = await supabase
       .from("club_expenses")
-      .select("id, reimbursed")
+      .select("id, reimbursed, receipt_path")
       .eq("id", id)
-      .maybeSingle<{ id: string; reimbursed: boolean }>();
+      .maybeSingle<{ id: string; reimbursed: boolean; receipt_path: string | null }>();
     if (readErr) return { ok: false, error: dbError(readErr, "Leximi i shpenzimit dështoi.") };
     if (!current) return { ok: false, error: "Ky shpenzim nuk ekziston më. Rifresko faqen." };
 
@@ -403,6 +550,11 @@ export async function deleteExpense(id: string): Promise<ExpenseResult> {
     if (error) {
       return { ok: false, error: dbError(error, "Fshirja e shpenzimit dështoi. Provo sërish.") };
     }
+
+    // The row is gone, so the photo has nothing left to document. Deleting it
+    // after the row (never before) means a failed delete leaves the receipt
+    // attached rather than the expense pointing at a 404.
+    await removeReceiptObject(supabase, current.receipt_path);
 
     revalidate();
     return { ok: true };

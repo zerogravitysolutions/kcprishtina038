@@ -42,16 +42,18 @@ type ExpenseRowDb = {
   reimbursed: boolean;
   reimbursed_note: string | null;
   notes: string | null;
+  receipt_path: string | null;
   created_at: string;
 };
 
 const SELECT =
   "id, occurred_on, category_id, description, amount_eur, beneficiary_member_id, invoice_no, " +
   "payment_method, paid_by, paid_by_member_id, funding_sponsor_id, status, reimbursed, " +
-  "reimbursed_note, notes, created_at";
+  "reimbursed_note, notes, receipt_path, created_at";
 
 type SearchParams = Promise<{
-  y?: string; cat?: string; b?: string; st?: string; sp?: string; pb?: string; owed?: string; q?: string;
+  y?: string; cat?: string; b?: string; st?: string; sp?: string; pb?: string; owed?: string;
+  q?: string; rcpt?: string;
 }>;
 
 const STATUS_FILTERS = [
@@ -84,6 +86,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   // "all" | "club" | a team_members id — who actually handed over the money.
   const payerFilter = (sp.pb ?? ALL).trim() || ALL;
   const owedOnly = sp.owed === "1";
+  // "Which costs have no proof?" — the question the owner asks when the
+  // accountant wants the paperwork. Applied in JS with the rest of them.
+  const noReceiptOnly = sp.rcpt === "0";
   const query = (sp.q ?? "").trim();
 
   const supabase = await createClient();
@@ -193,6 +198,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     reimbursed: e.reimbursed,
     reimbursed_note: e.reimbursed_note,
     notes: e.notes,
+    receipt_path: e.receipt_path,
   }));
 
   // ---- filters -------------------------------------------------------------
@@ -216,6 +222,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       return false;
     }
     if (owedOnly && !isOwedToMember(e)) return false;
+    if (noReceiptOnly && e.receipt_path) return false;
     if (needle) {
       const hay = [
         e.description, e.notes ?? "", e.invoice_no ?? "", e.category_name,
@@ -251,10 +258,13 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   const years = yearChoices(yearSpan(oldest), year);
 
   const base = "/admin/finance/expenses";
-  const link = (over: Partial<Record<"y" | "cat" | "b" | "st" | "sp" | "pb" | "owed" | "q", string>>) => {
+  const link = (
+    over: Partial<Record<"y" | "cat" | "b" | "st" | "sp" | "pb" | "owed" | "q" | "rcpt", string>>,
+  ) => {
     const current: Record<string, string> = {
       y: year, cat: categoryFilter, b: beneficiaryFilter, st: statusFilter,
       sp: sponsorFilter, pb: payerFilter, owed: owedOnly ? "1" : "", q: query,
+      rcpt: noReceiptOnly ? "0" : "",
     };
     const merged = { ...current, ...over };
     const params = new URLSearchParams();
@@ -266,6 +276,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     if (merged.sp && merged.sp !== ALL) params.set("sp", merged.sp);
     if (merged.pb && merged.pb !== ALL) params.set("pb", merged.pb);
     if (merged.owed === "1") params.set("owed", "1");
+    if (merged.rcpt === "0") params.set("rcpt", "0");
     if (merged.q) params.set("q", merged.q);
     const s = params.toString();
     return s ? `${base}?${s}` : base;
@@ -274,7 +285,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   const yearLabel = yearWindowLabel(year);
   const filtered =
     categoryFilter !== ALL || beneficiaryFilter !== ALL || statusFilter !== ALL
-    || sponsorFilter !== ALL || payerFilter !== ALL || owedOnly || !!query;
+    || sponsorFilter !== ALL || payerFilter !== ALL || owedOnly || noReceiptOnly || !!query;
 
   return (
     <>
@@ -332,7 +343,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
               <Link
                 key={d.memberId}
                 className="chip"
-                href={link({ owed: "1", y: ALL, st: ALL, cat: ALL, b: ALL, sp: ALL, q: "", pb: d.memberId })}
+                href={link({ owed: "1", y: ALL, st: ALL, cat: ALL, b: ALL, sp: ALL, rcpt: "", q: "", pb: d.memberId })}
                 style={{ textDecoration: "none" }}
               >
                 {memberName.get(d.memberId) ?? UNKNOWN_MEMBER_LABEL} · {amountTotalLabel({ total: d.total, missing: d.missing, counted: d.count - d.missing })}
@@ -356,11 +367,14 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         <Link className={`chip ${owedOnly ? "active" : ""}`} href={link({ owed: owedOnly ? "" : "1" })}>
           Më ka mbetur borxh
         </Link>
+        <Link className={`chip ${noReceiptOnly ? "active" : ""}`} href={link({ rcpt: noReceiptOnly ? "" : "0" })}>
+          Pa foto të faturës
+        </Link>
         {/* Clears every filter but KEEPS the year window. */}
         {filtered ? (
           <Link
             className="chip"
-            href={link({ cat: ALL, b: ALL, st: ALL, sp: ALL, pb: ALL, owed: "", q: "" })}
+            href={link({ cat: ALL, b: ALL, st: ALL, sp: ALL, pb: ALL, owed: "", rcpt: "", q: "" })}
           >
             Pastro filtrat
           </Link>

@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://prishtina038.cc/sitemap.xml

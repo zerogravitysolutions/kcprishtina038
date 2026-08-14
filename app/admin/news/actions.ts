@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import type { ContentStatus, TableInsert, TableUpdate } from "@/lib/supabase/types";
 
 function slugify(s: string): string {
   return s
@@ -27,7 +28,8 @@ export async function createNews(form: FormData): Promise<void> {
   const me = await assertEditor();
   const title_sq = String(form.get("title_sq") || "").trim();
   const body_sq  = String(form.get("body_sq")  || "").trim();
-  const status   = String(form.get("status")   || "draft");
+  // Fixed <select>; the content_status enum re-checks it server-side.
+  const status   = String(form.get("status")   || "draft") as ContentStatus;
   const tags     = String(form.get("tags")     || "").split(",").map(s => s.trim()).filter(Boolean);
   if (!title_sq) throw new Error("Titulli mungon.");
   if (!body_sq)  throw new Error("Përmbajtja mungon.");
@@ -46,7 +48,7 @@ export async function createNews(form: FormData): Promise<void> {
   const cover = String(form.get("cover_media_id") || "").trim();
   const galleryRaw = String(form.get("gallery_media_ids") || "").trim();
   const gallery = galleryRaw ? galleryRaw.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const payload: Record<string, unknown> = {
+  const payload: TableInsert<"news"> = {
     slug, title_sq, body_sq, status, tags,
     author_id: me.id, source: "manual",
     cover_media_id: cover || null,
@@ -54,7 +56,7 @@ export async function createNews(form: FormData): Promise<void> {
   };
   if (status === "published") payload.published_at = new Date().toISOString();
 
-  const { error } = await supabase.from("news").insert([payload] as never);
+  const { error } = await supabase.from("news").insert([payload]);
   if (error) throw new Error(dbError(error, "Ruajtja e artikullit dështoi. Provo sërish."));
   revalidatePath("/admin/news");
   revalidatePath("/news");
@@ -64,14 +66,15 @@ export async function createNews(form: FormData): Promise<void> {
 export async function updateNews(id: string, form: FormData): Promise<void> {
   await assertEditor();
   const supabase = await createClient();
-  const patch: Record<string, unknown> = {};
+  const patch: TableUpdate<"news"> = {};
   const t = String(form.get("title_sq") || "").trim();
   if (t) patch.title_sq = t;
   const b = String(form.get("body_sq") || "").trim();
   if (b) patch.body_sq = b;
   const s = String(form.get("status") || "").trim();
   if (s) {
-    patch.status = s;
+    // Fixed <select>; the content_status enum re-checks it server-side.
+    patch.status = s as ContentStatus;
     if (s === "published") {
       const { data: existing } = await supabase.from("news").select("published_at").eq("id", id).maybeSingle();
       if (!(existing as { published_at: string | null } | null)?.published_at) {
@@ -92,7 +95,7 @@ export async function updateNews(id: string, form: FormData): Promise<void> {
     patch.gallery_media_ids = v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [];
   }
 
-  const { error } = await supabase.from("news").update(patch as never).eq("id", id);
+  const { error } = await supabase.from("news").update(patch).eq("id", id);
   if (error) throw new Error(dbError(error, "Ruajtja e artikullit dështoi. Provo sërish."));
   revalidatePath("/admin/news");
   revalidatePath("/news");

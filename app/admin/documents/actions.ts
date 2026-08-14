@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import type { DocumentCategory, DocumentVisibility } from "@/lib/supabase/documents";
 import { dbError } from "@/lib/errors";
+import type { TableRow, TableUpdate } from "@/lib/supabase/types";
 
 const PDF_MIME = "application/pdf";
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
@@ -84,7 +85,7 @@ export async function uploadDocument(form: FormData): Promise<{ ok: true; slug: 
       effective_date: effectiveDate || null,
       visibility,
       uploaded_by: me.id,
-    }] as never);
+    }]);
     if (dbErr) {
       // Roll back the storage upload.
       await supabase.storage.from("media").remove([storagePath]);
@@ -103,13 +104,15 @@ export async function updateDocument(id: string, form: FormData): Promise<{ ok: 
   try {
     await assertAdmin();
     const supabase = await createClient();
-    const patch: Record<string, unknown> = {};
+    const patch: TableUpdate<"documents"> = {};
     const t = String(form.get("title") || "").trim();
     if (t) patch.title = t;
+    // category / visibility come from fixed <select>s and are re-checked by the
+    // column CHECK constraints server-side.
     const cat = String(form.get("category") || "").trim();
-    if (cat) patch.category = cat;
+    if (cat) patch.category = cat as TableRow<"documents">["category"];
     const vis = String(form.get("visibility") || "").trim();
-    if (vis) patch.visibility = vis;
+    if (vis) patch.visibility = vis as TableRow<"documents">["visibility"];
     const desc = form.get("description");
     if (desc !== null) patch.description = String(desc).trim() || null;
     const eff = form.get("effective_date");
@@ -119,7 +122,7 @@ export async function updateDocument(id: string, form: FormData): Promise<{ ok: 
       const n = parseInt(String(ord), 10);
       if (!isNaN(n)) patch.display_order = n;
     }
-    const { error } = await supabase.from("documents").update(patch as never).eq("id", id);
+    const { error } = await supabase.from("documents").update(patch).eq("id", id);
     if (error) return { ok: false, error: dbError(error, "Ruajtja e dokumentit dështoi. Provo sërish.") };
     revalidatePath("/admin/documents");
     revalidatePath("/documents");

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
 import { currentPeriod, periodLabel } from "@/lib/finance";
-import type { PaidMethod } from "@/lib/supabase/types";
+import type { DueUpdate, PaidMethod } from "@/lib/supabase/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -60,7 +60,10 @@ export async function markInvoicePaid(
   try {
     const me = await assertFinanceStaff();
 
-    if (!(PAYMENT_METHODS as string[]).includes(input.method)) {
+    // find() rather than includes() so `method` narrows to PaidMethod and the
+    // update below needs no cast.
+    const method = PAYMENT_METHODS.find((m) => m === input.method);
+    if (!method) {
       return { ok: false, error: "Zgjidh një mënyrë pagese: kesh, bankë ose online." };
     }
     const date = (input.date || "").trim();
@@ -71,9 +74,9 @@ export async function markInvoicePaid(
       return { ok: false, error: "Data e pagesës nuk mund të jetë në të ardhmen." };
     }
 
-    const patch: Record<string, unknown> = {
+    const patch: DueUpdate = {
       status: "paid",
-      paid_method: input.method,
+      paid_method: method,
       paid_at: paidAtFromDate(date),
       recorded_by: me.id,
     };
@@ -83,7 +86,7 @@ export async function markInvoicePaid(
     const supabase = await createClient();
     const { error } = await supabase
       .from("dues")
-      .update(patch as never)
+      .update(patch)
       .eq("id", invoiceId);
     if (error) return { ok: false, error: dbError(error, "Regjistrimi i pagesës dështoi. Provo sërish.") };
 
@@ -113,7 +116,7 @@ export async function waiveInvoice(invoiceId: string, reason: string): Promise<A
         paid_at: new Date().toISOString(),
         recorded_by: me.id,
         notes: note,
-      } as never)
+      })
       .eq("id", invoiceId);
     if (error) return { ok: false, error: dbError(error, "Falja e faturës dështoi. Provo sërish.") };
 
@@ -141,7 +144,7 @@ export async function reopenInvoice(invoiceId: string): Promise<ActionResult> {
         paid_at: null,
         paid_method: null,
         recorded_by: me.id,
-      } as never)
+      })
       .eq("id", invoiceId);
     if (error) return { ok: false, error: dbError(error, "Zhbërja e pagesës dështoi. Provo sërish.") };
 
@@ -180,12 +183,9 @@ export async function generateInvoices(
     }
 
     const supabase = await createClient();
-    // Args cast for the same reason as the `as never` inserts elsewhere: our
-    // hand-written Database type omits Views/CompositeTypes, so it does not
-    // satisfy Supabase's GenericSchema and the rpc() arg generic degrades.
     const { data, error } = await supabase.rpc(
       "generate_dues_for_period",
-      { p_period: period } as never,
+      { p_period: period },
     );
     if (error) return { ok: false, error: dbError(error, "Gjenerimi i faturave dështoi. Provo sërish.") };
 

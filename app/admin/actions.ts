@@ -5,24 +5,21 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { dbError } from "@/lib/errors";
+import type { MemberStatus, UserRole } from "@/lib/supabase/types";
 // Same gate /admin/people uses — one definition, so the merged screen cannot
 // widen what "admin only" means here.
 import { requireAdmin } from "./guards";
 
-const MEMBER_ROLES = ["admin", "editor", "staff", "coach", "member"];
-const MEMBER_STATUSES = ["active", "inactive", "suspended", "pending"];
+// Typed against the column unions so a role/status removed from the enum is a
+// compile error here rather than a runtime 22P02 from Postgres.
+const MEMBER_ROLES: readonly UserRole[] = ["admin", "editor", "staff", "coach", "member"];
+const MEMBER_STATUSES: readonly MemberStatus[] = ["active", "inactive", "suspended", "pending"];
 
 export async function adminSignOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
 }
-
-// Call RPC inline on the supabase client. Extracting `supabase.rpc` into a
-// local const breaks `this` binding — supabase-js's rpc() implementation
-// accesses `this.rest`, so the detached call throws
-// "Cannot read properties of undefined (reading 'rest')".
-type RpcAny = (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
 
 // These RPCs `raise exception` with their own English text, which no SQLSTATE
 // mapping can recover. Translate the cases an admin can actually hit, then hand
@@ -39,7 +36,7 @@ function rpcError(error: { message: string }, fallback: string): string {
 
 export async function approveApplication(appId: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
-  const { error } = await (supabase.rpc as unknown as RpcAny).call(supabase, "approve_application", { app_id: appId });
+  const { error } = await supabase.rpc("approve_application", { app_id: appId });
   if (error) return { ok: false, error: rpcError(error, "Miratimi i aplikimit dështoi. Provo sërish.") };
   revalidatePath("/admin/applications");
   revalidatePath("/admin/dashboard");
@@ -48,7 +45,7 @@ export async function approveApplication(appId: string): Promise<{ ok: boolean; 
 
 export async function rejectApplication(appId: string, reason: string | null): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
-  const { error } = await (supabase.rpc as unknown as RpcAny).call(supabase, "reject_application", { app_id: appId, reason: reason ?? null });
+  const { error } = await supabase.rpc("reject_application", { app_id: appId, reason: reason ?? null });
   if (error) return { ok: false, error: rpcError(error, "Refuzimi i aplikimit dështoi. Provo sërish.") };
   revalidatePath("/admin/applications");
   revalidatePath("/admin/dashboard");
@@ -57,7 +54,11 @@ export async function rejectApplication(appId: string, reason: string | null): P
 
 export async function setUserRole(targetId: string, newRole: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
-  const { error } = await (supabase.rpc as unknown as RpcAny).call(supabase, "set_user_role", { target_id: targetId, new_role: newRole });
+  // newRole arrives from a client <select>, so it is untrusted here — but
+  // set_user_role's own parameter is public.user_role, so Postgres rejects
+  // anything outside the enum before the function body runs. The cast only
+  // states that; it does not widen what the DB accepts.
+  const { error } = await supabase.rpc("set_user_role", { target_id: targetId, new_role: newRole as UserRole });
   if (error) return { ok: false, error: rpcError(error, "Ndryshimi i rolit dështoi. Provo sërish.") };
   revalidatePath("/admin/people");
   revalidatePath("/admin/staff");
@@ -74,7 +75,8 @@ export async function createMember(input: { full_name: string; email: string; pa
   const full_name = (input.full_name ?? "").trim();
   const email = (input.email ?? "").trim().toLowerCase();
   const password = input.password ?? "";
-  const role = MEMBER_ROLES.includes(input.role) ? input.role : "member";
+  // find() rather than includes() so `role` narrows to UserRole.
+  const role = MEMBER_ROLES.find((r) => r === input.role) ?? "member";
   if (full_name.length < 2) return { ok: false, error: "Shkruaj emrin e plotë." };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Email-i nuk është i vlefshëm." };
   if (password.length < 8) return { ok: false, error: "Fjalëkalimi duhet të ketë së paku 8 karaktere." };
@@ -107,11 +109,13 @@ export async function setMemberStatus(targetId: string, status: string): Promise
   const gate = await requireAdmin();
   if (!gate.ok) return { ok: false, error: gate.error };
   if (targetId === gate.id) return { ok: false, error: "Nuk mund të çaktivizosh llogarinë tënde." };
-  if (!MEMBER_STATUSES.includes(status)) return { ok: false, error: "Statusi nuk është i vlefshëm." };
+  // find() rather than includes() so the value narrows to MemberStatus.
+  const memberStatus = MEMBER_STATUSES.find((s) => s === status);
+  if (!memberStatus) return { ok: false, error: "Statusi nuk është i vlefshëm." };
 
   let admin;
   try { admin = createAdminClient(); } catch { return { ok: false, error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server." }; }
-  const { error } = await admin.from("profiles").update({ status }).eq("id", targetId);
+  const { error } = await admin.from("profiles").update({ status: memberStatus }).eq("id", targetId);
   if (error) return { ok: false, error: dbError(error, "Ndryshimi i statusit dështoi. Provo sërish.") };
   // Revoke (or restore) the auth session so a deactivated user is cut off
   // immediately everywhere — not just when a page/layout re-checks status.

@@ -92,7 +92,7 @@ export async function createCategory(input: CategoryInput): Promise<CategoryResu
     const supabase = await createClient();
     const { error } = await supabase
       .from("expense_categories")
-      .insert({ ...coerced.value, code } as never);
+      .insert({ ...coerced.value, code });
     if (error) {
       // 23505 on `code` — dbError says "ekziston tashmë", but the owner needs to
       // know WHICH field collided, since the code is derived silently.
@@ -126,7 +126,7 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
     const supabase = await createClient();
     const { error } = await supabase
       .from("expense_categories")
-      .update(coerced.value as never)
+      .update(coerced.value)
       .eq("id", id);
     if (error) {
       return { ok: false, error: dbError(error, "Ruajtja e kategorisë dështoi. Provo sërish.") };

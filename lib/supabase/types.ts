@@ -26,10 +26,25 @@ export type ExpenseStatus = "paid" | "unpaid";
 /** Who actually handed over the money. 'member' = the club owes them it back. */
 export type ExpensePaidBy = "club" | "member";
 export type ExpensePaymentMethod = "cash" | "transfer";
+/**
+ * public.team_position. The last three were added by migrations 20260518000006
+ * and 20260518000007; this union used to stop at "staff", so a secretary or a
+ * board member read off `team_members.positions` was typed as something that
+ * cannot occur.
+ */
+export type TeamPosition =
+  | "president" | "board_member"
+  | "secretary_general" | "secretary_organizational"
+  | "commissaire" | "coach" | "rider" | "mechanic" | "physio" | "staff";
+export type NewsSource = "manual" | "facebook";
+export type EventSignupStatus = "pending" | "confirmed" | "waitlisted" | "cancelled";
+export type EventSignupGender = "m" | "f" | "other";
 
-export interface Database {
-  public: {
-    Tables: {
+/**
+ * The tables, written without the `Relationships` key so the entries stay
+ * readable. `Database` below adds it — see WithRelationships.
+ */
+interface PublicTables {
       sections: {
         Row: {
           id: string;
@@ -44,10 +59,10 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["sections"]["Row"]> & {
+        Insert: Partial<PublicTables["sections"]["Row"]> & {
           slug: string; display_order: number; name_sq: string; name_en: string;
         };
-        Update: Partial<Database["public"]["Tables"]["sections"]["Row"]>;
+        Update: Partial<PublicTables["sections"]["Row"]>;
       };
       profiles: {
         Row: {
@@ -68,10 +83,10 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["profiles"]["Row"]> & {
+        Insert: Partial<PublicTables["profiles"]["Row"]> & {
           id: string; full_name: string; email: string;
         };
-        Update: Partial<Database["public"]["Tables"]["profiles"]["Row"]>;
+        Update: Partial<PublicTables["profiles"]["Row"]>;
       };
       applications: {
         Row: {
@@ -88,16 +103,18 @@ export interface Database {
           plan_id: string | null;
           experience: string | null;
           notes: string | null;
+          // Path inside the `media` bucket for the photo uploaded on /join.
+          photo_storage_path: string | null;
           status: ApplicationStatus;
           reviewed_by: string | null;
           reviewed_at: string | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["applications"]["Row"]> & {
+        Insert: Partial<PublicTables["applications"]["Row"]> & {
           full_name: string; email: string;
         };
-        Update: Partial<Database["public"]["Tables"]["applications"]["Row"]>;
+        Update: Partial<PublicTables["applications"]["Row"]>;
       };
       events: {
         Row: {
@@ -118,19 +135,28 @@ export interface Database {
           registration_open_at: string | null;
           registration_close_at: string | null;
           cover_media_id: string | null;
+          // migration 20260517000012 (Facebook sync).
+          source: "native" | "facebook";
+          external_id: string | null;
+          external_url: string | null;
+          // migration 20260518000013.
+          strava_url: string | null;
+          // migration 20260519000001.
+          results_published: boolean;
+          results_published_at: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["events"]["Row"]> & {
+        Insert: Partial<PublicTables["events"]["Row"]> & {
           title_sq: string; type: EventType; start_at: string;
         };
-        Update: Partial<Database["public"]["Tables"]["events"]["Row"]>;
+        Update: Partial<PublicTables["events"]["Row"]>;
       };
       event_categories: {
         Row: { id: string; event_id: string; name: string; max_riders: number | null; display_order: number };
         Insert: { event_id: string; name: string; max_riders?: number | null; display_order?: number };
-        Update: Partial<Database["public"]["Tables"]["event_categories"]["Row"]>;
+        Update: Partial<PublicTables["event_categories"]["Row"]>;
       };
       event_registrations: {
         Row: {
@@ -139,7 +165,7 @@ export interface Database {
           bib_number: number | null; registered_at: string; notes: string | null;
         };
         Insert: { event_id: string; member_id: string; category_id?: string | null; status?: RegistrationStatus; bib_number?: number | null; notes?: string | null };
-        Update: Partial<Database["public"]["Tables"]["event_registrations"]["Row"]>;
+        Update: Partial<PublicTables["event_registrations"]["Row"]>;
       };
       results: {
         Row: {
@@ -149,8 +175,10 @@ export interface Database {
           points: number | null; notes: string | null;
           recorded_by: string | null; created_at: string;
         };
-        Insert: { event_id: string; category_id?: string | null; member_id?: string | null; rider_name_override?: string | null; position?: number | null; time_seconds?: number | null; points?: number | null; notes?: string | null };
-        Update: Partial<Database["public"]["Tables"]["results"]["Row"]>;
+        // Partial<Row> rather than a hand-listed subset: the old list omitted
+        // recorded_by, which the admin results editor writes.
+        Insert: Partial<PublicTables["results"]["Row"]> & { event_id: string };
+        Update: Partial<PublicTables["results"]["Row"]>;
       };
       media: {
         Row: {
@@ -160,9 +188,13 @@ export interface Database {
           uploaded_by: string | null; created_at: string;
           source: "upload" | "facebook";
           external_id: string | null; external_url: string | null;
+          // migration 20260518000001 — homepage hero picker.
+          featured_in_hero: boolean; featured_order: number;
         };
-        Insert: { storage_path: string; filename: string; mime_type?: string | null; byte_size?: number | null; alt?: string | null; caption?: string | null };
-        Update: Partial<Database["public"]["Tables"]["media"]["Row"]>;
+        // Partial<Row> rather than a hand-listed subset: the old list omitted
+        // source / uploaded_by, which the admin uploader does write.
+        Insert: Partial<PublicTables["media"]["Row"]> & { storage_path: string; filename: string };
+        Update: Partial<PublicTables["media"]["Row"]>;
       };
       fb_pages: {
         Row: {
@@ -173,7 +205,7 @@ export interface Database {
           last_synced_at: string | null; created_at: string; updated_at: string;
         };
         Insert: { id: string };
-        Update: Partial<Database["public"]["Tables"]["fb_pages"]["Row"]>;
+        Update: Partial<PublicTables["fb_pages"]["Row"]>;
       };
       fb_posts: {
         Row: {
@@ -185,7 +217,7 @@ export interface Database {
           raw: unknown; fetched_at: string;
         };
         Insert: { id: string; page_id: string; created_time: string };
-        Update: Partial<Database["public"]["Tables"]["fb_posts"]["Row"]>;
+        Update: Partial<PublicTables["fb_posts"]["Row"]>;
       };
       fb_albums: {
         Row: {
@@ -195,7 +227,7 @@ export interface Database {
           updated_time: string | null; fetched_at: string;
         };
         Insert: { id: string; page_id: string };
-        Update: Partial<Database["public"]["Tables"]["fb_albums"]["Row"]>;
+        Update: Partial<PublicTables["fb_albums"]["Row"]>;
       };
       fb_photos: {
         Row: {
@@ -205,7 +237,7 @@ export interface Database {
           created_time: string | null; fetched_at: string;
         };
         Insert: { id: string; page_id: string; media_id: string };
-        Update: Partial<Database["public"]["Tables"]["fb_photos"]["Row"]>;
+        Update: Partial<PublicTables["fb_photos"]["Row"]>;
       };
       news: {
         Row: {
@@ -213,10 +245,22 @@ export interface Database {
           body_sq: string; body_en: string | null;
           cover_media_id: string | null; status: ContentStatus;
           author_id: string | null; published_at: string | null;
-          tags: string[]; created_at: string; updated_at: string;
+          tags: string[];
+          // migration 20260517000013 — Facebook-sourced posts.
+          source: NewsSource;
+          fb_post_id: string | null;
+          gallery_media_ids: string[];
+          external_url: string | null;
+          // migration 20260518000002 — the race this post reports on.
+          race_event_id: string | null;
+          // migration 20260519000013 — editor said "not a race"; stop suggesting.
+          race_dismissed: boolean;
+          created_at: string; updated_at: string;
         };
-        Insert: { slug: string; title_sq: string; body_sq: string; title_en?: string | null; body_en?: string | null; status?: ContentStatus; author_id?: string | null; published_at?: string | null; tags?: string[] };
-        Update: Partial<Database["public"]["Tables"]["news"]["Row"]>;
+        // Partial<Row> rather than a hand-listed subset: the old list omitted
+        // cover_media_id, which both the admin editor and the FB sync write.
+        Insert: Partial<PublicTables["news"]["Row"]> & { slug: string; title_sq: string; body_sq: string };
+        Update: Partial<PublicTables["news"]["Row"]>;
       };
       sponsors: {
         Row: {
@@ -224,10 +268,14 @@ export interface Database {
           logo_media_id: string | null; role_sq: string | null; role_en: string | null;
           body_sq: string | null; body_en: string | null;
           website_url: string | null; contract_start: string | null; contract_end: string | null;
+          // migration 20260518000014 — null = club-wide, set = shown on one event.
+          event_id: string | null;
           display_order: number; active: boolean; created_at: string; updated_at: string;
         };
-        Insert: { name: string; tier: SponsorTier; role_sq?: string | null; role_en?: string | null; body_sq?: string | null; body_en?: string | null; website_url?: string | null; contract_start?: string | null; contract_end?: string | null; display_order?: number; active?: boolean };
-        Update: Partial<Database["public"]["Tables"]["sponsors"]["Row"]>;
+        // Partial<Row> rather than a hand-listed subset: the old list silently
+        // omitted logo_media_id, which the event-sponsor editor does write.
+        Insert: Partial<PublicTables["sponsors"]["Row"]> & { name: string; tier: SponsorTier };
+        Update: Partial<PublicTables["sponsors"]["Row"]>;
       };
       membership_plans: {
         Row: {
@@ -241,10 +289,10 @@ export interface Database {
           display_order: number; active: boolean;
           created_at: string; updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["membership_plans"]["Row"]> & {
+        Insert: Partial<PublicTables["membership_plans"]["Row"]> & {
           code: string; name_sq: string;
         };
-        Update: Partial<Database["public"]["Tables"]["membership_plans"]["Row"]>;
+        Update: Partial<PublicTables["membership_plans"]["Row"]>;
       };
       memberships: {
         Row: {
@@ -261,10 +309,10 @@ export interface Database {
           notes: string | null;
           created_at: string; updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["memberships"]["Row"]> & {
+        Insert: Partial<PublicTables["memberships"]["Row"]> & {
           member_id: string; plan_id: string; start_date: string;
         };
-        Update: Partial<Database["public"]["Tables"]["memberships"]["Row"]>;
+        Update: Partial<PublicTables["memberships"]["Row"]>;
       };
       dues: {
         Row: {
@@ -277,7 +325,7 @@ export interface Database {
           created_at: string; updated_at: string;
         };
         Insert: { member_id: string; period: string; amount_eur: number; status?: DuesStatus; paid_at?: string | null; paid_method?: PaidMethod | null; notes?: string | null; membership_id?: string | null; due_date?: string | null; invoice_no?: string | null };
-        Update: Partial<Database["public"]["Tables"]["dues"]["Row"]>;
+        Update: Partial<PublicTables["dues"]["Row"]>;
       };
       expense_categories: {
         Row: {
@@ -286,10 +334,10 @@ export interface Database {
           display_order: number; active: boolean;
           created_at: string; updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["expense_categories"]["Row"]> & {
+        Insert: Partial<PublicTables["expense_categories"]["Row"]> & {
           code: string; name_sq: string;
         };
-        Update: Partial<Database["public"]["Tables"]["expense_categories"]["Row"]>;
+        Update: Partial<PublicTables["expense_categories"]["Row"]>;
       };
       club_funds: {
         Row: {
@@ -306,10 +354,10 @@ export interface Database {
           recorded_by: string | null;
           created_at: string; updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["club_funds"]["Row"]> & {
+        Insert: Partial<PublicTables["club_funds"]["Row"]> & {
           title: string; occurred_on: string; amount_eur: number;
         };
-        Update: Partial<Database["public"]["Tables"]["club_funds"]["Row"]>;
+        Update: Partial<PublicTables["club_funds"]["Row"]>;
       };
       club_expenses: {
         Row: {
@@ -336,14 +384,47 @@ export interface Database {
           // is why the note IS the record.
           reimbursed: boolean;
           reimbursed_note: string | null;
+          // Path of the receipt photo in the `media` bucket, or null when none
+          // is attached (migration 20260811000001).
+          receipt_path: string | null;
           notes: string | null;
           recorded_by: string | null;
           created_at: string; updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["club_expenses"]["Row"]> & {
+        Insert: Partial<PublicTables["club_expenses"]["Row"]> & {
           occurred_on: string; category_id: string; description: string;
         };
-        Update: Partial<Database["public"]["Tables"]["club_expenses"]["Row"]>;
+        Update: Partial<PublicTables["club_expenses"]["Row"]>;
+      };
+      // Anonymous (no-login) signups from the public /events/<slug> page —
+      // distinct from event_registrations, which needs a profiles row
+      // (migration 20260518000011).
+      event_signups: {
+        Row: {
+          id: string; event_id: string;
+          full_name: string; email: string;
+          phone: string | null; dob: string | null;
+          gender: EventSignupGender | null;
+          category: string | null; club: string | null;
+          notes: string | null;
+          status: EventSignupStatus;
+          bib_number: number | null;
+          result_place: number | null;
+          result_time: string | null;
+          result_notes: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: Partial<PublicTables["event_signups"]["Row"]> & {
+          event_id: string; full_name: string; email: string;
+        };
+        Update: Partial<PublicTables["event_signups"]["Row"]>;
+      };
+      // Sponsors pinned to one event (migration 20260518000013). Composite PK,
+      // so there is no `id`.
+      event_sponsors: {
+        Row: { event_id: string; sponsor_id: string; display_order: number; created_at: string };
+        Insert: { event_id: string; sponsor_id: string; display_order?: number };
+        Update: Partial<PublicTables["event_sponsors"]["Row"]>;
       };
       attendance: {
         Row: {
@@ -352,12 +433,14 @@ export interface Database {
           notes: string | null; recorded_by: string | null; created_at: string;
         };
         Insert: { member_id: string; session_date: string; section_id?: string | null; status?: AttendanceStatus; notes?: string | null };
-        Update: Partial<Database["public"]["Tables"]["attendance"]["Row"]>;
+        Update: Partial<PublicTables["attendance"]["Row"]>;
       };
       settings: {
         Row: { key: string; value: unknown; updated_by: string | null; updated_at: string };
-        Insert: { key: string; value: unknown };
-        Update: { key?: string; value?: unknown };
+        // The old hand-listed Insert/Update omitted updated_by / updated_at,
+        // which the settings upsert does write.
+        Insert: Partial<PublicTables["settings"]["Row"]> & { key: string; value: unknown };
+        Update: Partial<PublicTables["settings"]["Row"]>;
       };
       audit_log: {
         Row: {
@@ -374,7 +457,7 @@ export interface Database {
           full_name: string; first_name: string; last_name: string;
           dob: string | null;
           gender: "m" | "f" | null;
-          positions: Array<"president"|"commissaire"|"coach"|"rider"|"mechanic"|"physio"|"staff">;
+          positions: TeamPosition[];
           section_slug: string | null;
           photo_media_id: string | null;
           external_photo_url: string | null;
@@ -382,27 +465,31 @@ export interface Database {
           ended_at: string | null;
           bio: string | null;
           profile_id: string | null;
+          // migration 20260518000004 — masters-category rider.
+          is_master: boolean;
           display_order: number;
           created_at: string; updated_at: string;
         };
         Insert: {
           slug: string; full_name: string; first_name: string; last_name: string;
-          positions: string[];
+          positions: TeamPosition[];
           dob?: string | null; gender?: "m"|"f"|null;
           section_slug?: string | null;
           photo_media_id?: string | null; external_photo_url?: string | null;
           status?: "active"|"past"; ended_at?: string | null;
           bio?: string | null; profile_id?: string | null;
+          is_master?: boolean;
           display_order?: number;
         };
         Update: {
           slug?: string; full_name?: string; first_name?: string; last_name?: string;
           dob?: string | null; gender?: "m"|"f"|null;
-          positions?: string[];
+          positions?: TeamPosition[];
           section_slug?: string | null;
           photo_media_id?: string | null; external_photo_url?: string | null;
           status?: "active"|"past"; ended_at?: string | null;
           bio?: string | null; profile_id?: string | null;
+          is_master?: boolean;
           display_order?: number;
         };
       };
@@ -417,11 +504,13 @@ export interface Database {
           result_summary: string | null;
           cover_media_id: string | null;
           external_url: string | null;
+          // migration 20260518000009 — carried over from the source news post.
+          gallery_media_ids: string[];
           display_order: number;
           created_at: string; updated_at: string;
         };
-        Insert: { slug: string; name: string; race_date: string };
-        Update: Partial<Database["public"]["Tables"]["race_events"]["Row"]>;
+        Insert: { slug: string; name: string; race_date: string } & Partial<PublicTables["race_events"]["Row"]>;
+        Update: Partial<PublicTables["race_events"]["Row"]>;
       };
       documents: {
         Row: {
@@ -463,12 +552,11 @@ export interface Database {
           id: string;
           kind: TrainingRideKind;
           ride_date: string;
-          title: string | null;
+          // title / location / notes were DROPPED by migrations
+          // 20260519000015 and 20260519000016 — do not re-add them.
           focus: string | null;
           section_id: string | null;
-          location: string | null;
           route_url: string | null;
-          notes: string | null;
           distance_km: number | null;
           moving_seconds: number | null;
           elevation_m: number | null;
@@ -480,14 +568,14 @@ export interface Database {
         Insert: {
           ride_date: string;
           kind?: TrainingRideKind;
-          title?: string | null; focus?: string | null;
-          section_id?: string | null; location?: string | null;
-          route_url?: string | null; notes?: string | null;
+          focus?: string | null;
+          section_id?: string | null;
+          route_url?: string | null;
           distance_km?: number | null; moving_seconds?: number | null; elevation_m?: number | null;
           strava_url?: string | null; strava_activity_id?: number | null;
           created_by?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["training_rides"]["Row"]>;
+        Update: Partial<PublicTables["training_rides"]["Row"]>;
       };
       ride_entries: {
         Row: {
@@ -517,14 +605,14 @@ export interface Database {
           avg_cadence: number | null;
           strava_url: string | null;
           strava_activity_id: number | null;
-          notes: string | null;
+          // `notes` was DROPPED by migration 20260519000016 — do not re-add it.
           created_at: string; updated_at: string;
         };
         Insert: {
           ride_id: string; athlete_id: string;
           participated?: boolean;
-        } & Partial<Database["public"]["Tables"]["ride_entries"]["Row"]>;
-        Update: Partial<Database["public"]["Tables"]["ride_entries"]["Row"]>;
+        } & Partial<PublicTables["ride_entries"]["Row"]>;
+        Update: Partial<PublicTables["ride_entries"]["Row"]>;
       };
       athlete_profiles: {
         Row: {
@@ -540,10 +628,27 @@ export interface Database {
         };
         Insert: {
           athlete_id: string;
-        } & Partial<Database["public"]["Tables"]["athlete_profiles"]["Row"]>;
-        Update: Partial<Database["public"]["Tables"]["athlete_profiles"]["Row"]>;
+        } & Partial<PublicTables["athlete_profiles"]["Row"]>;
+        Update: Partial<PublicTables["athlete_profiles"]["Row"]>;
       };
-    };
+}
+
+/**
+ * supabase-js's `GenericTable` requires a `Relationships` member; a table
+ * missing it means `Database["public"]` does not satisfy `GenericSchema`, the
+ * client generic silently degrades and every query loses its typing. We do not
+ * describe our foreign keys (embedded selects are typed by hand at the call
+ * site), so the list is empty — but it has to be present.
+ */
+type WithRelationships<T> = { [K in keyof T]: T[K] & { Relationships: [] } };
+
+export interface Database {
+  public: {
+    Tables: WithRelationships<PublicTables>;
+    // Views / CompositeTypes are EMPTY BUT MANDATORY for the same reason as
+    // Relationships above. There is no `create view` in supabase/migrations.
+    Views: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
     Functions: {
       approve_application: { Args: { app_id: string }; Returns: string };
       reject_application:  { Args: { app_id: string; reason?: string | null }; Returns: string };
@@ -574,36 +679,49 @@ export interface Database {
       content_status: ContentStatus;
       sponsor_tier: SponsorTier;
       training_ride_kind: TrainingRideKind;
+      news_source: NewsSource;
+      team_position: TeamPosition;
     };
   };
 }
 
+/**
+ * Shorthands so an action can name the exact row shape it is writing —
+ * `TableUpdate<"events">` — instead of casting the payload away. Prefer these
+ * over `Record<string, unknown>` for anything handed to insert/update/upsert:
+ * that is what makes a wrong column name a compile error.
+ */
+export type TableName = keyof Database["public"]["Tables"];
+export type TableRow<T extends TableName> = Database["public"]["Tables"][T]["Row"];
+export type TableInsert<T extends TableName> = Database["public"]["Tables"][T]["Insert"];
+export type TableUpdate<T extends TableName> = Database["public"]["Tables"][T]["Update"];
+
 // Shorthands for the academy finance tables. The rest of the app spells these
 // out inline; these two are aliased because the plans / memberships / invoices
 // screens pass the rows around a lot.
-export type MembershipPlan = Database["public"]["Tables"]["membership_plans"]["Row"];
-export type MembershipPlanInsert = Database["public"]["Tables"]["membership_plans"]["Insert"];
-export type MembershipPlanUpdate = Database["public"]["Tables"]["membership_plans"]["Update"];
+export type MembershipPlan = PublicTables["membership_plans"]["Row"];
+export type MembershipPlanInsert = PublicTables["membership_plans"]["Insert"];
+export type MembershipPlanUpdate = PublicTables["membership_plans"]["Update"];
 
-export type Membership = Database["public"]["Tables"]["memberships"]["Row"];
-export type MembershipInsert = Database["public"]["Tables"]["memberships"]["Insert"];
-export type MembershipUpdate = Database["public"]["Tables"]["memberships"]["Update"];
+export type Membership = PublicTables["memberships"]["Row"];
+export type MembershipInsert = PublicTables["memberships"]["Insert"];
+export type MembershipUpdate = PublicTables["memberships"]["Update"];
 
-export type Due = Database["public"]["Tables"]["dues"]["Row"];
-export type DueInsert = Database["public"]["Tables"]["dues"]["Insert"];
-export type DueUpdate = Database["public"]["Tables"]["dues"]["Update"];
+export type Due = PublicTables["dues"]["Row"];
+export type DueInsert = PublicTables["dues"]["Insert"];
+export type DueUpdate = PublicTables["dues"]["Update"];
 
 // Club money that is not membership dues: the funds coming in and the expense
 // ledger going out (migration 20260810000002). Aliased for the same reason as
 // the rows above — the funds / expenses screens pass them around a lot.
-export type ExpenseCategory = Database["public"]["Tables"]["expense_categories"]["Row"];
-export type ExpenseCategoryInsert = Database["public"]["Tables"]["expense_categories"]["Insert"];
-export type ExpenseCategoryUpdate = Database["public"]["Tables"]["expense_categories"]["Update"];
+export type ExpenseCategory = PublicTables["expense_categories"]["Row"];
+export type ExpenseCategoryInsert = PublicTables["expense_categories"]["Insert"];
+export type ExpenseCategoryUpdate = PublicTables["expense_categories"]["Update"];
 
-export type ClubFund = Database["public"]["Tables"]["club_funds"]["Row"];
-export type ClubFundInsert = Database["public"]["Tables"]["club_funds"]["Insert"];
-export type ClubFundUpdate = Database["public"]["Tables"]["club_funds"]["Update"];
+export type ClubFund = PublicTables["club_funds"]["Row"];
+export type ClubFundInsert = PublicTables["club_funds"]["Insert"];
+export type ClubFundUpdate = PublicTables["club_funds"]["Update"];
 
-export type ClubExpense = Database["public"]["Tables"]["club_expenses"]["Row"];
-export type ClubExpenseInsert = Database["public"]["Tables"]["club_expenses"]["Insert"];
-export type ClubExpenseUpdate = Database["public"]["Tables"]["club_expenses"]["Update"];
+export type ClubExpense = PublicTables["club_expenses"]["Row"];
+export type ClubExpenseInsert = PublicTables["club_expenses"]["Insert"];
+export type ClubExpenseUpdate = PublicTables["club_expenses"]["Update"];

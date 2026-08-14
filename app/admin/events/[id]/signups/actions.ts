@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import type { EventSignupStatus, TableUpdate } from "@/lib/supabase/types";
 
 async function assertEditor() {
   const p = await getProfile();
@@ -10,7 +11,7 @@ async function assertEditor() {
   return p;
 }
 
-const STATUSES = ["pending", "confirmed", "waitlisted", "cancelled"] as const;
+const STATUSES: readonly EventSignupStatus[] = ["pending", "confirmed", "waitlisted", "cancelled"];
 
 export type SignupPatch = {
   status?: string;
@@ -28,13 +29,15 @@ export async function updateSignup(
   try {
     await assertEditor();
     const supabase = await createClient();
-    const update: Record<string, unknown> = {};
+    const update: TableUpdate<"event_signups"> = {};
 
     if (patch.status !== undefined) {
-      if (!(STATUSES as readonly string[]).includes(patch.status)) {
+      // find() rather than includes() so the value narrows to the column type.
+      const status = STATUSES.find((s) => s === patch.status);
+      if (!status) {
         return { ok: false, error: "Statusi nuk është i vlefshëm." };
       }
-      update.status = patch.status;
+      update.status = status;
     }
     if (patch.bib_number !== undefined) {
       const raw = patch.bib_number.trim();
@@ -61,7 +64,7 @@ export async function updateSignup(
 
     const { error } = await supabase
       .from("event_signups")
-      .update(update as never)
+      .update(update)
       .eq("id", signupId)
       .eq("event_id", eventId);
     if (error) return { ok: false, error: dbError(error, "Ruajtja e regjistrimit dështoi. Provo sërish.") };
@@ -79,13 +82,13 @@ export async function toggleResultsPublished(
   try {
     await assertEditor();
     const supabase = await createClient();
-    const patch: Record<string, unknown> = {
+    const patch: TableUpdate<"events"> = {
       results_published: published,
       results_published_at: published ? new Date().toISOString() : null,
     };
     const { error } = await supabase
       .from("events")
-      .update(patch as never)
+      .update(patch)
       .eq("id", eventId);
     if (error) return { ok: false, error: dbError(error, "Ndryshimi i publikimit dështoi. Provo sërish.") };
     revalidatePath(`/admin/events/${eventId}/results`);

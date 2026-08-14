@@ -18,11 +18,14 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { dbError } from "@/lib/errors";
+import type { TableUpdate, UserRole } from "@/lib/supabase/types";
 import { requireAdmin, requireEditor } from "../guards";
 import { slugifyName, splitName, uniqueSlug } from "@/lib/slug";
 import { startingPosition } from "./positions";
 
-const MEMBER_ROLES = ["admin", "editor", "staff", "coach", "member"];
+// Typed against the column union so a role removed from the enum is a compile
+// error here rather than a runtime 22P02 from Postgres.
+const MEMBER_ROLES: readonly UserRole[] = ["admin", "editor", "staff", "coach", "member"];
 
 function refresh() {
   revalidatePath("/admin/people");
@@ -60,7 +63,8 @@ export async function createAccountForPerson(input: {
 
   const email = (input.email ?? "").trim().toLowerCase();
   const password = input.password ?? "";
-  const role = MEMBER_ROLES.includes(input.role) ? input.role : "member";
+  // find() rather than includes() so `role` narrows to UserRole.
+  const role = MEMBER_ROLES.find((r) => r === input.role) ?? "member";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Email-i nuk është i vlefshëm." };
 
   let admin;
@@ -112,7 +116,7 @@ export async function createAccountForPerson(input: {
     memberId = created.user.id;
 
     // handle_new_user already inserted a 'member' / 'pending' profile — promote it.
-    const patch: Record<string, unknown> = {
+    const patch: TableUpdate<"profiles"> = {
       full_name: fullName,
       role,
       status: "active",
@@ -187,7 +191,7 @@ export async function addToRoster(profileId: string): Promise<{ ok: boolean; err
     .limit(2);
   const candidates = (sameName as { id: string }[] | null) ?? [];
   if (candidates.length === 1) {
-    const { error } = await supabase.from("team_members").update({ profile_id: profileId } as never).eq("id", candidates[0].id);
+    const { error } = await supabase.from("team_members").update({ profile_id: profileId }).eq("id", candidates[0].id);
     if (error) return { ok: false, error: dbError(error, "Lidhja me rreshtin e ekipit dështoi. Provo sërish.") };
     refresh();
     return { ok: true, linked: true };
@@ -216,7 +220,7 @@ export async function addToRoster(profileId: string): Promise<{ ok: boolean; err
     section_slug: sectionSlug,
     status: "active",
     profile_id: profileId,
-  }] as never);
+  }]);
   if (error) return { ok: false, error: dbError(error, "Shtimi në ekip dështoi. Provo sërish.") };
 
   refresh();

@@ -1,16 +1,20 @@
 "use client";
 
-import { useEffect, useState, useTransition, type CSSProperties } from "react";
+import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { NumericInput } from "@/components/admin/NumericInput";
+import { PhotoCaptureField } from "@/components/admin/PhotoCaptureField";
 import { actionError } from "@/lib/errors";
 import {
   EXPENSE_PAYMENT_METHODS, EXPENSE_PAYMENT_METHOD_LABEL, EXPENSE_STATUS_LABEL, formatEur,
 } from "@/lib/finance";
 import { parseStrictNumber } from "@/lib/training";
 import type { ExpensePaidBy, ExpensePaymentMethod, ExpenseStatus } from "@/lib/supabase/types";
-import { createExpense, updateExpense, type ExpenseInput } from "./actions";
+import { createExpense, discardReceipt, updateExpense, uploadReceipt, type ExpenseInput } from "./actions";
+import {
+  RECEIPT_ALLOWED_MIME, RECEIPT_MAX_BYTES, RECEIPT_MAX_EDGE, RECEIPT_TARGET_BYTES, receiptPublicUrl,
+} from "./receipt";
 
 // ------------------------------------------------------------------ types
 
@@ -33,6 +37,8 @@ export type ExpenseView = {
   reimbursed: boolean;
   reimbursed_note: string | null;
   notes: string | null;
+  /** Path of the receipt photo in the `media` bucket; null = no photo. */
+  receipt_path: string | null;
 };
 
 export type CategoryOption = { id: string; name_sq: string; active: boolean };
@@ -75,6 +81,7 @@ type FormState = {
   reimbursed: boolean;
   reimbursedNote: string;
   notes: string;
+  receiptPath: string | null;
 };
 
 function blankState(categories: CategoryOption[]): FormState {
@@ -93,6 +100,7 @@ function blankState(categories: CategoryOption[]): FormState {
     reimbursed: false,
     reimbursedNote: "",
     notes: "",
+    receiptPath: null,
   };
 }
 
@@ -111,6 +119,7 @@ function stateOf(e: ExpenseView): FormState {
     reimbursed: e.reimbursed,
     reimbursedNote: e.reimbursed_note ?? "",
     notes: e.notes ?? "",
+    receiptPath: e.receipt_path,
   };
 }
 
@@ -131,6 +140,7 @@ function toInput(s: FormState): ExpenseInput {
     reimbursed: payerIsMember ? s.reimbursed : false,
     reimbursed_note: s.reimbursedNote,
     notes: s.notes,
+    receipt_path: s.receiptPath,
   };
 }
 
@@ -198,6 +208,31 @@ export function ExpenseFormModal({
   const [s, setS] = useState<FormState>(() => (expense ? stateOf(expense) : blankState(options.categories)));
   const [err, setErr] = useState<string | null>(null);
 
+  /**
+   * Receipt photos this session uploaded but nothing has saved yet.
+   *
+   * The photo goes into the bucket the moment it is taken — that is what makes
+   * the thumbnail appear while the amount is still being typed — so between
+   * that upload and the save there is an object no row points at. Cancel the
+   * form, or replace the photo twice, and those objects would sit in the
+   * bucket forever. This set is the ledger of what still has to be swept, and
+   * it is emptied on save (the survivor is now referenced) or on close.
+   */
+  const orphans = useRef<Set<string>>(new Set());
+
+  function releaseOrphans(keep: string | null) {
+    const doomed = [...orphans.current].filter((p) => p !== keep);
+    orphans.current.clear();
+    // Fire-and-forget: a sweep that fails costs a stray file, and must never
+    // block closing the form or hold up the router refresh.
+    for (const p of doomed) void discardReceipt(p).catch(() => {});
+  }
+
+  function close() {
+    releaseOrphans(null);
+    onClose();
+  }
+
   // Reopening the modal must show the row as it is NOW, not as it was when the
   // list was first rendered.
   useEffect(() => {
@@ -209,6 +244,40 @@ export function ExpenseFormModal({
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setS((prev) => ({ ...prev, [k]: v }));
+
+  async function handleReceiptUpload(file: File) {
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await uploadReceipt(fd);
+      if (!r.ok) return r;
+      // A second photo replaces the first: the first one never reached a row,
+      // so it is swept immediately rather than waiting for the save.
+      releaseOrphans(null);
+      orphans.current.add(r.path);
+      set("receiptPath", r.path);
+      return r;
+    } catch (e) {
+      return {
+        ok: false as const,
+        error: actionError(e, "Ngarkimi i fotos dështoi. Provo sërish.")
+          ?? "Ngarkimi i fotos dështoi. Provo sërish.",
+      };
+    }
+  }
+
+  async function handleReceiptRemove(path: string) {
+    set("receiptPath", null);
+    // Only a photo THIS session uploaded is deleted now. One that is already
+    // on the saved row stays in the bucket until "Ruaj" makes the detachment
+    // real — otherwise pressing "Hiq foton" and then "Anulo" would have thrown
+    // away a receipt the expense still displays.
+    if (orphans.current.has(path)) {
+      orphans.current.delete(path);
+      try { await discardReceipt(path); } catch { /* swept-file failure, not the user's problem */ }
+    }
+    return { ok: true as const };
+  }
 
   const payerIsMember = s.payer !== CLUB && s.payer !== "";
   const payerName = memberName(options.members, payerIsMember ? s.payer : null);
@@ -229,12 +298,15 @@ export function ExpenseFormModal({
           ? await updateExpense(expense.id, toInput(s))
           : await createExpense(toInput(s));
         if (!r.ok) { setErr(r.error); return; }
+        // The photo on the row is referenced now; anything else this session
+        // uploaded is not, and goes.
+        releaseOrphans(s.receiptPath);
         onClose();
         router.refresh();
       } catch (e) {
         const msg = actionError(e, "Ruajtja e shpenzimit dështoi. Provo sërish.");
         if (msg) setErr(msg);
-        else { onClose(); router.refresh(); }
+        else { releaseOrphans(s.receiptPath); onClose(); router.refresh(); }
       }
     });
   }
@@ -242,11 +314,11 @@ export function ExpenseFormModal({
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={close}
       title={isEdit ? "Ndrysho shpenzimin" : "Shto shpenzim"}
       footer={
         <>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} disabled={pending}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={close} disabled={pending}>
             Anulo
           </button>
           <button
@@ -301,6 +373,24 @@ export function ExpenseFormModal({
           placeholder="p.sh. goma të reja për garën e Prizrenit"
         />
       </div>
+
+      {/* Directly under the description, still inside the fast path: the slip
+          is in the owner's hand at exactly this moment, and a receipt filed
+          later is a receipt lost. */}
+      <PhotoCaptureField
+        label="Fotoja e faturës"
+        hint="Zvogëlohet në telefon para se të ngarkohet, prandaj nuk harxhon internet."
+        alt={`Fatura — ${s.description || "shpenzim"}`}
+        path={s.receiptPath}
+        previewUrl={receiptPublicUrl(s.receiptPath)}
+        onUpload={handleReceiptUpload}
+        onRemove={handleReceiptRemove}
+        disabled={pending}
+        hardMaxBytes={RECEIPT_MAX_BYTES}
+        targetBytes={RECEIPT_TARGET_BYTES}
+        maxEdge={RECEIPT_MAX_EDGE}
+        allowedMime={RECEIPT_ALLOWED_MIME}
+      />
 
       <div className="field">
         <label htmlFor="ex-benef">Për kë (ciklisti)</label>

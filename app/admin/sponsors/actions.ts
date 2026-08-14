@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import type { SponsorTier, TableInsert, TableUpdate } from "@/lib/supabase/types";
 
 async function assertEditor() {
   const p = await getProfile();
@@ -11,10 +12,11 @@ async function assertEditor() {
   return p;
 }
 
-function parsePayload(form: FormData): Record<string, unknown> {
-  const patch: Record<string, unknown> = {};
+function parsePayload(form: FormData): TableUpdate<"sponsors"> {
+  const patch: TableUpdate<"sponsors"> = {};
   const name = String(form.get("name") || "").trim();   if (name) patch.name = name;
-  const tier = String(form.get("tier") || "").trim();   if (tier) patch.tier = tier;
+  // Fixed <select>; the sponsor_tier enum re-checks it server-side.
+  const tier = String(form.get("tier") || "").trim();   if (tier) patch.tier = tier as SponsorTier;
   const rs = form.get("role_sq");      if (rs !== null) patch.role_sq = String(rs).trim() || null;
   const bs = form.get("body_sq");      if (bs !== null) patch.body_sq = String(bs).trim() || null;
   const url = form.get("website_url"); if (url !== null) patch.website_url = String(url).trim() || null;
@@ -31,11 +33,12 @@ function parsePayload(form: FormData): Record<string, unknown> {
 
 export async function createSponsor(form: FormData): Promise<void> {
   await assertEditor();
-  const payload = parsePayload(form);
-  if (!payload.name) throw new Error("Emri mungon.");
-  if (!payload.tier) throw new Error("Niveli mungon.");
+  const fields = parsePayload(form);
+  if (!fields.name) throw new Error("Emri mungon.");
+  if (!fields.tier) throw new Error("Niveli mungon.");
+  const payload: TableInsert<"sponsors"> = { ...fields, name: fields.name, tier: fields.tier };
   const supabase = await createClient();
-  const { error } = await supabase.from("sponsors").insert([payload] as never);
+  const { error } = await supabase.from("sponsors").insert([payload]);
   if (error) throw new Error(dbError(error, "Ruajtja e sponsorit dështoi. Provo sërish."));
   revalidatePath("/admin/sponsors");
   revalidatePath("/");
@@ -46,7 +49,7 @@ export async function updateSponsor(id: string, form: FormData): Promise<void> {
   await assertEditor();
   const supabase = await createClient();
   const patch = parsePayload(form);
-  const { error } = await supabase.from("sponsors").update(patch as never).eq("id", id);
+  const { error } = await supabase.from("sponsors").update(patch).eq("id", id);
   if (error) throw new Error(dbError(error, "Ruajtja e sponsorit dështoi. Provo sërish."));
   revalidatePath("/admin/sponsors");
   revalidatePath("/");

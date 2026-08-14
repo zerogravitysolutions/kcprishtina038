@@ -15,10 +15,7 @@ export async function saveProfile(data: ProfileUpdate): Promise<{ ok: boolean; e
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Nuk je i kyçur." };
-  const updateFn = supabase.from("profiles").update as unknown as (
-    row: Record<string, unknown>
-  ) => { eq: (col: string, val: string) => Promise<{ error: { message: string } | null }> };
-  const { error } = await updateFn({
+  const { error } = await supabase.from("profiles").update({
     full_name: data.full_name,
     phone: data.phone,
     dob: data.dob,

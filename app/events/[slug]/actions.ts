@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { validateCategoryChoice, type Gender } from "@/lib/race-category";
 import { dbError } from "@/lib/errors";
+import type { TableInsert } from "@/lib/supabase/types";
 
 export type RegisterResult = { ok: true } | { ok: false; error: string };
 
@@ -62,7 +63,7 @@ export async function registerForEvent(slug: string, form: FormData): Promise<Re
   });
   if (!cv.ok) return cv;
 
-  const row: Record<string, unknown> = {
+  const row: TableInsert<"event_signups"> = {
     event_id: event.id,
     full_name,
     email,
@@ -73,7 +74,7 @@ export async function registerForEvent(slug: string, form: FormData): Promise<Re
     club: club || null,
     notes: notes || null,
   };
-  const { error } = await supabase.from("event_signups").insert(row as never);
+  const { error } = await supabase.from("event_signups").insert(row);
   if (error) {
     if (error.message.toLowerCase().includes("duplicate")) {
       return { ok: false, error: "Je regjistruar tashmë me këtë email për këtë garë." };

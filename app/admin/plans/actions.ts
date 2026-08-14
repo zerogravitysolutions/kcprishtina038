@@ -61,7 +61,7 @@ export async function updatePlan(planId: string, input: PlanInput): Promise<Plan
         amount_eur: amount,
         billable: input.billable,
         active: input.active,
-      } as never)
+      })
       .eq("id", planId);
     if (error) return { ok: false, error: dbError(error, "Ruajtja e planit dështoi. Provo sërish.") };
 

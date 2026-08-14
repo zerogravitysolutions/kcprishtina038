@@ -5,12 +5,16 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import { RIDE_METRIC_FIELDS, RIDE_METRIC_BY_KEY, coerceMetric, normalizeDecimal, parseStrictNumber } from "@/lib/training";
 import { stravaActivityId, isStravaAppLink, parseStravaUrl } from "@/lib/strava";
 import { dbError } from "@/lib/errors";
+import type { TableInsert, TableUpdate } from "@/lib/supabase/types";
 
 const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 
 // Session-level "Bazë" fields shared by the whole group (same route).
 const BASE_KEYS = ["distance_km", "moving_seconds", "elevation_m"] as const;
 type BaseSrc = { distance_km?: string; moving_seconds?: string; elevation_m?: string };
+// The same three columns exist on training_rides and on ride_entries, so the
+// coerced values are spread into both.
+type BaseValues = Pick<TableUpdate<"training_rides">, (typeof BASE_KEYS)[number]>;
 
 async function assertCoach() {
   const p = await getProfile();
@@ -22,8 +26,8 @@ type Result<T = unknown> = ({ ok: true } & T) | { ok: false; error: string };
 
 // Coerce the three base fields (raw strings; moving_seconds already in seconds)
 // into DB values, reusing the shared metric field definitions.
-function coerceBase(src: BaseSrc): { ok: true; base: Record<string, number | null> } | { ok: false; error: string } {
-  const base: Record<string, number | null> = {};
+function coerceBase(src: BaseSrc): { ok: true; base: BaseValues } | { ok: false; error: string } {
+  const base: BaseValues = {};
   for (const key of BASE_KEYS) {
     const raw = src[key];
     if (raw === undefined) continue;
@@ -71,16 +75,19 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
         strava_activity_id: stravaAid ? Number(stravaAid) : null,
         created_by: me.id,
         ...base,
-      } as never)
+      })
       .select("id")
       .single<{ id: string }>();
     if (rideErr || !ride) return { ok: false, error: dbError(rideErr, "Stërvitja nuk u krijua.") };
 
     // Inherit the session base into every rider's entry (still editable).
-    const entryBase: Record<string, number> = {};
-    for (const [k, v] of Object.entries(base)) if (v != null) entryBase[k] = v;
-    const rows = athletes.map((athlete_id) => ({ ride_id: ride.id, athlete_id, ...entryBase }));
-    const { error: entErr } = await supabase.from("ride_entries").insert(rows as never);
+    const entryBase: BaseValues = {};
+    if (base.distance_km != null) entryBase.distance_km = base.distance_km;
+    if (base.moving_seconds != null) entryBase.moving_seconds = base.moving_seconds;
+    if (base.elevation_m != null) entryBase.elevation_m = base.elevation_m;
+    const rows: TableInsert<"ride_entries">[] =
+      athletes.map((athlete_id) => ({ ride_id: ride.id, athlete_id, ...entryBase }));
+    const { error: entErr } = await supabase.from("ride_entries").insert(rows);
     if (entErr) {
       // Roll back the empty ride so we don't leave an orphan.
       await supabase.from("training_rides").delete().eq("id", ride.id);
@@ -105,7 +112,7 @@ export async function updateRide(id: string, patch: RidePatch): Promise<Result> 
   try {
     await assertCoach();
     const supabase = await createClient();
-    const update: Record<string, unknown> = {};
+    const update: TableUpdate<"training_rides"> = {};
     if (patch.ride_date !== undefined) {
       if (!patch.ride_date) return { ok: false, error: "Data mungon." };
       update.ride_date = patch.ride_date;
@@ -120,7 +127,7 @@ export async function updateRide(id: string, patch: RidePatch): Promise<Result> 
     }
     if (Object.keys(update).length === 0) return { ok: true };
 
-    const { error } = await supabase.from("training_rides").update(update as never).eq("id", id);
+    const { error } = await supabase.from("training_rides").update(update).eq("id", id);
     if (error) return { ok: false, error: dbError(error, "Ruajtja e stërvitjes dështoi. Provo sërish.") };
     revalidatePath(`/admin/training/${id}`);
     revalidatePath("/admin/training");
@@ -156,13 +163,13 @@ export async function addEntry(rideId: string, athleteId: string): Promise<Resul
       .select("distance_km, moving_seconds, elevation_m")
       .eq("id", rideId)
       .maybeSingle<{ distance_km: number | null; moving_seconds: number | null; elevation_m: number | null }>();
-    const insertRow: Record<string, unknown> = { ride_id: rideId, athlete_id: athleteId };
+    const insertRow: TableInsert<"ride_entries"> = { ride_id: rideId, athlete_id: athleteId };
     if (ride?.distance_km != null) insertRow.distance_km = ride.distance_km;
     if (ride?.moving_seconds != null) insertRow.moving_seconds = ride.moving_seconds;
     if (ride?.elevation_m != null) insertRow.elevation_m = ride.elevation_m;
     const { data, error } = await supabase
       .from("ride_entries")
-      .insert(insertRow as never)
+      .insert(insertRow)
       .select("id")
       .single<{ id: string }>();
     if (error) {
@@ -208,7 +215,7 @@ export async function updateEntry(
   try {
     const me = await assertCoach();
     const supabase = await createClient();
-    const update: Record<string, unknown> = {};
+    const update: TableUpdate<"ride_entries"> = {};
 
     if (patch.participated !== undefined) update.participated = !!patch.participated;
     if (patch.set_ftp !== undefined) update.set_ftp = !!patch.set_ftp;
@@ -223,7 +230,10 @@ export async function updateEntry(
         if (Object.prototype.hasOwnProperty.call(patch.metrics, f.key)) {
           const r = coerceMetric(f, patch.metrics[f.key]);
           if (!r.ok) return { ok: false, error: r.error };
-          update[f.key] = r.value;
+          // coerceMetric's union carries `string` for kind:"text" fields. Every
+          // RideMetricKey is a NUMERIC ride_entries column, so that branch
+          // cannot reach this assignment — the cast only drops the dead arm.
+          update[f.key] = r.value as number | null;
         }
       }
     }
@@ -231,7 +241,7 @@ export async function updateEntry(
     if (Object.keys(update).length > 0) {
       const { error } = await supabase
         .from("ride_entries")
-        .update(update as never)
+        .update(update)
         .eq("id", entryId)
         .eq("ride_id", rideId);
       if (error) return { ok: false, error: dbError(error, "Ruajtja e të dhënave dështoi. Provo sërish.") };
@@ -252,7 +262,7 @@ export async function updateEntry(
           ftp_w: e.ftp_w,
           ftp_updated_at: e.training_rides?.ride_date ?? null,
           updated_by: me.id,
-        } as never,
+        },
         { onConflict: "athlete_id" },
       );
       revalidatePath(`/admin/athletes/${e.athlete_id}`);
@@ -297,7 +307,7 @@ export async function upsertAthleteProfile(athleteId: string, patch: ProfilePatc
   try {
     const me = await assertCoach();
     const supabase = await createClient();
-    const row: Record<string, unknown> = { athlete_id: athleteId, updated_by: me.id };
+    const row: TableInsert<"athlete_profiles"> = { athlete_id: athleteId, updated_by: me.id };
 
     const ftp = intField(patch.ftp_w, "FTP", 0);
     if (!ftp.ok) return ftp;
@@ -327,7 +337,7 @@ export async function upsertAthleteProfile(athleteId: string, patch: ProfilePatc
 
     const { error } = await supabase
       .from("athlete_profiles")
-      .upsert(row as never, { onConflict: "athlete_id" });
+      .upsert(row, { onConflict: "athlete_id" });
     if (error) return { ok: false, error: dbError(error, "Ruajtja e profilit dështoi. Provo sërish.") };
     revalidatePath(`/admin/athletes/${athleteId}`);
     revalidatePath("/admin/athletes");

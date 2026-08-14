@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { dbError } from "@/lib/errors";
+import type { TableUpdate } from "@/lib/supabase/types";
 import { slugifyName, splitName, uniqueSlug } from "@/lib/slug";
 
 // Enrolment = turning an approved application into a real cyclist:
@@ -21,17 +22,6 @@ import { slugifyName, splitName, uniqueSlug } from "@/lib/slug";
 // member + period). Approving first would do the opposite — a failure after
 // the RPC would strand an approved application with no member behind it and no
 // way back through the UI.
-
-// Call RPC inline on the supabase client. Extracting `supabase.rpc` into a
-// local const breaks `this` binding — supabase-js's rpc() implementation
-// accesses `this.rest`, so the detached call throws.
-type RpcAny = (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
-
-/** Same, for an RPC whose return value we need. */
-type RpcData = (
-  name: string,
-  args: Record<string, unknown>,
-) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
 
 /**
  * approve_application() `raise exception`s with its own English text. By the
@@ -365,7 +355,7 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
   if (existing) {
     // Linking an account somebody already uses: activate it and fill the gaps,
     // but never rename them and never demote a coach/staff to 'member'.
-    const patch: Record<string, unknown> = {};
+    const patch: TableUpdate<"profiles"> = {};
     // 'suspended' is a deliberate sanction — approving an application must not
     // quietly undo it, so it is reported instead of overwritten.
     const reactivate = existing.status !== "active" && existing.status !== "suspended";
@@ -423,14 +413,13 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
   //                                        opened, in that order so only ever
   //                                        one active row exists.
   // See migration 20260808000002, section E.
-  const { data: membershipData, error: membershipErr } = await (admin.rpc as unknown as RpcData)
-    .call(admin, "set_member_plan", {
-      p_member_id: memberId,
-      p_plan_id: plan.id,
-      p_amount: amount,
-      p_billable: billable,
-      p_start: startDate,
-    });
+  const { data: membershipData, error: membershipErr } = await admin.rpc("set_member_plan", {
+    p_member_id: memberId,
+    p_plan_id: plan.id,
+    p_amount: amount,
+    p_billable: billable,
+    p_start: startDate,
+  });
   if (membershipErr) return { ok: false, error: dbError(membershipErr, "Ruajtja e anëtarësisë dështoi.") };
   if (typeof membershipData !== "string") {
     return { ok: false, error: "Anëtarësia nuk u ruajt. Provo sërish." };
@@ -448,7 +437,7 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
   // --- 7. approve LAST, with the caller's own session so auth.uid() is the
   // reviewer and approve_application writes a truthful audit row. -------------
   const supabase = await createClient();
-  const { error: rpcErr } = await (supabase.rpc as unknown as RpcAny).call(supabase, "approve_application", { app_id: input.appId });
+  const { error: rpcErr } = await supabase.rpc("approve_application", { app_id: input.appId });
   if (rpcErr) return { ok: false, error: approveError(rpcErr) };
 
   // --- 8. the roster row = the athlete identity -----------------------------

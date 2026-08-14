@@ -176,7 +176,7 @@ export async function createFund(input: FundInput): Promise<FundResult> {
     const supabase = await createClient();
     const { error } = await supabase
       .from("club_funds")
-      .insert({ ...parsed.row, recorded_by: me.id } as never);
+      .insert({ ...parsed.row, recorded_by: me.id });
     if (error) return { ok: false, error: dbError(error, "Ruajtja e hyrjes dështoi. Provo sërish.") };
 
     revalidateFunds();
@@ -201,7 +201,7 @@ export async function updateFund(fundId: string, input: FundInput): Promise<Fund
     const supabase = await createClient();
     const { error } = await supabase
       .from("club_funds")
-      .update({ ...parsed.row, recorded_by: me.id } as never)
+      .update({ ...parsed.row, recorded_by: me.id })
       .eq("id", fundId);
     if (error) return { ok: false, error: dbError(error, "Ruajtja e hyrjes dështoi. Provo sërish.") };
 
@@ -230,7 +230,7 @@ export async function markFundReceived(fundId: string, date: string): Promise<Fu
     const supabase = await createClient();
     const { error } = await supabase
       .from("club_funds")
-      .update({ status: "received", occurred_on: parsed.value, recorded_by: me.id } as never)
+      .update({ status: "received", occurred_on: parsed.value, recorded_by: me.id })
       .eq("id", fundId);
     if (error) return { ok: false, error: dbError(error, "Shënimi si i pranuar dështoi. Provo sërish.") };
 
@@ -249,7 +249,7 @@ export async function markFundPledged(fundId: string): Promise<FundResult> {
     const supabase = await createClient();
     const { error } = await supabase
       .from("club_funds")
-      .update({ status: "pledged", recorded_by: me.id } as never)
+      .update({ status: "pledged", recorded_by: me.id })
       .eq("id", fundId);
     if (error) return { ok: false, error: dbError(error, "Kthimi në premtim dështoi. Provo sërish.") };
 

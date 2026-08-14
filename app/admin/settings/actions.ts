@@ -31,7 +31,7 @@ export async function upsertSetting(form: FormData): Promise<void> {
     value,
     updated_by: me.id,
     updated_at: new Date().toISOString(),
-  }] as never, { onConflict: "key" });
+  }], { onConflict: "key" });
   if (error) throw new Error(dbError(error, "Ruajtja e cilësimit dështoi. Provo sërish."));
   revalidatePath("/admin/settings");
   redirect("/admin/settings");

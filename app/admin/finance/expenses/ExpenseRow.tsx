@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { Lightbox } from "@/components/ui/Lightbox";
 import { actionError } from "@/lib/errors";
 import {
   EXPENSE_PAYMENT_METHOD_LABEL, EXPENSE_STATUS_LABEL, EXPENSE_STATUS_TONE, UNKNOWN_SPONSOR_LABEL,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/finance";
 import { deleteExpense, setReimbursed } from "./actions";
 import { ExpenseFormModal, type ExpenseOptions, type ExpenseView } from "./ExpenseForm";
+import { receiptPublicUrl } from "./receipt";
 
 export function ExpenseRow({
   expense, options, canWrite, canDelete,
@@ -29,8 +31,11 @@ export function ExpenseRow({
   const [payOpen, setPayOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
   const [note, setNote] = useState("");
   const [err, setErr] = useState<string | null>(null);
+
+  const receiptUrl = receiptPublicUrl(expense.receipt_path);
 
   const nameOf = (id: string) => options.members.find((m) => m.id === id)?.full_name ?? null;
   // A cost charged to a sponsor whose row is gone (or outside the list this
@@ -65,19 +70,36 @@ export function ExpenseRow({
         <td className="mono" data-lab="Data">{formatDate(expense.occurred_on)}</td>
 
         <td>
-          <span>
-            {expense.description}
-            <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>
-              {expense.category_name}
-              {expense.invoice_no ? ` · ${invoiceNoLabel(expense.invoice_no)}` : ""}
-              {sponsorName ? ` · burimi: ${sponsorName}` : ""}
-            </small>
-            {expense.notes ? (
-              <small style={{ display: "block", fontSize: 11.5, color: "var(--text-2)", marginTop: 4 }}>
-                {expense.notes}
-              </small>
+          <div className="exp-desc">
+            {/* The receipt is the proof, so it sits WITH the description rather
+                than in the crowded actions column: on a phone the row is a
+                card and this is the first thing under the date. */}
+            {receiptUrl ? (
+              <button
+                type="button"
+                className="rc-thumb"
+                onClick={() => setPhotoOpen(true)}
+                title="Hap foton e faturës"
+                aria-label={`Hap foton e faturës për “${expense.description}”`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={receiptUrl} alt="" loading="lazy" decoding="async" />
+              </button>
             ) : null}
-          </span>
+            <span>
+              {expense.description}
+              <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>
+                {expense.category_name}
+                {expense.invoice_no ? ` · ${invoiceNoLabel(expense.invoice_no)}` : ""}
+                {sponsorName ? ` · burimi: ${sponsorName}` : ""}
+              </small>
+              {expense.notes ? (
+                <small style={{ display: "block", fontSize: 11.5, color: "var(--text-2)", marginTop: 4 }}>
+                  {expense.notes}
+                </small>
+              ) : null}
+            </span>
+          </div>
         </td>
 
         <td data-lab="Për kë">{beneficiaryLabel(expense, nameOf)}</td>
@@ -155,6 +177,15 @@ export function ExpenseRow({
           )}
         </td>
       </tr>
+
+      {/* The same viewer the public galleries use — ESC / tap-outside close,
+          and it is already the one thing on this site that knows how to show a
+          photo full-screen on a phone. */}
+      <Lightbox
+        photos={receiptUrl ? [{ src: receiptUrl, alt: `Fatura — ${expense.description}` }] : []}
+        openIndex={photoOpen && receiptUrl ? 0 : null}
+        onClose={() => setPhotoOpen(false)}
+      />
 
       <ExpenseFormModal
         open={editOpen}

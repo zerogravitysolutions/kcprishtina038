@@ -3,13 +3,20 @@ import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { TopProgress } from "@/components/public/TopProgress";
+import { SITE_ORIGIN } from "@/lib/site";
 
 // Co-locate SSR/functions with the Supabase project (eu-central-1, Frankfurt)
 // so DB round-trips are local (~ms) instead of transatlantic (~100ms each).
 export const preferredRegion = "fra1";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://prishtina038.cc"),
+  // Every canonical, og:url and og:image on the site is resolved against this.
+  // It used to hardcode https://prishtina038.cc, which does not resolve in DNS —
+  // so each public page was telling search engines its real address was a domain
+  // that does not exist. Same resolution as app/sitemap.ts and the auth redirects:
+  // correct today, and correct automatically the moment the custom domain is
+  // attached and NEXT_PUBLIC_SITE_URL is set in Vercel, with no code change.
+  metadataBase: new URL(SITE_ORIGIN),
   title: { default: "KÇ Prishtina 038 — Klubi Çiklistik i Prishtinës", template: "%s · KÇ Prishtina 038" },
   description: "Klubi çiklistik i Prishtinës. Gjashtë disiplina, një ekip. Garojmë nën rregullat e UCI dhe FÇK.",
   icons: { icon: "/assets/logo.jpg" },

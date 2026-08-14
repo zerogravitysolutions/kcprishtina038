@@ -4,13 +4,26 @@
 // of truth for BOTH the input form and the server-action parser, so the two
 // can never drift apart.
 
+import type { TableRow } from "@/lib/supabase/types";
+
 // ------------------------------------------------------------------ metrics
+
+/**
+ * A metric field writes straight into a ride_entries column, so its key is
+ * derived from the table rather than typed as `string`: a column renamed or
+ * dropped in a migration now breaks this list at compile time instead of
+ * failing at runtime on the update.
+ */
+export type RideMetricKey = {
+  [K in keyof TableRow<"ride_entries">]-?:
+    NonNullable<TableRow<"ride_entries">[K]> extends number ? K : never
+}[keyof TableRow<"ride_entries">];
 
 export type MetricKind = "int" | "num" | "text";
 export type MetricUi = "number" | "duration" | "text";
 
 export type MetricField = {
-  key: string;          // matches a ride_entries column
+  key: RideMetricKey;   // matches a ride_entries column
   label: string;        // Albanian label
   group: MetricGroupKey;
   kind: MetricKind;     // how the server coerces it

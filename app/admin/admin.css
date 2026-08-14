@@ -623,3 +623,59 @@ table.t .person .nm small { font-family: var(--font-mono); font-size: 10px; lett
   .athlete-chip { min-height: 44px !important; }
   .mm-row input { min-height: 44px; font-size: 16px; }
 }
+
+/* ---------- Receipt photos on expenses (components/admin/PhotoCaptureField) ----------
+   The owner records an expense from his phone, in a bike shop, and attaches a
+   photo of the till slip there and then. Everything below is sized for that
+   hand: nothing tappable is under 44px, matching the touch block above. */
+
+.pc-field .pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pc-field .btn-touch { min-height: 44px; padding: 10px 14px; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px; }
+.pc-field .pc-danger { color: var(--err); border-color: color-mix(in oklab, var(--err) 34%, transparent); }
+.pc-field .pc-danger:hover { background: var(--err-bg); border-color: var(--err); }
+.pc-note { font-size: 11px; color: var(--text-3); margin-top: 6px; line-height: 1.6; }
+
+/* THE ONE RULE THAT MATTERS. `capture="environment"` jumps straight to the
+   rear camera but, on iOS Safari and Android Chrome, it also removes "pick an
+   existing photo" from the sheet — so the camera lives on its own button and
+   the library button never carries the attribute. On a desktop `capture` is
+   ignored, which would leave two buttons opening the identical file dialog, so
+   the camera one is shown only to a coarse pointer.
+
+   Written as `.pc-field .pc-cam`, and placed AFTER `.pc-field .btn-touch`, on
+   purpose: a bare `.pc-cam` is one class less specific than the rule that sets
+   these buttons to inline-flex, so it would lose and the camera button would
+   show up on every desktop. Equal specificity + later in the file wins. */
+.pc-field .pc-cam { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .pc-field .pc-cam { display: inline-flex; }
+}
+
+.pc-has { display: flex; align-items: flex-start; gap: 12px; }
+.pc-has-body { flex: 1; min-width: 0; }
+/* A receipt is a tall strip, so the preview is portrait: cropping it to a
+   square would hide the total, which is the line the owner checks. */
+.pc-thumb { width: 84px; height: 108px; flex-shrink: 0; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r-sm); overflow: hidden; background: var(--surface-2); cursor: zoom-in; display: block; }
+.pc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pc-thumb:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* Indeterminate, because a Server Action is a fetch() and a browser reports no
+   upload progress for one. A bar that moves without claiming a percentage is
+   the honest version of "this is still working". */
+.pc-progress { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.pc-progress span { font-size: 11px; color: var(--text-2); white-space: nowrap; }
+.pc-bar { flex: 1; height: 4px; min-width: 60px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.pc-bar > i { display: block; width: 38%; height: 100%; border-radius: 999px; background: var(--accent); animation: pc-slide 1.1s ease-in-out infinite; }
+@keyframes pc-slide { 0% { transform: translateX(-105%); } 100% { transform: translateX(300%); } }
+@media (prefers-reduced-motion: reduce) { .pc-bar > i { width: 100%; animation: none; opacity: .55; } }
+
+/* ---------- Receipt thumbnail in the expenses list ---------- */
+.exp-desc { display: flex; align-items: flex-start; gap: 10px; }
+.rc-thumb { width: 34px; height: 44px; flex-shrink: 0; margin-top: 1px; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r-xs); overflow: hidden; background: var(--surface-2); cursor: zoom-in; display: block; }
+.rc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rc-thumb:hover { border-color: var(--accent); }
+.rc-thumb:focus-visible { outline: none; box-shadow: var(--ring); }
+@media (max-width: 800px) {
+  /* In card mode the row is finger-sized, so the proof gets a real tap target. */
+  .rc-thumb { width: 44px; height: 56px; }
+}

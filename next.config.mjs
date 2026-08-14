@@ -48,6 +48,20 @@ const nextConfig = {
         ],
       },
       {
+        // The admin panel is used from a phone, and recording an expense offers
+        // "Bëj foto" — an <input type="file" capture="environment"> for shooting
+        // the receipt in the shop. The HTML Media Capture spec has the user agent
+        // consult the `camera` permissions policy for `capture`, so the blanket
+        // camera=() above can turn that button into a plain file picker on
+        // Chromium. Re-allow the camera for our own origin here only; the public
+        // site keeps the deny, and microphone/geolocation stay denied everywhere.
+        // This must come AFTER the /:path* block — later matches win in Next.
+        source: "/admin/:path*",
+        headers: [
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
+        ],
+      },
+      {
         source: "/assets/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },

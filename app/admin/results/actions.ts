@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import type { TableInsert, TableUpdate } from "@/lib/supabase/types";
 
 async function assertEditor() {
   const p = await getProfile();
@@ -11,8 +12,8 @@ async function assertEditor() {
   return p;
 }
 
-function parsePayload(form: FormData): Record<string, unknown> {
-  const patch: Record<string, unknown> = {};
+function parsePayload(form: FormData): TableUpdate<"results"> {
+  const patch: TableUpdate<"results"> = {};
   const eid = String(form.get("event_id") || "").trim();   if (eid) patch.event_id = eid;
   const cid = form.get("category_id");   if (cid !== null) { const v = String(cid).trim(); patch.category_id = v === "" ? null : v; }
   const mid = form.get("member_id");     if (mid !== null) { const v = String(mid).trim(); patch.member_id = v === "" ? null : v; }
@@ -32,14 +33,18 @@ function parsePayload(form: FormData): Record<string, unknown> {
 
 export async function createResult(form: FormData): Promise<void> {
   const me = await assertEditor();
-  const payload = parsePayload(form);
-  if (!payload.event_id) throw new Error("Eventi mungon.");
-  if (!payload.member_id && !payload.rider_name_override) {
+  const fields = parsePayload(form);
+  if (!fields.event_id) throw new Error("Eventi mungon.");
+  if (!fields.member_id && !fields.rider_name_override) {
     throw new Error("Zgjidh një anëtar ose vendos emrin e çiklistit.");
   }
-  payload.recorded_by = me.id;
+  const payload: TableInsert<"results"> = {
+    ...fields,
+    event_id: fields.event_id,
+    recorded_by: me.id,
+  };
   const supabase = await createClient();
-  const { error } = await supabase.from("results").insert([payload] as never);
+  const { error } = await supabase.from("results").insert([payload]);
   if (error) throw new Error(dbError(error, "Ruajtja e rezultatit dështoi. Provo sërish."));
   revalidatePath("/admin/results");
   redirect("/admin/results");
@@ -49,7 +54,7 @@ export async function updateResult(id: string, form: FormData): Promise<void> {
   await assertEditor();
   const supabase = await createClient();
   const patch = parsePayload(form);
-  const { error } = await supabase.from("results").update(patch as never).eq("id", id);
+  const { error } = await supabase.from("results").update(patch).eq("id", id);
   if (error) throw new Error(dbError(error, "Ruajtja e rezultatit dështoi. Provo sërish."));
   revalidatePath("/admin/results");
   redirect("/admin/results");

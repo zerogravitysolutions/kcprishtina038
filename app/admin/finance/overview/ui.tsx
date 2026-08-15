@@ -1,4 +1,66 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
+
+/**
+ * The club's position SINCE IT STARTED — the band that opens the Arka view.
+ *
+ * It is deliberately NOT a <Kpi>. The trio below it carries the very same three
+ * words (Hyrjet / Daljet / Bilanci) over a DIFFERENT window, and two figures
+ * that look alike but count different rows is the exact defect this panel has
+ * been bitten by twice. So this one is inked rather than white, sits ABOVE the
+ * year chips — outside the region they control — states its window on itself,
+ * and carries the sentence that explains why the years below will not add up to
+ * it. Different treatment, not merely different text.
+ *
+ * Every string arrives already formatted: an unknown amount must be able to
+ * arrive as words ("Pa shumë", "së paku €…") rather than as a confident number,
+ * so this component never touches euros itself.
+ */
+export function AllTimeBalance({
+  window, income, incomeSub, spent, spentSub, balance, balanceSub, negative, note, warning,
+}: {
+  /** Printed on the card, in words: the whole point is that it says so itself. */
+  window: string;
+  income: string;
+  incomeSub: string;
+  spent: string;
+  spentSub: string;
+  balance: string;
+  balanceSub: string;
+  /** Colours the balance red. Only when it is a real figure and really negative. */
+  negative?: boolean;
+  note: ReactNode;
+  /** Why the figures are short (a read hit its cap). Rendered in red, or nothing. */
+  warning?: string | null;
+}) {
+  return (
+    <section className="alltime">
+      <div className="alltime-head">
+        <h2>Bilanci total i klubit</h2>
+        <span className="alltime-win">{window}</span>
+      </div>
+      <div className="alltime-figs">
+        <div className="alltime-fig">
+          <div className="lab"><span className="dot" style={{ background: "#4ADE80" }} />Hyrjet gjithsej</div>
+          <div className="val">{income}</div>
+          <div className="sub">{incomeSub}</div>
+        </div>
+        <div className="alltime-fig">
+          <div className="lab"><span className="dot" style={{ background: "#FB8B5E" }} />Daljet gjithsej</div>
+          <div className="val">{spent}</div>
+          <div className="sub">{spentSub}</div>
+        </div>
+        <div className={`alltime-fig main${negative ? " neg" : ""}`}>
+          <div className="lab"><span className="dot" style={{ background: negative ? "#FF9B93" : "#2DD4BF" }} />Bilanci total</div>
+          <div className="val">{balance}</div>
+          <div className="sub">{balanceSub}</div>
+        </div>
+      </div>
+      <p className="alltime-note">{note}</p>
+      {warning ? <p className="alltime-warn">{warning}</p> : null}
+    </section>
+  );
+}
 
 /** One headline figure. Shared by all three views so they read as one page. */
 export function Kpi({

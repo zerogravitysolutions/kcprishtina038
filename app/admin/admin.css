@@ -685,3 +685,97 @@ input.num { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
   /* In card mode the row is finger-sized, so the proof gets a real tap target. */
   .rc-thumb { width: 44px; height: 56px; }
 }
+
+/* =========================================================
+   All-time club balance — /admin/finance/overview?v=arka
+   =========================================================
+   The Arka view carries the word "Bilanci" twice: once for the
+   selected year (the white .kpi trio, under the year chips) and
+   once for the club since it started (this band, ABOVE them).
+   Two figures that look alike over two different windows is the
+   defect this panel has already been bitten by twice, so the
+   all-time one is deliberately built out of different material:
+   inked instead of white, one wide band instead of three cards,
+   and it prints its own window on itself. Never restyle this to
+   match .kpi — the contrast IS the safeguard. */
+.alltime {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #101828 0%, #1D2939 58%, #233246 100%);
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: var(--r-lg);
+  padding: 20px 24px 22px;
+  margin-bottom: 14px;
+  box-shadow: var(--e2);
+  color: #fff;
+}
+/* The same ember→teal hairline the page header uses, so the band still reads
+   as part of this panel and not as a foreign widget. */
+.alltime::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+.alltime-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.alltime-head h2 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 16.5px; letter-spacing: -0.01em; color: #fff; }
+/* The window, stated on the card itself — not in a caption somewhere below it. */
+.alltime-win {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: #FFC3AE; background: rgba(224, 86, 45, .18);
+  border: 1px solid rgba(224, 86, 45, .38); border-radius: 999px; padding: 4px 11px;
+}
+
+.alltime-figs { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 20px; align-items: start; }
+.alltime-fig .lab { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: rgba(255, 255, 255, .58); }
+.alltime-fig .lab .dot { width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; }
+/* overflow-wrap, because the band clips its overflow: on a 320px phone the
+   two top figures sit in ~126px columns, and a long euro figure must WRAP
+   there, never be silently cut in half. A truncated money figure is a wrong
+   money figure. */
+.alltime-fig .val { margin-top: 9px; font-family: var(--font-display); font-weight: 600; font-size: 29px; line-height: 1.05; letter-spacing: -0.03em; color: #fff; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; overflow-wrap: anywhere; }
+.alltime-fig .sub { margin-top: 7px; font-family: var(--font-mono); font-size: 10.5px; line-height: 1.6; color: rgba(255, 255, 255, .46); }
+/* The balance is the answer to the question, so it is the biggest thing here
+   and stands behind its own rule. */
+.alltime-fig.main { padding-left: 20px; border-left: 1px solid rgba(255, 255, 255, .14); }
+.alltime-fig.main .val { font-size: 38px; }
+.alltime-fig.neg .val { color: #FF9B93; }
+
+.alltime-note { margin: 18px 0 0; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, .11); font-size: 12.5px; line-height: 1.75; color: rgba(255, 255, 255, .64); }
+.alltime-warn { margin: 10px 0 0; font-family: var(--font-mono); font-size: 11px; line-height: 1.7; color: #FFB4AB; }
+
+/* This panel is read on a phone. Income and spending sit side by side, the
+   balance takes the full width under them: taken in, spent, left. */
+@media (max-width: 700px) {
+  .alltime { padding: 16px 16px 18px; border-radius: var(--r-md); }
+  .alltime-head { margin-bottom: 14px; }
+  .alltime-head h2 { font-size: 15.5px; }
+  .alltime-figs { grid-template-columns: 1fr 1fr; gap: 14px 12px; }
+  .alltime-fig .val { font-size: 24px; }
+  .alltime-fig .lab { font-size: 9.5px; letter-spacing: .12em; }
+  .alltime-fig.main { grid-column: 1 / -1; padding-left: 0; padding-top: 14px; border-left: 0; border-top: 1px solid rgba(255, 255, 255, .14); }
+  .alltime-fig.main .val { font-size: 32px; }
+  .alltime-note { font-size: 12px; }
+}
+
+/* ---------- Reconciliation rows in "Sipas vitit" ---------- */
+/* The years, then what has no year, then the all-time figure: addition the
+   reader can follow, so two different totals under one word never look like
+   one of them is a bug. */
+table.t tbody tr.sum td { background: var(--surface-2); color: var(--text-1); font-weight: 600; }
+table.t tbody tr.sum:hover td { background: var(--surface-2); }
+table.t tbody tr.sum td { border-top: 1px solid var(--line); }
+table.t tbody tr.sum td small { font-weight: 400; }
+table.t tbody tr.sum.total td { background: color-mix(in oklab, var(--accent-2) 9%, #fff); box-shadow: inset 0 1px 0 color-mix(in oklab, var(--accent-2) 28%, transparent); }
+table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--accent-2) 9%, #fff); }
+
+@media (max-width: 800px) {
+  /* In card mode the row IS the card, so the tint has to move to the row. */
+  table.t tbody tr.sum, table.t tbody tr.sum:hover { background: var(--surface-2); }
+  table.t tbody tr.sum td, table.t tbody tr.sum:hover td { background: transparent; border-top: 0; }
+  table.t tbody tr.sum.total, table.t tbody tr.sum.total:hover {
+    background: color-mix(in oklab, var(--accent-2) 9%, #fff);
+    border-color: color-mix(in oklab, var(--accent-2) 30%, transparent);
+  }
+  table.t tbody tr.sum.total td, table.t tbody tr.sum.total:hover td { background: transparent; box-shadow: none; }
+}

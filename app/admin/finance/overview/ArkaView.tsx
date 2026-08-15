@@ -4,21 +4,21 @@ import { dbError } from "@/lib/errors";
 import { RowBars, type Point } from "../../training/charts";
 import {
   UNKNOWN_CATEGORY_LABEL, UNKNOWN_SPONSOR_LABEL, amountTotalLabel, amountTotalValue, clubBalance,
-  formatEur, isOwedToMember, outstandingTotal, owedToMembers, owedToMembersTotal, sponsorPositions,
-  sumAmounts, sumEur, type ExpenseLike, type FundLike,
+  formatEur, isOwedToMember, membershipIncome, outstandingTotal, owedToMembers, owedToMembersTotal,
+  sponsorPositions, sumAmounts, sumEur, type ExpenseLike, type FundLike,
 } from "@/lib/finance";
 import type {
   ClubFundKind, ClubFundStatus, ExpensePaidBy, ExpenseStatus,
 } from "@/lib/supabase/types";
 import {
   PAID_DUES_CAP, expenseCount, fundCount, invoiceCount, overviewHref, paidDuesInYear, paymentCount,
-  personCount, readOpenDues, readOwedExpenses, readPaidDues, undatedPaidCount, undatedPaidNote,
+  personCount, readOpenDues, readOwedExpenses, readPaidDues, undatedPaidNote, undatedPaidRows,
   yearOfPayment,
 } from "./data";
 import {
   ALL, ALL_TIME_NOTE, ALL_YEARS_LABEL, currentYear, parseYearParam, yearChoices, yearWindowLabel,
 } from "../filters";
-import { Kpi, LoadError, OutsideCard, TruncationWarning } from "./ui";
+import { AllTimeBalance, Kpi, LoadError, OutsideCard, TruncationWarning } from "./ui";
 
 // Caps, as on the page this view replaces. Each one is surfaced when it bites.
 const FUND_CAP = 2000;
@@ -105,13 +105,22 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const windowExpenses = expenses.filter((e) => year === ALL || yearOf(e.occurred_on) === year);
   const windowPaidDues = paidDuesInYear(paidDues, year);
   // Paid invoices with no payment date cannot be placed in a year. Under a year
-  // filter they are left out, and the page says so rather than pretending.
-  const undatedPaid = undatedPaidCount(paidDues);
+  // filter they are left out, and the page says so rather than pretending. They
+  // DO belong in the all-time total below — "since the club started" has no
+  // bucket for them to fall out of — which is precisely why the years will not
+  // add up to it, and why the euros they carry are totalled here.
+  const undated = undatedPaidRows(paidDues);
+  const undatedPaid = undated.length;
+  const undatedIncome = membershipIncome(undated);
 
   // ---- the position --------------------------------------------------------
   // clubBalance does no date filtering: it totals exactly the rows handed to
   // it, so the headline can never disagree with the lists below.
   const balance = clubBalance({ dues: windowPaidDues, funds: windowFunds, expenses: windowExpenses });
+  // The same helper over the SAME rows, unwindowed: the club since it started.
+  // No second query and no second definition of what income is — the only
+  // difference between this figure and the one above is which rows go in.
+  const allTime = clubBalance({ dues: paidDues, funds, expenses });
   const paidExpenses = windowExpenses.filter((e) => e.status === "paid");
   const unpaidExpenses = windowExpenses.filter((e) => e.status === "unpaid");
   const receivedFunds = windowFunds.filter((f) => f.status === "received");
@@ -146,13 +155,36 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   // By year, over EVERYTHING — this is the section that puts the selected year
   // in context, so it deliberately ignores the filter and says so.
   const allYears = [...years].sort((a, b) => a.localeCompare(b));
+  // `running` is the club's cumulative position after each year — the column
+  // that walks the eye from the first year to the headline above, so the two
+  // windows on this page are visibly the same money seen twice.
+  let running = 0;
   const byYear = allYears.map((yr) => {
     const f = funds.filter((r) => yearOf(r.occurred_on) === yr);
     const e = expenses.filter((r) => yearOf(r.occurred_on) === yr);
     const d = paidDues.filter((r) => yearOfPayment(r.paid_at) === yr);
     const b = clubBalance({ dues: d, funds: f, expenses: e });
-    return { year: yr, income: b.income, spent: b.expensesPaid, balance: b.balance, missing: b.paidMissingAmount };
+    running += b.balance;
+    return {
+      year: yr, income: b.income, spent: b.expensesPaid, balance: b.balance,
+      missing: b.paidMissingAmount, running,
+    };
   });
+
+  // The reconciliation, as arithmetic rather than as a promise: the years add
+  // up to `yearsTotal`, the undated payments are the known gap, and whatever is
+  // still left over gets a row of its own instead of being rounded away.
+  const yearsTotal = byYear.reduce(
+    (acc, r) => ({
+      income: acc.income + r.income, spent: acc.spent + r.spent,
+      balance: acc.balance + r.balance, missing: acc.missing + r.missing,
+    }),
+    { income: 0, spent: 0, balance: 0, missing: 0 },
+  );
+  const residualIncome = allTime.income - yearsTotal.income - undatedIncome;
+  const residualSpent = allTime.expensesPaid - yearsTotal.spent;
+  // Half a cent: a rounding tail is not a missing row and must not print one.
+  const hasResidual = Math.abs(residualIncome) >= 0.005 || Math.abs(residualSpent) >= 0.005;
 
   // By category, over the window. sumAmounts (never sumEur): an expense with no
   // agreed price is a real cost of unknown size, never a free one.
@@ -170,13 +202,37 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   }));
 
   const nothingYet = funds.length === 0 && expenses.length === 0 && paidDues.length === 0;
-  const truncated = [
+  // The three reads the BALANCE is made of, kept apart from the other two. A
+  // one-year window almost never reaches a cap; a total over every year is
+  // exactly where one starts to, and a total that was quietly cut short is not
+  // a total — so the all-time card refuses to print a confident figure when any
+  // of these bit, and says which.
+  const balanceTruncated = [
     paidDues.length >= PAID_DUES_CAP ? "pagesat e anëtarësisë" : null,
-    open.truncated ? "faturat e hapura" : null,
     funds.length >= FUND_CAP ? "hyrjet" : null,
     expenses.length >= EXPENSE_CAP ? "shpenzimet" : null,
+  ].filter(Boolean) as string[];
+  const cut = balanceTruncated.length > 0;
+  const truncated = [
+    ...balanceTruncated,
+    open.truncated ? "faturat e hapura" : null,
     owed.truncated ? "shpenzimet e pa rimbursuara" : null,
   ].filter(Boolean) as string[];
+
+  // ---- the all-time card's own words ---------------------------------------
+  // Never a bare figure: an amount that could not be counted stays words
+  // ("Pa shumë"), and a figure a cap cut short is a floor ("së paku"), not a
+  // total. A confident number is the one thing this card must not print when it
+  // is not entitled to one.
+  const allTimePaidExpenses = sumAmounts(expenses.filter((e) => e.status === "paid"));
+  const allTimeSpentValue = amountTotalValue(allTimePaidExpenses);
+  const allTimeNegative = !cut && allTime.balance < 0;
+  const undatedSentence = undatedPaid === 1
+    ? `Një pagesë e arkëtuar nuk ka datë pagese, prandaj nuk vendoset dot në asnjë vit — por hyn këtu, me ${formatEur(undatedIncome)}.`
+    : `${undatedPaid} pagesa të arkëtuara nuk kanë datë pagese, prandaj nuk vendosen dot në asnjë vit — por hyjnë këtu, me ${formatEur(undatedIncome)}.`;
+  const allTimeMissingSentence = allTime.paidMissingAmount === 1
+    ? "Një shpenzim i paguar nuk ka shumë të shënuar: nuk numërohet si zero, prandaj daljet reale janë më të mëdha dhe bilanci më i vogël se kjo shifër."
+    : `${allTime.paidMissingAmount} shpenzime të paguara nuk kanë shumë të shënuar: nuk numërohen si zero, prandaj daljet reale janë më të mëdha dhe bilanci më i vogël se kjo shifër.`;
 
   // The current year is the default, so it is the one left out of the URL.
   const link = (v: string) => overviewHref("arka", { y: v === currentYear() ? undefined : v, p });
@@ -193,6 +249,50 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
 
   return (
     <>
+      {/* ------------------------------------------------ the club, all time */}
+      {/* Above the chips on purpose: everything BELOW this line follows the
+          year filter, this does not. It is the first thing the eye lands on
+          because it is the question the owner opens the page with — what has
+          the club taken in, spent, and got left since it started. */}
+      {nothingYet ? null : (
+        <AllTimeBalance
+          window={`Që nga fillimi · ${ALL_TIME_NOTE}`}
+          income={cut ? `së paku ${formatEur(allTime.income)}` : formatEur(allTime.income)}
+          incomeSub={`anëtarësi ${formatEur(allTime.membershipIncome)} + fonde ${formatEur(allTime.fundsReceived)}`}
+          spent={cut && allTimePaidExpenses.counted > 0 ? `së paku ${allTimeSpentValue}` : allTimeSpentValue}
+          spentSub={
+            `${expenseCount(allTimePaidExpenses.counted + allTimePaidExpenses.missing)} të paguara`
+            + (allTime.paidMissingAmount > 0 ? ` · ${allTime.paidMissingAmount} pa shumë` : "")
+          }
+          balance={cut ? "I paplotë" : formatEur(allTime.balance)}
+          balanceSub={
+            cut
+              ? "dy anët e tij janë prerë nga kufiri i leximit"
+              : allTimeNegative
+                ? `klubi ka dalë ${formatEur(-allTime.balance)} mbi hyrjet`
+                : "hyrjet minus daljet, të gjitha vitet bashkë"
+          }
+          negative={allTimeNegative}
+          note={
+            <>
+              Kjo kartë nuk e ndjek filtrin e vitit: mbledh çdo pagesë anëtarësie të arkëtuar, çdo hyrje të
+              pranuar dhe çdo shpenzim të paguar që nga rreshti i parë i regjistruar. Bilanci poshtë i tregon
+              të njëjtat para përmes dritares që zgjedh me çipat; kartat te “Jashtë bilancit” e kanë secila
+              dritaren e vet të shënuar mbi to.{" "}
+              {undatedPaid > 0
+                ? `Vitet poshtë nuk mblidhen sa kjo shifër: ${undatedSentence} Diferenca mes tabelës “Sipas vitit” dhe kësaj karte është pikërisht aq.`
+                : "Vitet poshtë mblidhen pikërisht sa kjo shifër — çdo pagesë e ka datën e vet dhe zë vend në një vit."}
+              {allTime.paidMissingAmount > 0 ? ` ${allTimeMissingSentence}` : ""}
+            </>
+          }
+          warning={
+            cut
+              ? `Kujdes: janë lexuar vetëm rreshtat e parë për ${balanceTruncated.join(", ")}. Hyrjet dhe daljet këtu mbulojnë vetëm një pjesë të historikut, prandaj bilanci total nuk shfaqet si shifër — do të ishte një numër i sigurt mbi të dhëna të cunguara.`
+              : null
+          }
+        />
+      )}
+
       {/* Newest year first, the catch-all last: the frame this page opens in is
           the current year, not the whole history. */}
       <div className="filter-bar">
@@ -217,6 +317,14 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
       ) : null}
 
       {/* ---------------------------------------------------------- balance */}
+      {/* Titled, because the inked card above says "Bilanci total" and this trio
+          says "Bilanci": whoever reads them has to see at once which window each
+          one is in, without reading down to a sub-label. */}
+      <div className="card-head" style={{ border: 0, padding: 0, marginBottom: 12 }}>
+        <h3>{year === ALL ? "Bilanci i dritares së zgjedhur" : `Bilanci i vitit ${year}`}</h3>
+        <span className="kicker">{yearLabel}</span>
+      </div>
+
       <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginBottom: 8 }}>
         <Kpi
           accent="#16A34A"
@@ -237,7 +345,10 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
           accent={balance.balance < 0 ? "#B42318" : "#0E9384"}
           label="Bilanci"
           value={formatEur(balance.balance)}
-          sub={balance.balance < 0 ? `klubi ka dalë ${formatEur(-balance.balance)} mbi hyrjet` : "hyrjet minus daljet"}
+          sub={
+            (balance.balance < 0 ? `klubi ka dalë ${formatEur(-balance.balance)} mbi hyrjet` : "hyrjet minus daljet")
+            + ` · ${yearLabel}`
+          }
           tone={balance.balance < 0 ? "err" : undefined}
         />
       </div>
@@ -430,7 +541,9 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
           <>
             <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
               Kjo tabelë nuk ndjek filtrin lart — e tregon çdo vit, që të krahasohen mes vete. Hyrjet e një viti
-              janë pagesat e anëtarësisë të arkëtuara atë vit plus fondet e pranuara atë vit.
+              janë pagesat e anëtarësisë të arkëtuara atë vit plus fondet e pranuara atë vit. Kolona “Kumulativ”
+              e mbart bilancin nga një vit në tjetrin, ndaj rreshti i fundit i saj është pikërisht kartela e
+              zezë lart — minus çka nuk vendoset dot në një vit.
               {undatedPaid > 0
                 ? ` ${undatedPaidNote(undatedPaid)}`
                 : ""}
@@ -443,6 +556,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
                     <th className="num">Hyrjet</th>
                     <th className="num">Daljet</th>
                     <th className="num">Bilanci</th>
+                    <th className="num">Kumulativ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -463,8 +577,99 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
                       <td className="num" data-lab="Bilanci" style={{ color: row.balance < 0 ? "var(--err)" : undefined }}>
                         {formatEur(row.balance)}
                       </td>
+                      <td className="num" data-lab="Kumulativ" style={{ color: row.running < 0 ? "var(--err)" : undefined }}>
+                        {formatEur(row.running)}
+                      </td>
                     </tr>
                   ))}
+
+                  {/* The reconciliation between the two windows on this page,
+                      spelled out as addition: the years, then what has no year,
+                      then the black card at the top. A reader who finds two
+                      different totals under one word has to be able to see, on
+                      the page, exactly which rows make up the difference. */}
+                  <tr className="sum">
+                    <td>Gjithsej vitet</td>
+                    <td className="num" data-lab="Hyrjet">{formatEur(yearsTotal.income)}</td>
+                    <td className="num" data-lab="Daljet">
+                      <span>
+                        {formatEur(yearsTotal.spent)}
+                        {yearsTotal.missing > 0 ? (
+                          <small style={{ display: "block", fontSize: 11, color: "var(--warn)", marginTop: 2 }}>
+                            {yearsTotal.missing} pa shumë
+                          </small>
+                        ) : null}
+                      </span>
+                    </td>
+                    <td className="num" data-lab="Bilanci" style={{ color: yearsTotal.balance < 0 ? "var(--err)" : undefined }}>
+                      {formatEur(yearsTotal.balance)}
+                    </td>
+                    <td className="num" data-lab="Kumulativ">—</td>
+                  </tr>
+
+                  {undatedPaid > 0 ? (
+                    <tr className="sum">
+                      <td>
+                        Pa datë pagese
+                        <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
+                          {paymentCount(undatedPaid)} që nuk vendosen dot në një vit
+                        </small>
+                      </td>
+                      <td className="num" data-lab="Hyrjet">{formatEur(undatedIncome)}</td>
+                      <td className="num" data-lab="Daljet">{formatEur(0)}</td>
+                      <td className="num" data-lab="Bilanci">{formatEur(undatedIncome)}</td>
+                      <td className="num" data-lab="Kumulativ">—</td>
+                    </tr>
+                  ) : null}
+
+                  {hasResidual ? (
+                    <tr className="sum">
+                      <td>
+                        Jashtë viteve të listuara
+                        <small style={{ display: "block", fontSize: 11, color: "var(--warn)", marginTop: 2 }}>
+                          rreshta me datë të palexueshme
+                        </small>
+                      </td>
+                      <td className="num" data-lab="Hyrjet">{formatEur(residualIncome)}</td>
+                      <td className="num" data-lab="Daljet">{formatEur(residualSpent)}</td>
+                      <td className="num" data-lab="Bilanci">{formatEur(residualIncome - residualSpent)}</td>
+                      <td className="num" data-lab="Kumulativ">—</td>
+                    </tr>
+                  ) : null}
+
+                  <tr className="sum total">
+                    <td>
+                      Që nga fillimi
+                      <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
+                        shifra e kartelës lart
+                      </small>
+                    </td>
+                    {/* Cut short by a cap: the same refusal as the card, or the
+                        row that quotes it would contradict it. */}
+                    <td className="num" data-lab="Hyrjet">
+                      {cut ? `së paku ${formatEur(allTime.income)}` : formatEur(allTime.income)}
+                    </td>
+                    {/* amountTotalValue, not formatEur: when NOT ONE paid
+                        expense carries an amount the card prints "Pa shumë",
+                        and a row that calls itself "shifra e kartelës lart"
+                        must not answer "€0.00" to the same question. */}
+                    <td className="num" data-lab="Daljet">
+                      <span>
+                        {cut && allTimePaidExpenses.counted > 0
+                          ? `së paku ${allTimeSpentValue}`
+                          : allTimeSpentValue}
+                        {allTime.paidMissingAmount > 0 ? (
+                          <small style={{ display: "block", fontSize: 11, color: "var(--warn)", marginTop: 2 }}>
+                            {allTime.paidMissingAmount} pa shumë
+                          </small>
+                        ) : null}
+                      </span>
+                    </td>
+                    <td className="num" data-lab="Bilanci" style={{ color: !cut && allTime.balance < 0 ? "var(--err)" : undefined }}>
+                      {cut ? "I paplotë" : formatEur(allTime.balance)}
+                    </td>
+                    <td className="num" data-lab="Kumulativ">—</td>
+                  </tr>
                 </tbody>
               </table>
             </div>

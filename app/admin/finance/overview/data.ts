@@ -124,9 +124,20 @@ export function paidDuesInYear<T extends { paid_at: string | null }>(rows: T[], 
   return year === ALL ? rows : rows.filter((d) => yearOfPayment(d.paid_at) === year);
 }
 
+/**
+ * Paid invoices carrying no payment date. They cannot be placed in a year, so
+ * every yearly window drops them — but an ALL-TIME total has no bucket for them
+ * to fall out of, and must count them. The rows themselves are returned (not
+ * just a count) so a screen can total the euros they carry and show the gap
+ * between "the years added up" and "since the club started" as a real figure.
+ */
+export function undatedPaidRows<T extends { paid_at: string | null }>(rows: T[]): T[] {
+  return rows.filter((d) => !yearOfPayment(d.paid_at));
+}
+
 /** Paid invoices carrying no payment date — they cannot be placed in a year. */
 export function undatedPaidCount(rows: Array<{ paid_at: string | null }>): number {
-  return rows.filter((d) => !yearOfPayment(d.paid_at)).length;
+  return undatedPaidRows(rows).length;
 }
 
 /**

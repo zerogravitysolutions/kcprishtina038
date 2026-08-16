@@ -8,12 +8,13 @@ import {
 } from "@/lib/finance";
 import type { ClubFundKind, ClubFundStatus } from "@/lib/supabase/types";
 import {
-  ALL, ALL_TIME_NOTE, ALL_YEARS_LABEL, currentYear, parseYearParam, yearChoices, yearWindowLabel,
+  ALL, ALL_TIME_NOTE, ALL_YEARS_LABEL, defaultYear, parseYearParam, yearChoices, yearWindowLabel,
 } from "../filters";
 // The academy side of "money in" is read through the Pasqyra's own helpers, so
 // this page and /admin/finance/overview print the SAME euros for a window.
 import {
-  PAID_DUES_CAP, paidDuesInYear, readPaidDues, undatedPaidCount, undatedPaidNote, yearOfPayment,
+  PAID_DUES_CAP, overviewHref, paidDuesInYear, readPaidDues, undatedPaidCount, undatedPaidNote,
+  yearOfPayment,
 } from "../overview/data";
 import { NewFundButton, type FundView, type SponsorOption } from "./FundForm";
 import { FundRow } from "./FundRow";
@@ -147,18 +148,27 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
   }));
 
   // ---- the window ----------------------------------------------------------
-  // The year is the FRAME of this screen and it defaults to the current one;
-  // "të gjitha vitet" is the last option, never the state you land in.
-  const year = parseYearParam(sp.y);
-  const years = yearChoices(
-    [
-      ...funds.map((f) => f.occurred_on.slice(0, 4)),
-      // Payment years too: a year in which the academy collected money is a
-      // year with income, even if no sponsor gave anything.
-      ...paid.rows.map((d) => yearOfPayment(d.paid_at)).filter((v): v is string => !!v),
-    ],
-    year,
-  );
+  // The year is the FRAME of this screen and it defaults to the newest year
+  // with a ROW on it — a collected kuotë, or a fund whether it has arrived or
+  // is only promised. A pledge is money this screen exists to show, so a year
+  // that holds nothing but one is still a year worth opening on, even though
+  // the "hyrjet" figure above the list will read €0.00 for it. "Të gjitha
+  // vitet" is the last option, never the state you land in.
+  //
+  // ONE list, feeding both the default and the picker, so the year this page
+  // opens in is always one of the chips it draws. Both reads below come back
+  // newest-first, so even if a cap bit, the newest year is still in here. A row
+  // dated in the FUTURE is offered as a chip but never defaulted to — see
+  // defaultYear.
+  const incomeYears = [
+    ...funds.map((f) => f.occurred_on.slice(0, 4)),
+    // Payment years too: a year in which the academy collected money is a
+    // year with income, even if no sponsor gave anything.
+    ...paid.rows.map((d) => yearOfPayment(d.paid_at)).filter((v): v is string => !!v),
+  ];
+  const defaultY = defaultYear(incomeYears);
+  const year = parseYearParam(sp.y, incomeYears);
+  const years = yearChoices(incomeYears, year);
   const status = STATUS_FILTERS.some((s) => s.value === sp.st) ? sp.st! : ALL;
   const kind = (FUND_KINDS as string[]).includes(sp.k ?? "") ? sp.k! : ALL;
   const yearLabel = yearWindowLabel(year);
@@ -201,8 +211,10 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
     const y = over.y ?? year;
     const st = over.st ?? status;
     const k = over.k ?? kind;
-    // The current year is the default, so it is left out of the querystring.
-    if (y !== currentYear()) params.set("y", y);
+    // The default year is left out of the querystring — a bare URL resolves to
+    // it anyway. Never currentYear(): omitting a year that is not the default
+    // would build a link that lands in another window.
+    if (y !== defaultY) params.set("y", y);
     if (st !== ALL) params.set("st", st);
     if (k !== ALL) params.set("k", k);
     const s = params.toString();
@@ -214,6 +226,13 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
    * over — it opens on the current month, which is its own default.
    */
   const invoicesHref = "/admin/finance";
+  /**
+   * The Pasqyra, WITH this screen's window spelled out. Each screen resolves a
+   * bare URL against its OWN rows, and this one does not read shpenzimet — so a
+   * link that dropped the year could hand over 2026 and arrive on 2025. A
+   * cross-screen link therefore always says which year it means.
+   */
+  const arkaHref = overviewHref("arka", { y: year });
 
   return (
     <>
@@ -223,7 +242,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
           <div className="sub">
             Të gjitha paratë që hyjnë — kuotat e akademisë dhe fondet (sponsorizime, projekte, grante,
             donacione) — për {yearLabel}.{" "}
-            <Link href="/admin/finance/overview">Arka e klubit</Link>
+            <Link href={arkaHref}>Arka e klubit</Link>
             {" · "}<Link href={invoicesHref}>Faturat e anëtarëve</Link>
           </div>
         </div>
@@ -308,7 +327,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
         <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.7, maxWidth: "84ch" }}>
           Kuotat numërohen sipas ditës kur PAGESA hyri, jo sipas muajit që faturojnë — pra një faturë e majit e
           paguar në gusht është e hyrë e gushtit. Është e njëjta shifër që shfaq{" "}
-          <Link href="/admin/finance/overview">Arka e klubit</Link> për të njëjtën periudhë; faturat një nga një
+          <Link href={arkaHref}>Arka e klubit</Link> për të njëjtën periudhë; faturat një nga një
           rrinë te <Link href={invoicesHref}>Faturat e anëtarëve</Link>, jo këtu.
           {year !== ALL && undatedPaid > 0 ? ` ${undatedPaidNote(undatedPaid)}` : ""}
         </p>
@@ -361,7 +380,8 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
         </span>
       </div>
 
-      {/* Newest year first, "Të gjitha vitet" last — the default is this year. */}
+      {/* Newest year first, "Të gjitha vitet" last — the default is the newest
+          year with income in it. */}
       <div className="filter-bar">
         {years.map((y) => (
           <Link key={y} className={`chip ${year === y ? "active" : ""}`} href={link({ y })}>{y}</Link>
@@ -419,7 +439,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
 
       <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", marginTop: 12, lineHeight: 1.7 }}>
         Vetëm paratë e pranuara — kuotat e arkëtuara dhe fondet e mbërritura — hyjnë në bilancin te{" "}
-        <Link href="/admin/finance/overview">Arka e klubit</Link>.
+        <Link href={arkaHref}>Arka e klubit</Link>.
         {canDelete ? "" : " Fshirja e një hyrjeje bëhet vetëm nga admini — ti mund ta ndryshosh."}
       </p>
     </>

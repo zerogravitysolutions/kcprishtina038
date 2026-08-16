@@ -11,7 +11,9 @@ import { NewExpenseButton, type ExpenseOptions, type ExpenseView } from "./Expen
 // Components and types only from the "use client" module; ALL is a VALUE and
 // comes from the plain one, or the server would see a module proxy.
 import { ExpenseFilters } from "./ExpenseFilters";
-import { ALL, ALL_TIME_NOTE, currentYear, parseYearParam, yearChoices, yearSpan, yearWindowLabel } from "../filters";
+import {
+  ALL, ALL_TIME_NOTE, defaultYear, isYear, parseYearParam, yearChoices, yearSpan, yearWindowLabel,
+} from "../filters";
 import { ExpenseRow } from "./ExpenseRow";
 
 export const dynamic = "force-dynamic";
@@ -75,10 +77,6 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   const isAdmin = profile.role === "admin";
 
   const sp = await searchParams;
-  const thisYear = currentYear();
-  // Their sheets are per-year ("2024-2025", "2026"), so the year is the frame,
-  // not a filter you have to remember to set: no ?y= means THIS year.
-  const year = parseYearParam(sp.y);
   const categoryFilter = (sp.cat ?? ALL).trim() || ALL;
   const beneficiaryFilter = (sp.b ?? ALL).trim() || ALL;
   const statusFilter = STATUS_FILTERS.some((s) => s.value === sp.st) ? sp.st! : ALL;
@@ -93,6 +91,47 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
 
   const supabase = await createClient();
 
+  // ---- the two ends of the ledger ------------------------------------------
+  // Both are limit-1 walks of club_expenses_occurred_idx (occurred_on desc), so
+  // each returns a single row off the head or the tail of an index and neither
+  // touches the table at large. The pair gives this screen two things: the year
+  // a bare URL resolves to (the newest one holding a shpenzim) and the span the
+  // year picker covers. The oldest bound was already read here; the newest is
+  // the one this costs.
+  //
+  // WHEN THEY RUN. This is the one screen that filters by year in SQL, so it
+  // cannot build its main query until it knows the year — but only when the
+  // year has to be RESOLVED. An explicit ?y=2024 or ?y=all is the answer
+  // already, and then the bounds are needed for nothing but the picker, which
+  // renders after the data anyway; in that case they join the main batch and
+  // the page still costs a single wave. Only a bare URL pays for a phase of its
+  // own, and it pays one round trip for two queries, not two.
+  //
+  // What was rejected: dropping the SQL year filter and windowing in memory
+  // (the ROW_CAP that protects this page depends on the filter — an unwindowed
+  // read would cut the newest 1500 rows out of every year at once and quietly
+  // under-total the one on screen); a new SQL function returning both bounds in
+  // one call (a migration to save ~20ms on an admin page); and guessing the
+  // year from an unwindowed first page of rows, which cannot tell "the year
+  // ended" from "the cap bit" without a second query anyway.
+  const oldestQuery = supabase
+    .from("club_expenses").select("occurred_on").order("occurred_on", { ascending: true }).limit(1);
+  const newestQuery = supabase
+    .from("club_expenses").select("occurred_on").order("occurred_on", { ascending: false }).limit(1);
+  const yParam = (sp.y ?? "").trim();
+  const chosenYear = yParam === ALL ? ALL : isYear(yParam) ? yParam : null;
+  const bounds = chosenYear === null ? await Promise.all([oldestQuery, newestQuery]) : null;
+  const boundOf = (res: { data: unknown } | null) =>
+    (res?.data as { occurred_on: string }[] | null)?.[0]?.occurred_on;
+
+  // Their sheets are per-year ("2024-2025", "2026"), so the year is the frame,
+  // not a filter you have to remember to set: no ?y= means the newest year that
+  // holds a shpenzim, which on 2 January is last year and not an empty page.
+  // parseYearParam is still what reads the parameter — handed the bound this
+  // page just resolved, or nothing at all when the parameter already decided.
+  const year = chosenYear ?? parseYearParam(sp.y, [boundOf(bounds?.[1] ?? null)]);
+
+  // ---- the reads -----------------------------------------------------------
   // The year window is applied in SQL; every other filter runs in JS over the
   // rows this page holds, so the totals printed above the list can never
   // disagree with the list itself.
@@ -106,7 +145,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     expensesQuery = expensesQuery.gte("occurred_on", `${year}-01-01`).lte("occurred_on", `${year}-12-31`);
   }
 
-  const [expensesRes, categoriesRes, membersRes, sponsorsRes, oldestRes, owedRes] = await Promise.all([
+  const [
+    expensesRes, categoriesRes, membersRes, sponsorsRes, owedRes, oldestRes, newestRes,
+  ] = await Promise.all([
     expensesQuery,
     supabase
       .from("expense_categories")
@@ -118,8 +159,6 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       .order("full_name", { ascending: true })
       .limit(1000),
     supabase.from("sponsors").select("id, name, active").order("name", { ascending: true }).limit(200),
-    // Just the first expense ever, to know how far the year picker goes back.
-    supabase.from("club_expenses").select("occurred_on").order("occurred_on", { ascending: true }).limit(1),
     // The club's debt to the people who fronted costs is NOT a per-year figure
     // — a bill Albioni paid in 2024 is still owed in 2026 — so it is read
     // across all years, straight off club_expenses_owed_idx.
@@ -130,7 +169,16 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       .eq("reimbursed", false)
       .order("occurred_on", { ascending: false })
       .limit(500),
+    // Already resolved above when the year had to be worked out; awaited here
+    // (and so ISSUED here, in this one wave) when ?y= said which year it is.
+    bounds ? bounds[0] : oldestQuery,
+    bounds ? bounds[1] : newestQuery,
   ]);
+  const oldest = boundOf(oldestRes);
+  const newest = boundOf(newestRes);
+  // The year a URL with no ?y= comes back to — the one year every link on this
+  // page leaves out of the querystring.
+  const defaultY = defaultYear([newest]);
 
   // owedRes is in here on purpose. It feeds the "Borxh ndaj anëtarëve" KPI and
   // the "Klubi u ka borxh" card, and if it fails silently both render €0.00 —
@@ -254,8 +302,11 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     .sort((a, b) => b.total.total - a.total.total || b.total.missing - a.total.missing);
 
   // ---- year picker ---------------------------------------------------------
-  const oldest = (oldestRes.data as unknown as { occurred_on: string }[] | null)?.[0]?.occurred_on;
-  const years = yearChoices(yearSpan(oldest), year);
+  // Built from the two bounds, so it spans every year the ledger covers and
+  // stops at the newest one — which is also the default, so the default is
+  // always a chip you can come back to. A row dated past this year is offered
+  // as its own chip without the dead years in between (see yearSpan).
+  const years = yearChoices(yearSpan(oldest, newest), year);
 
   const base = "/admin/finance/expenses";
   const link = (
@@ -268,8 +319,10 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     };
     const merged = { ...current, ...over };
     const params = new URLSearchParams();
-    // The current year is the default, so it is left out of the querystring.
-    if (merged.y && merged.y !== thisYear) params.set("y", merged.y);
+    // The default year is left out of the querystring — it is what a bare URL
+    // resolves to anyway. `defaultY`, never currentYear(): leaving out a year
+    // that is NOT the default would produce a link that lands somewhere else.
+    if (merged.y && merged.y !== defaultY) params.set("y", merged.y);
     if (merged.cat && merged.cat !== ALL) params.set("cat", merged.cat);
     if (merged.b && merged.b !== ALL) params.set("b", merged.b);
     if (merged.st && merged.st !== ALL) params.set("st", merged.st);
@@ -281,6 +334,13 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     const s = params.toString();
     return s ? `${base}?${s}` : base;
   };
+
+  /**
+   * The Pasqyra, WITH this screen's window spelled out. The Pasqyra resolves a
+   * bare ?y= against its own newest movement, which is not always this ledger's
+   * newest shpenzim, so a cross-screen link always says which year it means.
+   */
+  const overviewLink = `/admin/finance/overview?y=${encodeURIComponent(year)}`;
 
   const yearLabel = yearWindowLabel(year);
   const filtered =
@@ -294,7 +354,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
           <h1>Shpenzimet e klubit</h1>
           <div className="sub">
             Çka del nga arka e klubit — {yearLabel}. <Link href="/admin/finance">Faturat e anëtarëve</Link>
-            {" · "}<Link href="/admin/finance/overview">Pasqyra financiare</Link>
+            {" · "}<Link href={overviewLink}>Pasqyra financiare</Link>
             {isAdmin ? <>{" · "}<Link href="/admin/finance/expenses/categories">Kategoritë</Link></> : null}
           </div>
         </div>
@@ -383,7 +443,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
 
       <ExpenseFilters
         base={base}
-        thisYear={thisYear}
+        defaultY={defaultY}
         years={years}
         categories={categoryRows.map((c) => ({ value: c.id, label: `${c.name_sq}${c.active ? "" : " (joaktive)"}` }))}
         members={memberRows.map((m) => ({ value: m.id, label: m.full_name }))}

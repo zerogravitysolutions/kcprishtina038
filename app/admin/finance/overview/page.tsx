@@ -41,6 +41,20 @@ export default async function FinanceOverviewPage({ searchParams }: { searchPara
   const view: OverviewView =
     sp.v === "anetaresia" ? "anetaresia" : sp.v === "borxhet" ? "borxhet" : "arka";
 
+  /**
+   * The year, forwarded to the sibling ledgers only when it was CHOSEN.
+   *
+   * A screen with no ?y= opens on the newest year IT has rows in, and says so
+   * in its heading — that is the panel's default and each screen resolves it
+   * against its own data. So a bare link stays bare and lets the destination
+   * pick. But a year the user picked here is a decision, and dropping it on the
+   * way out would silently undo it. This page cannot resolve the Arka default
+   * itself without repeating that view's three reads, which is exactly why only
+   * the explicit case travels.
+   */
+  const carriedYear = (sp.y ?? "").trim();
+  const yq = carriedYear ? `?y=${encodeURIComponent(carriedYear)}` : "";
+
   return (
     <>
       <div className="page-head">
@@ -50,8 +64,8 @@ export default async function FinanceOverviewPage({ searchParams }: { searchPara
             {view === "arka" ? (
               <>
                 Hyrjet, daljet dhe bilanci i klubit.{" "}
-                <Link href="/admin/finance/funds">Hyrjet e klubit</Link>
-                {" · "}<Link href="/admin/finance/expenses">Shpenzimet</Link>
+                <Link href={`/admin/finance/funds${yq}`}>Hyrjet e klubit</Link>
+                {" · "}<Link href={`/admin/finance/expenses${yq}`}>Shpenzimet</Link>
                 {" · "}<Link href="/admin/finance">Faturat e anëtarëve</Link>
               </>
             ) : view === "anetaresia" ? (

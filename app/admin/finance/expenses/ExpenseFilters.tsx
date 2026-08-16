@@ -48,10 +48,15 @@ const DEBOUNCE_MS = 350;
  *     search box applies everything even with JavaScript off.
  */
 export function ExpenseFilters({
-  base, thisYear, years, categories, members, sponsors, value,
+  base, defaultY, years, categories, members, sponsors, value,
 }: {
   base: string;
-  thisYear: string;
+  /**
+   * The year a URL with no ?y= resolves to — the newest year the ledger has a
+   * row in, computed on the server. It is the one year left out of the
+   * querystring; omitting any other would build a link to a different window.
+   */
+  defaultY: string;
   years: string[];
   categories: FilterOption[];
   members: FilterOption[];
@@ -94,7 +99,7 @@ export function ExpenseFilters({
   /** `chips` carries st/owed, which this bar shows but does not own. */
   function hrefOf(nextSel: Selects, nextQ: string, chips: ExpenseFilterValue): string {
     const params = new URLSearchParams();
-    if (nextSel.y && nextSel.y !== thisYear) params.set("y", nextSel.y);
+    if (nextSel.y && nextSel.y !== defaultY) params.set("y", nextSel.y);
     if (nextSel.cat && nextSel.cat !== ALL) params.set("cat", nextSel.cat);
     if (nextSel.b && nextSel.b !== ALL) params.set("b", nextSel.b);
     if (chips.st && chips.st !== ALL) params.set("st", chips.st);
@@ -140,8 +145,8 @@ export function ExpenseFilters({
     >
       <label className="meta" htmlFor="f-year">Viti</label>
       {/* Newest year first and the catch-all LAST: the default window is the
-          current year, and a default listed under "të gjitha" reads as if the
-          screen were showing everything. */}
+          newest year with a row in it, and a default listed under "të gjitha"
+          reads as if the screen were showing everything. */}
       <select id="f-year" name="y" value={sel.y} onChange={(e) => setSelect("y", e.target.value)} style={SEL}>
         {years.map((y) => <option key={y} value={y}>{y}</option>)}
         <option value={ALL}>{ALL_YEARS_LABEL}</option>

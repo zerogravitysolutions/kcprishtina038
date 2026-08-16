@@ -81,6 +81,22 @@ function rateLabel(rate: number | null): string {
 
 /** `y` is not read here — it is carried so the Arka tab keeps its year. */
 export async function AnetaresiaView({ p, y, canEditPlans }: { p?: string; y?: string; canEditPlans: boolean }) {
+  // THE MONTH WINDOW STAYS ON THE CURRENT MONTH — deliberately, and not by the
+  // rule the year filters follow (newest window that holds rows).
+  //
+  // The reason the year default moved is that a year window shows ONLY its own
+  // year, so on 2 January it renders an empty screen next to a full ledger.
+  // This window does not work that way: everything below is a ROLLING 12 MONTHS
+  // ending at the selected month, so on the 1st of a month the trend, the
+  // per-plan revenue and the collection rate are all still full of the eleven
+  // months behind it. There is no empty screen to avoid.
+  //
+  // And the one thing that IS empty on the 1st — this month's billed total —
+  // is the answer to a real question: the invoices for the new month have not
+  // been generated yet. Sliding back to the newest month that has invoices
+  // would hide exactly that, on the one screen where "gjenero faturat" is the
+  // next thing to do. Zero here is information; on the year screens it was
+  // noise.
   const period = parsePeriodParam(p);
   const thisMonth = currentPeriod();
   const windowStart = shiftPeriod(period, -11);

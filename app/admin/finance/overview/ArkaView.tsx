@@ -16,7 +16,7 @@ import {
   yearOfPayment,
 } from "./data";
 import {
-  ALL, ALL_TIME_NOTE, ALL_YEARS_LABEL, currentYear, parseYearParam, yearChoices, yearWindowLabel,
+  ALL, ALL_TIME_NOTE, ALL_YEARS_LABEL, defaultYear, parseYearParam, yearChoices, yearWindowLabel,
 } from "../filters";
 import { AllTimeBalance, Kpi, LoadError, OutsideCard, TruncationWarning } from "./ui";
 
@@ -91,14 +91,24 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const sponsorName = new Map(sponsorRows.map((s) => [s.id, s.name]));
 
   // ---- the window ----------------------------------------------------------
-  // The default is THIS year, everywhere in the panel; "të gjitha vitet" is a
-  // choice you make, never the state you land in.
-  const year = parseYearParam(y);
-  const years = yearChoices([
+  // The default is the NEWEST YEAR THE CLUB HAS A MOVEMENT IN — a payment, an
+  // incoming fund or an expense — not the calendar year. On 2 January the
+  // calendar year would open this page on €0.00 / €0.00 / €0.00 with the whole
+  // ledger one chip away; the newest year with rows always opens on money.
+  // "Të gjitha vitet" stays a choice you make, never the state you land in.
+  //
+  // ONE list, feeding both the default and the chips, so the year this view
+  // opens in is always a chip you can come back to. All three reads are ordered
+  // newest-first, so the newest year survives even a cap. A row dated in the
+  // FUTURE is offered as a chip but never defaulted to — see defaultYear.
+  const activeYears = [
     ...funds.map((f) => yearOf(f.occurred_on)),
     ...expenses.map((e) => yearOf(e.occurred_on)),
     ...paidDues.map((d) => yearOfPayment(d.paid_at)).filter((v): v is string => !!v),
-  ], year);
+  ];
+  const defaultY = defaultYear(activeYears);
+  const year = parseYearParam(y, activeYears);
+  const years = yearChoices(activeYears, year);
   const yearLabel = yearWindowLabel(year);
 
   const windowFunds = funds.filter((f) => year === ALL || yearOf(f.occurred_on) === year);
@@ -234,18 +244,25 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
     ? "Një shpenzim i paguar nuk ka shumë të shënuar: nuk numërohet si zero, prandaj daljet reale janë më të mëdha dhe bilanci më i vogël se kjo shifër."
     : `${allTime.paidMissingAmount} shpenzime të paguara nuk kanë shumë të shënuar: nuk numërohen si zero, prandaj daljet reale janë më të mëdha dhe bilanci më i vogël se kjo shifër.`;
 
-  // The current year is the default, so it is the one left out of the URL.
-  const link = (v: string) => overviewHref("arka", { y: v === currentYear() ? undefined : v, p });
-  /** A link into the expense ledger that keeps THIS view's year window. */
+  // The default year is the one left out of the URL, because a bare URL comes
+  // back to exactly it. `defaultY`, never currentYear(): dropping a year that
+  // is not the default would build a chip that navigates somewhere else.
+  const link = (v: string) => overviewHref("arka", { y: v === defaultY ? undefined : v, p });
+  /**
+   * A link into the expense ledger that keeps THIS view's year window — and
+   * always spells it out. The ledger resolves a bare ?y= against ITS OWN newest
+   * row, which is not always this view's (a year with a sponsorship and no
+   * shpenzim has movements here and none there). A cross-screen link that left
+   * the year out could therefore promise 2026 and land on 2025.
+   */
   const expensesHref = (params: Record<string, string>) => {
     const q = new URLSearchParams(params);
-    if (year !== currentYear()) q.set("y", year);
-    const s = q.toString();
-    return s ? `/admin/finance/expenses?${s}` : "/admin/finance/expenses";
+    q.set("y", year);
+    return `/admin/finance/expenses?${q.toString()}`;
   };
   // The detail of both figures lives on the Borxhet tab; the window comes along
   // so coming back lands on the same year.
-  const borxhetHref = overviewHref("borxhet", { y: year === currentYear() ? undefined : year, p });
+  const borxhetHref = overviewHref("borxhet", { y: year === defaultY ? undefined : year, p });
 
   return (
     <>
@@ -294,7 +311,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
       )}
 
       {/* Newest year first, the catch-all last: the frame this page opens in is
-          the current year, not the whole history. */}
+          the newest year with movements, not the whole history. */}
       <div className="filter-bar">
         {years.map((v) => (
           <Link key={v} className={`chip ${year === v ? "active" : ""}`} href={link(v)}>{v}</Link>

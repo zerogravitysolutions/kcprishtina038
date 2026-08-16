@@ -10,7 +10,6 @@
 
 import type {
   ClubFundKind,
-  ClubFundStatus,
   DuesStatus,
   ExpensePaidBy,
   ExpensePaymentMethod,
@@ -412,14 +411,14 @@ export function outstandingTotal(dues: DueLike[]): number {
 //      no agreed price is a real cost of unknown size, so every total here
 //      reports how many rows it could not count (sumAmounts) instead of adding
 //      a silent 0 that makes an unknown look free.
-//   2. A pledge is not cash and an unpaid bill is not a payment. Pledged funds
-//      and unpaid expenses stay OUT of the balance, in their own fields.
+//   2. An unpaid bill is not a payment: unpaid expenses stay OUT of the
+//      balance, in their own field. club_funds, by contrast, is all money the
+//      club has ACTUALLY RECEIVED, so every fund counts as income.
 
 // ------------------------------------------------------------------ types
 
 /** The subset of a club_funds row the helpers here need. */
 export type FundLike = {
-  status: ClubFundStatus;
   amount_eur?: number | string | null;
   sponsor_id?: string | null;
 };
@@ -467,16 +466,14 @@ export type MemberDebt<T = ExpenseLike> = {
 export type ClubBalance = {
   /** Membership cash actually collected (dues marked paid). */
   membershipIncome: number;
-  /** club_funds that have LANDED. */
-  fundsReceived: number;
-  /** membershipIncome + fundsReceived. */
+  /** club_funds received — every fund row, since they are all received money. */
+  fundsTotal: number;
+  /** membershipIncome + fundsTotal. */
   income: number;
   /** Expenses actually paid, across rows that carry an amount. */
   expensesPaid: number;
   /** income - expensesPaid. */
   balance: number;
-  /** Agreed but NOT in the bank. Excluded from balance, on purpose. */
-  fundsPledged: number;
   /** Bills not yet settled. Excluded from balance, on purpose. */
   expensesUnpaid: number;
   /** Paid expenses with no amount recorded — the balance is short by these. */
@@ -488,9 +485,7 @@ export type ClubBalance = {
 /** Where one sponsor stands: money in, money spent against them, gap. */
 export type SponsorPosition = {
   sponsorId: string;
-  /** Agreed, not transferred. The sheet's "nevojitet transferi". */
-  pledged: number;
-  /** Transferred and in the bank. */
+  /** Total received from this sponsor (every fund row is received money). */
   received: number;
   /** Every cost charged to this sponsor's budget, paid or not. */
   spent: number;
@@ -498,10 +493,6 @@ export type SponsorPosition = {
   spentUnpaid: number;
   /** received - spent. Negative = the club is out of pocket for them. */
   remaining: number;
-  /** How much of the pledge is needed just to cover what is already spent. */
-  transferNeeded: number;
-  /** received + pledged - spent: the position once every pledge lands. */
-  projected: number;
   /** Costs charged here with no amount yet; `spent` is short by these. */
   missingAmount: number;
   fundCount: number;
@@ -520,17 +511,6 @@ export const FUND_KIND_LABEL: Record<ClubFundKind, string> = {
 
 /** Listing order for the kind filter, so every screen offers the same one. */
 export const FUND_KINDS: ClubFundKind[] = ["sponsor", "project", "donation", "grant", "other"];
-
-export const FUND_STATUS_LABEL: Record<ClubFundStatus, string> = {
-  received: "Pranuar",
-  pledged: "Premtuar",
-};
-
-/** Maps onto the .badge-st modifiers in app/admin/admin.css. */
-export const FUND_STATUS_TONE: Record<ClubFundStatus, "ok" | "warn" | "err"> = {
-  received: "ok",
-  pledged: "warn",
-};
 
 export const EXPENSE_STATUS_LABEL: Record<ExpenseStatus, string> = {
   paid: "Paguar",
@@ -702,13 +682,13 @@ export function membershipIncome(dues: DueLike[]): number {
 }
 
 /**
- * The club's position. Income is membership cash-in plus funds that have
- * LANDED; against it stand the expenses actually PAID.
+ * The club's position. Income is membership cash-in plus every fund row —
+ * club_funds now holds only money actually received; against it stand the
+ * expenses actually PAID.
  *
- * Pledged funds and unpaid expenses are deliberately kept out of `balance` and
- * returned in their own fields. Folding a pledge in would show money the club
- * cannot spend; folding an unpaid bill in would show a loss it has not taken.
- * Both are real and both belong on the screen — just not inside the balance.
+ * Unpaid expenses are deliberately kept out of `balance` and returned in their
+ * own field: folding an unpaid bill in would show a loss the club has not
+ * taken. They are real and belong on the screen — just not inside the balance.
  *
  * The rows are whatever the caller loaded: pass a whole year and this is the
  * year's position, pass everything and it is the club's. No filtering by date
@@ -724,20 +704,18 @@ export function clubBalance(input: {
   const expenses = input.expenses ?? [];
 
   const collected = membershipIncome(dues);
-  const received = sumEur(funds.filter((f) => f.status === "received"));
-  const pledged = sumEur(funds.filter((f) => f.status === "pledged"));
+  const fundsTotal = sumEur(funds);
 
   const paid = sumAmounts(expenses.filter((e) => e.status === "paid"));
   const unpaid = sumAmounts(expenses.filter((e) => e.status === "unpaid"));
 
-  const income = collected + received;
+  const income = collected + fundsTotal;
   return {
     membershipIncome: collected,
-    fundsReceived: received,
+    fundsTotal,
     income,
     expensesPaid: paid.total,
     balance: income - paid.total,
-    fundsPledged: pledged,
     expensesUnpaid: unpaid.total,
     paidMissingAmount: paid.missing,
     unpaidMissingAmount: unpaid.missing,
@@ -788,15 +766,13 @@ export function owedToMembersTotal(expenses: ExpenseLike[]): AmountTotal {
 // ------------------------------------------------------- sponsor position
 
 /**
- * Where the club stands with one sponsor: what they promised, what they
- * actually transferred, and what has already been charged against them.
+ * Where the club stands with one sponsor: what they actually transferred, and
+ * what has already been charged against them.
  *
  * `spent` counts paid AND unpaid costs, because a cost charged to a sponsor's
  * budget is committed whether or not the supplier has been settled yet — that
  * is what the budget is for. `remaining` goes negative exactly when the club
- * has spent more of a sponsor's budget than the sponsor has transferred, and
- * `transferNeeded` is that gap as a positive number: the sheet's
- * "nevojitet transferi".
+ * has spent more of a sponsor's budget than the sponsor has transferred.
  */
 export function sponsorPosition(
   funds: FundLike[],
@@ -804,25 +780,20 @@ export function sponsorPosition(
   sponsorId: string,
 ): SponsorPosition {
   const mine = funds.filter((f) => f.sponsor_id === sponsorId);
-  const received = sumEur(mine.filter((f) => f.status === "received"));
-  const pledged = sumEur(mine.filter((f) => f.status === "pledged"));
+  const received = sumEur(mine);
 
   const charged = expenses.filter((e) => e.funding_sponsor_id === sponsorId);
   const paid = sumAmounts(charged.filter((e) => e.status === "paid"));
   const unpaid = sumAmounts(charged.filter((e) => e.status === "unpaid"));
   const spent = paid.total + unpaid.total;
 
-  const remaining = received - spent;
   return {
     sponsorId,
-    pledged,
     received,
     spent,
     spentPaid: paid.total,
     spentUnpaid: unpaid.total,
-    remaining,
-    transferNeeded: remaining < 0 ? -remaining : 0,
-    projected: received + pledged - spent,
+    remaining: received - spent,
     missingAmount: paid.missing + unpaid.missing,
     fundCount: mine.length,
     expenseCount: charged.length,
@@ -833,8 +804,8 @@ export function sponsorPosition(
  * The same position for every sponsor that appears in either list, so the
  * report does not have to know in advance which sponsors have money moving.
  * Pass `sponsorIds` to include sponsors with nothing yet (they come back as
- * zeroes, which is a truthful row). Sorted by the biggest transfer needed,
- * then by the most spent.
+ * zeroes, which is a truthful row). Sorted by the most spent, then by the most
+ * received.
  */
 export function sponsorPositions(
   funds: FundLike[],
@@ -848,8 +819,8 @@ export function sponsorPositions(
     .map((id) => sponsorPosition(funds, expenses, id))
     .sort(
       (a, b) =>
-        b.transferNeeded - a.transferNeeded ||
         b.spent - a.spent ||
+        b.received - a.received ||
         (a.sponsorId < b.sponsorId ? -1 : 1),
     );
 }

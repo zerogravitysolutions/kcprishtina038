@@ -5,10 +5,10 @@ import { RowBars, type Point } from "../../training/charts";
 import {
   UNKNOWN_CATEGORY_LABEL, UNKNOWN_SPONSOR_LABEL, amountTotalLabel, amountTotalValue, clubBalance,
   formatEur, isOwedToMember, membershipIncome, outstandingTotal, owedToMembers, owedToMembersTotal,
-  sponsorPositions, sumAmounts, sumEur, type ExpenseLike, type FundLike,
+  sponsorPositions, sumAmounts, type ExpenseLike, type FundLike,
 } from "@/lib/finance";
 import type {
-  ClubFundKind, ClubFundStatus, ExpensePaidBy, ExpenseStatus,
+  ClubFundKind, ExpensePaidBy, ExpenseStatus,
 } from "@/lib/supabase/types";
 import {
   PAID_DUES_CAP, expenseCount, fundCount, invoiceCount, overviewHref, paidDuesInYear, paymentCount,
@@ -27,7 +27,7 @@ const NAME_CAP = 2000;
 
 type FundRow = FundLike & {
   id: string; title: string; occurred_on: string;
-  amount_eur: number; kind: ClubFundKind; status: ClubFundStatus; sponsor_id: string | null;
+  amount_eur: number; kind: ClubFundKind; sponsor_id: string | null;
 };
 
 type ExpenseRow = ExpenseLike & {
@@ -57,7 +57,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
     readOpenDues(supabase),
     supabase
       .from("club_funds")
-      .select("id, title, occurred_on, amount_eur, kind, status, sponsor_id")
+      .select("id, title, occurred_on, amount_eur, kind, sponsor_id")
       .order("occurred_on", { ascending: false })
       .limit(FUND_CAP),
     supabase
@@ -133,13 +133,6 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const allTime = clubBalance({ dues: paidDues, funds, expenses });
   const paidExpenses = windowExpenses.filter((e) => e.status === "paid");
   const unpaidExpenses = windowExpenses.filter((e) => e.status === "unpaid");
-  const receivedFunds = windowFunds.filter((f) => f.status === "received");
-  // Pledges are a POSITION, not a flow of the selected year: money agreed in
-  // 2025 and still not transferred is an open pledge in 2026 too. So they are
-  // counted across every year — the card says so — and /admin/finance/funds
-  // counts them the same way, which is why the two screens agree.
-  const pledgedFunds = funds.filter((f) => f.status === "pledged");
-  const pledgedTotal = sumEur(pledgedFunds);
   const missingAmountCount = balance.paidMissingAmount + balance.unpaidMissingAmount;
   // Costs inside "Daljet" that a PERSON fronted and has not been paid back for.
   // They are a real outflow for the club, but they have not left the club's
@@ -156,10 +149,6 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const owedTotal = owedToMembersTotal(owed.rows);
 
   const sponsorStand = sponsorPositions(windowFunds, windowExpenses);
-  // The per-sponsor table IS windowed (a budget is spent within a year), so an
-  // open pledge dated in another year is invisible in it. Saying how many is
-  // what keeps a needed transfer from hiding behind the year filter.
-  const pledgesOutsideWindow = pledgedFunds.length - windowFunds.filter((f) => f.status === "pledged").length;
 
   // ---- breakdowns ----------------------------------------------------------
   // By year, over EVERYTHING — this is the section that puts the selected year
@@ -275,7 +264,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
         <AllTimeBalance
           window={`Që nga fillimi · ${ALL_TIME_NOTE}`}
           income={cut ? `së paku ${formatEur(allTime.income)}` : formatEur(allTime.income)}
-          incomeSub={`anëtarësi ${formatEur(allTime.membershipIncome)} + fonde ${formatEur(allTime.fundsReceived)}`}
+          incomeSub={`anëtarësi ${formatEur(allTime.membershipIncome)} + fonde ${formatEur(allTime.fundsTotal)}`}
           spent={cut && allTimePaidExpenses.counted > 0 ? `së paku ${allTimeSpentValue}` : allTimeSpentValue}
           spentSub={
             `${expenseCount(allTimePaidExpenses.counted + allTimePaidExpenses.missing)} të paguara`
@@ -292,8 +281,8 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
           negative={allTimeNegative}
           note={
             <>
-              Kjo kartë nuk e ndjek filtrin e vitit: mbledh çdo pagesë anëtarësie të arkëtuar, çdo hyrje të
-              pranuar dhe çdo shpenzim të paguar që nga rreshti i parë i regjistruar. Bilanci poshtë i tregon
+              Kjo kartë nuk e ndjek filtrin e vitit: mbledh çdo pagesë anëtarësie të arkëtuar, çdo fond dhe
+              çdo shpenzim të paguar që nga rreshti i parë i regjistruar. Bilanci poshtë i tregon
               të njëjtat para përmes dritares që zgjedh me çipat; kartat te “Jashtë bilancit” e kanë secila
               dritaren e vet të shënuar mbi to.{" "}
               {undatedPaid > 0
@@ -347,7 +336,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
           accent="#16A34A"
           label="Hyrjet"
           value={formatEur(balance.income)}
-          sub={`anëtarësi ${formatEur(balance.membershipIncome)} + fonde ${formatEur(balance.fundsReceived)} · ${yearLabel}`}
+          sub={`anëtarësi ${formatEur(balance.membershipIncome)} + fonde ${formatEur(balance.fundsTotal)} · ${yearLabel}`}
         />
         <Kpi
           accent="#E0562D"
@@ -371,9 +360,9 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
       </div>
 
       <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 18px", lineHeight: 1.8 }}>
-        Hyrjet = {paymentCount(windowPaidDues.length)} anëtarësie të arkëtuara + {fundCount(receivedFunds.length)} të
-        pranuara. Daljet = shpenzimet e shënuara si të paguara. Paratë e premtuara dhe faturat e papaguara nuk hyjnë
-        në këtë bilanc — janë më poshtë.
+        Hyrjet = {paymentCount(windowPaidDues.length)} anëtarësie të arkëtuara + {fundCount(windowFunds.length)} të
+        klubit. Daljet = shpenzimet e shënuara si të paguara. Faturat e papaguara nuk hyjnë në këtë bilanc —
+        janë më poshtë.
         {balance.paidMissingAmount > 0
           ? ` ${balance.paidMissingAmount} shpenzime të paguara nuk kanë shumë të shënuar, prandaj daljet reale janë më të mëdha se kjo shifër.`
           : ""}
@@ -392,19 +381,6 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
       </div>
 
       <div className="card-grid" style={{ marginBottom: 20 }}>
-        <OutsideCard
-          title="Premtuar por pa arritur"
-          value={formatEur(pledgedTotal)}
-          window={ALL_TIME_NOTE}
-          tone={pledgedTotal > 0 ? "warn" : "neutral"}
-          note={
-            pledgedFunds.length === 0
-              ? "Asnjë premtim i hapur, në asnjë vit."
-              : `${fundCount(pledgedFunds.length)} të marra vesh me sponsorë ose donatorë, ende jashtë llogarisë. Nuk mund të shpenzohen. Një premtim i hapur nuk i takon një viti — prandaj kjo shifër nuk e ndjek filtrin lart.`
-          }
-          href="/admin/finance/funds"
-          hrefLabel="Shiko hyrjet"
-        />
         <OutsideCard
           title="Për t’u arkëtuar nga anëtarët"
           value={formatEur(memberDebt)}
@@ -474,10 +450,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
             <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
               “Shpenzuar” numëron çdo kosto të ngarkuar në buxhetin e sponsorit, të paguar apo jo — një shpenzim i
               ngarkuar është i zënë sido që të jetë. Kur mbetja del negative, klubi ka shpenzuar më shumë sesa ka
-              marrë: aq nevojitet të transferohet. Kjo tabelë ndjek filtrin e vitit: {yearLabel}.
-              {pledgesOutsideWindow > 0
-                ? ` ${fundCount(pledgesOutsideWindow)} të premtuara janë shënuar në vite të tjera dhe nuk hyjnë këtu — hapi “${ALL_YEARS_LABEL.toLowerCase()}” për t’i parë të gjitha.`
-                : ""}
+              marrë nga ky sponsor. Kjo tabelë ndjek filtrin e vitit: {yearLabel}.
             </p>
             <div className="table-wrap">
               <table className="t">
@@ -487,7 +460,6 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
                       grows a digit or a cell wraps. */}
                   <tr>
                     <th>Sponsori</th>
-                    <th className="num">Premtuar</th>
                     <th className="num">Pranuar</th>
                     <th className="num">Shpenzuar</th>
                     <th>Gjendja</th>
@@ -504,7 +476,6 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
                           </small>
                         </span>
                       </td>
-                      <td className="num" data-lab="Premtuar">{formatEur(s.pledged)}</td>
                       <td className="num" data-lab="Pranuar">{formatEur(s.received)}</td>
                       <td className="num" data-lab="Shpenzuar">
                         <span>
@@ -517,22 +488,15 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
                         </span>
                       </td>
                       <td data-lab="Gjendja">
-                        {s.transferNeeded > 0 ? (
+                        {s.remaining < 0 ? (
                           <span>
-                            <span className="badge-st err">Nevojitet transferi</span>
+                            <span className="badge-st err">Tejkaluar</span>
                             <small style={{ display: "block", fontSize: 11, color: "var(--err)", marginTop: 4 }}>
-                              {formatEur(s.transferNeeded)} · pas premtimeve {formatEur(s.projected)}
+                              {formatEur(-s.remaining)} mbi të pranuarat
                             </small>
                           </span>
                         ) : (
-                          <span>
-                            <span className="badge-st ok">Mbetur {formatEur(s.remaining)}</span>
-                            {s.pledged > 0 ? (
-                              <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>
-                                pas premtimeve {formatEur(s.projected)}
-                              </small>
-                            ) : null}
-                          </span>
+                          <span className="badge-st ok">Mbetur {formatEur(s.remaining)}</span>
                         )}
                       </td>
                     </tr>

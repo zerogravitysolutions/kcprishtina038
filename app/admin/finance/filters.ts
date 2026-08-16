@@ -33,7 +33,7 @@ export const ALL_YEARS_LABEL = "Të gjitha vitet";
 
 /**
  * What to print beside a figure that is deliberately a position rather than an
- * annual flow (open member debt, what the club owes people, open pledges).
+ * annual flow (open member debt, what the club owes people).
  * Those figures ignore the year on purpose, so they have to say so.
  */
 export const ALL_TIME_NOTE = "të gjitha vitet";

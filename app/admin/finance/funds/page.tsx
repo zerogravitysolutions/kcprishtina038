@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
 import {
-  FUND_KINDS, FUND_KIND_LABEL, FUND_STATUS_LABEL, UNKNOWN_SPONSOR_LABEL, formatDate, formatEur,
+  FUND_KINDS, FUND_KIND_LABEL, UNKNOWN_SPONSOR_LABEL, formatEur,
   membershipIncome, sumEur,
 } from "@/lib/finance";
-import type { ClubFundKind, ClubFundStatus } from "@/lib/supabase/types";
+import type { ClubFundKind } from "@/lib/supabase/types";
 import {
-  ALL, ALL_TIME_NOTE, ALL_YEARS_LABEL, defaultYear, parseYearParam, yearChoices, yearWindowLabel,
+  ALL, ALL_YEARS_LABEL, defaultYear, parseYearParam, yearChoices, yearWindowLabel,
 } from "../filters";
 // The academy side of "money in" is read through the Pasqyra's own helpers, so
 // this page and /admin/finance/overview print the SAME euros for a window.
@@ -41,18 +41,11 @@ type FundRowData = {
   amount_eur: number;
   kind: ClubFundKind;
   sponsor_id: string | null;
-  status: ClubFundStatus;
   reference: string | null;
   notes: string | null;
 };
 
 type SponsorRow = { id: string; name: string; active: boolean };
-
-const STATUS_FILTERS: Array<{ value: string; label: string }> = [
-  { value: ALL, label: "Të gjitha" },
-  { value: "received", label: FUND_STATUS_LABEL.received },
-  { value: "pledged", label: FUND_STATUS_LABEL.pledged },
-];
 
 /** "3 hyrje". The noun does not inflect for number in this construction. */
 function fundCount(n: number): string {
@@ -81,7 +74,7 @@ function shares(dues: number, funds: number): { dues: string; funds: string; tot
   return { dues: `${d}%`, funds: `${100 - d}%`, total: "100%" };
 }
 
-type SearchParams = Promise<{ y?: string; st?: string; k?: string }>;
+type SearchParams = Promise<{ y?: string; k?: string }>;
 
 export default async function FundsPage({ searchParams }: { searchParams: SearchParams }) {
   const profile = await getProfile();
@@ -99,7 +92,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
   const [fundRes, sponsorRes, paid] = await Promise.all([
     supabase
       .from("club_funds")
-      .select("id, title, occurred_on, amount_eur, kind, sponsor_id, status, reference, notes")
+      .select("id, title, occurred_on, amount_eur, kind, sponsor_id, reference, notes")
       .order("occurred_on", { ascending: false })
       .limit(FUND_CAP),
     // Read separately and joined by hand below: the same list feeds the form's
@@ -149,11 +142,8 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
 
   // ---- the window ----------------------------------------------------------
   // The year is the FRAME of this screen and it defaults to the newest year
-  // with a ROW on it — a collected kuotë, or a fund whether it has arrived or
-  // is only promised. A pledge is money this screen exists to show, so a year
-  // that holds nothing but one is still a year worth opening on, even though
-  // the "hyrjet" figure above the list will read €0.00 for it. "Të gjitha
-  // vitet" is the last option, never the state you land in.
+  // with a ROW on it — a collected kuotë or a received fund. "Të gjitha vitet"
+  // is the last option, never the state you land in.
   //
   // ONE list, feeding both the default and the picker, so the year this page
   // opens in is always one of the chips it draws. Both reads below come back
@@ -169,18 +159,16 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
   const defaultY = defaultYear(incomeYears);
   const year = parseYearParam(sp.y, incomeYears);
   const years = yearChoices(incomeYears, year);
-  const status = STATUS_FILTERS.some((s) => s.value === sp.st) ? sp.st! : ALL;
   const kind = (FUND_KINDS as string[]).includes(sp.k ?? "") ? sp.k! : ALL;
   const yearLabel = yearWindowLabel(year);
 
   // ---- money in, both sources ----------------------------------------------
   // The summary answers "how much came in this year", so it follows the YEAR
-  // only. The status and kind chips scope the ledger below and say so there —
-  // a headline that moved when you clicked "Donacion" would be answering a
-  // different question from the one the heading asks.
+  // only. The kind chips scope the ledger below and say so there — a headline
+  // that moved when you clicked "Donacion" would be answering a different
+  // question from the one the heading asks.
   const yearFunds = funds.filter((f) => year === ALL || f.occurred_on.slice(0, 4) === year);
-  const receivedInYear = yearFunds.filter((f) => f.status === "received");
-  const fundsIncome = sumEur(receivedInYear);
+  const fundsIncome = sumEur(yearFunds);
 
   const paidInYear = paidDuesInYear(paid.rows, year);
   // Same rows, same bucketing, same helper as the Pasqyra — this figure and
@@ -189,33 +177,21 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
   const totalIncome = duesIncome + fundsIncome;
   const undatedPaid = undatedPaidCount(paid.rows);
 
-  // Pledges are a POSITION, not a flow of one year: money agreed in 2025 and
-  // still not transferred is open today. They are counted across every year,
-  // stay OUT of the income total, and the card says both things.
-  const pledged = funds.filter((f) => f.status === "pledged");
-  const pledgedTotal = sumEur(pledged);
-
   const split = shares(duesIncome, fundsIncome);
 
   // ---- the ledger below ----------------------------------------------------
-  const inWindow = yearFunds.filter((f) => kind === ALL || f.kind === kind);
-  const rows = inWindow.filter((f) => status === ALL || f.status === status);
-  // Cash and promises are never added into one figure, not even for a list
-  // header: the whole point of `status` is that only one of them is money.
-  const rowsReceived = sumEur(rows.filter((f) => f.status === "received"));
-  const rowsPledged = sumEur(rows.filter((f) => f.status === "pledged"));
+  const rows = yearFunds.filter((f) => kind === ALL || f.kind === kind);
+  const rowsTotal = sumEur(rows);
 
   const base = "/admin/finance/funds";
-  const link = (over: { y?: string; st?: string; k?: string }) => {
+  const link = (over: { y?: string; k?: string }) => {
     const params = new URLSearchParams();
     const y = over.y ?? year;
-    const st = over.st ?? status;
     const k = over.k ?? kind;
     // The default year is left out of the querystring — a bare URL resolves to
     // it anyway. Never currentYear(): omitting a year that is not the default
     // would build a link that lands in another window.
     if (y !== defaultY) params.set("y", y);
-    if (st !== ALL) params.set("st", st);
     if (k !== ALL) params.set("k", k);
     const s = params.toString();
     return s ? `${base}?${s}` : base;
@@ -273,13 +249,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
           accent="#16A34A"
           label="Nga fondet"
           value={formatEur(fundsIncome)}
-          sub={`${fundCount(receivedInYear.length)} në llogari · ${yearLabel}`}
-        />
-        <Kpi
-          accent="#E0562D"
-          label="Premtuar por pa arritur"
-          value={formatEur(pledgedTotal)}
-          sub={`${fundCount(pledged.length)} · ${ALL_TIME_NOTE} · jashtë hyrjeve`}
+          sub={`${fundCount(yearFunds.length)} · ${yearLabel}`}
         />
       </div>
 
@@ -333,50 +303,10 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
         </p>
       </div>
 
-      {/* The safety rail. It ignores the status filter AND the year on purpose:
-          money that was promised and never arrived is the one thing on this
-          screen that must not be possible to filter out of sight by accident,
-          and a pledge made in 2025 is still open in 2026. */}
-      {pledged.length > 0 ? (
-        <div
-          className="card"
-          style={{ marginBottom: 16, borderColor: "color-mix(in oklab, var(--warn) 40%, transparent)", background: "var(--warn-bg)" }}
-        >
-          <div className="card-head" style={{ borderBottomColor: "color-mix(in oklab, var(--warn) 26%, transparent)" }}>
-            <h3 style={{ color: "var(--warn)" }}>Premtuar por pa arritur</h3>
-            <span className="kicker">{ALL_TIME_NOTE}</span>
-          </div>
-          <p style={{ margin: "0 0 12px", fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.6 }}>
-            {formatEur(pledgedTotal)} janë marrë vesh por nuk kanë hyrë ende në llogari. Kjo shumë nuk
-            llogaritet si e hyrë në arkën e klubit dhe nuk mund të shpenzohet. Një premtim i hapur nuk i
-            takon një viti, prandaj kjo listë i tregon të gjitha vitet edhe kur lart është zgjedhur një vit.
-          </p>
-          <div style={{ display: "grid", gap: 8 }}>
-            {pledged.map((f) => (
-              <div
-                key={f.id}
-                style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}
-              >
-                <span style={{ fontSize: 13.5, color: "var(--text-1)" }}>
-                  {f.title}
-                  <span className="mono" style={{ fontSize: 11, color: "var(--text-3)", marginLeft: 8 }}>
-                    {f.sponsor_name ?? FUND_KIND_LABEL[f.kind]} · pritet {formatDate(f.occurred_on)}
-                  </span>
-                </span>
-                <span className="mono" style={{ fontSize: 13, color: "var(--warn)", fontWeight: 600 }}>
-                  {formatEur(f.amount_eur)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       <div className="card-head" style={{ marginBottom: 12 }}>
         <h3>Fondet e klubit</h3>
         <span className="kicker">
-          {fundCount(rows.length)} · pranuar {formatEur(rowsReceived)}
-          {rowsPledged > 0 ? ` · premtuar ${formatEur(rowsPledged)}` : ""} · {yearLabel}
+          {fundCount(rows.length)} · {formatEur(rowsTotal)} · {yearLabel}
         </span>
       </div>
 
@@ -387,12 +317,6 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
           <Link key={y} className={`chip ${year === y ? "active" : ""}`} href={link({ y })}>{y}</Link>
         ))}
         <Link className={`chip ${year === ALL ? "active" : ""}`} href={link({ y: ALL })}>{ALL_YEARS_LABEL}</Link>
-        <span aria-hidden style={{ width: 1, alignSelf: "stretch", background: "var(--line-strong)", margin: "2px 4px" }} />
-        {STATUS_FILTERS.map((s) => (
-          <Link key={s.value} className={`chip ${status === s.value ? "active" : ""}`} href={link({ st: s.value })}>
-            {s.label}
-          </Link>
-        ))}
         <div className="spacer" />
         <Link className={`chip ${kind === ALL ? "active" : ""}`} href={link({ k: ALL })}>Të gjitha llojet</Link>
         {FUND_KINDS.map((k) => (
@@ -415,14 +339,13 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
               <th>Data</th>
               {/* Right-aligned in the header too, exactly like the cells. */}
               <th className="num">Shuma</th>
-              <th>Statusi</th>
               <th>Veprime</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: 18, color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.7 }}>
+                <td colSpan={5} style={{ padding: 18, color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.7 }}>
                   {funds.length === 0
                     ? "Nuk ka asnjë fond të regjistruar. Këtu shkojnë sponsorizimet, projektet, grantet dhe donacionet — kuotat mujore të anëtarëve faturohen te Faturat dhe numërohen lart."
                     : `Asnjë fond nuk i përgjigjet këtij filtri për ${yearLabel}. Provo një vit ose një lloj tjetër.`}
@@ -438,7 +361,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
       </div>
 
       <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", marginTop: 12, lineHeight: 1.7 }}>
-        Vetëm paratë e pranuara — kuotat e arkëtuara dhe fondet e mbërritura — hyjnë në bilancin te{" "}
+        Kuotat e arkëtuara dhe fondet hyjnë në bilancin te{" "}
         <Link href={arkaHref}>Arka e klubit</Link>.
         {canDelete ? "" : " Fshirja e një hyrjeje bëhet vetëm nga admini — ti mund ta ndryshosh."}
       </p>

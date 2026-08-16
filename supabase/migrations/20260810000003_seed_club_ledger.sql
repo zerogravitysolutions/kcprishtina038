@@ -1,6 +1,13 @@
 -- 20260810000003 — Import of the club's REAL hand-kept ledger into the tables
--- built by 20260810000002. Two spreadsheets, 69 expense rows and 2 pledged
--- sponsorships. Nothing here is invented: every row below exists on paper.
+-- built by 20260810000002. Two spreadsheets, 69 expense rows. Nothing here is
+-- invented: every row below exists on paper.
+--
+-- NOTE: this seed once also imported two PLEDGED sponsorships (agreed but never
+-- transferred, €8,500.00 in total). The owner has since retired the
+-- pledged-vs-received distinction entirely — club_funds now holds only money
+-- actually received — so migration 20260816000001 drops the club_funds.status
+-- column and those two rows are no longer seeded here. A fresh replay therefore
+-- inserts NO club_funds rows and never touches the status column.
 --
 -- The previous migration deliberately imported nothing, because the sheets mix
 -- date formats and guessing would misdate real records. That reading has since
@@ -452,26 +459,16 @@ begin
   on conflict (id) do nothing;
 
   -- ============================================================
-  -- FUNDS — sponsor money AGREED but NOT RECEIVED.
+  -- FUNDS — none.
   --
-  -- The 2026 sheet carries the note "nevojiten edhe 2 transferet e sponsorit ne
-  -- klub, bikeplusi 2500 euro dhe NOVUS 6000 euro" against the 06.05.2026 row,
-  -- so that date is used as the day the pledge was recorded. status = 'pledged'
-  -- keeps both out of every cash figure: the club has already spent against
-  -- these budgets, but the money is not in the bank.
+  -- This seed once inserted two PLEDGED sponsorships here (Novus €6,000 and
+  -- BikePlus €2,500, "nevojiten edhe 2 transferet e sponsorit"), agreed on
+  -- 06.05.2026 but never transferred into the club account. The owner retired
+  -- the pledged-vs-received distinction, so club_funds now records only money
+  -- actually received. Those two rows are no longer seeded, and migration
+  -- 20260816000001 drops the club_funds.status column entirely. There is no
+  -- club_funds insert on a fresh replay.
   -- ============================================================
-  insert into public.club_funds (
-    id, title, occurred_on, amount_eur, kind, sponsor_id, status, reference, notes
-  ) values
-    ('e9abae7a-9502-5e9a-ada7-d5aad7101965',
-     'Sponsorizim nga Novus — transfer i pritur', date '2026-05-06', 6000.00,
-     'sponsor', s_novus, 'pledged', null,
-     'Shuma është marrë nga regjistri i klubit për vitin 2026, ku shënohet se nevojiten edhe dy transferet e sponsorëve. Mjetet ende nuk janë transferuar në llogari të klubit, prandaj nuk numërohen si para të arkëtuara.'),
-    ('e422c375-fb27-5b61-9b71-766c2b8d78b7',
-     'Sponsorizim nga BikePlus — transfer i pritur', date '2026-05-06', 2500.00,
-     'sponsor', s_bikeplus, 'pledged', null,
-     'Shuma është marrë nga regjistri i klubit për vitin 2026, ku shënohet se nevojiten edhe dy transferet e sponsorëve. Mjetet ende nuk janë transferuar në llogari të klubit, prandaj nuk numërohen si para të arkëtuara.')
-  on conflict (id) do nothing;
 end $$;
 
 -- Sanity (run by hand after apply):
@@ -481,7 +478,6 @@ end $$;
 --   select sum(amount_eur), count(*) filter (where amount_eur is null)
 --     from public.club_expenses where occurred_on >= date '2026-01-01';
 --                                                                     -- expect 6693.97, 1
---   select sum(amount_eur) from public.club_funds where status = 'pledged';
---                                                                     -- expect 8500.00
+--   select count(*) from public.club_funds;                          -- expect 0
 --   select count(*) from public.club_expenses
 --     where paid_by = 'member' and not reimbursed;                     -- expect 5 (owed)

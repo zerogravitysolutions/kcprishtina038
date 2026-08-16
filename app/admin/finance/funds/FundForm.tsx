@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { NumericInput } from "@/components/admin/NumericInput";
 import { actionError } from "@/lib/errors";
-import { FUND_KINDS, FUND_KIND_LABEL, FUND_STATUS_LABEL, formatEur } from "@/lib/finance";
-import type { ClubFundKind, ClubFundStatus } from "@/lib/supabase/types";
+import { FUND_KINDS, FUND_KIND_LABEL } from "@/lib/finance";
+import type { ClubFundKind } from "@/lib/supabase/types";
 import { createFund, updateFund, type FundInput } from "./actions";
 
 /** One fund as the list renders it — flattened by the page, not embedded. */
@@ -17,7 +17,6 @@ export type FundView = {
   amount_eur: number;
   kind: ClubFundKind;
   sponsor_id: string | null;
-  status: ClubFundStatus;
   reference: string | null;
   notes: string | null;
   /** Resolved on the server; null when the fund names no sponsor. */
@@ -30,66 +29,6 @@ function todayIso(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
-
-/**
- * The typed amount as a number, or null when it is not one yet. Deliberately
- * as strict as the server (see parseAmount in actions.ts): Number("6.000")
- * would say 6 and Number("") would say 0, and a preview that lies is worse
- * than no preview.
- */
-function amountPreview(raw: string): number | null {
-  const s = raw.trim().replace(/,/g, ".");
-  if (!/^(\d+(\.\d*)?|\.\d+)$/.test(s)) return null;
-  const n = Number(s);
-  return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-/**
- * The two states of club money, as a pair of buttons rather than a dropdown.
- * The whole point of club_funds.status is that a pledge is NOT cash, and a
- * value hidden inside a closed select is the easiest thing in a form to leave
- * on its default and never read.
- */
-function StatusPicker({
-  value, onChange, disabled,
-}: { value: ClubFundStatus; onChange: (v: ClubFundStatus) => void; disabled?: boolean }) {
-  const options: Array<{ v: ClubFundStatus; note: string }> = [
-    { v: "received", note: "Në llogari" },
-    { v: "pledged", note: "Ende jo në llogari" },
-  ];
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-      {options.map((o) => {
-        const on = value === o.v;
-        return (
-          <button
-            key={o.v}
-            type="button"
-            disabled={disabled}
-            aria-pressed={on}
-            onClick={() => onChange(o.v)}
-            style={{
-              textAlign: "left",
-              padding: "10px 12px",
-              borderRadius: 10,
-              cursor: disabled ? "default" : "pointer",
-              border: `1px solid ${on ? (o.v === "received" ? "var(--ok)" : "var(--warn)") : "var(--line-strong)"}`,
-              background: on
-                ? o.v === "received" ? "var(--ok-bg)" : "var(--warn-bg)"
-                : "var(--surface-1)",
-              color: on ? (o.v === "received" ? "var(--ok)" : "var(--warn)") : "var(--text-2)",
-            }}
-          >
-            <div style={{ fontSize: 13.5, fontWeight: 600 }}>{FUND_STATUS_LABEL[o.v]}</div>
-            <div className="mono" style={{ fontSize: 10, letterSpacing: ".04em", marginTop: 2, opacity: 0.9 }}>
-              {o.note}
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
 }
 
 /**
@@ -116,7 +55,6 @@ export function FundDialog({
   const [title, setTitle] = useState(fund?.title ?? "");
   const [date, setDate] = useState(fund?.occurred_on ?? todayIso());
   const [amount, setAmount] = useState(fund ? String(fund.amount_eur) : "");
-  const [status, setStatus] = useState<ClubFundStatus>(fund?.status ?? "received");
   const [kind, setKind] = useState<ClubFundKind>(fund?.kind ?? defaultKind);
   const [sponsorId, setSponsorId] = useState(fund?.sponsor_id ?? "");
   const [reference, setReference] = useState(fund?.reference ?? "");
@@ -129,9 +67,6 @@ export function FundDialog({
   // them, so editing an old fund cannot silently drop its sponsor.
   const sponsorChoices = sponsors.filter((s) => s.active || s.id === fund?.sponsor_id);
   const needsSponsor = kind === "sponsor";
-  // The typed amount, or null while it is not yet a number. The server parses
-  // it again — this is only for the sentence under the form.
-  const preview = amountPreview(amount);
   const ready =
     title.trim().length > 0 && date.length > 0 && amount.trim().length > 0 && (!needsSponsor || !!sponsorId);
 
@@ -139,7 +74,7 @@ export function FundDialog({
     setErr(null);
     const input: FundInput = {
       title, occurred_on: date, amount_eur: amount, kind,
-      sponsor_id: sponsorId, status, reference, notes,
+      sponsor_id: sponsorId, reference, notes,
     };
     start(async () => {
       try {
@@ -184,12 +119,12 @@ export function FundDialog({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div className="field">
-          <label htmlFor={`d-${id}`}>{status === "received" ? "Data e pranimit" : "Data e pritur"}</label>
+          <label htmlFor={`d-${id}`}>Data e pranimit</label>
           <input
             id={`d-${id}`}
             type="date"
             value={date}
-            max={status === "received" ? todayIso() : undefined}
+            max={todayIso()}
             onChange={(e) => setDate(e.target.value)}
           />
         </div>
@@ -203,16 +138,6 @@ export function FundDialog({
             placeholder="6000"
             ariaLabel="Shuma në euro"
           />
-        </div>
-      </div>
-
-      <div className="field">
-        <label>Statusi</label>
-        <StatusPicker value={status} onChange={setStatus} disabled={pending} />
-        <div className="mono" style={{ fontSize: 10.5, color: status === "pledged" ? "var(--warn)" : "var(--text-3)", lineHeight: 1.5 }}>
-          {status === "pledged"
-            ? "Paratë e premtuara nuk hyjnë në bilanc derisa të arrijnë në llogari."
-            : "Paratë e pranuara llogariten si të hyra në bilancin e klubit."}
         </div>
       </div>
 
@@ -262,14 +187,6 @@ export function FundDialog({
           placeholder="p.sh. mbulon pajisjet e sezonit"
         />
       </div>
-
-      {/* Only shown once the typed amount really parses: "€0.00" under a
-          half-typed figure would read as a pledge of nothing. */}
-      {status === "pledged" && preview != null ? (
-        <div className="mono" style={{ fontSize: 11, color: "var(--warn)" }}>
-          {formatEur(preview)} të premtuara — jashtë bilancit derisa të arrijnë.
-        </div>
-      ) : null}
 
       {err ? <div className="mm-msg err">{err}</div> : null}
     </Modal>

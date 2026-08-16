@@ -20,8 +20,6 @@ export type MembershipStatus = "active" | "paused" | "ended";
 export type PaidMethod = "cash" | "bank" | "online" | "waived";
 // club_funds / club_expenses are text + CHECK too (migration 20260810000002).
 export type ClubFundKind = "sponsor" | "project" | "donation" | "grant" | "other";
-/** 'pledged' is agreed money that is NOT in the bank. Never counted as cash. */
-export type ClubFundStatus = "received" | "pledged";
 export type ExpenseStatus = "paid" | "unpaid";
 /** Who actually handed over the money. 'member' = the club owes them it back. */
 export type ExpensePaidBy = "club" | "member";
@@ -342,13 +340,12 @@ interface PublicTables {
       club_funds: {
         Row: {
           id: string; title: string;
-          // Received on, or — for a pledge — agreed/expected on.
+          // The day the money was received. club_funds holds received money only.
           occurred_on: string;
           amount_eur: number;
           kind: ClubFundKind;
           // Required by CHECK when kind = 'sponsor'.
           sponsor_id: string | null;
-          status: ClubFundStatus;
           reference: string | null;
           notes: string | null;
           recorded_by: string | null;

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
 import { FUND_KINDS } from "@/lib/finance";
-import type { ClubFundKind, ClubFundStatus } from "@/lib/supabase/types";
+import type { ClubFundKind } from "@/lib/supabase/types";
 
 export type FundResult = { ok: true } | { ok: false; error: string };
 
@@ -24,8 +24,8 @@ async function assertFinanceStaff() {
 
 /**
  * Deleting a fund erases the record of money the club received. Editing covers
- * every honest mistake (a typo, a wrong sponsor, a pledge that never came), so
- * the destructive path stays with the admin — the same instinct that keeps
+ * every honest mistake (a typo, a wrong sponsor, a wrong amount), so the
+ * destructive path stays with the admin — the same instinct that keeps
  * invoice history undeletable.
  */
 async function assertAdmin() {
@@ -38,8 +38,6 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** numeric(10,2) tops out here; anything larger is a typo, not a sponsorship. */
 const MAX_AMOUNT = 99_999_999.99;
-
-const FUND_STATUSES: ClubFundStatus[] = ["received", "pledged"];
 
 function todayIso(): string {
   const now = new Date();
@@ -80,14 +78,13 @@ function checkDate(raw: string, label: string): { ok: true; value: string } | { 
 
 export type FundInput = {
   title: string;
-  /** "YYYY-MM-DD". The day it landed, or — for a pledge — when it is expected. */
+  /** "YYYY-MM-DD". The day the money was received. */
   occurred_on: string;
   /** Raw text from the numeric field; "2500,50" is normalised, not truncated. */
   amount_eur: string;
   kind: string;
   /** "" = no sponsor. Required by CHECK when kind is 'sponsor'. */
   sponsor_id: string;
-  status: string;
   reference: string;
   notes: string;
 };
@@ -98,7 +95,6 @@ type FundRowValues = {
   amount_eur: number;
   kind: ClubFundKind;
   sponsor_id: string | null;
-  status: ClubFundStatus;
   reference: string | null;
   notes: string | null;
 };
@@ -112,18 +108,12 @@ function normalize(input: FundInput): { ok: true; row: FundRowValues } | { ok: f
   if (!title) return { ok: false, error: "Shkruaj një titull për hyrjen, p.sh. “Sponsorizim Novus 2026”." };
   if (title.length > 200) return { ok: false, error: "Titulli është shumë i gjatë. Shkurtoje." };
 
-  if (!(FUND_STATUSES as string[]).includes(input.status)) {
-    return { ok: false, error: "Zgjidh nëse paratë janë pranuar apo vetëm të premtuara." };
-  }
-  const status = input.status as ClubFundStatus;
-
-  const date = checkDate(input.occurred_on, status === "received" ? "Data e pranimit" : "Data e pritur");
+  const date = checkDate(input.occurred_on, "Data e pranimit");
   if (!date.ok) return date;
-  // A pledge may legitimately be dated in the future ("pritet në mars"), but
-  // money cannot have LANDED tomorrow — that row would count as cash the club
-  // does not have yet.
-  if (status === "received" && date.value > todayIso()) {
-    return { ok: false, error: "Data e pranimit nuk mund të jetë në të ardhmen. Nëse paratë ende s’kanë arritur, zgjidh “Premtuar”." };
+  // club_funds holds money the club actually received, so it cannot have LANDED
+  // tomorrow — that row would count as cash the club does not have yet.
+  if (date.value > todayIso()) {
+    return { ok: false, error: "Data e pranimit nuk mund të jetë në të ardhmen." };
   }
 
   const amount = parseAmount(input.amount_eur);
@@ -150,7 +140,6 @@ function normalize(input: FundInput): { ok: true; row: FundRowValues } | { ok: f
       amount_eur: amount.value,
       kind,
       sponsor_id: sponsorId,
-      status,
       reference: (input.reference ?? "").trim() || null,
       notes: (input.notes ?? "").trim() || null,
     },
@@ -186,11 +175,7 @@ export async function createFund(input: FundInput): Promise<FundResult> {
   }
 }
 
-/**
- * Edits one fund. A pledge that lands is the same row with a new status and a
- * corrected date — one row per sponsorship, its whole life visible, instead of
- * a pledge row plus a receipt row nobody reconciles.
- */
+/** Edits one fund — one row per sponsorship, corrected in place. */
 export async function updateFund(fundId: string, input: FundInput): Promise<FundResult> {
   try {
     const me = await assertFinanceStaff();
@@ -204,54 +189,6 @@ export async function updateFund(fundId: string, input: FundInput): Promise<Fund
       .update({ ...parsed.row, recorded_by: me.id })
       .eq("id", fundId);
     if (error) return { ok: false, error: dbError(error, "Ruajtja e hyrjes dështoi. Provo sërish.") };
-
-    revalidateFunds();
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: dbError(e) };
-  }
-}
-
-/**
- * The one-click path for the thing that happens most: a promise turns into
- * money. The date is asked for because occurred_on then means "the day it
- * landed" — keeping the agreed date would file the cash in the wrong month.
- */
-export async function markFundReceived(fundId: string, date: string): Promise<FundResult> {
-  try {
-    const me = await assertFinanceStaff();
-
-    const parsed = checkDate(date, "Data e pranimit");
-    if (!parsed.ok) return parsed;
-    if (parsed.value > todayIso()) {
-      return { ok: false, error: "Data e pranimit nuk mund të jetë në të ardhmen." };
-    }
-
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("club_funds")
-      .update({ status: "received", occurred_on: parsed.value, recorded_by: me.id })
-      .eq("id", fundId);
-    if (error) return { ok: false, error: dbError(error, "Shënimi si i pranuar dështoi. Provo sërish.") };
-
-    revalidateFunds();
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: dbError(e) };
-  }
-}
-
-/** Undoes a receipt recorded by mistake: back to a pledge, same row, same date. */
-export async function markFundPledged(fundId: string): Promise<FundResult> {
-  try {
-    const me = await assertFinanceStaff();
-
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("club_funds")
-      .update({ status: "pledged", recorded_by: me.id })
-      .eq("id", fundId);
-    if (error) return { ok: false, error: dbError(error, "Kthimi në premtim dështoi. Provo sërish.") };
 
     revalidateFunds();
     return { ok: true };

@@ -278,7 +278,7 @@ table.t td { color: var(--text-2); }
 table.t td.mono { font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.02em; color: var(--text-1); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 table.t td.right { text-align: right; }
 /* A money column is right-aligned in the BODY and in the HEAD, from the same
-   rule. Styling only the cell is what made "Premtuar | Pranuar | Shpenzuar" sit
+   rule. Styling only the cell is what made "Pranuar | Shpenzuar" sit
    above the left edge of digits that hug the right one — the header and its
    column have to be told the same thing or they drift the moment a figure grows
    a digit. tabular-nums on top, so the digits line up vertically too. */

@@ -94,8 +94,8 @@ export function OutsideCard({
   hrefLabel: string;
   /**
    * The window the figure covers, printed beside it. Some of these are annual
-   * flows and some are positions that deliberately ignore the year (open debt,
-   * open pledges); a reader cannot tell which by looking, so each one says.
+   * flows and some are positions that deliberately ignore the year (open
+   * debt); a reader cannot tell which by looking, so each one says.
    */
   window: string;
 }) {

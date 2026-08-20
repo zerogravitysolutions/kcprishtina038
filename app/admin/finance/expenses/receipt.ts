@@ -92,14 +92,43 @@ export function receiptExt(mime: string): string {
 }
 
 /**
- * The same shape as club_expenses_receipt_path_ck. Checked in the Server
- * Action too, so a hand-made POST cannot make the row point at another
- * bucket prefix and cannot make the delete path remove somebody else's object.
+ * The same shape as the per-element regex in club_expenses_receipt_paths_ok().
+ * Checked in the Server Action too, so a hand-made POST cannot make the row
+ * point at another bucket prefix and cannot make the delete path remove
+ * somebody else's object.
  */
 const RECEIPT_PATH_RE = /^receipts\/[0-9a-f]{32}\.(jpg|png|webp)$/;
 
 export function isReceiptPath(value: string | null | undefined): boolean {
   return typeof value === "string" && RECEIPT_PATH_RE.test(value);
+}
+
+/**
+ * How many receipt photos one expense may carry. Mirrors the cardinality cap in
+ * club_expenses_receipt_paths_ok() (migration 20260817000001): a purchase can
+ * span a couple of till rolls plus an itemised breakdown, but three is the wall.
+ */
+export const RECEIPT_MAX_COUNT = 3;
+
+/**
+ * Validate the whole array the way the DB check does: at most RECEIPT_MAX_COUNT
+ * elements, every one a well-formed receipts/ path. De-duped, because the same
+ * object must never be listed twice on one row (it would be swept while still
+ * referenced). Returns the cleaned array, or an error key for the caller to turn
+ * into an Albanian sentence.
+ */
+export function validateReceiptPaths(
+  value: unknown,
+): { ok: true; paths: string[] } | { ok: false; reason: "shape" | "count" | "path" } {
+  if (!Array.isArray(value)) return { ok: false, reason: "shape" };
+  const paths: string[] = [];
+  for (const raw of value) {
+    if (typeof raw !== "string") return { ok: false, reason: "path" };
+    if (!isReceiptPath(raw)) return { ok: false, reason: "path" };
+    if (!paths.includes(raw)) paths.push(raw);
+  }
+  if (paths.length > RECEIPT_MAX_COUNT) return { ok: false, reason: "count" };
+  return { ok: true, paths };
 }
 
 /** A fresh, unguessable object name — 128 bits, like app/join/actions.ts. */

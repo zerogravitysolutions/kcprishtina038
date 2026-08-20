@@ -44,14 +44,14 @@ type ExpenseRowDb = {
   reimbursed: boolean;
   reimbursed_note: string | null;
   notes: string | null;
-  receipt_path: string | null;
+  receipt_paths: string[];
   created_at: string;
 };
 
 const SELECT =
   "id, occurred_on, category_id, description, amount_eur, beneficiary_member_id, invoice_no, " +
   "payment_method, paid_by, paid_by_member_id, funding_sponsor_id, status, reimbursed, " +
-  "reimbursed_note, notes, receipt_path, created_at";
+  "reimbursed_note, notes, receipt_paths, created_at";
 
 type SearchParams = Promise<{
   y?: string; cat?: string; b?: string; st?: string; sp?: string; pb?: string; owed?: string;
@@ -246,7 +246,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     reimbursed: e.reimbursed,
     reimbursed_note: e.reimbursed_note,
     notes: e.notes,
-    receipt_path: e.receipt_path,
+    receipt_paths: e.receipt_paths ?? [],
   }));
 
   // ---- filters -------------------------------------------------------------
@@ -270,7 +270,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       return false;
     }
     if (owedOnly && !isOwedToMember(e)) return false;
-    if (noReceiptOnly && e.receipt_path) return false;
+    if (noReceiptOnly && e.receipt_paths.length > 0) return false;
     if (needle) {
       const hay = [
         e.description, e.notes ?? "", e.invoice_no ?? "", e.category_name,

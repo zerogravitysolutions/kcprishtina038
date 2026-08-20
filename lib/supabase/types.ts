@@ -381,9 +381,10 @@ interface PublicTables {
           // is why the note IS the record.
           reimbursed: boolean;
           reimbursed_note: string | null;
-          // Path of the receipt photo in the `media` bucket, or null when none
-          // is attached (migration 20260811000001).
-          receipt_path: string | null;
+          // Up to three receipt-photo paths in the `media` bucket; empty array
+          // when none is attached (migration 20260817000001 replaced the single
+          // receipt_path column).
+          receipt_paths: string[];
           notes: string | null;
           recorded_by: string | null;
           created_at: string; updated_at: string;
@@ -652,6 +653,13 @@ export interface Database {
       set_user_role:       { Args: { target_id: string; new_role: UserRole }; Returns: string };
       // p_period is any date inside the month; the function normalises it.
       generate_dues_for_period: { Args: { p_period: string }; Returns: number };
+      // Bill a CHOSEN SET of members for a period, with an optional explicit due
+      // date (null → the trigger fills period + 14). Returns the count actually
+      // created. Admin/staff only; migration 20260817000001.
+      generate_dues_for_members: {
+        Args: { p_period: string; p_member_ids: string[]; p_due_date?: string | null };
+        Returns: number;
+      };
       // Puts a member on a plan and returns the id of the ACTIVE membership
       // afterwards — the same row when nothing changed or the change was a
       // correction, a brand-new one when an invoiced membership was closed and

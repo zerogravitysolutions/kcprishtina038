@@ -12,7 +12,8 @@ import type { ExpensePaidBy, ExpensePaymentMethod, ExpenseStatus } from "@/lib/s
 // Plain module, not the client one: a "use server" file may only EXPORT async
 // functions, so these constants have to live somewhere both sides can import.
 import {
-  RECEIPT_ALLOWED_MIME, RECEIPT_MAX_BYTES, isReceiptPath, newReceiptPath, sniffImageMime,
+  RECEIPT_ALLOWED_MIME, RECEIPT_MAX_BYTES, RECEIPT_MAX_COUNT,
+  isReceiptPath, newReceiptPath, sniffImageMime, validateReceiptPaths,
 } from "./receipt";
 
 export type ExpenseResult = { ok: true } | { ok: false; error: string };
@@ -69,8 +70,9 @@ export type ExpenseInput = {
   reimbursed: boolean;
   reimbursed_note: string;
   notes: string;
-  /** Storage path returned by uploadReceipt(), or null for "no photo". */
-  receipt_path: string | null;
+  /** Storage paths returned by uploadReceipt(), one per photo — up to three.
+   *  Empty array = no photo. */
+  receipt_paths: string[];
 };
 
 type ExpensePayload = {
@@ -88,7 +90,7 @@ type ExpensePayload = {
   reimbursed: boolean;
   reimbursed_note: string | null;
   notes: string | null;
-  receipt_path: string | null;
+  receipt_paths: string[];
 };
 
 const STATUSES: ExpenseStatus[] = ["paid", "unpaid"];
@@ -197,14 +199,19 @@ function coerceExpense(
     };
   }
 
-  // 4. club_expenses_receipt_path_ck — the path is minted by uploadReceipt()
+  // 4. club_expenses_receipt_paths_ok() — each path is minted by uploadReceipt()
   //    and never typed, so anything that is not exactly one of ours is a
-  //    tampered payload, not a user mistake. Rejecting it here keeps the row
-  //    from ever pointing outside receipts/, which is what makes the delete
-  //    paths below safe.
-  const receiptRaw = clean(input.receipt_path);
-  if (receiptRaw && !isReceiptPath(receiptRaw)) {
-    return { ok: false, error: "Fotoja e faturës nuk është e vlefshme. Ngarkoje sërish." };
+  //    tampered payload, not a user mistake. At most three, each well-formed and
+  //    under receipts/. Rejecting it here keeps the row from ever pointing
+  //    outside receipts/, which is what makes the delete paths below safe.
+  const receipts = validateReceiptPaths(input.receipt_paths ?? []);
+  if (!receipts.ok) {
+    return {
+      ok: false,
+      error: receipts.reason === "count"
+        ? `Mund të bashkëngjitësh deri në ${RECEIPT_MAX_COUNT} foto për një shpenzim.`
+        : "Fotoja e faturës nuk është e vlefshme. Ngarkoje sërish.",
+    };
   }
 
   return {
@@ -226,7 +233,7 @@ function coerceExpense(
       reimbursed,
       reimbursed_note: reimbursed ? clean(input.reimbursed_note) : null,
       notes: clean(input.notes),
-      receipt_path: receiptRaw,
+      receipt_paths: receipts.paths,
     },
   };
 }
@@ -253,10 +260,13 @@ async function removeReceiptObject(
 ): Promise<void> {
   if (!path || !isReceiptPath(path)) return;
   try {
+    // Any row whose receipt_paths array still CONTAINS this exact path keeps it
+    // alive: `contains` maps to the array `@>` operator, so a photo shared onto
+    // another expense (or still on this one after a partial edit) is not swept.
     const { data, error } = await supabase
       .from("club_expenses")
       .select("id")
-      .eq("receipt_path", path)
+      .contains("receipt_paths", [path])
       .limit(1);
     if (error) return;
     if (((data as { id: string }[] | null) ?? []).length > 0) return;
@@ -408,9 +418,9 @@ export async function updateExpense(id: string, input: ExpenseInput): Promise<Ex
     const supabase = await createClient();
     const { data: current, error: readErr } = await supabase
       .from("club_expenses")
-      .select("id, category_id, receipt_path")
+      .select("id, category_id, receipt_paths")
       .eq("id", id)
-      .maybeSingle<{ id: string; category_id: string; receipt_path: string | null }>();
+      .maybeSingle<{ id: string; category_id: string; receipt_paths: string[] }>();
     if (readErr) return { ok: false, error: dbError(readErr, "Leximi i shpenzimit dështoi.") };
     if (!current) return { ok: false, error: "Ky shpenzim nuk ekziston më. Rifresko faqen." };
 
@@ -432,8 +442,11 @@ export async function updateExpense(id: string, input: ExpenseInput): Promise<Ex
     // Replacing or detaching a receipt takes the old JPEG with it — otherwise
     // every corrected photo leaves a copy of the club's paperwork sitting in a
     // public bucket that nothing points at and nobody will ever find again.
-    if (current.receipt_path && current.receipt_path !== coerced.value.receipt_path) {
-      await removeReceiptObject(supabase, current.receipt_path);
+    // Every path that was on the row but is not on the saved array is now
+    // orphaned; removeReceiptObject re-checks references before it deletes.
+    const kept = new Set(coerced.value.receipt_paths);
+    for (const old of current.receipt_paths ?? []) {
+      if (!kept.has(old)) await removeReceiptObject(supabase, old);
     }
 
     revalidate();
@@ -532,9 +545,9 @@ export async function deleteExpense(id: string): Promise<ExpenseResult> {
     const supabase = await createClient();
     const { data: current, error: readErr } = await supabase
       .from("club_expenses")
-      .select("id, reimbursed, receipt_path")
+      .select("id, reimbursed, receipt_paths")
       .eq("id", id)
-      .maybeSingle<{ id: string; reimbursed: boolean; receipt_path: string | null }>();
+      .maybeSingle<{ id: string; reimbursed: boolean; receipt_paths: string[] }>();
     if (readErr) return { ok: false, error: dbError(readErr, "Leximi i shpenzimit dështoi.") };
     if (!current) return { ok: false, error: "Ky shpenzim nuk ekziston më. Rifresko faqen." };
 
@@ -551,10 +564,12 @@ export async function deleteExpense(id: string): Promise<ExpenseResult> {
       return { ok: false, error: dbError(error, "Fshirja e shpenzimit dështoi. Provo sërish.") };
     }
 
-    // The row is gone, so the photo has nothing left to document. Deleting it
-    // after the row (never before) means a failed delete leaves the receipt
+    // The row is gone, so its photos have nothing left to document. Deleting
+    // them after the row (never before) means a failed delete leaves a receipt
     // attached rather than the expense pointing at a 404.
-    await removeReceiptObject(supabase, current.receipt_path);
+    for (const path of current.receipt_paths ?? []) {
+      await removeReceiptObject(supabase, path);
+    }
 
     revalidate();
     return { ok: true };

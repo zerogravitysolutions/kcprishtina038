@@ -6,8 +6,8 @@ import { Lightbox } from "@/components/ui/Lightbox";
 import { compressImage } from "./imageCompress";
 
 /**
- * Attach ONE photo, taken on the spot or picked from the library, shrunk in
- * the browser before it is uploaded.
+ * Attach UP TO `max` photos, each taken on the spot or picked from the library
+ * and shrunk in the browser before it is uploaded.
  *
  * WHY THERE ARE TWO BUTTONS AND NOT ONE
  * -------------------------------------
@@ -32,6 +32,11 @@ import { compressImage } from "./imageCompress";
  *
  * Neither input is autofocused and neither is a text field, so nothing makes a
  * keyboard appear.
+ *
+ * ONE UPLOAD PER PHOTO. Each capture is compressed and uploaded on its own —
+ * bundling several into one request would push a Server Action past the 1 MB
+ * body limit — so `onAdd` takes a single file and returns its stored path. The
+ * parent appends it to the array and hands the grown `paths` back down.
  */
 
 export type PhotoUploadResult = { ok: true; path: string } | { ok: false; error: string };
@@ -41,14 +46,18 @@ type Props = {
   label: string;
   /** One line under the buttons, in Albanian. */
   hint?: string;
-  /** Storage path of the photo currently attached, or null. */
-  path: string | null;
-  /** URL the stored `path` is served from; ignored while a local preview is fresher. */
-  previewUrl: string | null;
-  /** Hands the compressed file to the server; resolves with the stored path. */
-  onUpload: (file: File) => Promise<PhotoUploadResult>;
-  /** Detaches the current photo. The caller decides whether the object dies now
-   *  or when the form is saved. */
+  /** Storage paths of the photos currently attached, in order. */
+  paths: string[];
+  /** How many photos may be attached at once. */
+  max: number;
+  /** Resolves a stored path to the URL it is served from; a fresher local
+   *  object URL wins while it is held. */
+  previewUrlOf: (path: string) => string | null;
+  /** Hands ONE compressed file to the server; resolves with the stored path.
+   *  The caller appends it to `paths`. */
+  onAdd: (file: File) => Promise<PhotoUploadResult>;
+  /** Detaches ONE photo. The caller decides whether the object dies now or when
+   *  the form is saved. */
   onRemove: (path: string) => Promise<PhotoRemoveResult>;
   disabled?: boolean;
   /** Server-side ceiling, repeated here so the user hears about it instantly. */
@@ -76,7 +85,7 @@ function kb(bytes: number): string {
 }
 
 export function PhotoCaptureField({
-  label, hint, path, previewUrl, onUpload, onRemove, disabled,
+  label, hint, paths, max, previewUrlOf, onAdd, onRemove, disabled,
   hardMaxBytes, targetBytes, maxEdge, allowedMime, alt,
 }: Props) {
   const camRef = useRef<HTMLInputElement>(null);
@@ -86,24 +95,42 @@ export function PhotoCaptureField({
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(false);
+  const [zoomIndex, setZoomIndex] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
   // The bytes we already hold locally beat a round trip to the CDN on the same
-  // mobile connection that just uploaded them. Keyed by path so a stale
-  // preview can never be shown for a different photo.
-  const [local, setLocal] = useState<{ url: string; path: string } | null>(null);
-  const localUrlRef = useRef<string | null>(null);
+  // mobile connection that just uploaded them. Keyed by path so a stale preview
+  // can never be shown for a different photo, and revoked when the path is gone.
+  const localRef = useRef<Map<string, string>>(new Map());
+  const [, forceRender] = useState(0);
 
-  const dropLocal = useCallback(() => {
-    if (localUrlRef.current) URL.revokeObjectURL(localUrlRef.current);
-    localUrlRef.current = null;
-    setLocal(null);
+  const rememberLocal = useCallback((path: string, file: File) => {
+    const url = URL.createObjectURL(file);
+    const prev = localRef.current.get(path);
+    if (prev) URL.revokeObjectURL(prev);
+    localRef.current.set(path, url);
+    forceRender((n) => n + 1);
   }, []);
 
-  useEffect(() => () => {
-    if (localUrlRef.current) URL.revokeObjectURL(localUrlRef.current);
+  // Drop any local URL whose path the parent no longer holds. Runs after every
+  // render so a removed photo's object URL is not leaked.
+  useEffect(() => {
+    const held = new Set(paths);
+    for (const [path, url] of localRef.current) {
+      if (!held.has(path)) {
+        URL.revokeObjectURL(url);
+        localRef.current.delete(path);
+      }
+    }
+  }, [paths]);
+
+  useEffect(() => {
+    const map = localRef.current;
+    return () => {
+      for (const url of map.values()) URL.revokeObjectURL(url);
+      map.clear();
+    };
   }, []);
 
   /**
@@ -112,22 +139,29 @@ export function PhotoCaptureField({
    * Lightbox listens on window and components/ui/Modal listens on document, so
    * with the viewer open above the expense form one Escape would close both —
    * and closing the form throws away everything typed so far and sweeps the
-   * photo that was just uploaded. Capturing at the document, before either
+   * photos that were just uploaded. Capturing at the document, before either
    * bubble listener can run, keeps the key on the viewer.
    */
   useEffect(() => {
-    if (!zoom) return;
+    if (zoomIndex === null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.stopPropagation();
-      setZoom(false);
+      setZoomIndex(null);
     };
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
-  }, [zoom]);
+  }, [zoomIndex]);
 
   const busy = phase !== "idle";
-  const shown = local && local.path === path ? local.url : previewUrl;
+  const atMax = paths.length >= max;
+
+  const urlOf = (path: string): string | null =>
+    localRef.current.get(path) ?? previewUrlOf(path);
+
+  const shots = paths
+    .map((path) => ({ path, url: urlOf(path) }))
+    .filter((s): s is { path: string; url: string } => !!s.url);
 
   async function handleFile(file: File | null | undefined) {
     // Re-picking the SAME file has to fire onChange again, so both inputs are
@@ -135,6 +169,7 @@ export function PhotoCaptureField({
     if (camRef.current) camRef.current.value = "";
     if (libRef.current) libRef.current.value = "";
     if (!file) return;
+    if (atMax) return;
 
     setError(null);
     setNote(null);
@@ -188,7 +223,7 @@ export function PhotoCaptureField({
     setPhase("uploading");
     let result: PhotoUploadResult;
     try {
-      result = await onUpload(upload);
+      result = await onAdd(upload);
     } catch {
       setPhase("idle");
       setError("Ngarkimi i fotos dështoi. Provo sërish.");
@@ -201,21 +236,16 @@ export function PhotoCaptureField({
       return;
     }
 
-    dropLocal();
-    const url = URL.createObjectURL(upload);
-    localUrlRef.current = url;
-    setLocal({ url, path: result.path });
+    rememberLocal(result.path, upload);
   }
 
-  async function handleRemove() {
-    if (!path) return;
+  async function handleRemove(path: string) {
     setError(null);
     setNote(null);
     setPhase("removing");
     try {
       const r = await onRemove(path);
       if (!r.ok) { setError(r.error); return; }
-      dropLocal();
     } catch {
       setError("Heqja e fotos dështoi. Provo sërish.");
     } finally {
@@ -248,48 +278,36 @@ export function PhotoCaptureField({
         onChange={(e) => void handleFile(e.target.files?.[0])}
       />
 
-      {shown ? (
-        <div className="pc-has">
-          <button
-            type="button"
-            className="pc-thumb"
-            onClick={() => setZoom(true)}
-            aria-label="Hap foton e faturës"
-            title="Hap foton"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={shown} alt={alt ?? "Fotoja e faturës"} />
-          </button>
-          <div className="pc-has-body">
-            <div className="pc-actions">
+      {shots.length > 0 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
+          {shots.map((shot, i) => (
+            <div key={shot.path} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <button
                 type="button"
-                className="btn btn-ghost btn-touch"
-                onClick={() => libRef.current?.click()}
-                disabled={disabled || busy}
+                className="pc-thumb"
+                onClick={() => setZoomIndex(i)}
+                aria-label={`Hap foton ${i + 1} të faturës`}
+                title="Hap foton"
               >
-                Ndrysho foton
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-touch pc-cam"
-                onClick={() => camRef.current?.click()}
-                disabled={disabled || busy}
-              >
-                Bëj foto të re
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={shot.url} alt={alt ? `${alt} (${i + 1})` : `Fotoja e faturës ${i + 1}`} />
               </button>
               <button
                 type="button"
                 className="btn btn-ghost btn-touch pc-danger"
-                onClick={() => void handleRemove()}
+                style={{ minHeight: 32, padding: "4px 8px", fontSize: 12, justifyContent: "center" }}
+                onClick={() => void handleRemove(shot.path)}
                 disabled={disabled || busy}
               >
-                Hiq foton
+                Hiq
               </button>
             </div>
-            {note ? <div className="pc-note mono">{note}</div> : null}
-          </div>
+          ))}
         </div>
+      ) : null}
+
+      {atMax ? (
+        <div className="pc-note mono">Deri në {max} foto.</div>
       ) : (
         <>
           <div className="pc-actions">
@@ -299,7 +317,7 @@ export function PhotoCaptureField({
               onClick={() => camRef.current?.click()}
               disabled={disabled || busy}
             >
-              <CameraIcon /> Bëj foto
+              <CameraIcon /> {shots.length > 0 ? "Shto foto" : "Bëj foto"}
             </button>
             <button
               type="button"
@@ -307,7 +325,7 @@ export function PhotoCaptureField({
               onClick={() => libRef.current?.click()}
               disabled={disabled || busy}
             >
-              <PhotoIcon /> Zgjidh foto
+              <PhotoIcon /> {shots.length > 0 ? "Shto nga galeria" : "Zgjidh foto"}
             </button>
           </div>
           {hint ? <div className="pc-note mono">{hint}</div> : null}
@@ -337,13 +355,16 @@ export function PhotoCaptureField({
           panel. Escaping to <body> fixes the geometry; the z-index above the
           Modal's own 9999 fixes the stacking, since Lightbox asks for 1000 and
           would otherwise open UNDER the form it was opened from. */}
-      {mounted && zoom && shown
+      {mounted && zoomIndex !== null && shots.length > 0
         ? createPortal(
             <div style={{ position: "relative", zIndex: 10000 }}>
               <Lightbox
-                photos={[{ src: shown, alt: alt ?? "Fotoja e faturës" }]}
-                openIndex={0}
-                onClose={() => setZoom(false)}
+                photos={shots.map((s, i) => ({
+                  src: s.url,
+                  alt: alt ? `${alt} (${i + 1})` : `Fotoja e faturës ${i + 1}`,
+                }))}
+                openIndex={Math.min(zoomIndex, shots.length - 1)}
+                onClose={() => setZoomIndex(null)}
               />
             </div>,
             document.body,

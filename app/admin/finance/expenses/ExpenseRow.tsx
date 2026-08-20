@@ -35,7 +35,12 @@ export function ExpenseRow({
   const [note, setNote] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
-  const receiptUrl = receiptPublicUrl(expense.receipt_path);
+  // Every stored path resolved to a public URL, dropping any that cannot be
+  // built (e.g. missing env) so the thumbnail count matches what opens.
+  const receiptUrls = expense.receipt_paths
+    .map((p) => receiptPublicUrl(p))
+    .filter((u): u is string => !!u);
+  const receiptCount = receiptUrls.length;
 
   const nameOf = (id: string) => options.members.find((m) => m.id === id)?.full_name ?? null;
   // A cost charged to a sponsor whose row is gone (or outside the list this
@@ -73,17 +78,36 @@ export function ExpenseRow({
           <div className="exp-desc">
             {/* The receipt is the proof, so it sits WITH the description rather
                 than in the crowded actions column: on a phone the row is a
-                card and this is the first thing under the date. */}
-            {receiptUrl ? (
+                card and this is the first thing under the date. One tap opens
+                the lightbox on the first photo; the rest are one swipe away. */}
+            {receiptCount > 0 ? (
               <button
                 type="button"
                 className="rc-thumb"
+                style={{ position: "relative" }}
                 onClick={() => setPhotoOpen(true)}
-                title="Hap foton e faturës"
-                aria-label={`Hap foton e faturës për “${expense.description}”`}
+                title={receiptCount > 1 ? `Hap ${receiptCount} foto të faturës` : "Hap foton e faturës"}
+                aria-label={
+                  receiptCount > 1
+                    ? `Hap ${receiptCount} foto të faturës për “${expense.description}”`
+                    : `Hap foton e faturës për “${expense.description}”`
+                }
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={receiptUrl} alt="" loading="lazy" decoding="async" />
+                <img src={receiptUrls[0]} alt="" loading="lazy" decoding="async" />
+                {receiptCount > 1 ? (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute", right: 0, bottom: 0,
+                      background: "color-mix(in oklab, var(--surface-1) 82%, transparent)",
+                      color: "var(--text-1)", fontSize: 10, lineHeight: 1, fontWeight: 600,
+                      padding: "2px 4px", borderTopLeftRadius: "var(--r-xs)",
+                    }}
+                  >
+                    {receiptCount}
+                  </span>
+                ) : null}
               </button>
             ) : null}
             <span>
@@ -182,8 +206,13 @@ export function ExpenseRow({
           and it is already the one thing on this site that knows how to show a
           photo full-screen on a phone. */}
       <Lightbox
-        photos={receiptUrl ? [{ src: receiptUrl, alt: `Fatura — ${expense.description}` }] : []}
-        openIndex={photoOpen && receiptUrl ? 0 : null}
+        photos={receiptUrls.map((src, i) => ({
+          src,
+          alt: receiptCount > 1
+            ? `Fatura — ${expense.description} (${i + 1}/${receiptCount})`
+            : `Fatura — ${expense.description}`,
+        }))}
+        openIndex={photoOpen && receiptCount > 0 ? 0 : null}
         onClose={() => setPhotoOpen(false)}
       />
 

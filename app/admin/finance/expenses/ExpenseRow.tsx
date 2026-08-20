@@ -11,6 +11,7 @@ import {
   beneficiaryLabel, expenseAmountLabel, formatDate, invoiceNoLabel, isOwedToMember, paidByLabel,
 } from "@/lib/finance";
 import { deleteExpense, setReimbursed } from "./actions";
+import { ExpenseDetail } from "./ExpenseDetail";
 import { ExpenseFormModal, type ExpenseOptions, type ExpenseView } from "./ExpenseForm";
 import { receiptPublicUrl } from "./receipt";
 
@@ -27,6 +28,7 @@ export function ExpenseRow({
   const router = useRouter();
   const [pending, start] = useTransition();
 
+  const [detailOpen, setDetailOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
@@ -72,7 +74,11 @@ export function ExpenseRow({
   return (
     <>
       <tr>
-        <td className="mono" data-lab="Data">{formatDate(expense.occurred_on)}</td>
+        <td className="mono" data-lab="Data">
+          <button type="button" className="exp-open exp-open-date" onClick={() => setDetailOpen(true)}>
+            {formatDate(expense.occurred_on)}
+          </button>
+        </td>
 
         <td>
           <div className="exp-desc">
@@ -110,7 +116,11 @@ export function ExpenseRow({
                 ) : null}
               </button>
             ) : null}
-            <span>
+            {/* The primary tap target: one tap opens the read-only detail view.
+                It is a sibling of the receipt thumbnail button, so tapping the
+                photo opens the lightbox and never the detail — no propagation
+                juggling needed. The per-row actions live in their own cell. */}
+            <button type="button" className="exp-open" onClick={() => setDetailOpen(true)}>
               {expense.description}
               <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>
                 {expense.category_name}
@@ -122,7 +132,7 @@ export function ExpenseRow({
                   {expense.notes}
                 </small>
               ) : null}
-            </span>
+            </button>
           </div>
         </td>
 
@@ -214,6 +224,15 @@ export function ExpenseRow({
         }))}
         openIndex={photoOpen && receiptCount > 0 ? 0 : null}
         onClose={() => setPhotoOpen(false)}
+      />
+
+      <ExpenseDetail
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        onEdit={() => { setDetailOpen(false); setEditOpen(true); }}
+        expense={expense}
+        options={options}
+        canWrite={canWrite}
       />
 
       <ExpenseFormModal

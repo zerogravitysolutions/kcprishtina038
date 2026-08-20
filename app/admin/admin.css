@@ -779,3 +779,63 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   }
   table.t tbody tr.sum.total td, table.t tbody tr.sum.total:hover td { background: transparent; box-shadow: none; }
 }
+
+/* =========================================================
+   Expense detail — read-only view opened by tapping a row
+   (app/admin/finance/expenses/ExpenseDetail.tsx)
+   =========================================================
+   The list row's date and description are buttons that open
+   this view; styled to read as plain text, not controls, so
+   the row still looks like a row while being fully tappable
+   (44px on touch, matching the touch block above). */
+.exp-open {
+  appearance: none; background: transparent; border: 0; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+  display: block; width: 100%; min-width: 0;
+}
+.exp-open:hover { color: var(--accent); }
+.exp-open:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-xs); }
+.exp-open-date { display: inline-block; width: auto; }
+@media (hover: none) and (pointer: coarse) {
+  /* The whole description block is the tap target on a phone. */
+  .exp-desc .exp-open { min-height: 44px; }
+}
+
+/* The detail body: a single column of labelled rows, grouped. */
+.exp-detail { display: flex; flex-direction: column; gap: 20px; }
+.exp-dl-group { display: flex; flex-direction: column; }
+.exp-dl-group > .kicker {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--text-3); margin-bottom: 4px;
+}
+.exp-dl-row {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 10px 0; border-top: 1px solid var(--line);
+}
+.exp-dl-row:first-of-type { border-top: 0; }
+.exp-dl-k {
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.exp-dl-v { font-size: 14.5px; color: var(--text-1); line-height: 1.5; overflow-wrap: anywhere; }
+.exp-dl-v .mono { font-size: 13.5px; }
+.exp-dl-sub { font-size: 12px; color: var(--text-3); margin-top: 3px; }
+.exp-dl-owed { font-size: 12.5px; color: var(--err); font-weight: 600; margin-top: 3px; }
+.exp-dl-note {
+  font-size: 14px; color: var(--text-1); line-height: 1.6;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r-sm); padding: 12px 14px; margin-top: 4px;
+}
+
+/* Receipt photos: portrait thumbnails (a slip is a tall strip), each opening
+   the lightbox. Sized for a finger. */
+.exp-rc-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.exp-rc-thumb {
+  width: 84px; height: 108px; flex-shrink: 0; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  overflow: hidden; background: var(--surface-2); cursor: zoom-in; display: block;
+}
+.exp-rc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.exp-rc-thumb:hover { border-color: var(--accent); }
+.exp-rc-thumb:focus-visible { outline: none; box-shadow: var(--ring); }

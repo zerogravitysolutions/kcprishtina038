@@ -33,20 +33,18 @@ export function Modal({ open, onClose, title, wide, children, footer }: Props) {
     <div
       role="dialog"
       aria-modal="true"
+      className="ui-modal-overlay"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: "fixed",
         inset: 0,
         background: "rgba(15,26,46,0.55)",
         backdropFilter: "blur(2px)",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        padding: "10vh 16px 5vh",
         zIndex: 9999,
       }}
     >
       <div
+        className="ui-modal-card"
         style={{
           width: "100%",
           maxWidth: wide ? 1100 : 560,
@@ -55,9 +53,6 @@ export function Modal({ open, onClose, title, wide, children, footer }: Props) {
           borderRadius: 14,
           boxShadow: "0 30px 60px -20px rgba(15,26,46,0.4)",
           overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          maxHeight: "90vh",
         }}
       >
         <div
@@ -98,14 +93,14 @@ export function Modal({ open, onClose, title, wide, children, footer }: Props) {
           </button>
         </div>
 
-        <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
+        <div className="ui-modal-body" style={{ padding: 20, overflowY: "auto", flex: 1 }}>
           {children}
         </div>
 
         {footer && (
           <div
+            className="ui-modal-footer"
             style={{
-              padding: "14px 20px",
               borderTop: "1px solid var(--line)",
               display: "flex",
               justifyContent: "flex-end",

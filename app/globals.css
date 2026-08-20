@@ -2249,3 +2249,38 @@ footer.foot::before {
   select,
   textarea { min-height: 44px; font-size: 16px; }
 }
+
+/* ---- Shared modal (components/ui/Modal.tsx) ----
+   Keeps the footer (Anulo / Ruaj) always reachable. The card height plus the
+   overlay padding must never exceed the VISIBLE viewport, so we use dvh (which
+   shrinks when mobile browser chrome is showing) rather than vh, and add
+   safe-area padding so the footer clears the iOS home indicator / bottom bar.
+   Header is fixed, .ui-modal-body scrolls (flex:1, overflow:auto), and
+   .ui-modal-footer stays pinned and fully visible. */
+.ui-modal-overlay {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  /* 8dvh top + 4dvh bottom = 12dvh; with the card capped at 88dvh the total is
+     100dvh — it fits the visible viewport exactly, never pushing the footer out. */
+  padding: 8dvh 16px calc(4dvh + env(safe-area-inset-bottom, 0px));
+}
+.ui-modal-card {
+  display: flex;
+  flex-direction: column;
+  max-height: 88dvh;
+}
+/* The footer keeps its own top/side padding and adds the iOS safe-area inset to
+   the bottom so it clears the home indicator and browser toolbar. */
+.ui-modal-footer {
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+/* On short / mobile viewports the huge top gap wastes the space the form needs,
+   so shrink it and let the card use nearly the full height. The pinned footer
+   still stays visible because the card can never exceed the dvh-based cap. */
+@media (max-width: 600px), (max-height: 640px) {
+  .ui-modal-overlay {
+    padding: 2dvh 10px calc(2dvh + env(safe-area-inset-bottom, 0px));
+  }
+  .ui-modal-card { max-height: 96dvh; }
+}

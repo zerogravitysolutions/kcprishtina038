@@ -19,11 +19,20 @@ export function Modal({ open, onClose, title, wide, children, footer }: Props) {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Lock the page behind the modal. overflow:hidden stops the desktop
+    // scrollbar; overscrollBehavior:none stops a trackpad/touch scroll that
+    // reaches the modal body's edge from chaining through to the page under it
+    // (the "scroll is mixed with the back panel" bug). The scrollable
+    // .ui-modal-body also sets overscroll-behavior:contain in CSS.
+    const body = document.body;
+    const prevOverflow = body.style.overflow;
+    const prevOverscroll = body.style.overscrollBehavior;
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
+      body.style.overflow = prevOverflow;
+      body.style.overscrollBehavior = prevOverscroll;
     };
   }, [open, onClose]);
 

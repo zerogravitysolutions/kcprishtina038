@@ -2264,11 +2264,23 @@ footer.foot::before {
   /* 8dvh top + 4dvh bottom = 12dvh; with the card capped at 88dvh the total is
      100dvh — it fits the visible viewport exactly, never pushing the footer out. */
   padding: 8dvh 16px calc(4dvh + env(safe-area-inset-bottom, 0px));
+  /* A touch that lands on the backdrop must not scroll the page underneath. */
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 .ui-modal-card {
   display: flex;
   flex-direction: column;
   max-height: 88dvh;
+}
+/* The only scroller inside the modal. `contain` stops a scroll that reaches the
+   top or bottom of this box from chaining into the page behind the modal —
+   the reported "modal scroll mixed with the back panel". touch-action:pan-y
+   re-enables the vertical touch scroll the overlay's touch-action:none removed. */
+.ui-modal-body {
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 /* The footer keeps its own top/side padding and adds the iOS safe-area inset to
    the bottom so it clears the home indicator and browser toolbar. */

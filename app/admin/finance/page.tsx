@@ -3,11 +3,12 @@ import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
 import {
-  currentPeriod, effectiveStatus, formatEur, isOutstanding, outstandingTotal,
-  parsePeriodParam, periodLabel, periodParam, shiftPeriod, sumEur,
+  coveringMemberships, currentPeriod, effectiveStatus, formatEur, isBillable,
+  isOutstanding, outstandingTotal, parsePeriodParam, periodLabel, periodParam,
+  shiftPeriod, sumEur,
   type EffectiveDuesStatus,
 } from "@/lib/finance";
-import type { DuesStatus, PaidMethod } from "@/lib/supabase/types";
+import type { DuesStatus, MembershipStatus, PaidMethod } from "@/lib/supabase/types";
 import { GenerateInvoices } from "./GenerateInvoices";
 import { InvoiceRow, type InvoiceView } from "./InvoiceRow";
 
@@ -42,6 +43,7 @@ type DueRow = {
   member_id: string;
   period: string;
   due_date: string | null;
+  issued_on: string | null;
   amount_eur: number;
   status: DuesStatus;
   paid_at: string | null;
@@ -53,7 +55,7 @@ type DueRow = {
 };
 
 const SELECT =
-  "id, member_id, period, due_date, amount_eur, status, paid_at, paid_method, invoice_no, notes, " +
+  "id, member_id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, notes, " +
   "member:profiles!member_id(id, full_name, email), " +
   "membership:memberships!membership_id(id, billable, plan:membership_plans!plan_id(name_sq))";
 
@@ -109,11 +111,43 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
 
   const raw = (invoiceRes.data as unknown as DueRow[] | null) ?? [];
 
+  // The members the modal offers for THIS month: the same pick the generator
+  // makes — one in-force membership per member (coveringMemberships), billable
+  // with an amount > 0 (isBillable) — minus anyone who already has an invoice
+  // for the period, since generate_dues_for_members would skip them anyway.
+  // Read only when a run is possible (never for a future month).
+  const canGenerate = period <= currentPeriod();
+  let eligibleMembers: { member_id: string; full_name: string; plan_name: string | null }[] = [];
+  if (canGenerate) {
+    const memRes = await supabase
+      .from("memberships")
+      .select("id, member_id, amount_eur, billable, status, start_date, end_date, " +
+        "member:profiles!member_id(full_name), plan:membership_plans!plan_id(name_sq)")
+      .limit(2000);
+    type MemRow = {
+      id: string; member_id: string; amount_eur: number | string | null; billable: boolean;
+      status: MembershipStatus; start_date: string; end_date: string | null;
+      member: { full_name: string } | null; plan: { name_sq: string } | null;
+    };
+    const memberships = (memRes.data as unknown as MemRow[] | null) ?? [];
+    const alreadyBilled = new Set(raw.map((d) => d.member_id));
+    eligibleMembers = coveringMemberships(memberships, period)
+      .filter(isBillable)
+      .filter((m) => !alreadyBilled.has(m.member_id))
+      .map((m) => ({
+        member_id: m.member_id,
+        full_name: m.member?.full_name ?? "Anëtar i panjohur",
+        plan_name: m.plan?.name_sq ?? null,
+      }))
+      .sort((a, b) => a.full_name.localeCompare(b.full_name, "sq"));
+  }
+
   const invoices: InvoiceView[] = raw.map((d) => ({
     id: d.id,
     invoice_no: d.invoice_no,
     period: d.period,
     due_date: d.due_date,
+    issued_on: d.issued_on,
     amount_eur: d.amount_eur,
     status: d.status,
     paid_at: d.paid_at,
@@ -186,6 +220,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
           period={period}
           label={label}
           when={isCurrent ? "current" : period > currentPeriod() ? "future" : "past"}
+          members={eligibleMembers}
         />
       </div>
 

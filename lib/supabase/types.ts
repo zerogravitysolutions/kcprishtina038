@@ -320,9 +320,13 @@ interface PublicTables {
           recorded_by: string | null; notes: string | null;
           membership_id: string | null; due_date: string | null;
           invoice_no: string | null;
+          // The INVOICE DATE shown to the member. Distinct from period (the
+          // first-of-month idempotency bucket) and created_at (generation
+          // timestamp). Null on rows created before invoice dates existed.
+          issued_on: string | null;
           created_at: string; updated_at: string;
         };
-        Insert: { member_id: string; period: string; amount_eur: number; status?: DuesStatus; paid_at?: string | null; paid_method?: PaidMethod | null; notes?: string | null; membership_id?: string | null; due_date?: string | null; invoice_no?: string | null };
+        Insert: { member_id: string; period: string; amount_eur: number; status?: DuesStatus; paid_at?: string | null; paid_method?: PaidMethod | null; notes?: string | null; membership_id?: string | null; due_date?: string | null; invoice_no?: string | null; issued_on?: string | null };
         Update: Partial<PublicTables["dues"]["Row"]>;
       };
       expense_categories: {
@@ -653,11 +657,13 @@ export interface Database {
       set_user_role:       { Args: { target_id: string; new_role: UserRole }; Returns: string };
       // p_period is any date inside the month; the function normalises it.
       generate_dues_for_period: { Args: { p_period: string }; Returns: number };
-      // Bill a CHOSEN SET of members for a period, with an optional explicit due
-      // date (null → the trigger fills period + 14). Returns the count actually
-      // created. Admin/staff only; migration 20260817000001.
+      // Bill a CHOSEN SET of members for a period, with an optional explicit
+      // invoice date. p_issued_on is stored on dues.issued_on and drives the due
+      // date (issued_on + 5); null → the trigger fills the due date from the
+      // period. Returns the count actually created. Admin/staff only; migration
+      // 20260818000001.
       generate_dues_for_members: {
-        Args: { p_period: string; p_member_ids: string[]; p_due_date?: string | null };
+        Args: { p_period: string; p_member_ids: string[]; p_issued_on?: string | null };
         Returns: number;
       };
       // Puts a member on a plan and returns the id of the ACTIVE membership

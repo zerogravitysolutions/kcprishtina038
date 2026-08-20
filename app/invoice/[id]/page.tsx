@@ -6,7 +6,7 @@ import { dbError } from "@/lib/errors";
 import { CLUB, PAYMENT_FALLBACK } from "@/lib/club";
 import {
   EFFECTIVE_STATUS_LABEL, EFFECTIVE_STATUS_TONE, PAID_METHOD_LABEL,
-  daysOverdue, dueDateOf, effectiveStatus, formatEur, isOutstanding, periodLabel,
+  daysOverdue, dueDateOf, effectiveStatus, formatEur, isOutstanding, issuedDateLabel, periodLabel,
 } from "@/lib/finance";
 import type { DuesStatus, PaidMethod } from "@/lib/supabase/types";
 import { PrintButton } from "./PrintButton";
@@ -29,7 +29,7 @@ type Params = Promise<{ id: string }>;
  * carry no session at all.
  */
 const SELECT =
-  "id, member_id, period, due_date, amount_eur, status, paid_at, paid_method, invoice_no, created_at, " +
+  "id, member_id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, created_at, " +
   "member:profiles!member_id(full_name, email), " +
   "membership:memberships!membership_id(plan:membership_plans!plan_id(name_sq))";
 
@@ -38,6 +38,7 @@ type InvoiceData = {
   member_id: string;
   period: string;
   due_date: string | null;
+  issued_on: string | null;
   amount_eur: number;
   status: DuesStatus;
   paid_at: string | null;
@@ -126,7 +127,10 @@ export default async function InvoicePage({ params }: { params: Params }) {
   const late = daysOverdue(inv);
   const due = dueDateOf(inv);
   const paidAt = timestampLabel(inv.paid_at);
-  const issued = timestampLabel(inv.created_at);
+  // The INVOICE DATE the member sees: the explicit issued_on set when the
+  // invoice was raised, falling back to created_at for rows generated before
+  // issued_on existed. Never "Invalid Date" for a missing date.
+  const issued = issuedDateLabel(inv.issued_on, inv.created_at);
   const period = periodLabel(inv.period);
   const amount = formatEur(inv.amount_eur);
   const outstanding = isOutstanding(inv);

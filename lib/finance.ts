@@ -203,6 +203,28 @@ export function formatDate(value: string | null | undefined): string {
   return d.toLocaleDateString("sq");
 }
 
+/**
+ * The human-facing INVOICE DATE for display, in Albanian. Prefers
+ * dues.issued_on (the date the invoice was raised, set by the generate modal and
+ * the anchored recurring job) and falls back to created_at for legacy rows
+ * generated before issued_on existed. issued_on is a "YYYY-MM-DD" date column,
+ * so it is read as a LOCAL midnight date (never shifted west of Greenwich);
+ * created_at is a timestamptz. Returns null when neither is present or
+ * parseable, so callers never render "Invalid Date" for a missing issue date.
+ */
+export function issuedDateLabel(
+  issuedOn: string | null | undefined,
+  createdAt?: string | null,
+): string | null {
+  const d = parseDateOnly(issuedOn);
+  if (d) return d.toLocaleDateString("sq");
+  if (createdAt) {
+    const t = new Date(createdAt);
+    if (!Number.isNaN(t.getTime())) return t.toLocaleDateString("sq");
+  }
+  return null;
+}
+
 /** First of the current month as a "YYYY-MM-DD" period value. */
 export function currentPeriod(): string {
   const now = new Date();

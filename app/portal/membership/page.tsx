@@ -5,7 +5,7 @@ import {
   BILLING_MODE_LABEL, EFFECTIVE_STATUS_LABEL, EFFECTIVE_STATUS_TONE,
   MEMBERSHIP_STATUS_LABEL, PAID_METHOD_LABEL,
   billingMode, daysOverdue, dueDateOf, effectiveStatus, formatDate, formatEur,
-  isOutstanding, outstandingTotal, periodLabel, planAmountLabel, sumEur,
+  isOutstanding, issuedDateLabel, outstandingTotal, periodLabel, planAmountLabel, sumEur,
   type BillingMode, type DueLike, type EffectiveDuesStatus,
 } from "@/lib/finance";
 import type { DuesStatus, MembershipStatus, PaidMethod } from "@/lib/supabase/types";
@@ -63,6 +63,7 @@ type DueRow = {
   id: string;
   period: string;
   due_date: string | null;
+  issued_on: string | null;
   amount_eur: number;
   status: DuesStatus;
   paid_at: string | null;
@@ -113,7 +114,7 @@ export default async function PortalMembershipPage() {
       .limit(50),
     supabase
       .from("dues")
-      .select("id, period, due_date, amount_eur, status, paid_at, paid_method, invoice_no, membership_id")
+      .select("id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, membership_id")
       .eq("member_id", profile.id)
       .order("period", { ascending: false })
       .limit(DUES_CAP),
@@ -423,6 +424,9 @@ function InvoiceCard({ due, plan }: { due: DueRow; plan: string | null }) {
   const tone = EFFECTIVE_STATUS_TONE[status];
   const late = daysOverdue(due);
   const paid = paidAtLabel(due.paid_at);
+  // The invoice date, when the row carries one. Legacy rows (no issued_on, and
+  // created_at is not loaded here) return null and the pill is simply omitted.
+  const issued = issuedDateLabel(due.issued_on);
 
   return (
     <div style={{ ...CARD, padding: "15px 17px" }}>
@@ -438,6 +442,7 @@ function InvoiceCard({ due, plan }: { due: DueRow; plan: string | null }) {
 
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 12 }}>
         <Pill label="Fatura" value={due.invoice_no ?? "pa numër"} />
+        {issued ? <Pill label="Lëshuar" value={issued} /> : null}
         {status === "paid" || status === "waived" ? null : <Pill label="Afati" value={dueLabel(due)} />}
         {plan ? <Pill label="Plani" value={plan} /> : null}
         {status === "paid" ? (

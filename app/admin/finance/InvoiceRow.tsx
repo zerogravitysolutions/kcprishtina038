@@ -7,7 +7,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { actionError } from "@/lib/errors";
 import {
   EFFECTIVE_STATUS_LABEL, EFFECTIVE_STATUS_TONE, PAID_METHOD_LABEL,
-  daysOverdue, dueDateOf, effectiveStatus, formatEur, periodLabel,
+  daysOverdue, dueDateOf, effectiveStatus, formatEur, issuedDateLabel, periodLabel,
 } from "@/lib/finance";
 import type { DuesStatus, PaidMethod } from "@/lib/supabase/types";
 import { markInvoicePaid, reopenInvoice, waiveInvoice } from "./actions";
@@ -18,6 +18,7 @@ export type InvoiceView = {
   invoice_no: string | null;
   period: string;
   due_date: string | null;
+  issued_on: string | null;
   amount_eur: number;
   status: DuesStatus;
   paid_at: string | null;
@@ -64,6 +65,10 @@ export function InvoiceRow({ inv, canWrite }: { inv: InvoiceView; canWrite: bool
   // period + 14 days the status badge is derived from. Printing the raw period
   // there made an invoice look overdue on a date that had not passed yet.
   const due = dueDateOf(inv);
+  // The invoice date (dues.issued_on). New rows carry one; legacy rows do not
+  // (created_at is not loaded into the list), so it is simply omitted then —
+  // never "Invalid Date".
+  const issued = issuedDateLabel(inv.issued_on);
   const settled = status === "paid" || status === "waived";
   // Never print "Invalid Date" if the stored timestamp is unparseable.
   const paidAt = inv.paid_at ? new Date(inv.paid_at) : null;
@@ -132,6 +137,11 @@ export function InvoiceRow({ inv, canWrite }: { inv: InvoiceView; canWrite: bool
         <td className="mono" data-lab="Afati">
           <span>
             {due ? due.toLocaleDateString("sq") : "Pa afat"}
+            {issued ? (
+              <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
+                Lëshuar {issued}
+              </small>
+            ) : null}
             {late > 0 ? (
               <small style={{ display: "block", fontSize: 11, color: "var(--err)", marginTop: 2 }}>
                 {late} ditë vonesë

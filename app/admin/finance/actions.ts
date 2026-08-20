@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
-import { currentPeriod, periodLabel } from "@/lib/finance";
+import { currentPeriod, periodLabel, periodOf } from "@/lib/finance";
 import type { DueUpdate, PaidMethod } from "@/lib/supabase/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -27,6 +27,16 @@ async function assertFinanceStaff() {
 const PAYMENT_METHODS: PaidMethod[] = ["cash", "bank", "online"];
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** "2026-08-13" → "2026-08-01", the first-of-month idempotency bucket. */
+function periodFromDate(date: string): string | null {
+  const m = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const month0 = Number(m[2]) - 1;
+  if (month0 < 0 || month0 > 11) return null;
+  return periodOf(Number(m[1]), month0);
+}
 
 /**
  * A "YYYY-MM-DD" payment date becomes noon UTC. Kosovo is UTC+1/+2, so noon
@@ -187,6 +197,63 @@ export async function generateInvoices(
       "generate_dues_for_period",
       { p_period: period },
     );
+    if (error) return { ok: false, error: dbError(error, "Gjenerimi i faturave dështoi. Provo sërish.") };
+
+    revalidateFinance();
+    return { ok: true, created: typeof data === "number" ? data : 0 };
+  } catch (e) {
+    return { ok: false, error: dbError(e) };
+  }
+}
+
+/**
+ * Bills a CHOSEN set of members for the month of a CHOSEN invoice date, via
+ * generate_dues_for_members. This is what the "Gjenero fatura" modal calls.
+ *
+ * The posted member list is never trusted: the RPC's own covering/eligible CTE
+ * only bills members whose in-force membership is billable with an amount > 0
+ * and who do NOT already have an invoice for the period, so a stray or stale id
+ * simply bills nobody. Here we merely reject a malformed request and re-derive
+ * the period from the invoice date (never from a posted period), because the
+ * period — not issued_on — is the first-of-month idempotency bucket.
+ */
+export async function generateInvoicesForMembers(
+  memberIds: string[],
+  issuedOn: string,
+): Promise<{ ok: true; created: number } | { ok: false; error: string }> {
+  try {
+    await assertFinanceStaff();
+
+    const on = (issuedOn || "").trim();
+    if (!DATE_RE.test(on)) {
+      return { ok: false, error: "Data e faturës nuk është e vlefshme." };
+    }
+    const period = periodFromDate(on);
+    if (!period) {
+      return { ok: false, error: "Data e faturës nuk është e vlefshme." };
+    }
+    // A future MONTH cannot be billed: the invoices would freeze today's price
+    // into a month that has not begun and can only be waived, never deleted.
+    if (period > currentPeriod()) {
+      return {
+        ok: false,
+        error: `${periodLabel(period)} nuk ka filluar ende — faturat gjenerohen brenda muajit.`,
+      };
+    }
+
+    const ids = Array.from(new Set(
+      (Array.isArray(memberIds) ? memberIds : []).map((s) => String(s || "").trim()),
+    )).filter((s) => UUID_RE.test(s));
+    if (ids.length === 0) {
+      return { ok: false, error: "Zgjidh të paktën një anëtar." };
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("generate_dues_for_members", {
+      p_period: period,
+      p_member_ids: ids,
+      p_issued_on: on,
+    });
     if (error) return { ok: false, error: dbError(error, "Gjenerimi i faturave dështoi. Provo sërish.") };
 
     revalidateFinance();

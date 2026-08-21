@@ -3,12 +3,13 @@ import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
 import {
-  coveringMemberships, currentPeriod, effectiveStatus, formatEur, isBillable,
+  currentPeriod, effectiveStatus, formatEur,
   isOutstanding, outstandingTotal, parsePeriodParam, periodLabel, periodParam,
   shiftPeriod, sumEur,
   type EffectiveDuesStatus,
 } from "@/lib/finance";
-import type { DuesStatus, MembershipStatus, PaidMethod } from "@/lib/supabase/types";
+import type { DuesStatus, PaidMethod } from "@/lib/supabase/types";
+import { eligibleMembersForPeriod } from "./actions";
 import { GenerateInvoices } from "./GenerateInvoices";
 import { InvoiceRow, type InvoiceView } from "./InvoiceRow";
 
@@ -111,36 +112,16 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
 
   const raw = (invoiceRes.data as unknown as DueRow[] | null) ?? [];
 
-  // The members the modal offers for THIS month: the same pick the generator
-  // makes — one in-force membership per member (coveringMemberships), billable
-  // with an amount > 0 (isBillable) — minus anyone who already has an invoice
-  // for the period, since generate_dues_for_members would skip them anyway.
-  // Read only when a run is possible (never for a future month).
-  const canGenerate = period <= currentPeriod();
-  let eligibleMembers: { member_id: string; full_name: string; plan_name: string | null }[] = [];
-  if (canGenerate) {
-    const memRes = await supabase
-      .from("memberships")
-      .select("id, member_id, amount_eur, billable, status, start_date, end_date, " +
-        "member:profiles!member_id(full_name), plan:membership_plans!plan_id(name_sq)")
-      .limit(2000);
-    type MemRow = {
-      id: string; member_id: string; amount_eur: number | string | null; billable: boolean;
-      status: MembershipStatus; start_date: string; end_date: string | null;
-      member: { full_name: string } | null; plan: { name_sq: string } | null;
-    };
-    const memberships = (memRes.data as unknown as MemRow[] | null) ?? [];
-    const alreadyBilled = new Set(raw.map((d) => d.member_id));
-    eligibleMembers = coveringMemberships(memberships, period)
-      .filter(isBillable)
-      .filter((m) => !alreadyBilled.has(m.member_id))
-      .map((m) => ({
-        member_id: m.member_id,
-        full_name: m.member?.full_name ?? "Anëtar i panjohur",
-        plan_name: m.plan?.name_sq ?? null,
-      }))
-      .sort((a, b) => a.full_name.localeCompare(b.full_name, "sq"));
-  }
+  // The members the modal offers for THIS month, with the counts that explain
+  // an empty answer. Same function the modal re-calls when the admin picks an
+  // invoice date in another month — one pick, so the list on screen and the
+  // list the date implies can never disagree. Called directly (not over the
+  // wire) because a Server Action is a plain async function on the server.
+  //
+  // Computed for FUTURE months too: generating one is still blocked, but the
+  // roster is shown read-only. Hiding it is why the owner got a blank screen in
+  // August and no button at all in September, with no month explaining either.
+  const eligibility = await eligibleMembersForPeriod(period);
 
   const invoices: InvoiceView[] = raw.map((d) => ({
     id: d.id,
@@ -219,8 +200,8 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
         <GenerateInvoices
           period={period}
           label={label}
-          when={isCurrent ? "current" : period > currentPeriod() ? "future" : "past"}
-          members={eligibleMembers}
+          nowPeriod={currentPeriod()}
+          initial={eligibility}
         />
       </div>
 

@@ -1,26 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 // ALL is declared in a plain module, NOT here: the page that renders this bar
 // is a Server Component, and a value exported from a "use client" file reaches
 // the server as a client-reference proxy rather than as the string.
 import { ALL, ALL_YEARS_LABEL } from "../filters";
 
-/** .filter-bar styles chips and search inputs, not selects. */
-const SEL: CSSProperties = {
-  fontFamily: "var(--font-body)", fontSize: 13, padding: "7px 10px",
-  borderRadius: "var(--r-xs)", border: "1px solid var(--line-strong)",
-  background: "var(--surface-1)", color: "var(--text-1)", maxWidth: 210,
-};
-
 export type FilterOption = { value: string; label: string };
 
 export type ExpenseFilterValue = {
-  y: string; cat: string; b: string; st: string; sp: string; pb: string; owed: boolean; q: string;
+  y: string; cat: string; b: string; st: string; sp: string; pb: string;
+  owed: boolean; rcpt: boolean; q: string;
 };
 
-/** The five dropdowns. `st` and `owed` are set by the chips above this bar. */
+/** The five dropdowns. `st`, `owed` and `rcpt` are set by the chips. */
 type Selects = Pick<ExpenseFilterValue, "y" | "cat" | "b" | "sp" | "pb">;
 
 function selectsOf(v: ExpenseFilterValue): Selects {
@@ -31,6 +25,15 @@ const DEBOUNCE_MS = 350;
 
 /**
  * The expense filters, applied the moment you change one — no "Filtro" button.
+ *
+ * LAYOUT. One bar, not two: the search box and a "Filtrat" disclosure are all
+ * that shows on a phone, because this screen is read on a phone in a bike shop
+ * and five dropdowns stacked above the ledger pushed the actual expenses off
+ * the first screen. The chips (which this bar renders but does not own — they
+ * are server-rendered <Link>s handed in as children) and the dropdowns live
+ * inside the panel, which is always open from 760px up, where there is room.
+ * The disclosure starts OPEN whenever a filter is active, so a narrowed list
+ * can never look like the whole ledger.
  *
  * The URL stays the source of truth: the list is a server component and every
  * filtered view has to stay shareable and bookmarkable, so this pushes a new
@@ -45,10 +48,13 @@ const DEBOUNCE_MS = 350;
  *     echo of its OWN push, which is what stops a slow navigation from eating
  *     characters typed while it was in flight;
  *   - the wrapper is still a real <form method="get">, so pressing Enter in the
- *     search box applies everything even with JavaScript off.
+ *     search box applies everything even with JavaScript off. Every chip-owned
+ *     parameter is carried as a hidden input for exactly that case — including
+ *     `rcpt`, or a no-JS submit (and every dropdown change, see hrefOf) would
+ *     silently drop "Pa foto të faturës".
  */
 export function ExpenseFilters({
-  base, defaultY, years, categories, members, sponsors, value,
+  base, defaultY, years, categories, members, sponsors, value, activeCount, children,
 }: {
   base: string;
   /**
@@ -62,11 +68,18 @@ export function ExpenseFilters({
   members: FilterOption[];
   sponsors: FilterOption[];
   value: ExpenseFilterValue;
+  /** How many filters are on, for the badge on the collapsed disclosure. */
+  activeCount: number;
+  /** The status / owed / receipt chips + "Pastro filtrat", from the page. */
+  children?: ReactNode;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [sel, setSel] = useState<Selects>(() => selectsOf(value));
   const [q, setQ] = useState(value.q);
+  // Open on first paint when something is filtered: a hidden panel over a
+  // narrowed list is how a filter gets forgotten and a total gets misread.
+  const [open, setOpen] = useState(activeCount > 0);
   /** The last search text this component sent to the URL. */
   const sentQ = useRef(value.q);
   /**
@@ -96,7 +109,7 @@ export function ExpenseFilters({
     setQ(value.q);
   }, [value.q]);
 
-  /** `chips` carries st/owed, which this bar shows but does not own. */
+  /** `chips` carries st/owed/rcpt, which this bar shows but does not own. */
   function hrefOf(nextSel: Selects, nextQ: string, chips: ExpenseFilterValue): string {
     const params = new URLSearchParams();
     if (nextSel.y && nextSel.y !== defaultY) params.set("y", nextSel.y);
@@ -106,6 +119,7 @@ export function ExpenseFilters({
     if (nextSel.sp && nextSel.sp !== ALL) params.set("sp", nextSel.sp);
     if (nextSel.pb && nextSel.pb !== ALL) params.set("pb", nextSel.pb);
     if (chips.owed) params.set("owed", "1");
+    if (chips.rcpt) params.set("rcpt", "0");
     if (nextQ.trim()) params.set("q", nextQ.trim());
     const s = params.toString();
     return s ? `${base}?${s}` : base;
@@ -140,76 +154,106 @@ export function ExpenseFilters({
     <form
       method="get"
       action={base}
-      className="filter-bar"
+      className="exl-filters"
       onSubmit={(e) => { e.preventDefault(); apply(sel, q, value); }}
     >
-      <label className="meta" htmlFor="f-year">Viti</label>
-      {/* Newest year first and the catch-all LAST: the default window is the
-          newest year with a row in it, and a default listed under "të gjitha"
-          reads as if the screen were showing everything. */}
-      <select id="f-year" name="y" value={sel.y} onChange={(e) => setSelect("y", e.target.value)} style={SEL}>
-        {years.map((y) => <option key={y} value={y}>{y}</option>)}
-        <option value={ALL}>{ALL_YEARS_LABEL}</option>
-      </select>
+      <div className="exl-fbar">
+        <div className="exl-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.6-3.6" />
+          </svg>
+          <input
+            type="search"
+            name="q"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Kërko përshkrim, faturë…"
+            aria-label="Kërko shpenzim"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+          />
+        </div>
 
-      <label className="meta" htmlFor="f-cat">Kategoria</label>
-      <select id="f-cat" name="cat" value={sel.cat} onChange={(e) => setSelect("cat", e.target.value)} style={SEL}>
-        <option value={ALL}>Të gjitha</option>
-        {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-      </select>
+        <button
+          type="button"
+          className={`exl-ftoggle${open ? " open" : ""}`}
+          aria-expanded={open}
+          aria-controls="exl-fpanel"
+          onClick={() => setOpen((v) => !v)}
+        >
+          Filtrat
+          {activeCount > 0 ? <span className="exl-fn">{activeCount}</span> : null}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
 
-      <label className="meta" htmlFor="f-benef">Për kë</label>
-      <select id="f-benef" name="b" value={sel.b} onChange={(e) => setSelect("b", e.target.value)} style={SEL}>
-        <option value={ALL}>Të gjithë</option>
-        <option value="club">Vetëm klubi</option>
-        {members.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-      </select>
+        {/* Always rendered at a fixed width: a status that appears and
+            disappears would shift the bar every time a filter is applied. */}
+        <span className="exl-fstat" aria-live="polite">
+          {pending ? "Duke filtruar…" : "Aplikohen vetvetiu"}
+        </span>
+      </div>
 
-      <label className="meta" htmlFor="f-payer">Paguar nga</label>
-      <select id="f-payer" name="pb" value={sel.pb} onChange={(e) => setSelect("pb", e.target.value)} style={SEL}>
-        <option value={ALL}>Të gjithë</option>
-        <option value="club">Klubi</option>
-        {members.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-      </select>
+      <div id="exl-fpanel" className={`exl-fpanel${open ? " open" : ""}`}>
+        {children ? <div className="exl-chips">{children}</div> : null}
 
-      <label className="meta" htmlFor="f-sp">Burimi</label>
-      <select id="f-sp" name="sp" value={sel.sp} onChange={(e) => setSelect("sp", e.target.value)} style={SEL}>
-        <option value={ALL}>Të gjitha</option>
-        <option value="none">Pa burim</option>
-        {sponsors.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-      </select>
+        <div className="exl-selects">
+          <label className="exl-sel">
+            <span>Viti</span>
+            {/* Newest year first and the catch-all LAST: the default window is
+                the newest year with a row in it, and a default listed under
+                "të gjitha" reads as if the screen were showing everything. */}
+            <select name="y" value={sel.y} onChange={(e) => setSelect("y", e.target.value)}>
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+              <option value={ALL}>{ALL_YEARS_LABEL}</option>
+            </select>
+          </label>
 
-      {/* The status chips and "Më ka mbetur borxh" live above this bar and set
-          the same querystring; carrying them along keeps a no-JS submit from
-          dropping them. */}
+          <label className="exl-sel">
+            <span>Kategoria</span>
+            <select name="cat" value={sel.cat} onChange={(e) => setSelect("cat", e.target.value)}>
+              <option value={ALL}>Të gjitha</option>
+              {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </label>
+
+          <label className="exl-sel">
+            <span>Për kë</span>
+            <select name="b" value={sel.b} onChange={(e) => setSelect("b", e.target.value)}>
+              <option value={ALL}>Të gjithë</option>
+              <option value="club">Vetëm klubi</option>
+              {members.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+          </label>
+
+          <label className="exl-sel">
+            <span>Paguar nga</span>
+            <select name="pb" value={sel.pb} onChange={(e) => setSelect("pb", e.target.value)}>
+              <option value={ALL}>Të gjithë</option>
+              <option value="club">Klubi</option>
+              {members.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+          </label>
+
+          <label className="exl-sel">
+            <span>Burimi</span>
+            <select name="sp" value={sel.sp} onChange={(e) => setSelect("sp", e.target.value)}>
+              <option value={ALL}>Të gjitha</option>
+              <option value="none">Pa burim</option>
+              {sponsors.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      {/* The chips above set the same querystring; carrying them along keeps a
+          no-JS submit from dropping them. */}
       {value.st !== ALL ? <input type="hidden" name="st" value={value.st} /> : null}
       {value.owed ? <input type="hidden" name="owed" value="1" /> : null}
-
-      <input
-        type="search"
-        name="q"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Kërko përshkrim, faturë…"
-        aria-label="Kërko shpenzim"
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="none"
-        spellCheck={false}
-      />
-
-      {/* Always rendered at a fixed width: a status that appears and disappears
-          would shift the bar every time a filter is applied. */}
-      <span
-        className="meta"
-        aria-live="polite"
-        style={{
-          minWidth: 138, whiteSpace: "nowrap",
-          opacity: pending ? 1 : 0.6, transition: "opacity .12s ease",
-        }}
-      >
-        {pending ? "Duke filtruar…" : "Aplikohen vetvetiu"}
-      </span>
+      {value.rcpt ? <input type="hidden" name="rcpt" value="0" /> : null}
     </form>
   );
 }

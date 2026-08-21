@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -8,13 +9,31 @@ import { Lightbox } from "@/components/ui/Lightbox";
 import { actionError } from "@/lib/errors";
 import {
   EXPENSE_PAYMENT_METHOD_LABEL, EXPENSE_STATUS_LABEL, EXPENSE_STATUS_TONE, UNKNOWN_SPONSOR_LABEL,
-  beneficiaryLabel, expenseAmountLabel, formatDate, invoiceNoLabel, isOwedToMember, paidByLabel,
+  beneficiaryLabel, expenseAmountLabel, formatDate, hasAmount, invoiceNoLabel, isOwedToMember,
+  paidByLabel,
 } from "@/lib/finance";
 import { deleteExpense, setReimbursed } from "./actions";
 import { ExpenseDetail } from "./ExpenseDetail";
 import { ExpenseFormModal, type ExpenseOptions, type ExpenseView } from "./ExpenseForm";
 import { receiptPublicUrl } from "./receipt";
 
+/** Width of the actions menu, so it can be flipped away from the right edge. */
+const MENU_W = 224;
+
+/**
+ * ONE expense, as a row of the .exl list (see the block at the end of
+ * app/admin/admin.css). The same markup is a stacked card on a phone and a
+ * column layout on a desktop — grid-template-areas moves the cells, nothing is
+ * duplicated and nothing is hidden, so a phone never scrolls sideways and a
+ * wide screen never reads as a list of half-empty cards.
+ *
+ * TAP TARGETS. The whole row is one target: `.exl-hit` is a transparent button
+ * stretched over the row that opens the read-only detail. The two controls that
+ * must NOT open it — the receipt thumbnail and the actions menu — are lifted
+ * above it with z-index instead of stopping propagation, so a mis-tap on the
+ * padding still lands on "open", which is the thing the owner wants 9 times
+ * out of 10.
+ */
 export function ExpenseRow({
   expense, options, canWrite, canDelete,
 }: {
@@ -28,6 +47,8 @@ export function ExpenseRow({
   const router = useRouter();
   const [pending, start] = useTransition();
 
+  const [mounted, setMounted] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
@@ -36,6 +57,29 @@ export function ExpenseRow({
   const [photoOpen, setPhotoOpen] = useState(false);
   const [note, setNote] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const menuBtn = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => setMounted(true), []);
+
+  // A menu anchored with fixed coordinates has to close when the page moves
+  // under it — the same rule the people list follows.
+  useEffect(() => {
+    if (!menuPos) return;
+    const close = () => setMenuPos(null);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [menuPos]);
+
+  function openMenu() {
+    const r = menuBtn.current?.getBoundingClientRect();
+    if (!r) return;
+    const left = Math.max(8, Math.min(r.right - MENU_W, window.innerWidth - MENU_W - 8));
+    setMenuPos({ top: r.bottom + 6, left });
+  }
 
   // Every stored path resolved to a public URL, dropping any that cannot be
   // built (e.g. missing env) so the thumbnail count matches what opens.
@@ -54,6 +98,11 @@ export function ExpenseRow({
 
   const owed = isOwedToMember(expense);
   const payer = paidByLabel(expense, nameOf);
+  const priced = hasAmount(expense);
+  const amount = expenseAmountLabel(expense);
+  const when = formatDate(expense.occurred_on);
+  const beneficiary = beneficiaryLabel(expense, nameOf);
+  const notes = expense.notes?.trim();
 
   function markReimbursed() {
     setErr(null);
@@ -71,146 +120,153 @@ export function ExpenseRow({
     });
   }
 
+  /** Closes the menu first, then runs the thing that opens a dialog. */
+  function fromMenu(fn: () => void) {
+    setMenuPos(null);
+    setErr(null);
+    fn();
+  }
+
   return (
     <>
-      <tr>
-        <td className="mono" data-lab="Data">
-          <button type="button" className="exp-open exp-open-date" onClick={() => setDetailOpen(true)}>
-            {formatDate(expense.occurred_on)}
+      <div className={`exl-row${owed ? " owed" : ""}${receiptCount > 0 ? " has-rc" : ""}`}>
+        {/* The one obvious tap target. Its label carries the three facts a
+            screen reader needs to tell two rows apart. */}
+        <button
+          type="button"
+          className="exl-hit"
+          onClick={() => setDetailOpen(true)}
+          aria-label={`Hap detajet: ${expense.description} · ${when} · ${amount}`}
+        />
+
+        <div className="exl-date mono">{when}</div>
+
+        {/* Money right-aligned and tabular at every width; an unpriced cost says
+            so in words instead of showing €0.00. */}
+        <div className={`exl-amt${priced ? "" : " none"}`}>{amount}</div>
+
+        <div className="exl-desc">
+          <span className="exl-title">{expense.description}</span>
+          {expense.invoice_no || sponsorName ? (
+            <span className="exl-sub">
+              {expense.invoice_no ? invoiceNoLabel(expense.invoice_no) : null}
+              {expense.invoice_no && sponsorName ? " · " : null}
+              {sponsorName ? `burimi: ${sponsorName}` : null}
+            </span>
+          ) : null}
+          {notes ? <span className="exl-note">{notes}</span> : null}
+        </div>
+
+        <span className="exl-cat">{expense.category_name}</span>
+
+        {receiptCount > 0 ? (
+          <button
+            type="button"
+            className="exl-rc"
+            onClick={() => setPhotoOpen(true)}
+            title={receiptCount > 1 ? `Hap ${receiptCount} foto të faturës` : "Hap foton e faturës"}
+            aria-label={
+              receiptCount > 1
+                ? `Hap ${receiptCount} foto të faturës për “${expense.description}”`
+                : `Hap foton e faturës për “${expense.description}”`
+            }
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={receiptUrls[0]} alt="" loading="lazy" decoding="async" />
+            {receiptCount > 1 ? <span className="exl-rc-n" aria-hidden="true">{receiptCount}</span> : null}
           </button>
-        </td>
+        ) : null}
 
-        <td>
-          <div className="exp-desc">
-            {/* The receipt is the proof, so it sits WITH the description rather
-                than in the crowded actions column: on a phone the row is a
-                card and this is the first thing under the date. One tap opens
-                the lightbox on the first photo; the rest are one swipe away. */}
-            {receiptCount > 0 ? (
-              <button
-                type="button"
-                className="rc-thumb"
-                style={{ position: "relative" }}
-                onClick={() => setPhotoOpen(true)}
-                title={receiptCount > 1 ? `Hap ${receiptCount} foto të faturës` : "Hap foton e faturës"}
-                aria-label={
-                  receiptCount > 1
-                    ? `Hap ${receiptCount} foto të faturës për “${expense.description}”`
-                    : `Hap foton e faturës për “${expense.description}”`
-                }
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={receiptUrls[0]} alt="" loading="lazy" decoding="async" />
-                {receiptCount > 1 ? (
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: "absolute", right: 0, bottom: 0,
-                      background: "color-mix(in oklab, var(--surface-1) 82%, transparent)",
-                      color: "var(--text-1)", fontSize: 10, lineHeight: 1, fontWeight: 600,
-                      padding: "2px 4px", borderTopLeftRadius: "var(--r-xs)",
-                    }}
-                  >
-                    {receiptCount}
-                  </span>
-                ) : null}
-              </button>
-            ) : null}
-            {/* The primary tap target: one tap opens the read-only detail view.
-                It is a sibling of the receipt thumbnail button, so tapping the
-                photo opens the lightbox and never the detail — no propagation
-                juggling needed. The per-row actions live in their own cell. */}
-            <button type="button" className="exp-open" onClick={() => setDetailOpen(true)}>
-              {expense.description}
-              <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>
-                {expense.category_name}
-                {expense.invoice_no ? ` · ${invoiceNoLabel(expense.invoice_no)}` : ""}
-                {sponsorName ? ` · burimi: ${sponsorName}` : ""}
-              </small>
-              {expense.notes ? (
-                <small style={{ display: "block", fontSize: 11.5, color: "var(--text-2)", marginTop: 4 }}>
-                  {expense.notes}
-                </small>
-              ) : null}
-            </button>
-          </div>
-        </td>
+        <div className="exl-who">
+          <span className="exl-k">Për kë</span>
+          <span className="exl-v">{beneficiary}</span>
+        </div>
 
-        <td data-lab="Për kë">{beneficiaryLabel(expense, nameOf)}</td>
+        <div className="exl-paid">
+          <span className="exl-k">Paguar nga</span>
+          <span className="exl-v">{payer}</span>
+          {expense.paid_by === "member" ? (
+            <span className={`exl-vs${owed ? " owed" : ""}`}>
+              {owed ? "klubi ia ka borxh" : "rimbursuar"}
+            </span>
+          ) : expense.payment_method ? (
+            <span className="exl-vs">{EXPENSE_PAYMENT_METHOD_LABEL[expense.payment_method]}</span>
+          ) : null}
+        </div>
 
-        <td className="num" data-lab="Shuma">{expenseAmountLabel(expense)}</td>
-
-        <td data-lab="Paguar nga">
-          <span>
-            {payer}
-            {expense.paid_by === "member" ? (
-              <small
-                style={{
-                  display: "block", fontSize: 11, marginTop: 3,
-                  color: owed ? "var(--err)" : "var(--text-3)",
-                }}
-              >
-                {owed
-                  ? "klubi ia ka borxh"
-                  : `rimbursuar${expense.reimbursed_note ? ` · ${expense.reimbursed_note}` : ""}`}
-              </small>
-            ) : expense.payment_method ? (
-              <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>
-                {EXPENSE_PAYMENT_METHOD_LABEL[expense.payment_method]}
-              </small>
-            ) : null}
-          </span>
-        </td>
-
-        <td data-lab="Statusi">
+        <div className="exl-st">
           <span className={`badge-st ${EXPENSE_STATUS_TONE[expense.status]}`}>
             {EXPENSE_STATUS_LABEL[expense.status]}
           </span>
-        </td>
+        </div>
 
-        <td className="actions">
-          {!canWrite ? (
-            <span className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>Vetëm shikim</span>
-          ) : (
-            <>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditOpen(true)}>
-                Ndrysho
+        {canWrite ? (
+          <div className="exl-act">
+            <button
+              ref={menuBtn}
+              type="button"
+              className="kebab"
+              aria-haspopup="menu"
+              aria-expanded={menuPos ? true : false}
+              aria-label={`Veprime për “${expense.description}”`}
+              onClick={() => (menuPos ? setMenuPos(null) : openMenu())}
+              disabled={pending}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="19" r="1.7" />
+              </svg>
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {menuPos && mounted && createPortal(
+        <>
+          <div className="kebab-backdrop" onClick={() => setMenuPos(null)} />
+          <div className="kebab-menu" role="menu" style={{ top: menuPos.top, left: menuPos.left }}>
+            <button type="button" role="menuitem" onClick={() => fromMenu(() => setDetailOpen(true))}>
+              <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" /><circle cx="12" cy="12" r="2.6" />
+              </svg>
+              Shiko detajet
+            </button>
+            <button type="button" role="menuitem" onClick={() => fromMenu(() => setEditOpen(true))}>
+              <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M4 20h4l10-10-4-4L4 16v4Z" /><path d="M14 6l4 4" />
+              </svg>
+              Ndrysho
+            </button>
+            {owed ? (
+              <button type="button" role="menuitem" onClick={() => fromMenu(() => { setNote(""); setPayOpen(true); })}>
+                <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M20 7H4v10h16V7Z" /><circle cx="12" cy="12" r="2.4" />
+                </svg>
+                Shëno si të rimbursuar
               </button>
-              {owed ? (
-                <button
-                  type="button"
-                  className="btn btn-ember btn-sm"
-                  style={{ marginLeft: 6 }}
-                  onClick={() => { setErr(null); setNote(""); setPayOpen(true); }}
-                >
-                  Shëno si të rimbursuar
-                </button>
-              ) : null}
-              {expense.reimbursed ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  style={{ marginLeft: 6 }}
-                  onClick={() => { setErr(null); setUndoOpen(true); }}
-                >
-                  Zhbëj rimbursimin
-                </button>
-              ) : null}
-              {canDelete ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  style={{ marginLeft: 6 }}
-                  onClick={() => { setErr(null); setDelOpen(true); }}
-                  disabled={pending}
-                >
+            ) : null}
+            {expense.reimbursed ? (
+              <button type="button" role="menuitem" onClick={() => fromMenu(() => setUndoOpen(true))}>
+                <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M4 10h10a6 6 0 1 1-6 6" /><path d="M4 10l4-4M4 10l4 4" />
+                </svg>
+                Zhbëj rimbursimin
+              </button>
+            ) : null}
+            {canDelete ? (
+              <>
+                <div className="sep" />
+                <button type="button" role="menuitem" className="danger" onClick={() => fromMenu(() => setDelOpen(true))}>
+                  <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" />
+                  </svg>
                   Fshij
                 </button>
-              ) : null}
-            </>
-          )}
-        </td>
-      </tr>
+              </>
+            ) : null}
+          </div>
+        </>,
+        document.body,
+      )}
 
       {/* The same viewer the public galleries use — ESC / tap-outside close,
           and it is already the one thing on this site that knows how to show a
@@ -259,8 +315,7 @@ export function ExpenseRow({
       >
         <div style={{ fontSize: 13.5, color: "var(--text-2)", marginBottom: 14, lineHeight: 1.6 }}>
           <strong>{payer}</strong> i ka dhënë paratë e veta për “{expense.description}” më{" "}
-          {formatDate(expense.occurred_on)} ({expenseAmountLabel(expense)}). Pas kësaj, klubi nuk i ka
-          më borxh.
+          {when} ({amount}). Pas kësaj, klubi nuk i ka më borxh.
         </div>
         <div className="field">
           <label htmlFor={`rn-${expense.id}`}>Si u rimbursua</label>
@@ -311,8 +366,8 @@ export function ExpenseRow({
         confirmLabel="Fshij"
         message={
           <>
-            “{expense.description}” ({expenseAmountLabel(expense)} · {formatDate(expense.occurred_on)})
-            hiqet përgjithmonë nga regjistri i shpenzimeve. Ky veprim nuk kthehet.
+            “{expense.description}” ({amount} · {when}) hiqet përgjithmonë nga regjistri i
+            shpenzimeve. Ky veprim nuk kthehet.
           </>
         }
         onConfirm={async () => {

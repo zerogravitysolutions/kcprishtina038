@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
 import {
-  UNKNOWN_CATEGORY_LABEL, UNKNOWN_MEMBER_LABEL, amountTotalLabel, amountTotalValue, formatEur,
-  isOwedToMember, owedToMembers, owedToMembersTotal, sumAmounts,
+  UNKNOWN_CATEGORY_LABEL, UNKNOWN_MEMBER_LABEL, type AmountTotal, amountTotalLabel,
+  amountTotalValue, isOwedToMember, owedToMembers, owedToMembersTotal, periodLabel, sumAmounts,
 } from "@/lib/finance";
 import type { ExpensePaidBy, ExpensePaymentMethod, ExpenseStatus } from "@/lib/supabase/types";
 import { NewExpenseButton, type ExpenseOptions, type ExpenseView } from "./ExpenseForm";
@@ -67,6 +67,34 @@ const STATUS_FILTERS = [
 /** "1 shpenzim" / "3 shpenzime" — a bare count reads wrong in the singular. */
 function expenseCount(n: number): string {
   return `${n} ${n === 1 ? "shpenzim" : "shpenzime"}`;
+}
+
+/** One month of the ledger, with its own subtotal. */
+type MonthGroup = { key: string; label: string; rows: ExpenseView[]; total: AmountTotal };
+
+/**
+ * The rows cut into months, newest first.
+ *
+ * PRESENTATION ONLY — nothing is filtered, reordered or dropped: the rows
+ * arrive sorted by occurred_on desc and are walked once, so a group boundary is
+ * simply where the month changes. The month heading carries that month's
+ * amountTotalLabel, which is how the owner reconciles a sheet ("gushti: €412 ·
+ * 1 pa shumë") without adding the rows up by eye. A row whose date could not be
+ * read is not silently filed under this month; it gets its own group and says
+ * so, because a cost in the wrong month is a wrong total.
+ */
+function groupByMonth(rows: ExpenseView[]): MonthGroup[] {
+  const out: MonthGroup[] = [];
+  for (const row of rows) {
+    const ym = row.occurred_on?.slice(0, 7) ?? "";
+    const valid = /^\d{4}-\d{2}$/.test(ym);
+    const key = valid ? ym : "unknown";
+    const last = out[out.length - 1];
+    if (last && last.key === key) last.rows.push(row);
+    else out.push({ key, label: valid ? periodLabel(`${ym}-01`) : "Datë e panjohur", rows: [row], total: { total: 0, missing: 0, counted: 0 } });
+  }
+  for (const g of out) g.total = sumAmounts(g.rows);
+  return out;
 }
 
 export default async function ExpensesPage({ searchParams }: { searchParams: SearchParams }) {
@@ -301,6 +329,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     .map(([id, v]) => ({ id, name: v.name, total: sumAmounts(v.rows) }))
     .sort((a, b) => b.total.total - a.total.total || b.total.missing - a.total.missing);
 
+  // The list itself, cut into months. Same rows, same order.
+  const months = groupByMonth(rows);
+
   // ---- year picker ---------------------------------------------------------
   // Built from the two bounds, so it spans every year the ledger covers and
   // stops at the newest one — which is also the default, so the default is
@@ -343,9 +374,14 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   const overviewLink = `/admin/finance/overview?y=${encodeURIComponent(year)}`;
 
   const yearLabel = yearWindowLabel(year);
-  const filtered =
-    categoryFilter !== ALL || beneficiaryFilter !== ALL || statusFilter !== ALL
-    || sponsorFilter !== ALL || payerFilter !== ALL || owedOnly || noReceiptOnly || !!query;
+  // The year is the FRAME, not a filter — it is never counted here, or the
+  // badge would read "1" on an untouched screen.
+  const activeCount =
+    (categoryFilter !== ALL ? 1 : 0) + (beneficiaryFilter !== ALL ? 1 : 0)
+    + (statusFilter !== ALL ? 1 : 0) + (sponsorFilter !== ALL ? 1 : 0)
+    + (payerFilter !== ALL ? 1 : 0) + (owedOnly ? 1 : 0) + (noReceiptOnly ? 1 : 0)
+    + (query ? 1 : 0);
+  const filtered = activeCount > 0;
 
   return (
     <>
@@ -361,26 +397,30 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         {canWrite ? <NewExpenseButton options={options} /> : null}
       </div>
 
-      <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", marginBottom: 16 }}>
-        <Kpi
+      {/* The year's four figures, in ONE band instead of four tall tiles: on a
+          phone the old grid pushed the ledger a full screen down, and these are
+          a heading for the list, not the page's subject. Every figure keeps its
+          "N pa shumë" count — that is how the year gets reconciled. */}
+      <div className="exl-sum">
+        <Fig
           accent="#2E90FA"
           label="Gjithsej të shfaqura"
           value={amountTotalValue(shown)}
           sub={`${expenseCount(rows.length)}${shown.missing > 0 ? ` · ${shown.missing} pa shumë` : ""}`}
         />
-        <Kpi
+        <Fig
           accent="#16A34A"
           label="Paguar"
           value={amountTotalValue(paid)}
           sub={`${expenseCount(paid.counted + paid.missing)}${paid.missing > 0 ? ` · ${paid.missing} pa shumë` : ""}`}
         />
-        <Kpi
+        <Fig
           accent="#E0562D"
           label="Papaguar"
           value={amountTotalValue(unpaid)}
           sub={`${expenseCount(unpaid.counted + unpaid.missing)}${unpaid.missing > 0 ? ` · ${unpaid.missing} pa shumë` : ""}`}
         />
-        <Kpi
+        <Fig
           accent="#B42318"
           label="Borxh ndaj anëtarëve"
           value={amountTotalValue(owedTotal)}
@@ -417,8 +457,23 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         </div>
       ) : null}
 
-      {/* ---- filters ---- */}
-      <div className="filter-bar">
+      {/* ---- filters ----
+          ONE bar. The chips are server-rendered links (they are just
+          querystrings), so they are handed to the client bar as children and
+          collapse with the dropdowns on a phone. */}
+      <ExpenseFilters
+        base={base}
+        defaultY={defaultY}
+        years={years}
+        categories={categoryRows.map((c) => ({ value: c.id, label: `${c.name_sq}${c.active ? "" : " (joaktive)"}` }))}
+        members={memberRows.map((m) => ({ value: m.id, label: m.full_name }))}
+        sponsors={sponsorRows.map((s) => ({ value: s.id, label: s.name }))}
+        activeCount={activeCount}
+        value={{
+          y: year, cat: categoryFilter, b: beneficiaryFilter, st: statusFilter,
+          sp: sponsorFilter, pb: payerFilter, owed: owedOnly, rcpt: noReceiptOnly, q: query,
+        }}
+      >
         {STATUS_FILTERS.map((s) => (
           <Link key={s.value} className={`chip ${statusFilter === s.value ? "active" : ""}`} href={link({ st: s.value })}>
             {s.label}
@@ -439,20 +494,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
             Pastro filtrat
           </Link>
         ) : null}
-      </div>
-
-      <ExpenseFilters
-        base={base}
-        defaultY={defaultY}
-        years={years}
-        categories={categoryRows.map((c) => ({ value: c.id, label: `${c.name_sq}${c.active ? "" : " (joaktive)"}` }))}
-        members={memberRows.map((m) => ({ value: m.id, label: m.full_name }))}
-        sponsors={sponsorRows.map((s) => ({ value: s.id, label: s.name }))}
-        value={{
-          y: year, cat: categoryFilter, b: beneficiaryFilter, st: statusFilter,
-          sp: sponsorFilter, pb: payerFilter, owed: owedOnly, q: query,
-        }}
-      />
+      </ExpenseFilters>
 
       {raw.length >= ROW_CAP ? (
         <div className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 10px" }}>
@@ -460,41 +502,37 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         </div>
       ) : null}
 
-      <div className="table-wrap" style={{ marginBottom: 16 }}>
-        <table className="t">
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Shpenzimi</th>
-              <th>Për kë</th>
-              {/* .num on the header as well as the cell, or the title sits left
-                  of the digits it names. */}
-              <th className="num">Shuma</th>
-              <th>Paguar nga</th>
-              <th>Statusi</th>
-              <th>Veprime</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={7} style={{ padding: 18, color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
-                  {expenses.length === 0
-                    ? `Nuk ka asnjë shpenzim të regjistruar për ${yearLabel}. Shtyp “Shto shpenzim” për të nisur.`
-                    : "Asnjë shpenzim nuk i përgjigjet këtyre filtrave."}
-                </td>
-              </tr>
-            ) : (
-              rows.map((e) => (
-                <ExpenseRow key={e.id} expense={e} options={options} canWrite={canWrite} canDelete={isAdmin} />
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* ---- the ledger ----
+          A card list on a phone, columns on a desktop, from one set of markup
+          (see .exl in admin.css). Months are the spine: each heading carries
+          that month's own total, so the year adds up on screen. */}
+      {rows.length === 0 ? (
+        <div className="exl-empty">
+          {expenses.length === 0
+            ? `Nuk ka asnjë shpenzim të regjistruar për ${yearLabel}. Shtyp “Shto shpenzim” për të nisur.`
+            : "Asnjë shpenzim nuk i përgjigjet këtyre filtrave."}
+        </div>
+      ) : (
+        <div className="exl">
+          {months.map((m) => (
+            <section key={m.key} className="exl-month">
+              <div className="exl-mhead">
+                <h2>{m.label}</h2>
+                <span className="exl-mcount">{expenseCount(m.rows.length)}</span>
+                <span className="exl-mtot mono">{amountTotalLabel(m.total)}</span>
+              </div>
+              <div className="exl-rows">
+                {m.rows.map((e) => (
+                  <ExpenseRow key={e.id} expense={e} options={options} canWrite={canWrite} canDelete={isAdmin} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
 
       {categoryTotals.length > 0 ? (
-        <div className="card">
+        <div className="card" style={{ marginTop: 16 }}>
           <div className="card-head">
             <h3>Sipas kategorisë</h3>
             <span className="kicker">{amountTotalLabel(shown)}</span>
@@ -512,15 +550,16 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   );
 }
 
-function Kpi({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
+/** One figure of the summary band: dot + label, the money, the count under it. */
+function Fig({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent: string }) {
   return (
-    <div className="kpi">
-      <div className="lab" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {accent ? <span style={{ width: 7, height: 7, borderRadius: 999, background: accent, flexShrink: 0 }} /> : null}
+    <div className="exl-fig">
+      <div className="exl-fig-lab">
+        <span className="dot" style={{ background: accent }} />
         {label}
       </div>
-      <div className="val" style={{ fontSize: 30 }}>{value}</div>
-      {sub ? <div className="delta">{sub}</div> : null}
+      <div className="exl-fig-val">{value}</div>
+      {sub ? <div className="exl-fig-sub">{sub}</div> : null}
     </div>
   );
 }

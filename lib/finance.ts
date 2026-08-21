@@ -618,8 +618,24 @@ export function invoiceNoLabel(invoiceNo: string | null | undefined): string {
   return v ? v : "Pa faturë";
 }
 
-/** "€1234.00 · 3 pa shumë" — one string that never hides what it skipped. */
+/**
+ * "€1234.00 · 3 pa shumë" — one string that never hides what it skipped.
+ *
+ * When NOT ONE row could be counted there is no euro figure to print, and
+ * formatEur() would put "€0.00" in front of the reader for a total that is
+ * unknown, not zero — a month holding one unpriced cost would head itself
+ * "€0.00 · 1 pa shumë", i.e. "this month cost nothing". Same rule as
+ * amountTotalValue(), so a screen showing both (the expenses ledger prints this
+ * on every month heading and amountTotalValue in the band above it) cannot say
+ * two different things about the identical set of rows.
+ *
+ * An EMPTY set is a different case and still reads "€0.00": nothing spent
+ * really is zero.
+ */
 export function amountTotalLabel(t: AmountTotal): string {
+  if (t.counted === 0 && t.missing > 0) {
+    return t.missing === 1 ? "Pa shumë" : `${t.missing} pa shumë`;
+  }
   const money = formatEur(t.total);
   return t.missing > 0 ? `${money} · ${t.missing} pa shumë` : money;
 }

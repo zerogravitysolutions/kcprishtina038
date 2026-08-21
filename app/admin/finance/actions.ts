@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
-import { currentPeriod, periodLabel, periodOf } from "@/lib/finance";
-import type { DueUpdate, PaidMethod } from "@/lib/supabase/types";
+import {
+  billingMode, coveringMemberships, currentPeriod, isBillable, periodLabel, periodOf,
+  shiftPeriod, type BillingMode,
+} from "@/lib/finance";
+import type { DueUpdate, MembershipStatus, PaidMethod } from "@/lib/supabase/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -206,6 +209,218 @@ export async function generateInvoices(
   }
 }
 
+// ------------------------------------------------------- who can be billed
+//
+// The modal's member list. It lives here, in ONE async function, because the
+// list has to be recomputed from the client the moment the admin picks an
+// invoice date in another month — a roster computed for the page's month while
+// the date says another one is the exact lie that made this feature useless.
+// The page calls it too (a direct call, not a POST), so the first paint and
+// every refetch come out of the same pick.
+
+/** One member the generator would bill for the asked period. */
+export type EligibleMember = {
+  member_id: string;
+  full_name: string;
+  plan_name: string | null;
+};
+
+/** A membership that exists but has not started yet in the asked period. */
+export type UpcomingMembership = {
+  member_id: string;
+  full_name: string;
+  /** "YYYY-MM-DD" — the day billing begins for this rider. */
+  start_date: string;
+};
+
+/** A membership in force for the period that produces no invoice, and why. */
+export type NonBillableMembership = {
+  member_id: string;
+  full_name: string;
+  /** 'non_billable' = a racer, 'waived' = a paying tier priced at 0. */
+  mode: BillingMode;
+};
+
+/**
+ * WHY the list is empty, decided from counts on the server — never guessed in
+ * the UI. The old copy named two causes and omitted the real one, and the owner
+ * spent a day on it.
+ */
+export type EligibilityReason =
+  | "ok"              // there is someone to bill
+  | "no_memberships"  // not one membership row exists — nobody was ever enrolled
+  | "none_covering"   // memberships exist, none is in force for this month
+  | "none_billable"   // in force, but non-billable (racer) or priced at 0
+  | "all_billed";     // everyone billable already holds an invoice for it
+
+export type Eligibility = {
+  /** The month this answer is about. Always first-of-month. */
+  period: string;
+  members: EligibleMember[];
+  reason: EligibilityReason;
+  /** Every membership row that was examined. 0 means nobody is enrolled. */
+  totalMemberships: number;
+  /** Members in force AND billable for the period, invoiced or not. */
+  billableCount: number;
+  /** How many of those already hold an invoice for the period. */
+  alreadyBilled: number;
+  upcoming: UpcomingMembership[];
+  upcomingTotal: number;
+  nonBillable: NonBillableMembership[];
+  nonBillableTotal: number;
+};
+
+export type EligibilityResult =
+  | { ok: true; data: Eligibility }
+  | { ok: false; error: string };
+
+const MEMBERSHIP_SELECT =
+  "id, member_id, amount_eur, billable, status, start_date, end_date, " +
+  "member:profiles!member_id(full_name), plan:membership_plans!plan_id(name_sq)";
+
+type MembershipRow = {
+  id: string;
+  member_id: string;
+  amount_eur: number | string | null;
+  billable: boolean;
+  status: MembershipStatus;
+  start_date: string;
+  end_date: string | null;
+  member: { full_name: string } | null;
+  plan: { name_sq: string } | null;
+};
+
+/** Enough names to explain the empty state without shipping the whole club. */
+const REASON_LIST_CAP = 12;
+
+const UNKNOWN_MEMBER = "Anëtar i panjohur";
+
+function byName(a: { full_name: string }, b: { full_name: string }): number {
+  return a.full_name.localeCompare(b.full_name, "sq");
+}
+
+/**
+ * The members the generator would bill for `period`, plus the counts that
+ * explain the answer when the list comes back empty.
+ *
+ * The pick is coveringMemberships() + isBillable() minus anyone who already has
+ * an invoice for the period — deliberately the same three steps as the
+ * covering/eligible CTEs inside generate_dues_for_members, so the modal can
+ * never offer a member the RPC would then silently skip.
+ *
+ * A failed read is returned as an ERROR, never as an empty list: "the query
+ * failed" and "nobody qualifies" look identical on screen, and telling them
+ * apart is the whole point of this function.
+ */
+export async function eligibleMembersForPeriod(period: string): Promise<EligibilityResult> {
+  try {
+    await assertFinanceStaff();
+
+    const p = (period || "").trim();
+    // periodFromDate(p) === p also rejects a mid-month date: the period IS the
+    // first-of-month idempotency bucket, and anything else would silently
+    // answer about a different set of rows than it was asked about.
+    if (!DATE_RE.test(p) || periodFromDate(p) !== p) {
+      return { ok: false, error: "Muaji i faturimit nuk është i vlefshëm." };
+    }
+
+    const supabase = await createClient();
+    // Ordered before the cap, like every other capped read in the panel: an
+    // unordered limit returns an arbitrary slice, so which memberships got
+    // dropped — i.e. which member silently stopped being offered a bill —
+    // would change between refreshes. Newest first, so the cap can only ever
+    // cut the oldest (most likely already-ended) rows.
+    const memRes = await supabase
+      .from("memberships")
+      .select(MEMBERSHIP_SELECT)
+      .order("start_date", { ascending: false })
+      .limit(2000);
+    if (memRes.error) {
+      return { ok: false, error: dbError(memRes.error, "Leximi i anëtarësive dështoi. Provo sërish.") };
+    }
+    // Only the ids: who already has an invoice for this month. Read here rather
+    // than reused from the page, so the answer stays right when the page list
+    // is capped or when this is called for a month the page is not showing.
+    const billedRes = await supabase.from("dues").select("member_id").eq("period", p).limit(5000);
+    if (billedRes.error) {
+      return { ok: false, error: dbError(billedRes.error, "Leximi i faturave të muajit dështoi. Provo sërish.") };
+    }
+
+    const memberships = (memRes.data as unknown as MembershipRow[] | null) ?? [];
+    const billedIds = new Set(
+      ((billedRes.data as { member_id: string }[] | null) ?? []).map((d) => d.member_id),
+    );
+
+    const covering = coveringMemberships(memberships, p);
+    const coveringIds = new Set(covering.map((m) => m.member_id));
+    const billable = covering.filter(isBillable);
+
+    const members: EligibleMember[] = billable
+      .filter((m) => !billedIds.has(m.member_id))
+      .map((m) => ({
+        member_id: m.member_id,
+        full_name: m.member?.full_name ?? UNKNOWN_MEMBER,
+        plan_name: m.plan?.name_sq ?? null,
+      }))
+      .sort(byName);
+
+    // Memberships that only START after this month — the case the old copy did
+    // not know about, and the one that was actually true in production.
+    const nextPeriod = shiftPeriod(p, 1);
+    const upcomingByMember = new Map<string, UpcomingMembership>();
+    for (const m of memberships) {
+      if (m.status === "ended") continue;
+      if (coveringIds.has(m.member_id)) continue;
+      if (m.start_date < nextPeriod) continue;
+      const held = upcomingByMember.get(m.member_id);
+      // Earliest start wins: that is the day this rider starts costing money.
+      if (!held || m.start_date < held.start_date) {
+        upcomingByMember.set(m.member_id, {
+          member_id: m.member_id,
+          full_name: m.member?.full_name ?? UNKNOWN_MEMBER,
+          start_date: m.start_date,
+        });
+      }
+    }
+    const upcomingAll = [...upcomingByMember.values()]
+      .sort((a, b) => (a.start_date < b.start_date ? -1 : a.start_date > b.start_date ? 1 : byName(a, b)));
+
+    const nonBillableAll: NonBillableMembership[] = covering
+      .filter((m) => !isBillable(m))
+      .map((m) => ({
+        member_id: m.member_id,
+        full_name: m.member?.full_name ?? UNKNOWN_MEMBER,
+        mode: billingMode(m),
+      }))
+      .sort(byName);
+
+    const reason: EligibilityReason =
+      members.length > 0 ? "ok"
+        : memberships.length === 0 ? "no_memberships"
+          : billable.length > 0 ? "all_billed"
+            : covering.length > 0 ? "none_billable"
+              : "none_covering";
+
+    return {
+      ok: true,
+      data: {
+        period: p,
+        members,
+        reason,
+        totalMemberships: memberships.length,
+        billableCount: billable.length,
+        alreadyBilled: billable.length - members.length,
+        upcoming: upcomingAll.slice(0, REASON_LIST_CAP),
+        upcomingTotal: upcomingAll.length,
+        nonBillable: nonBillableAll.slice(0, REASON_LIST_CAP),
+        nonBillableTotal: nonBillableAll.length,
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: dbError(e, "Leximi i anëtarëve për faturim dështoi. Provo sërish.") };
+  }
+}
+
 /**
  * Bills a CHOSEN set of members for the month of a CHOSEN invoice date, via
  * generate_dues_for_members. This is what the "Gjenero fatura" modal calls.
@@ -216,10 +431,16 @@ export async function generateInvoices(
  * simply bills nobody. Here we merely reject a malformed request and re-derive
  * the period from the invoice date (never from a posted period), because the
  * period — not issued_on — is the first-of-month idempotency bucket.
+ *
+ * `expectedPeriod` is the month the CALLER believed it was billing. It is not
+ * used to pick the bucket — the date still decides that — it is only checked
+ * against it, so a screen whose date and whose member list have drifted apart
+ * gets an error instead of quietly billing a different month than it showed.
  */
 export async function generateInvoicesForMembers(
   memberIds: string[],
   issuedOn: string,
+  expectedPeriod: string,
 ): Promise<{ ok: true; created: number } | { ok: false; error: string }> {
   try {
     await assertFinanceStaff();
@@ -231,6 +452,16 @@ export async function generateInvoicesForMembers(
     const period = periodFromDate(on);
     if (!period) {
       return { ok: false, error: "Data e faturës nuk është e vlefshme." };
+    }
+    const expected = (expectedPeriod || "").trim();
+    if (!DATE_RE.test(expected) || periodFromDate(expected) !== expected) {
+      return { ok: false, error: "Muaji i faturimit nuk është i vlefshëm." };
+    }
+    if (expected !== period) {
+      return {
+        ok: false,
+        error: `Data e faturës nuk bie në ${periodLabel(expected)}. Rifresko faqen dhe provo sërish.`,
+      };
     }
     // A future MONTH cannot be billed: the invoices would freeze today's price
     // into a month that has not begun and can only be waived, never deleted.

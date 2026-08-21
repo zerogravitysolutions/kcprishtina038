@@ -675,16 +675,8 @@ input.num { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
 @keyframes pc-slide { 0% { transform: translateX(-105%); } 100% { transform: translateX(300%); } }
 @media (prefers-reduced-motion: reduce) { .pc-bar > i { width: 100%; animation: none; opacity: .55; } }
 
-/* ---------- Receipt thumbnail in the expenses list ---------- */
-.exp-desc { display: flex; align-items: flex-start; gap: 10px; }
-.rc-thumb { width: 34px; height: 44px; flex-shrink: 0; margin-top: 1px; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r-xs); overflow: hidden; background: var(--surface-2); cursor: zoom-in; display: block; }
-.rc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.rc-thumb:hover { border-color: var(--accent); }
-.rc-thumb:focus-visible { outline: none; box-shadow: var(--ring); }
-@media (max-width: 800px) {
-  /* In card mode the row is finger-sized, so the proof gets a real tap target. */
-  .rc-thumb { width: 44px; height: 56px; }
-}
+/* The expenses list is no longer a table — its row, its receipt thumbnail and
+   its detail view are defined in the .exl / .exd block at the END of this file. */
 
 /* =========================================================
    All-time club balance — /admin/finance/overview?v=arka
@@ -780,56 +772,8 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   table.t tbody tr.sum.total td, table.t tbody tr.sum.total:hover td { background: transparent; box-shadow: none; }
 }
 
-/* =========================================================
-   Expense detail — read-only view opened by tapping a row
-   (app/admin/finance/expenses/ExpenseDetail.tsx)
-   =========================================================
-   The list row's date and description are buttons that open
-   this view; styled to read as plain text, not controls, so
-   the row still looks like a row while being fully tappable
-   (44px on touch, matching the touch block above). */
-.exp-open {
-  appearance: none; background: transparent; border: 0; padding: 0; margin: 0;
-  font: inherit; color: inherit; text-align: left; cursor: pointer;
-  display: block; width: 100%; min-width: 0;
-}
-.exp-open:hover { color: var(--accent); }
-.exp-open:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-xs); }
-.exp-open-date { display: inline-block; width: auto; }
-@media (hover: none) and (pointer: coarse) {
-  /* The whole description block is the tap target on a phone. */
-  .exp-desc .exp-open { min-height: 44px; }
-}
-
-/* The detail body: a single column of labelled rows, grouped. */
-.exp-detail { display: flex; flex-direction: column; gap: 20px; }
-.exp-dl-group { display: flex; flex-direction: column; }
-.exp-dl-group > .kicker {
-  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.16em;
-  text-transform: uppercase; color: var(--text-3); margin-bottom: 4px;
-}
-.exp-dl-row {
-  display: flex; flex-direction: column; gap: 3px;
-  padding: 10px 0; border-top: 1px solid var(--line);
-}
-.exp-dl-row:first-of-type { border-top: 0; }
-.exp-dl-k {
-  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--text-3);
-}
-.exp-dl-v { font-size: 14.5px; color: var(--text-1); line-height: 1.5; overflow-wrap: anywhere; }
-.exp-dl-v .mono { font-size: 13.5px; }
-.exp-dl-sub { font-size: 12px; color: var(--text-3); margin-top: 3px; }
-.exp-dl-owed { font-size: 12.5px; color: var(--err); font-weight: 600; margin-top: 3px; }
-.exp-dl-note {
-  font-size: 14px; color: var(--text-1); line-height: 1.6;
-  white-space: pre-wrap; overflow-wrap: anywhere;
-  background: var(--surface-2); border: 1px solid var(--line);
-  border-radius: var(--r-sm); padding: 12px 14px; margin-top: 4px;
-}
-
-/* Receipt photos: portrait thumbnails (a slip is a tall strip), each opening
-   the lightbox. Sized for a finger. */
+/* Receipt photos in the detail view: portrait thumbnails (a slip is a tall
+   strip), each opening the lightbox. Sized for a finger. */
 .exp-rc-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 .exp-rc-thumb {
   width: 84px; height: 108px; flex-shrink: 0; padding: 0;
@@ -839,3 +783,451 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 .exp-rc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .exp-rc-thumb:hover { border-color: var(--accent); }
 .exp-rc-thumb:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* =========================================================
+   THE EXPENSE LEDGER — /admin/finance/expenses
+   =========================================================
+   This screen is recorded and reviewed ON A PHONE, standing
+   in a bike shop, and read again on a laptop when the year is
+   reconciled. It used to be a 7-column table folded into
+   cramped cards by the generic table.t fallback; it is now a
+   purpose-built list.
+
+   ONE SET OF MARKUP, THREE SHAPES. .exl-row is a grid and the
+   only thing that changes between a phone and a wide screen
+   is grid-template-areas. Nothing is duplicated and nothing is
+   display:none'd per breakpoint, so a cell can never go
+   missing on one size and every fact stays in the accessibility
+   tree exactly once:
+     - up to 759px  : a stacked card. Date + amount on top,
+                      description, then category / receipt /
+                      status, then who it was for and who paid.
+     - 760px and up : columns, two lines per row.
+     - 1440px and up: columns, one line per row.
+
+   THE TAP TARGET. .exl-hit is a transparent button stretched
+   over the whole row (z-index 1) that opens the read-only
+   detail; the receipt thumbnail and the actions menu sit above
+   it (z-index 2). That is why a mis-tap anywhere on a row's
+   padding still opens the expense instead of doing nothing,
+   and why neither of the two real controls needs to stop
+   propagation to stay reachable.
+
+   MONEY. Every euro figure is tabular and right-aligned, and a
+   row with no amount renders lib/finance's words ("Pa shumë")
+   at a smaller, muted size — an unpriced cost must never look
+   like a €0.00 one. */
+
+/* ---------- The year's figures, as one band ---------- */
+.exl-sum {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--e1);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.exl-fig { padding: 13px 16px 15px; border-left: 1px solid var(--line); min-width: 0; }
+.exl-fig:first-child { border-left: 0; }
+.exl-fig-lab {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.exl-fig-lab .dot { width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; }
+/* overflow-wrap: the band clips, and a euro figure cut in half is a wrong
+   figure. It wraps instead. */
+.exl-fig-val {
+  margin-top: 8px;
+  font-family: var(--font-display); font-weight: 600; font-size: 23px;
+  letter-spacing: -.028em; line-height: 1.1; color: var(--text-1);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  overflow-wrap: anywhere;
+}
+.exl-fig-sub {
+  margin-top: 6px;
+  font-family: var(--font-mono); font-size: 10.5px; line-height: 1.5; color: var(--text-3);
+}
+@media (max-width: 760px) {
+  .exl-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .exl-fig:nth-child(odd) { border-left: 0; }
+  .exl-fig:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  .exl-fig-val { font-size: 20px; }
+}
+@media (min-width: 1200px) { .exl-fig-val { font-size: 26px; } }
+
+/* ---------- Filters: one bar, collapsible on a phone ---------- */
+.exl-filters {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--e1);
+  margin-bottom: 14px;
+}
+.exl-fbar { display: flex; align-items: center; gap: 8px; padding: 9px 10px; }
+.exl-search {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r-sm); padding: 0 11px;
+}
+.exl-search:focus-within { border-color: var(--accent); box-shadow: var(--ring); }
+.exl-search svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-3); }
+.exl-search input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+  font-family: var(--font-body); font-size: 14px; color: var(--text-1); padding: 9px 0;
+}
+.exl-search input::placeholder { color: var(--text-3); }
+
+.exl-ftoggle {
+  display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+  padding: 9px 12px; border-radius: 999px;
+  border: 1px solid var(--line-strong); background: var(--surface-1);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em;
+  color: var(--text-2); cursor: pointer;
+}
+.exl-ftoggle:hover { background: var(--surface-2); color: var(--text-1); }
+.exl-ftoggle svg { width: 14px; height: 14px; transition: transform .16s ease; }
+.exl-ftoggle.open svg { transform: rotate(180deg); }
+.exl-fn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px;
+  background: var(--accent); color: var(--on-accent);
+  font-size: 10px; font-weight: 600;
+}
+.exl-fstat {
+  flex-shrink: 0; margin-left: 2px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-3);
+  min-width: 130px; white-space: nowrap;
+}
+
+.exl-fpanel { display: none; padding: 0 12px 12px; }
+.exl-fpanel.open { display: block; }
+.exl-chips { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 10px; }
+.exl-selects {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 9px 10px; padding-top: 12px;
+}
+.exl-sel { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.exl-sel > span {
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.exl-sel select {
+  width: 100%; min-width: 0;
+  font-family: var(--font-body); font-size: 13px; padding: 8px 10px;
+  border-radius: var(--r-xs); border: 1px solid var(--line-strong);
+  background: var(--surface-1); color: var(--text-1);
+}
+.exl-sel select:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+@media (max-width: 759px) {
+  /* No room for a status line beside the search box and the toggle; the
+     toggle's own badge is what says a filter is on. */
+  .exl-fstat { display: none; }
+}
+@media (min-width: 760px) {
+  /* Wide enough to show everything at once — the disclosure is a phone
+     affordance only, so the button goes and the panel is always open. */
+  .exl-ftoggle { display: none; }
+  .exl-fpanel { display: block; }
+}
+
+/* ---------- The list ---------- */
+.exl { display: flex; flex-direction: column; gap: 18px; }
+
+/* Months are the spine of the ledger. The heading sticks under the admin top
+   bar so the month a row belongs to is on screen while scrolling it, and it
+   carries that month's own total — the year adds up in front of the reader. */
+.exl-mhead {
+  position: sticky; top: var(--top-h); z-index: 4;
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 9px 2px 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in oklab, var(--bg) 90%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.exl-mhead h2 {
+  margin: 0; font-family: var(--font-display); font-weight: 600;
+  font-size: 15px; letter-spacing: -.01em; color: var(--text-1);
+}
+.exl-mcount { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; color: var(--text-3); }
+.exl-mtot { margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--text-1); }
+
+.exl-rows { display: flex; flex-direction: column; gap: 10px; }
+
+.exl-empty {
+  padding: 34px 20px; text-align: center;
+  color: var(--text-3); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7;
+  background: var(--surface-1); border: 1px dashed var(--line-strong); border-radius: var(--r-md);
+}
+
+/* ---------- One expense ---------- */
+/* PHONE (base). auto | 1fr | auto | auto — the last column is the actions
+   menu and collapses to nothing for a read-only user, which is why the amount
+   and the status badge SPAN the last two columns: they stay flush right either
+   way. `pic` only exists on .has-rc, so a row with no receipt has no empty
+   indent under its description. */
+.exl-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "date date amt  amt"
+    "desc desc desc desc"
+    "cat  cat  st   st"
+    "who  who  paid act";
+  gap: 7px 10px;
+  align-items: start;
+  padding: 12px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--e1);
+  transition: border-color .15s ease, box-shadow .18s ease, background .15s ease;
+}
+.exl-row.has-rc {
+  grid-template-areas:
+    "date date amt  amt"
+    "desc desc desc desc"
+    "pic  cat  st   st"
+    "who  who  paid act";
+}
+.exl-row:hover { border-color: var(--line-strong); box-shadow: var(--e2); }
+/* A cost somebody fronted and has not been paid back for is a liability, and it
+   says so on the row itself, not only in the "Paguar nga" line. */
+.exl-row.owed { box-shadow: inset 3px 0 0 var(--err), var(--e1); }
+.exl-row.owed:hover { box-shadow: inset 3px 0 0 var(--err), var(--e2); }
+
+/* The tap target: the whole row, under everything, above nothing but the
+   background. Transparent on purpose — the row must look like a row. */
+.exl-hit {
+  position: absolute; inset: 0; z-index: 1;
+  appearance: none; background: transparent; border: 0; padding: 0; margin: 0;
+  cursor: pointer; border-radius: inherit;
+}
+.exl-hit:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.exl-row:has(.exl-hit:hover) { background: var(--surface-2); }
+
+.exl-date {
+  grid-area: date;
+  font-size: 11.5px; letter-spacing: .03em; color: var(--text-3); white-space: nowrap;
+}
+.exl-amt {
+  grid-area: amt; justify-self: end; text-align: right;
+  font-family: var(--font-display); font-weight: 600; font-size: 19px;
+  letter-spacing: -.02em; line-height: 1.15; color: var(--text-1);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  overflow-wrap: anywhere;
+}
+/* "Pa shumë" is a sentence, not a figure: it must not wear the money type. */
+.exl-amt.none {
+  font-family: var(--font-body); font-weight: 500; font-size: 12.5px;
+  letter-spacing: 0; color: var(--text-3);
+}
+
+.exl-desc { grid-area: desc; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.exl-title { font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--text-1); overflow-wrap: anywhere; }
+.exl-sub { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); overflow-wrap: anywhere; }
+/* A note can be a paragraph; two lines of it is a reminder, not the note. */
+.exl-note {
+  font-size: 12px; line-height: 1.5; color: var(--text-2);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* inline-block, NOT inline-flex: text-overflow has nothing to act on inside a
+   flex container, so a long category ran out of its own pill instead of
+   ending in an ellipsis. */
+.exl-cat {
+  grid-area: cat; justify-self: start; align-self: start; max-width: 100%;
+  display: inline-block; line-height: 1.5;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .04em; color: var(--text-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* The proof. One of the two controls that sits ABOVE the row's tap layer, so
+   tapping the photo opens the lightbox and never the detail. */
+.exl-rc {
+  grid-area: pic; position: relative; z-index: 2; align-self: start;
+  width: 44px; height: 54px; flex-shrink: 0; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: var(--r-xs);
+  overflow: hidden; background: var(--surface-2); cursor: zoom-in; display: block;
+}
+.exl-rc img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.exl-rc:hover { border-color: var(--accent); }
+.exl-rc:focus-visible { outline: none; box-shadow: var(--ring); }
+.exl-rc-n {
+  position: absolute; right: 0; bottom: 0;
+  background: color-mix(in oklab, var(--surface-1) 84%, transparent);
+  color: var(--text-1); font-family: var(--font-mono); font-size: 9.5px; line-height: 1;
+  font-weight: 600; padding: 2px 4px; border-top-left-radius: var(--r-xs);
+}
+
+.exl-who { grid-area: who; }
+.exl-paid { grid-area: paid; justify-self: end; text-align: right; }
+.exl-who, .exl-paid { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* Every secondary cell names itself. That is what lets one markup work at three
+   widths without a column header anywhere. */
+.exl-k {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.exl-v { font-size: 12.5px; line-height: 1.35; color: var(--text-1); overflow-wrap: anywhere; }
+.exl-vs { font-size: 11px; line-height: 1.35; color: var(--text-3); }
+.exl-vs.owed { color: var(--err); font-weight: 600; }
+
+.exl-st { grid-area: st; justify-self: end; align-self: start; }
+/* The other control that sits above the row's tap layer. Centred on the line it
+   shares, so it reads as the row's handle and not as a stray glyph. */
+.exl-act { grid-area: act; justify-self: end; align-self: center; position: relative; z-index: 2; }
+.exl-act .kebab { width: 40px; height: 40px; }
+
+/* ---------- 760px and up: columns, two lines ---------- */
+@media (min-width: 760px) {
+  /* The rows become one card with hairline rules, not a stack of cards: at this
+     width a list of bordered boxes reads as noise, and the columns only line up
+     if the rules do. */
+  .exl-rows {
+    display: block;
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    box-shadow: var(--e1);
+    overflow: hidden;
+  }
+  .exl-row {
+    /* The receipt column is RESERVED whether or not this row has a photo, so
+       every column below stays in the same place down the whole list — and so
+       the gaps in the column are themselves the answer to "which costs have no
+       proof?". */
+    grid-template-columns: 92px 34px minmax(0, 1fr) 118px 106px 40px;
+    grid-template-areas:
+      "date pic desc who  amt act"
+      "date pic cat  paid st  act";
+    gap: 6px 12px;
+    padding: 13px 16px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+  .exl-row.has-rc { grid-template-areas: "date pic desc who amt act" "date pic cat paid st act"; }
+  .exl-row + .exl-row { border-top: 1px solid var(--line); }
+  .exl-row:hover { box-shadow: none; background: var(--surface-2); }
+  .exl-row.owed { box-shadow: inset 3px 0 0 var(--err); }
+  .exl-row.owed:hover { box-shadow: inset 3px 0 0 var(--err); }
+  .exl-hit:focus-visible { outline-offset: -2px; }
+  /* The date belongs to the description, so it sits ON the description's line.
+     Centred across both rows it floated in the middle of the row, tied to
+     nothing. */
+  .exl-date { align-self: start; padding-top: 2px; font-family: var(--font-mono); font-size: 12px; }
+  .exl-rc { width: 34px; height: 42px; }
+  .exl-amt { font-size: 16px; }
+  .exl-title { font-size: 14.5px; }
+  /* One line of the note here: in a column layout the row's height is the
+     column's rhythm, and a two-line note pushed everything beside it apart. The
+     whole note is one tap away, in the detail. */
+  .exl-note { -webkit-line-clamp: 1; }
+  /* "Për kë" and "Paguar nga" share a column here, one above the other: they
+     have to be aligned the same way or the column reads as two columns. */
+  .exl-paid { justify-self: start; text-align: left; }
+  .exl-act { align-self: center; }
+  .exl-act .kebab { width: 34px; height: 34px; }
+}
+
+/* ---------- 1340px and up: columns, one line ----------
+   The threshold is a viewport width, but what it is really about is the ~1010px
+   of content left once the 244px sidebar and the page padding are taken: below
+   that, eight columns leave the description too narrow to read, which is worse
+   than a row two lines tall. The fixed columns are deliberately lean for the
+   same reason — every pixel not spent on them is the description's. */
+@media (min-width: 1340px) {
+  .exl-row {
+    grid-template-columns: 88px 30px minmax(0, 1fr) 118px 108px 116px 104px 96px 34px;
+    grid-template-areas: "date pic desc cat who paid amt st act";
+    gap: 6px 12px;
+    align-items: center;
+    padding: 12px 18px;
+  }
+  .exl-row.has-rc { grid-template-areas: "date pic desc cat who paid amt st act"; }
+  .exl-date { align-self: center; padding-top: 0; }
+  .exl-cat { align-self: center; }
+  .exl-rc { align-self: center; }
+  .exl-st { justify-self: start; align-self: center; }
+  .exl-who, .exl-paid { align-self: center; }
+}
+
+/* Touch: the actions menu clears 44px on a finger. The row itself is one big
+   target already and the receipt thumbnail is 44px wide at phone sizes.
+   The two filter controls have to be named here for the SAME reason .filter-bar
+   and .athlete-search are named in the touch block further up: the generic
+   `select` rule there is one class less specific than `.exl-sel select`, so
+   without this the five dropdowns would stay 13px — under the 44px target AND
+   under the 16px iOS needs to not zoom the whole page when one is focused. The
+   search input is already covered (the `input:not(...)` selector out-specifies
+   `.exl-search input`); the disclosure is a <button>, which nothing covers. */
+@media (hover: none) and (pointer: coarse) {
+  .exl-act .kebab { width: 44px; height: 44px; }
+  .exl-sel select { min-height: 44px; font-size: 16px; }
+  .exl-ftoggle { min-height: 44px; }
+}
+
+/* =========================================================
+   Expense detail — the read-only view a row opens
+   (app/admin/finance/expenses/ExpenseDetail.tsx)
+   =========================================================
+   Ordered the way the cost is read: the answer (how much,
+   paid or not, when, what), then the paperwork in named
+   groups, then the proof. It renders inside the shared
+   components/ui/Modal, which already sizes itself to the
+   visible viewport and pins its footer. */
+.exd { display: flex; flex-direction: column; gap: 18px; }
+
+.exd-hero {
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: 14px 16px 15px;
+}
+.exd-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.exd-amount {
+  font-family: var(--font-display); font-weight: 600; font-size: 30px;
+  letter-spacing: -.03em; line-height: 1.05; color: var(--text-1);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  overflow-wrap: anywhere; min-width: 0;
+}
+/* Same rule as the list: an unknown amount is a sentence, not a figure. */
+.exd-amount.none { font-family: var(--font-body); font-weight: 500; font-size: 17px; letter-spacing: 0; color: var(--text-3); }
+.exd-when { margin-top: 5px; font-size: 12px; color: var(--text-3); }
+.exd-title { margin-top: 11px; font-size: 16.5px; font-weight: 600; line-height: 1.35; color: var(--text-1); overflow-wrap: anywhere; }
+.exd-hero .exl-cat { margin-top: 10px; white-space: normal; }
+
+.exd-owed {
+  padding: 10px 13px; border-radius: var(--r-sm);
+  background: var(--err-bg); border: 1px solid color-mix(in oklab, var(--err) 26%, transparent);
+  color: var(--err); font-size: 13px; line-height: 1.5;
+}
+
+.exd-h {
+  margin: 0 0 9px;
+  font-family: var(--font-mono); font-weight: 500; font-size: 10px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--text-3);
+}
+.exd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 13px 16px; }
+.exd-k {
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.exd-v { margin-top: 4px; font-size: 14.5px; line-height: 1.45; color: var(--text-1); overflow-wrap: anywhere; }
+.exd-vs { display: block; margin-top: 3px; font-size: 12px; color: var(--text-3); }
+.exd-note {
+  font-size: 14px; line-height: 1.6; color: var(--text-1);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r-sm); padding: 12px 14px;
+}
+.exd-empty { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); }

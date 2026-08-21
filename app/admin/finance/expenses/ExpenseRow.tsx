@@ -9,12 +9,13 @@ import { Lightbox } from "@/components/ui/Lightbox";
 import { actionError } from "@/lib/errors";
 import {
   EXPENSE_PAYMENT_METHOD_LABEL, EXPENSE_STATUS_LABEL, EXPENSE_STATUS_TONE, UNKNOWN_SPONSOR_LABEL,
-  beneficiaryLabel, expenseAmountLabel, formatDate, hasAmount, invoiceNoLabel, isOwedToMember,
+  beneficiaryLabel, expenseAmountLabel, hasAmount, invoiceNoLabel, isOwedToMember,
   paidByLabel,
 } from "@/lib/finance";
 import { deleteExpense, setReimbursed } from "./actions";
 import { ExpenseDetail } from "./ExpenseDetail";
 import { ExpenseFormModal, type ExpenseOptions, type ExpenseView } from "./ExpenseForm";
+import { dateLabel } from "./labels";
 import { receiptPublicUrl } from "./receipt";
 
 /** Width of the actions menu, so it can be flipped away from the right edge. */
@@ -100,7 +101,7 @@ export function ExpenseRow({
   const payer = paidByLabel(expense, nameOf);
   const priced = hasAmount(expense);
   const amount = expenseAmountLabel(expense);
-  const when = formatDate(expense.occurred_on);
+  const when = dateLabel(expense.occurred_on);
   const beneficiary = beneficiaryLabel(expense, nameOf);
   const notes = expense.notes?.trim();
 
@@ -129,7 +130,7 @@ export function ExpenseRow({
 
   return (
     <>
-      <div className={`exl-row${owed ? " owed" : ""}${receiptCount > 0 ? " has-rc" : ""}`}>
+      <div className={`exl-row${owed ? " owed" : ""}`}>
         {/* The one obvious tap target. Its label carries the three facts a
             screen reader needs to tell two rows apart. */}
         <button
@@ -139,7 +140,7 @@ export function ExpenseRow({
           aria-label={`Hap detajet: ${expense.description} · ${when} · ${amount}`}
         />
 
-        <div className="exl-date mono">{when}</div>
+        <div className="exl-date mono" title={when}>{when}</div>
 
         {/* Money right-aligned and tabular at every width; an unpriced cost says
             so in words instead of showing €0.00. */}
@@ -157,25 +158,34 @@ export function ExpenseRow({
           {notes ? <span className="exl-note">{notes}</span> : null}
         </div>
 
-        <span className="exl-cat">{expense.category_name}</span>
+        {/* Category + proof in ONE cell, so a row WITH a photo and a row
+            WITHOUT one start their meta line at exactly the same x. This used
+            to be two grid areas swapped by a `.has-rc` template, which shunted
+            the category pill 54px to the right on every row that had a
+            receipt — the indicator jostled the list. From 760px up .exl-meta
+            becomes display:contents and the two children go back to being real
+            grid items, so the wide layout keeps its RESERVED photo column. */}
+        <div className="exl-meta">
+          <span className="exl-cat">{expense.category_name}</span>
 
-        {receiptCount > 0 ? (
-          <button
-            type="button"
-            className="exl-rc"
-            onClick={() => setPhotoOpen(true)}
-            title={receiptCount > 1 ? `Hap ${receiptCount} foto të faturës` : "Hap foton e faturës"}
-            aria-label={
-              receiptCount > 1
-                ? `Hap ${receiptCount} foto të faturës për “${expense.description}”`
-                : `Hap foton e faturës për “${expense.description}”`
-            }
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={receiptUrls[0]} alt="" loading="lazy" decoding="async" />
-            {receiptCount > 1 ? <span className="exl-rc-n" aria-hidden="true">{receiptCount}</span> : null}
-          </button>
-        ) : null}
+          {receiptCount > 0 ? (
+            <button
+              type="button"
+              className="exl-rc"
+              onClick={() => setPhotoOpen(true)}
+              title={receiptCount > 1 ? `Hap ${receiptCount} foto të faturës` : "Hap foton e faturës"}
+              aria-label={
+                receiptCount > 1
+                  ? `Hap ${receiptCount} foto të faturës për “${expense.description}”`
+                  : `Hap foton e faturës për “${expense.description}”`
+              }
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={receiptUrls[0]} alt="" loading="lazy" decoding="async" />
+              {receiptCount > 1 ? <span className="exl-rc-n" aria-hidden="true">{receiptCount}</span> : null}
+            </button>
+          ) : null}
+        </div>
 
         <div className="exl-who">
           <span className="exl-k">Për kë</span>
@@ -270,25 +280,42 @@ export function ExpenseRow({
 
       {/* The same viewer the public galleries use — ESC / tap-outside close,
           and it is already the one thing on this site that knows how to show a
-          photo full-screen on a phone. */}
-      <Lightbox
-        photos={receiptUrls.map((src, i) => ({
-          src,
-          alt: receiptCount > 1
-            ? `Fatura — ${expense.description} (${i + 1}/${receiptCount})`
-            : `Fatura — ${expense.description}`,
-        }))}
-        openIndex={photoOpen && receiptCount > 0 ? 0 : null}
-        onClose={() => setPhotoOpen(false)}
-      />
+          photo full-screen on a phone.
+
+          PORTALLED to <body>, like the one in ExpenseDetail and the one in
+          components/admin/PhotoCaptureField. Lightbox is position:fixed at
+          z-index 1000, which only means "above the page" while no ancestor
+          carries a transform, a filter or a backdrop-filter — any of those
+          would make that ancestor the containing block and trap the viewer
+          inside the list. The row sits under .exl-rows, which is a clipping
+          card from 760px up and a stone's throw from the blurred month
+          heading, so the viewer is lifted out of the subtree rather than left
+          depending on what the rows around it happen to be styled with. */}
+      {mounted && photoOpen && receiptCount > 0 && createPortal(
+        <div style={{ position: "relative", zIndex: 10000 }}>
+          <Lightbox
+            photos={receiptUrls.map((src, i) => ({
+              src,
+              alt: receiptCount > 1
+                ? `Fatura — ${expense.description} (${i + 1}/${receiptCount})`
+                : `Fatura — ${expense.description}`,
+            }))}
+            openIndex={0}
+            onClose={() => setPhotoOpen(false)}
+          />
+        </div>,
+        document.body,
+      )}
 
       <ExpenseDetail
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
         onEdit={() => { setDetailOpen(false); setEditOpen(true); }}
+        onDelete={() => { setDetailOpen(false); setDelOpen(true); }}
         expense={expense}
         options={options}
         canWrite={canWrite}
+        canDelete={canDelete}
       />
 
       <ExpenseFormModal

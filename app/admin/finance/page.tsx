@@ -282,7 +282,12 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
                 </td>
               </tr>
             ) : (
-              rows.map((inv) => <InvoiceRow key={inv.id} inv={inv} canWrite />)
+              // canWrite is admin + staff (dues_write_staff); deleting an
+              // invoice is admin only, one step stricter — the action re-checks
+              // it server-side, this only hides the button.
+              rows.map((inv) => (
+                <InvoiceRow key={inv.id} inv={inv} canWrite canDelete={profile.role === "admin"} />
+              ))
             )}
           </tbody>
         </table>

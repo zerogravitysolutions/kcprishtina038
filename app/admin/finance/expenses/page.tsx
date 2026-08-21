@@ -15,6 +15,8 @@ import {
   ALL, ALL_TIME_NOTE, defaultYear, isYear, parseYearParam, yearChoices, yearSpan, yearWindowLabel,
 } from "../filters";
 import { ExpenseRow } from "./ExpenseRow";
+// Plain module, not a "use client" one — UNKNOWN_DATE_LABEL is a VALUE.
+import { UNKNOWN_DATE_LABEL } from "./labels";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -91,10 +93,14 @@ function groupByMonth(rows: ExpenseView[]): MonthGroup[] {
     const key = valid ? ym : "unknown";
     const last = out[out.length - 1];
     if (last && last.key === key) last.rows.push(row);
-    else out.push({ key, label: valid ? periodLabel(`${ym}-01`) : "Datë e panjohur", rows: [row], total: { total: 0, missing: 0, counted: 0 } });
+    else out.push({ key, label: valid ? periodLabel(`${ym}-01`) : UNKNOWN_DATE_LABEL, rows: [row], total: { total: 0, missing: 0, counted: 0 } });
   }
   for (const g of out) g.total = sumAmounts(g.rows);
-  return out;
+  // A group is only ever opened BY a row, so this can drop nothing today. It is
+  // the invariant the list depends on written down: an empty group would still
+  // render its heading and its spacing, i.e. a gap in the ledger with a month
+  // name floating in it.
+  return out.filter((g) => g.rows.length > 0);
 }
 
 export default async function ExpensesPage({ searchParams }: { searchParams: SearchParams }) {
@@ -406,19 +412,22 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
           accent="#2E90FA"
           label="Gjithsej të shfaqura"
           value={amountTotalValue(shown)}
-          sub={`${expenseCount(rows.length)}${shown.missing > 0 ? ` · ${shown.missing} pa shumë` : ""}`}
+          sub={expenseCount(rows.length)}
+          missing={shown.missing}
         />
         <Fig
           accent="#16A34A"
           label="Paguar"
           value={amountTotalValue(paid)}
-          sub={`${expenseCount(paid.counted + paid.missing)}${paid.missing > 0 ? ` · ${paid.missing} pa shumë` : ""}`}
+          sub={expenseCount(paid.counted + paid.missing)}
+          missing={paid.missing}
         />
         <Fig
           accent="#E0562D"
           label="Papaguar"
           value={amountTotalValue(unpaid)}
-          sub={`${expenseCount(unpaid.counted + unpaid.missing)}${unpaid.missing > 0 ? ` · ${unpaid.missing} pa shumë` : ""}`}
+          sub={expenseCount(unpaid.counted + unpaid.missing)}
+          missing={unpaid.missing}
         />
         <Fig
           accent="#B42318"
@@ -427,8 +436,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
           sub={
             owedDebts.length === 0
               ? "asnjë shpenzim i pa rimbursuar"
-              : `${owedDebts.length} ${owedDebts.length === 1 ? "person" : "persona"}${owedTotal.missing > 0 ? ` · ${owedTotal.missing} pa shumë` : ""} · ${ALL_TIME_NOTE}`
+              : `${owedDebts.length} ${owedDebts.length === 1 ? "person" : "persona"} · ${ALL_TIME_NOTE}`
           }
+          missing={owedDebts.length === 0 ? 0 : owedTotal.missing}
         />
       </div>
 
@@ -516,9 +526,18 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         <div className="exl">
           {months.map((m) => (
             <section key={m.key} className="exl-month">
+              {/* Two cells, never three wrapping ones. The heading used to be a
+                  flex-wrap row of month + count + total, so a long month with a
+                  long total broke onto a second line while its neighbours did
+                  not — which is exactly the uneven gap between months the owner
+                  saw. Month and count share a shrinking cell (the count elides
+                  first, the month name last); the total keeps its own cell and
+                  never wraps, so every heading in the list is the same height. */}
               <div className="exl-mhead">
-                <h2>{m.label}</h2>
-                <span className="exl-mcount">{expenseCount(m.rows.length)}</span>
+                <div className="exl-mtitle">
+                  <h2>{m.label}</h2>
+                  <span className="exl-mcount">{expenseCount(m.rows.length)}</span>
+                </div>
                 <span className="exl-mtot mono">{amountTotalLabel(m.total)}</span>
               </div>
               <div className="exl-rows">
@@ -550,8 +569,17 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   );
 }
 
-/** One figure of the summary band: dot + label, the money, the count under it. */
-function Fig({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent: string }) {
+/**
+ * One figure of the summary band: dot + label, the money, the count under it.
+ *
+ * `missing` is NOT folded into `sub`. It is the caveat on the euro figure above
+ * it — "this total leaves N costs out because nobody agreed a price" — and as
+ * one more clause in a grey mono sentence it read as trivia. It gets its own
+ * amber mark, and it disappears entirely when there is nothing to warn about.
+ */
+function Fig({
+  label, value, sub, missing = 0, accent,
+}: { label: string; value: string; sub?: string; missing?: number; accent: string }) {
   return (
     <div className="exl-fig">
       <div className="exl-fig-lab">
@@ -559,6 +587,7 @@ function Fig({ label, value, sub, accent }: { label: string; value: string; sub?
         {label}
       </div>
       <div className="exl-fig-val">{value}</div>
+      {missing > 0 ? <div className="exl-fig-flag">{missing} pa shumë</div> : null}
       {sub ? <div className="exl-fig-sub">{sub}</div> : null}
     </div>
   );

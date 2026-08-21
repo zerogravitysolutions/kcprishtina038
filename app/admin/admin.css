@@ -772,17 +772,9 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   table.t tbody tr.sum.total td, table.t tbody tr.sum.total:hover td { background: transparent; box-shadow: none; }
 }
 
-/* Receipt photos in the detail view: portrait thumbnails (a slip is a tall
-   strip), each opening the lightbox. Sized for a finger. */
-.exp-rc-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
-.exp-rc-thumb {
-  width: 84px; height: 108px; flex-shrink: 0; padding: 0;
-  border: 1px solid var(--line-strong); border-radius: var(--r-sm);
-  overflow: hidden; background: var(--surface-2); cursor: zoom-in; display: block;
-}
-.exp-rc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.exp-rc-thumb:hover { border-color: var(--accent); }
-.exp-rc-thumb:focus-visible { outline: none; box-shadow: var(--ring); }
+/* The receipt thumbnails of the detail view used to live here as .exp-rc-*.
+   They belong with the rest of that view and are now .exd-shot, at the END of
+   this file. */
 
 /* =========================================================
    THE EXPENSE LEDGER — /admin/finance/expenses
@@ -850,11 +842,24 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   margin-top: 6px;
   font-family: var(--font-mono); font-size: 10.5px; line-height: 1.5; color: var(--text-3);
 }
+/* The caveat ON the figure above it, not a clause in the grey line below it:
+   "this euro total leaves N costs out, because nobody agreed a price for
+   them". It is the one thing on this band that can make the number wrong, so
+   it is marked, and it is absent whenever there is nothing to warn about. */
+.exl-fig-flag {
+  margin-top: 7px; display: inline-block;
+  padding: 2px 8px; border-radius: 999px;
+  background: var(--warn-bg); border: 1px solid color-mix(in oklab, var(--warn) 30%, transparent);
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em; line-height: 1.5;
+  color: color-mix(in oklab, var(--warn) 78%, #000);
+}
 @media (max-width: 760px) {
   .exl-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .exl-fig { padding: 11px 13px 13px; }
   .exl-fig:nth-child(odd) { border-left: 0; }
   .exl-fig:nth-child(n + 3) { border-top: 1px solid var(--line); }
   .exl-fig-val { font-size: 20px; }
+  .exl-fig-lab { font-size: 9px; letter-spacing: .1em; }
 }
 @media (min-width: 1200px) { .exl-fig-val { font-size: 26px; } }
 
@@ -904,12 +909,12 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   min-width: 130px; white-space: nowrap;
 }
 
-.exl-fpanel { display: none; padding: 0 12px 12px; }
+.exl-fpanel { display: none; padding: 0 10px 10px; }
 .exl-fpanel.open { display: block; }
-.exl-chips { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 10px; }
+.exl-chips { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 9px; }
 .exl-selects {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 9px 10px; padding-top: 12px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(134px, 1fr));
+  gap: 8px 9px; padding-top: 10px;
 }
 .exl-sel { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .exl-sel > span {
@@ -927,6 +932,14 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   /* No room for a status line beside the search box and the toggle; the
      toggle's own badge is what says a filter is on. */
   .exl-fstat { display: none; }
+  /* The bar is a heading for the ledger, not the subject of the screen: on a
+     phone it must not eat the top of the list. Tighter padding, a shorter
+     search field, a "Filtrat" pill that is a pill and not a paragraph. */
+  .exl-fbar { padding: 7px 8px; gap: 7px; }
+  .exl-search { padding: 0 9px; }
+  .exl-search input { font-size: 16px; padding: 8px 0; }
+  .exl-ftoggle { padding: 8px 11px; gap: 6px; }
+  .exl-chips .chip { padding: 6px 11px; font-size: 11.5px; }
 }
 @media (min-width: 760px) {
   /* Wide enough to show everything at once — the disclosure is a phone
@@ -936,27 +949,55 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 }
 
 /* ---------- The list ---------- */
-.exl { display: flex; flex-direction: column; gap: 18px; }
+.exl { display: flex; flex-direction: column; gap: 16px; }
+.exl-month { min-width: 0; }
 
-/* Months are the spine of the ledger. The heading sticks under the admin top
-   bar so the month a row belongs to is on screen while scrolling it, and it
-   carries that month's own total — the year adds up in front of the reader. */
+/* MONTHS ARE THE SPINE, AND THE SPINE HAS TO KEEP TIME.
+   The heading sticks under the admin top bar so the month a row belongs to is
+   on screen while its rows are, and it carries that month's own total — the
+   year adds up in front of the reader.
+   Three things that used to make the gaps between months uneven, all fixed at
+   the cause and none of them with a negative margin:
+     1. it was a flex-wrap row of month + count + total, so ONE long month with
+        a long total wrapped to two lines while its neighbours stayed at one.
+        It is a two-cell grid now: the title cell shrinks and elides, the total
+        cell never wraps, so every heading is exactly one line tall;
+     2. the space under it was a 10px margin plus a hairline rule, i.e. OUTSIDE
+        the sticky element's own background — so a row scrolling past the
+        pinned bar reappeared in a transparent seam under it, half-drawn. The
+        space is padding now, inside the background, and the rule is gone: the
+        white row cards already stand off the grey page, so a line there was
+        one boundary too many;
+     3. the background was 90% opaque with a backdrop blur, so a card sliding
+        under it stayed faintly visible and the boundary looked smudged. It is
+        opaque, and dropping the backdrop-filter also removes a containing
+        block for any position:fixed descendant — the very thing that trapped
+        the receipt lightbox in the detail modal. */
 .exl-mhead {
   position: sticky; top: var(--top-h); z-index: 4;
-  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-  padding: 9px 2px 8px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in oklab, var(--bg) 90%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline; column-gap: 12px;
+  padding: 10px 2px 11px;
+  background: var(--bg);
 }
+.exl-mtitle { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
 .exl-mhead h2 {
-  margin: 0; font-family: var(--font-display); font-weight: 600;
+  margin: 0; flex-shrink: 0;
+  font-family: var(--font-display); font-weight: 600;
   font-size: 15px; letter-spacing: -.01em; color: var(--text-1);
+  white-space: nowrap;
 }
-.exl-mcount { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; color: var(--text-3); }
-.exl-mtot { margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--text-1); }
+/* The count is the first thing to give way when the row is tight — the month
+   and its total are the two facts that must survive at 320px. */
+.exl-mcount {
+  min-width: 0; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em;
+  color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.exl-mtot {
+  justify-self: end; white-space: nowrap;
+  font-size: 12.5px; font-weight: 600; color: var(--text-1);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+}
 
 .exl-rows { display: flex; flex-direction: column; gap: 10px; }
 
@@ -970,8 +1011,12 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 /* PHONE (base). auto | 1fr | auto | auto — the last column is the actions
    menu and collapses to nothing for a read-only user, which is why the amount
    and the status badge SPAN the last two columns: they stay flush right either
-   way. `pic` only exists on .has-rc, so a row with no receipt has no empty
-   indent under its description. */
+   way.
+   THE PHOTO DOES NOT MOVE ANYTHING. The category pill and the receipt
+   thumbnail share ONE cell here (.exl-meta, a flex row), instead of the pill
+   being pushed into a second column on rows that happen to have a photo. Every
+   row's meta line therefore starts at the same x whether there is proof or
+   not — the indicator no longer jostles the list. */
 .exl-row {
   position: relative;
   display: grid;
@@ -981,7 +1026,7 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
     "desc desc desc desc"
     "cat  cat  st   st"
     "who  who  paid act";
-  gap: 7px 10px;
+  gap: 8px 10px;
   align-items: start;
   padding: 12px 14px;
   background: var(--surface-1);
@@ -990,12 +1035,15 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   box-shadow: var(--e1);
   transition: border-color .15s ease, box-shadow .18s ease, background .15s ease;
 }
-.exl-row.has-rc {
-  grid-template-areas:
-    "date date amt  amt"
-    "desc desc desc desc"
-    "pic  cat  st   st"
-    "who  who  paid act";
+.exl-meta {
+  grid-area: cat; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+/* Scoped, because from 760px up .exl-meta is display:contents and this
+   selector would otherwise re-align the pill inside the GRID, where it has to
+   keep the start alignment its neighbours in that row use. */
+@media (max-width: 759px) {
+  .exl-meta .exl-cat { align-self: center; }
 }
 .exl-row:hover { border-color: var(--line-strong); box-shadow: var(--e2); }
 /* A cost somebody fronted and has not been paid back for is a liability, and it
@@ -1013,9 +1061,13 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 .exl-hit:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
 .exl-row:has(.exl-hit:hover) { background: var(--surface-2); }
 
+/* A date that could not be parsed reads "Datë e panjohur", which is far wider
+   than 14.8.2026 and must not push the amount off the row: it elides, and the
+   title attribute (and the detail one tap away) carry the whole of it. */
 .exl-date {
-  grid-area: date;
-  font-size: 11.5px; letter-spacing: .03em; color: var(--text-3); white-space: nowrap;
+  grid-area: date; min-width: 0;
+  font-size: 11.5px; letter-spacing: .03em; color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .exl-amt {
   grid-area: amt; justify-self: end; text-align: right;
@@ -1044,6 +1096,7 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
    ending in an ellipsis. */
 .exl-cat {
   grid-area: cat; justify-self: start; align-self: start; max-width: 100%;
+  min-width: 0; flex: 0 1 auto;
   display: inline-block; line-height: 1.5;
   padding: 3px 9px; border-radius: 999px;
   background: var(--surface-2); border: 1px solid var(--line);
@@ -1055,7 +1108,7 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
    tapping the photo opens the lightbox and never the detail. */
 .exl-rc {
   grid-area: pic; position: relative; z-index: 2; align-self: start;
-  width: 44px; height: 54px; flex-shrink: 0; padding: 0;
+  width: 36px; height: 44px; flex-shrink: 0; padding: 0;
   border: 1px solid var(--line-strong); border-radius: var(--r-xs);
   overflow: hidden; background: var(--surface-2); cursor: zoom-in; display: block;
 }
@@ -1117,7 +1170,11 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
     box-shadow: none;
     background: transparent;
   }
-  .exl-row.has-rc { grid-template-areas: "date pic desc who amt act" "date pic cat paid st act"; }
+  /* display:contents dissolves the phone's meta cell, and the pill and the
+     thumbnail become real grid items again — so the wide layout keeps its
+     RESERVED photo column and the gaps in that column stay the answer to
+     "which costs have no proof?". */
+  .exl-meta { display: contents; }
   .exl-row + .exl-row { border-top: 1px solid var(--line); }
   .exl-row:hover { box-shadow: none; background: var(--surface-2); }
   .exl-row.owed { box-shadow: inset 3px 0 0 var(--err); }
@@ -1155,7 +1212,6 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
     align-items: center;
     padding: 12px 18px;
   }
-  .exl-row.has-rc { grid-template-areas: "date pic desc cat who paid amt st act"; }
   .exl-date { align-self: center; padding-top: 0; }
   .exl-cat { align-self: center; }
   .exl-rc { align-self: center; }
@@ -1163,71 +1219,178 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   .exl-who, .exl-paid { align-self: center; }
 }
 
-/* Touch: the actions menu clears 44px on a finger. The row itself is one big
-   target already and the receipt thumbnail is 44px wide at phone sizes.
-   The two filter controls have to be named here for the SAME reason .filter-bar
-   and .athlete-search are named in the touch block further up: the generic
-   `select` rule there is one class less specific than `.exl-sel select`, so
-   without this the five dropdowns would stay 13px — under the 44px target AND
-   under the 16px iOS needs to not zoom the whole page when one is focused. The
-   search input is already covered (the `input:not(...)` selector out-specifies
-   `.exl-search input`); the disclosure is a <button>, which nothing covers. */
+/* Touch: NOTHING tappable on this screen is allowed under 44px on a finger.
+   The row itself is one big target (.exl-hit), and the four controls that are
+   NOT the row are sized here.
+   The filter controls have to be named for the SAME reason .filter-bar and
+   .athlete-search are named in the touch block further up: the generic `select`
+   rule there is one class less specific than `.exl-sel select`, so without this
+   the five dropdowns would stay 13px — under the 44px target AND under the 16px
+   iOS needs to not zoom the whole page when one is focused. The search input is
+   already covered (the `input:not(...)` selector out-specifies `.exl-search
+   input`); the disclosure is a <button>, which nothing covers.
+   The status chips are <Link>s, i.e. inline boxes: min-height does nothing to
+   an inline element, so they also have to become inline-flex here. */
 @media (hover: none) and (pointer: coarse) {
   .exl-act .kebab { width: 44px; height: 44px; }
   .exl-sel select { min-height: 44px; font-size: 16px; }
   .exl-ftoggle { min-height: 44px; }
+  .exl-chips .chip {
+    display: inline-flex; align-items: center;
+    min-height: 44px; padding: 6px 14px;
+  }
+}
+/* The receipt thumbnail is a CONTROL (it opens the lightbox), so on a phone it
+   is a 44px target and not a 36px indicator. Scoped to the card layout on
+   purpose: from 760px up the thumbnail lives in a RESERVED 34px grid column,
+   where a 44px box would overhang the description beside it — and a pointer
+   that coarse on a screen that wide is a tablet holding the same list at
+   comfortable row height anyway. */
+@media (hover: none) and (pointer: coarse) and (max-width: 759px) {
+  .exl-rc { width: 44px; height: 52px; }
 }
 
 /* =========================================================
    Expense detail — the read-only view a row opens
    (app/admin/finance/expenses/ExpenseDetail.tsx)
    =========================================================
-   Ordered the way the cost is read: the answer (how much,
-   paid or not, when, what), then the paperwork in named
-   groups, then the proof. It renders inside the shared
-   components/ui/Modal, which already sizes itself to the
-   visible viewport and pins its footer. */
-.exd { display: flex; flex-direction: column; gap: 18px; }
+   IT IS A RECEIPT FOR ONE COST, and it is laid out like one:
 
+     1. the hero — how much, and what for, with the status
+        beside the figure. Nothing else is allowed to be this
+        big, so the two questions a cost is opened to answer
+        are answered before any scrolling;
+     2. three named groups of facts, each a real <dl>: when
+        and what, who it was for and who paid, how it was paid
+        and its paperwork. Two columns from 561px up (the
+        shared Modal is capped at 560px wide, so the
+        breakpoint is the card's width, not the phone's), one
+        column under that with the label ABOVE its value;
+     3. the note, when there is one;
+     4. the proof, as a thumbnail row.
+
+   The previous version was one auto-fit grid whose columns
+   re-flowed per group, so no two labels lined up and the
+   facts read as a bag rather than as a document. Here every
+   label wears the same micro-caps, every value sits on the
+   same baseline grid, and money and reference numbers are
+   tabular so two of them can be compared down a column.
+
+   Both actions live in the Modal's pinned footer — Fshij on
+   the far left away from Ndrysho, so the destructive one is
+   never the button next to the one you meant. */
+.exd { display: flex; flex-direction: column; gap: 20px; }
+
+/* ---------- 1. the hero ---------- */
 .exd-hero {
   background: var(--surface-2); border: 1px solid var(--line);
-  border-radius: var(--r-md); padding: 14px 16px 15px;
+  border-radius: var(--r-md); padding: 15px 16px 16px;
 }
 .exd-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.exd-hero-top .badge-st { flex-shrink: 0; }
 .exd-amount {
   font-family: var(--font-display); font-weight: 600; font-size: 30px;
   letter-spacing: -.03em; line-height: 1.05; color: var(--text-1);
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
   overflow-wrap: anywhere; min-width: 0;
 }
-/* Same rule as the list: an unknown amount is a sentence, not a figure. */
+/* Same rule as the list: an unknown amount is a sentence, not a figure, and it
+   must never be dressed as one — "Pa shumë" in 30px display type would read as
+   a number at a glance. */
 .exd-amount.none { font-family: var(--font-body); font-weight: 500; font-size: 17px; letter-spacing: 0; color: var(--text-3); }
-.exd-when { margin-top: 5px; font-size: 12px; color: var(--text-3); }
-.exd-title { margin-top: 11px; font-size: 16.5px; font-weight: 600; line-height: 1.35; color: var(--text-1); overflow-wrap: anywhere; }
-.exd-hero .exl-cat { margin-top: 10px; white-space: normal; }
+.exd-title {
+  margin: 11px 0 0; font-family: var(--font-body);
+  font-size: 16.5px; font-weight: 600; line-height: 1.4;
+  color: var(--text-1); overflow-wrap: anywhere;
+}
 
 .exd-owed {
   padding: 10px 13px; border-radius: var(--r-sm);
   background: var(--err-bg); border: 1px solid color-mix(in oklab, var(--err) 26%, transparent);
-  color: var(--err); font-size: 13px; line-height: 1.5;
+  color: var(--err); font-size: 13px; line-height: 1.55;
 }
 
+/* ---------- 2. the groups ---------- */
+.exd-group { min-width: 0; }
 .exd-h {
-  margin: 0 0 9px;
+  margin: 0 0 10px; padding-bottom: 7px;
+  border-bottom: 1px solid var(--line);
   font-family: var(--font-mono); font-weight: 500; font-size: 10px;
   letter-spacing: .16em; text-transform: uppercase; color: var(--text-3);
 }
-.exd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 13px 16px; }
+/* Fixed halves, NOT auto-fit: auto-fit gave a two-fact group and a three-fact
+   group different column widths, so the labels down the modal never lined up. */
+.exd-dl {
+  margin: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+.exd-f { min-width: 0; }
 .exd-k {
+  margin: 0;
   font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .14em;
   text-transform: uppercase; color: var(--text-3);
 }
-.exd-v { margin-top: 4px; font-size: 14.5px; line-height: 1.45; color: var(--text-1); overflow-wrap: anywhere; }
-.exd-vs { display: block; margin-top: 3px; font-size: 12px; color: var(--text-3); }
+/* margin-inline-start: the UA indents every <dd> by 40px. */
+.exd-v {
+  margin: 4px 0 0; margin-inline-start: 0;
+  font-size: 14.5px; line-height: 1.45; color: var(--text-1); overflow-wrap: anywhere;
+}
+/* Reference numbers and dates line up digit under digit when they are read
+   down a column, which is the only way two of them get compared. */
+.exd-v.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.exd-vs { display: block; margin-top: 3px; font-size: 12px; line-height: 1.45; color: var(--text-3); overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  /* At this width the Modal card IS the viewport, so two columns leave ~140px
+     a side and every value wraps mid-word. One column, label above value. */
+  .exd { gap: 17px; }
+  .exd-dl { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .exd-amount { font-size: 26px; }
+}
+
 .exd-note {
-  font-size: 14px; line-height: 1.6; color: var(--text-1);
+  font-size: 14px; line-height: 1.65; color: var(--text-1);
   white-space: pre-wrap; overflow-wrap: anywhere;
   background: var(--surface-2); border: 1px solid var(--line);
   border-radius: var(--r-sm); padding: 12px 14px;
 }
-.exd-empty { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); }
+.exd-empty { font-family: var(--font-mono); font-size: 12px; line-height: 1.6; color: var(--text-3); }
+
+/* ---------- 3. the proof ---------- */
+/* A till slip is a tall strip, so the thumbnails are portrait: a square crop
+   hides the total, which is the line the owner actually checks. They wrap
+   rather than scroll sideways — three fit across the card at every width. */
+.exd-shots { display: flex; flex-wrap: wrap; gap: 10px; }
+.exd-shot {
+  position: relative;
+  width: 92px; height: 118px; flex-shrink: 0; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  overflow: hidden; background: var(--surface-2); cursor: zoom-in; display: block;
+  transition: border-color .15s ease, box-shadow .18s ease, transform .12s ease;
+}
+.exd-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.exd-shot:hover { border-color: var(--accent); box-shadow: var(--e2); transform: translateY(-1px); }
+.exd-shot:focus-visible { outline: none; box-shadow: var(--ring); }
+.exd-shot-n {
+  position: absolute; left: 0; bottom: 0;
+  padding: 2px 6px; border-top-right-radius: var(--r-xs);
+  background: color-mix(in oklab, var(--surface-1) 86%, transparent);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600; line-height: 1.4;
+  color: var(--text-1);
+}
+@media (max-width: 560px) {
+  .exd-shot { width: 84px; height: 108px; }
+}
+
+/* ---------- the footer ---------- */
+/* components/ui/Modal's footer is justify-content:flex-end, so the auto margin
+   is what pushes the destructive action to the opposite end of the bar from
+   "Ndrysho". Nothing here edits the Modal. */
+.btn.exd-del {
+  margin-right: auto;
+  color: var(--err);
+  border-color: color-mix(in oklab, var(--err) 34%, transparent);
+}
+/* .btn.exd-del, not .exd-del: .btn-ghost:hover is two classes and would
+   otherwise out-specify this and repaint the delete button grey on hover. */
+.btn.exd-del:hover { background: var(--err-bg); border-color: var(--err); color: var(--err); }

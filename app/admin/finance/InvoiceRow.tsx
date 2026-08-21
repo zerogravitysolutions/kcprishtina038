@@ -10,7 +10,7 @@ import {
   daysOverdue, dueDateOf, effectiveStatus, formatEur, issuedDateLabel, periodLabel,
 } from "@/lib/finance";
 import type { DuesStatus, PaidMethod } from "@/lib/supabase/types";
-import { markInvoicePaid, reopenInvoice, waiveInvoice } from "./actions";
+import { deleteInvoice, markInvoicePaid, reopenInvoice, waiveInvoice } from "./actions";
 
 /** One invoice as the list renders it — flattened by the page, not embedded. */
 export type InvoiceView = {
@@ -45,13 +45,22 @@ function todayIso(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-export function InvoiceRow({ inv, canWrite }: { inv: InvoiceView; canWrite: boolean }) {
+/**
+ * `canDelete` is admin-only and therefore narrower than `canWrite` (admin +
+ * staff). Hiding the button is only tidiness — deleteInvoice() re-checks the
+ * role and the account status itself, because a Server Action is a POST
+ * endpoint that anyone can call directly.
+ */
+export function InvoiceRow({
+  inv, canWrite, canDelete = false,
+}: { inv: InvoiceView; canWrite: boolean; canDelete?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
   const [payOpen, setPayOpen] = useState(false);
   const [waiveOpen, setWaiveOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
+  const [delOpen, setDelOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const [method, setMethod] = useState<PaidMethod>("cash");
@@ -73,6 +82,15 @@ export function InvoiceRow({ inv, canWrite }: { inv: InvoiceView; canWrite: bool
   // Never print "Invalid Date" if the stored timestamp is unparseable.
   const paidAt = inv.paid_at ? new Date(inv.paid_at) : null;
   const paidAtLabel = paidAt && !Number.isNaN(paidAt.getTime()) ? paidAt.toLocaleDateString("sq") : null;
+
+  // Named in the delete copy on purpose: the number is the thing that does NOT
+  // come back. dues_invoice_counters is never rewound, so a regenerated invoice
+  // takes the next free number — reusing this one would give two different
+  // invoices the same number.
+  const invoiceNo = inv.invoice_no;
+  const methodLabel = inv.paid_method ? PAID_METHOD_LABEL[inv.paid_method] : null;
+  const amount = formatEur(inv.amount_eur);
+  const period = periodLabel(inv.period);
 
   function openPay() {
     setErr(null);
@@ -195,6 +213,17 @@ export function InvoiceRow({ inv, canWrite }: { inv: InvoiceView; canWrite: bool
               </button>
             </>
           )}
+          {canDelete ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ marginLeft: 6, color: "var(--err)" }}
+              onClick={() => { setErr(null); setDelOpen(true); }}
+              disabled={pending}
+            >
+              Fshij
+            </button>
+          ) : null}
         </td>
       </tr>
 
@@ -294,6 +323,81 @@ export function InvoiceRow({ inv, canWrite }: { inv: InvoiceView; canWrite: bool
             return r.ok ? { ok: true as const } : { ok: false as const, error: r.error };
           } catch (e) {
             const msg = actionError(e, "Zhbërja e pagesës dështoi. Provo sërish.");
+            if (!msg) { router.refresh(); return { ok: true as const }; }
+            return { ok: false as const, error: msg };
+          }
+        }}
+      />
+
+      {/* Deleting is not "one more action": for a paid invoice it destroys a
+          record of money that was actually received, so the confirmation names
+          the amount, the member and the payment date instead of asking a
+          generic "are you sure". An unpaid invoice gets the light version. */}
+      <ConfirmModal
+        open={delOpen}
+        onClose={() => setDelOpen(false)}
+        title={status === "paid" ? "Fshij një faturë të paguar" : status === "waived" ? "Fshij një faturë të falur" : "Fshij faturën"}
+        tone="danger"
+        confirmLabel={settled ? "Fshij përfundimisht" : "Fshij faturën"}
+        message={
+          <>
+            {status === "paid" ? (
+              <>
+                <p style={{ margin: "0 0 10px" }}>
+                  <strong>Kjo faturë është regjistrim i parave të arkëtuara.</strong>{" "}
+                  <strong>{inv.member_name}</strong> ka paguar <strong>{amount}</strong>
+                  {paidAtLabel ? <> më <strong>{paidAtLabel}</strong></> : null}
+                  {methodLabel ? ` (${methodLabel})` : null} për {period}
+                  {invoiceNo ? <>, faturë <span className="mono">{invoiceNo}</span></> : null}. Nëse e fshin, ky
+                  arkëtim nuk mbetet askund — as i paguar, as i falur, as borxh — dhe totali i arkëtuar
+                  për {period} zvogëlohet me {amount}.
+                </p>
+                <p style={{ margin: "0 0 10px" }}>
+                  Nëse e gabuar është vetëm pagesa e regjistruar, mbylle këtë dhe përdor “Zhbëj”: fatura
+                  mbetet, pagesa hiqet.
+                </p>
+              </>
+            ) : status === "waived" ? (
+              <>
+                <p style={{ margin: "0 0 10px" }}>
+                  <strong>Kjo faturë është e falur.</strong> Fshirja zhduk edhe faljen, edhe arsyen e saj
+                  ({amount} · {inv.member_name} · {period}
+                  {invoiceNo ? <> · <span className="mono">{invoiceNo}</span></> : null}). Nuk mbetet gjurmë se
+                  kjo faturë u lëshua dhe iu fal dikujt.
+                </p>
+                <p style={{ margin: "0 0 10px" }}>
+                  Nëse e gabuar është vetëm falja, mbylle këtë dhe përdor “Zhbëj”.
+                </p>
+              </>
+            ) : (
+              <p style={{ margin: "0 0 10px" }}>
+                Fatura {invoiceNo ? <span className="mono">{invoiceNo}</span> : "pa numër"} e{" "}
+                <strong>{inv.member_name}</strong> për {period} ({amount}) hiqet plotësisht nga regjistri.
+                Nuk ka pagesë të regjistruar në të.
+              </p>
+            )}
+            <p style={{ margin: "0 0 10px" }}>
+              Pas fshirjes, {inv.member_name} lirohet për {period}, kështu që muaji mund të gjenerohet
+              sërish — me dorë, ose nga gjenerimi automatik nëse dita e tij ende nuk ka kaluar.{" "}
+              {invoiceNo ? (
+                <>Fatura e re merr numër të ri; numri <span className="mono">{invoiceNo}</span> nuk ripërdoret kurrë.</>
+              ) : (
+                <>Fatura e re merr numër të ri.</>
+              )}
+            </p>
+            <p style={{ margin: 0 }}>
+              Fshirja shënohet në ditarin e veprimeve me emrin tënd dhe me të gjitha të dhënat e faturës.
+              Vetë fatura nuk kthehet dot.
+            </p>
+          </>
+        }
+        onConfirm={async () => {
+          try {
+            const r = await deleteInvoice(inv.id);
+            if (r.ok) router.refresh();
+            return r.ok ? { ok: true as const } : { ok: false as const, error: r.error };
+          } catch (e) {
+            const msg = actionError(e, "Fshirja e faturës dështoi. Provo sërish.");
             if (!msg) { router.refresh(); return { ok: true as const }; }
             return { ok: false as const, error: msg };
           }

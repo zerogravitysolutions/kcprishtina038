@@ -1,22 +1,24 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Modal } from "@/components/ui/Modal";
 import { Lightbox } from "@/components/ui/Lightbox";
 import {
   EXPENSE_PAYMENT_METHOD_LABEL, EXPENSE_STATUS_LABEL, EXPENSE_STATUS_TONE, UNKNOWN_CATEGORY_LABEL,
-  UNKNOWN_SPONSOR_LABEL, beneficiaryLabel, expenseAmountLabel, formatDate, hasAmount,
-  invoiceNoLabel, isOwedToMember, paidByLabel,
+  UNKNOWN_SPONSOR_LABEL, beneficiaryLabel, expenseAmountLabel, hasAmount, invoiceNoLabel,
+  isOwedToMember, paidByLabel,
 } from "@/lib/finance";
 import { type ExpenseOptions, type ExpenseView } from "./ExpenseForm";
+import { dateLabel } from "./labels";
 import { receiptPublicUrl } from "./receipt";
 
-/** One labelled fact: micro-label on top, value below. Two per line on a phone. */
-function Fact({ label, children }: { label: string; children: ReactNode }) {
+/** One labelled fact of the definition list: label above, value under it. */
+function Fact({ label, num, children }: { label: string; num?: boolean; children: ReactNode }) {
   return (
     <div className="exd-f">
-      <div className="exd-k">{label}</div>
-      <div className="exd-v">{children}</div>
+      <dt className="exd-k">{label}</dt>
+      <dd className={`exd-v${num ? " num" : ""}`}>{children}</dd>
     </div>
   );
 }
@@ -34,28 +36,83 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 /**
  * Read-only view of ONE expense, opened by tapping its row.
  *
- * The shape follows how the owner reads a cost: the answer first (how much,
- * paid or not, when), then the sentence (what it was, which category), then the
- * paperwork in labelled groups, then the proof as real thumbnails. Every empty
- * value is a WORD from lib/finance — "Pa shumë", "Klubi", "Pa faturë",
- * "Pa burim" — never a dash and never €0.00.
+ * IT READS LIKE A RECEIPT. The answer is at the top and nowhere else: how much
+ * it cost, what it was for, and whether it is settled. Under it, three named
+ * groups of facts as a two-column definition list that becomes one column on a
+ * phone — when/what, who it was for and who paid, how it was paid and its
+ * paperwork — then the note, then the proof as a thumbnail row. Both actions
+ * (Ndrysho, Fshij) live in the modal footer, never scattered through the body.
  *
- * "Ndrysho" hands off to the edit form the row already owns (onEdit), so there
- * is one source of truth for editing.
+ * Every empty value is a WORD from lib/finance — "Pa shumë", "Klubi",
+ * "Pa faturë", "Pa burim" — never a dash and never €0.00. A date that cannot be
+ * parsed says "Datë e panjohur" (see ./labels) instead of the em dash
+ * formatDate() falls back to.
+ *
+ * "Ndrysho" and "Fshij" hand off to the dialogs the row already owns, so there
+ * is one source of truth for editing and one for deleting.
  */
 export function ExpenseDetail({
-  open, onClose, onEdit, expense, options, canWrite,
+  open, onClose, onEdit, onDelete, expense, options, canWrite, canDelete,
 }: {
   open: boolean;
   onClose: () => void;
   /** Switch from viewing to editing — opens the existing ExpenseFormModal. */
   onEdit: () => void;
+  /** Switch from viewing to deleting — opens the row's ConfirmModal. */
+  onDelete: () => void;
   expense: ExpenseView;
   options: ExpenseOptions;
   /** Read-only users see no "Ndrysho". */
   canWrite: boolean;
+  /** Only an admin removes a ledger line, so only an admin sees "Fshij". */
+  canDelete: boolean;
 }) {
   const [photoIndex, setPhotoIndex] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  /**
+   * Escape belongs to the TOPMOST layer only.
+   *
+   * Lightbox listens on window and components/ui/Modal listens on document, so
+   * with the viewer open above this detail one Escape would close BOTH — the
+   * photo and the expense behind it. Capturing at the document, before either
+   * bubble listener can run, keeps the key on the viewer: a capture-phase
+   * stopPropagation() ends the dispatch, so neither the document bubble
+   * listener (Modal) nor the window one (Lightbox) ever sees this event.
+   */
+  useEffect(() => {
+    if (photoIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setPhotoIndex(null);
+    };
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [photoIndex]);
+
+  /**
+   * WHILE THE VIEWER IS UP IT OWNS EVERY "CLOSE" — and not only for tidiness.
+   *
+   * The lightbox hides the dialog but does not hide it from the TAB key: the
+   * buttons under it stay focusable, so a keyboard user can reach "Mbyll",
+   * "Ndrysho" or "Fshij" and dismiss the detail while the photo is still on
+   * screen. Both layers lock the page: Modal saves body.overflow ("") and sets
+   * hidden, then Lightbox saves it ("hidden") and sets hidden. Unmount the
+   * MODAL first and the viewer's cleanup runs last, restoring the value it
+   * captured — "hidden" — and the ledger behind it can never be scrolled again
+   * without a reload. Swallowing the close (and re-firing it as "close the
+   * photo") keeps the two locks strictly nested, which is the only order in
+   * which save/restore is correct.
+   */
+  const photoOpen = photoIndex !== null;
+  const closeDetail = () => {
+    if (photoOpen) { setPhotoIndex(null); return; }
+    onClose();
+  };
+  const editFromDetail = () => { if (!photoOpen) onEdit(); };
+  const deleteFromDetail = () => { if (!photoOpen) onDelete(); };
 
   const nameOf = (id: string) => options.members.find((m) => m.id === id)?.full_name ?? null;
 
@@ -76,38 +133,49 @@ export function ExpenseDetail({
     .map((p) => receiptPublicUrl(p))
     .filter((u): u is string => !!u);
 
+  const photos = receiptUrls.map((src, i) => ({
+    src,
+    alt: receiptUrls.length > 1
+      ? `Fatura — ${expense.description} (${i + 1}/${receiptUrls.length})`
+      : `Fatura — ${expense.description}`,
+  }));
+
   return (
     <>
       <Modal
         open={open}
-        onClose={onClose}
+        onClose={closeDetail}
         title="Detajet e shpenzimit"
         footer={
           <>
+            {canDelete ? (
+              <button type="button" className="btn btn-ghost btn-sm exd-del" onClick={deleteFromDetail}>
+                Fshij
+              </button>
+            ) : null}
+            <button type="button" className="btn btn-ghost btn-sm" onClick={closeDetail}>
+              Mbyll
+            </button>
             {canWrite ? (
-              <button type="button" className="btn btn-ember btn-sm" onClick={onEdit}>
+              <button type="button" className="btn btn-ember btn-sm" onClick={editFromDetail}>
                 Ndrysho
               </button>
             ) : null}
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
-              Mbyll
-            </button>
           </>
         }
       >
         <div className="exd">
-          {/* The answer, before anything else: how much, paid or not, when. */}
-          <div className="exd-hero">
+          {/* The answer, before anything else: how much, what for, settled or
+              not. Nothing else competes with it at this size. */}
+          <header className="exd-hero">
             <div className="exd-hero-top">
               <div className={`exd-amount${priced ? "" : " none"}`}>{expenseAmountLabel(expense)}</div>
               <span className={`badge-st ${EXPENSE_STATUS_TONE[expense.status]}`}>
                 {EXPENSE_STATUS_LABEL[expense.status]}
               </span>
             </div>
-            <div className="exd-when mono">{formatDate(expense.occurred_on)}</div>
-            <div className="exd-title">{expense.description}</div>
-            <span className="exl-cat">{expense.category_name?.trim() || UNKNOWN_CATEGORY_LABEL}</span>
-          </div>
+            <h3 className="exd-title">{expense.description}</h3>
+          </header>
 
           {owed ? (
             <div className="exd-owed">
@@ -115,8 +183,15 @@ export function ExpenseDetail({
             </div>
           ) : null}
 
+          <Group title="Kur dhe çka">
+            <dl className="exd-dl">
+              <Fact label="Data" num>{dateLabel(expense.occurred_on)}</Fact>
+              <Fact label="Kategoria">{expense.category_name?.trim() || UNKNOWN_CATEGORY_LABEL}</Fact>
+            </dl>
+          </Group>
+
           <Group title="Për kë dhe nga kush">
-            <div className="exd-grid">
+            <dl className="exd-dl">
               <Fact label="Për kë">{beneficiaryLabel(expense, nameOf)}</Fact>
               <Fact label="Paguar nga">
                 {payer}
@@ -124,15 +199,15 @@ export function ExpenseDetail({
                   <span className="exd-vs">rimbursuar{reimbursedNote ? ` · ${reimbursedNote}` : ""}</span>
                 ) : null}
               </Fact>
-            </div>
+            </dl>
           </Group>
 
           <Group title="Pagesa dhe dokumenti">
-            <div className="exd-grid">
+            <dl className="exd-dl">
               <Fact label="Mënyra">{method}</Fact>
-              <Fact label="Nr. i faturës">{invoiceNoLabel(expense.invoice_no)}</Fact>
+              <Fact label="Nr. i faturës" num>{invoiceNoLabel(expense.invoice_no)}</Fact>
               <Fact label="Burimi">{sponsorName ?? "Pa burim"}</Fact>
-            </div>
+            </dl>
           </Group>
 
           {notes ? (
@@ -141,14 +216,14 @@ export function ExpenseDetail({
             </Group>
           ) : null}
 
-          {receiptUrls.length > 0 ? (
-            <Group title={receiptUrls.length > 1 ? `Fotot e faturës (${receiptUrls.length})` : "Fotoja e faturës"}>
-              <div className="exp-rc-grid">
+          <Group title={receiptUrls.length > 1 ? `Fotot e faturës (${receiptUrls.length})` : "Fotoja e faturës"}>
+            {receiptUrls.length > 0 ? (
+              <div className="exd-shots">
                 {receiptUrls.map((src, i) => (
                   <button
                     key={src}
                     type="button"
-                    className="exp-rc-thumb"
+                    className="exd-shot"
                     onClick={() => setPhotoIndex(i)}
                     aria-label={
                       receiptUrls.length > 1
@@ -158,28 +233,38 @@ export function ExpenseDetail({
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={src} alt="" loading="lazy" decoding="async" />
+                    {receiptUrls.length > 1 ? <span className="exd-shot-n" aria-hidden="true">{i + 1}</span> : null}
                   </button>
                 ))}
               </div>
-            </Group>
-          ) : (
-            <Group title="Fotoja e faturës">
+            ) : (
               <div className="exd-empty">Pa foto të faturës.</div>
-            </Group>
-          )}
+            )}
+          </Group>
         </div>
       </Modal>
 
-      <Lightbox
-        photos={receiptUrls.map((src, i) => ({
-          src,
-          alt: receiptUrls.length > 1
-            ? `Fatura — ${expense.description} (${i + 1}/${receiptUrls.length})`
-            : `Fatura — ${expense.description}`,
-        }))}
-        openIndex={photoIndex}
-        onClose={() => setPhotoIndex(null)}
-      />
+      {/* PORTALLED, AND THE WRAPPER'S z-index IS NOT DECORATION.
+          components/ui/Modal's overlay carries backdrop-filter, which makes it
+          the CONTAINING BLOCK for every position:fixed descendant — so a
+          Lightbox rendered in place here would be laid out against the dialog
+          and then clipped by its overflow:hidden panel. Escaping to <body>
+          fixes the geometry; the z-index above the Modal's own 9999 fixes the
+          stacking, since Lightbox asks for 1000 and would otherwise open
+          BEHIND the very detail it was opened from. Same shape as
+          components/admin/PhotoCaptureField. */}
+      {mounted && photoIndex !== null && photos.length > 0
+        ? createPortal(
+            <div style={{ position: "relative", zIndex: 10000 }}>
+              <Lightbox
+                photos={photos}
+                openIndex={Math.min(photoIndex, photos.length - 1)}
+                onClose={() => setPhotoIndex(null)}
+              />
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }

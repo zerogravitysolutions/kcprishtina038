@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { dbError } from "@/lib/errors";
+// The same admin gate the account screens use — one definition, so "admin only"
+// cannot come to mean something weaker here than it does there.
+import { requireAdmin } from "../guards";
 import {
   billingMode, coveringMemberships, currentPeriod, isBillable, periodLabel, periodOf,
   shiftPeriod, type BillingMode,
@@ -168,6 +172,115 @@ export async function reopenInvoice(invoiceId: string): Promise<ActionResult> {
   }
 }
 
+// ------------------------------------------------------ deleting an invoice
+//
+// Everything else on this screen keeps the row and changes its state: paid,
+// waived, reopened. That is deliberate — dues rows are the club's accounting
+// record, and history is not edited.
+//
+// Deletion exists for the one case that is NOT history: an invoice issued for
+// the wrong month, or on the wrong date, is a MISTAKE. Waiving it would leave a
+// permanent wrong number in the ledger AND keep the period occupied, because
+// unique(member_id, period) means that member can never be billed for that
+// month again — so the mistake cannot even be corrected. Deleting frees the
+// pair, and the month can be generated again.
+//
+// Three things keep this defensible:
+//   1. ADMIN ONLY. The rest of the screen is admin + staff (dues_write_staff);
+//      destroying a financial row is not a routine staff action. The gate is
+//      re-read here because a Server Action is a standalone POST endpoint — the
+//      admin layout never runs for it, and has_role() in SQL only sees the role,
+//      not whether the account is still active.
+//   2. AUDITED FIRST. The whole row goes into audit_log.before BEFORE it is
+//      deleted. The number leaves the ledger; the fact that it existed, and who
+//      removed it, does not. No audit row, no delete — see below.
+//   3. dues_invoice_counters is NOT touched. Invoice numbers stay unique and
+//      ascending, never contiguous. Handing a deleted number to the next
+//      invoice would make two different invoices share one number, which is far
+//      worse than a gap in the sequence.
+
+/**
+ * Permanently removes one invoice. Admin only, audited.
+ *
+ * The audit row is written with the service-role client because audit_log has
+ * an admin-READ policy and no insert policy at all (migration 0005/0006): it is
+ * meant to be written by SECURITY DEFINER code, not by a session. The DELETE
+ * itself deliberately goes through the CALLER's client, so RLS
+ * (dues_write_staff) still has to agree — the service role is used for the one
+ * thing that cannot be done any other way, not to bypass the table's rules.
+ */
+export async function deleteInvoice(invoiceId: string): Promise<ActionResult> {
+  try {
+    const gate = await requireAdmin();
+    if (!gate.ok) return { ok: false, error: gate.error };
+
+    const id = (invoiceId || "").trim();
+    if (!UUID_RE.test(id)) return { ok: false, error: "Fatura nuk është e vlefshme." };
+
+    const supabase = await createClient();
+    // Read the WHOLE row first: it is both the existence check and the copy
+    // that survives in the audit log. Selecting columns by name would silently
+    // stop capturing any column added later.
+    const read = await supabase.from("dues").select("*").eq("id", id).maybeSingle();
+    if (read.error) return { ok: false, error: dbError(read.error, "Leximi i faturës dështoi. Provo sërish.") };
+    if (!read.data) {
+      return { ok: false, error: "Fatura nuk u gjet — ndoshta është fshirë tashmë. Rifresko faqen." };
+    }
+
+    let admin;
+    try {
+      admin = createAdminClient();
+    } catch {
+      // Without the audit trail this is just a number quietly disappearing.
+      // Refuse rather than delete unrecorded.
+      return {
+        ok: false,
+        error: "Mungon SUPABASE_SERVICE_ROLE_KEY në server, prandaj fshirja nuk mund të regjistrohej në ditar — dhe pa këtë shënim ajo nuk kryhet.",
+      };
+    }
+
+    const logged = await admin
+      .from("audit_log")
+      .insert({
+        actor_id: gate.id,
+        action: "dues.delete",
+        entity_type: "dues",
+        entity_id: id,
+        before: read.data,
+      })
+      .select("id")
+      .maybeSingle();
+    if (logged.error || !logged.data) {
+      return {
+        ok: false,
+        error: dbError(logged.error, "Fshirja nuk u regjistrua në ditar, prandaj nuk u krye. Provo sërish."),
+      };
+    }
+
+    // .select("id") so the number of rows actually removed is visible: an RLS
+    // refusal on DELETE returns NO error, just zero rows, and reporting that as
+    // success would leave the invoice on screen with an audit entry claiming it
+    // was deleted.
+    const del = await supabase.from("dues").delete().eq("id", id).select("id");
+    const removed = (del.data as { id: string }[] | null)?.length ?? 0;
+    if (del.error || removed === 0) {
+      // The ledger entry would otherwise assert a deletion that never happened.
+      await admin.from("audit_log").delete().eq("id", logged.data.id);
+      return {
+        ok: false,
+        error: del.error
+          ? dbError(del.error, "Fshirja e faturës dështoi. Provo sërish.")
+          : "Fshirja e faturës nuk u lejua nga baza e të dhënave. Rifresko faqen dhe provo sërish.",
+      };
+    }
+
+    revalidateFinance();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: dbError(e, "Fshirja e faturës dështoi. Provo sërish.") };
+  }
+}
+
 /**
  * Runs the monthly invoice generation for one period. The RPC is idempotent
  * (unique(member_id, period)), so calling it twice creates nothing the second
@@ -184,8 +297,9 @@ export async function generateInvoices(
     }
     // The month chips let the admin browse any month, and the button always
     // names the month on screen — so one stray click on a future month would
-    // issue real invoices for a month that has not started, freeze today's
-    // price into them and leave no way to delete them (the UI can only waive).
+    // issue real invoices for a month that has not started and freeze today's
+    // price into them. deleteInvoice() can undo that now, but only an admin can
+    // and only one invoice at a time — cheaper to refuse the click.
     // The cron issues each month on the 1st; there is never a reason to run
     // ahead of it.
     if (period > currentPeriod()) {
@@ -464,7 +578,8 @@ export async function generateInvoicesForMembers(
       };
     }
     // A future MONTH cannot be billed: the invoices would freeze today's price
-    // into a month that has not begun and can only be waived, never deleted.
+    // into a month that has not begun, and cleaning them up afterwards is one
+    // admin-only deletion per invoice.
     if (period > currentPeriod()) {
       return {
         ok: false,

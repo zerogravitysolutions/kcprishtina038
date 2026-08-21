@@ -6,6 +6,8 @@ import { fmt, sum } from "@/lib/training";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Stërvitjet" };
+
 const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 
 type EntryLite = { participated: boolean; distance_km: number | null };

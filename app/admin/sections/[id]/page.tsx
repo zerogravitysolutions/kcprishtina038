@@ -9,6 +9,8 @@ import { NumericInput } from "@/components/admin/NumericInput";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Ndrysho seksionin" };
+
 type Section = {
   id: string;
   slug: string;

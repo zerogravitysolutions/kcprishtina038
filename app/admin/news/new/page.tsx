@@ -7,6 +7,8 @@ import type { MediaOption } from "@/components/admin/MediaPicker";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Artikull i ri" };
+
 export default async function NewNewsPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");

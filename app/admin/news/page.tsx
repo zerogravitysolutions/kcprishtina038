@@ -6,6 +6,8 @@ import { DeleteButton } from "./DeleteButton";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Lajmet" };
+
 type Row = {
   id: string;
   slug: string;

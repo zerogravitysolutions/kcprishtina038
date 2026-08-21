@@ -7,6 +7,8 @@ import { CATEGORIES } from "@/lib/race-category";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Regjistrimet e eventit" };
+
 export default async function EventSignupsPage({ params }: { params: Promise<{ id: string }> }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");

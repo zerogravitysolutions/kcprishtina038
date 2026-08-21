@@ -9,9 +9,20 @@ export const revalidate = 0;
 
 export const metadata = { title: "Planet e anëtarësisë" };
 
-// Staff may look at the tiers; membership_plans_write_admin means only the
-// admin can change them.
-const VIEW_ROLES = ["admin", "staff"];
+// ADMIN ONLY, to match the nav.
+//
+// The sidebar row for "Planet e anëtarësisë" is allow: ["admin"], so a staff
+// member never saw the row — but this gate used to let them in by typing the
+// URL, which is a menu and a page disagreeing about who this screen is for.
+// Nothing is lost by closing it: staff still get the money view of the tiers on
+// the Pasqyra ("Sipas planit"), which is where a tier matters to them — how
+// much each one bills, collects and is owed. What lives ONLY here is the
+// catalogue editor, and membership_plans_write_admin already limited that to
+// the admin.
+//
+// The write gate below is unchanged and stays a separate line on purpose: it
+// mirrors the SQL policy, and the two must not be collapsed into one check.
+const VIEW_ROLES = ["admin"];
 
 type PlanRow = {
   id: string; code: string; name_sq: string; description_sq: string | null;

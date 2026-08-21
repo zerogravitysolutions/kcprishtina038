@@ -7,6 +7,8 @@ import type { MediaOption } from "@/components/admin/MediaPicker";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Ndrysho anëtarin e ekipit" };
+
 type Row = {
   id: string;
   first_name: string;

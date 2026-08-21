@@ -11,6 +11,8 @@ import {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Progresi" };
+
 const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 
 type Member = { id: string; full_name: string; section_slug: string | null; status: string; positions: string[] };

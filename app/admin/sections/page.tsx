@@ -5,6 +5,8 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Seksionet" };
+
 type Row = { id: string; slug: string; display_order: number; name_sq: string; active: boolean; coach: { full_name: string } | null };
 
 export default async function SectionsAdminPage() {

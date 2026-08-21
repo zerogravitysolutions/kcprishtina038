@@ -6,6 +6,8 @@ import { DeleteButton } from "./DeleteButton";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Eventet" };
+
 type Row = { id: string; title_sq: string; type: string; status: string; source: string | null; start_at: string; location: string | null; section: { name_sq: string } | null };
 
 // Display-only labels — the DB values stay `race` / `ride` / `camp` / `training`.

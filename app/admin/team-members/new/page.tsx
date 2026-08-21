@@ -7,6 +7,8 @@ import type { MediaOption } from "@/components/admin/MediaPicker";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Anëtar i ri i ekipit" };
+
 export default async function NewTeamMemberPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");

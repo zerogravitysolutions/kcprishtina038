@@ -287,6 +287,47 @@ export function periodOfTimestamp(value: string | null | undefined): string | nu
 }
 
 /**
+ * THE UNDATED-PAYMENT RULE, written once for the whole panel.
+ *
+ * `dues.paid_at` is nullable: rows marked paid before invoicing carried a
+ * timestamp, and rows a human ticks off without filling the date in, have money
+ * behind them and no day to hang it on. Every screen that buckets collected
+ * money by time therefore has to answer the same question — where does an
+ * undated payment go? — and for a while they answered it differently: the Arka
+ * view and Hyrjet e klubit dropped such rows from EVERY year, while the
+ * Anëtarësia view counted them in the month they bill. The same euros were
+ * present on one screen and absent on the next, and a year total did not equal
+ * the sum of its months.
+ *
+ * The rule, everywhere: A PAYMENT WITH NO DATE COUNTS IN THE MONTH IT BILLS.
+ * The invoice's own period is the only date the row actually carries, it is
+ * never far from when the money moved (dues are raised monthly and collected
+ * within days), and — unlike "no year at all" — it puts the euros somewhere a
+ * reader can find them. Nothing falls out of a window any more, so the years
+ * add up to the all-time total by construction.
+ *
+ * Null is returned ONLY when neither date is readable, which is a corrupt row,
+ * not an undated one. Callers report those apart instead of folding them into a
+ * month they do not belong to.
+ */
+export function cashPeriodOf(due: Pick<DueLike, "period" | "paid_at">): string | null {
+  const paid = periodOfTimestamp(due.paid_at);
+  if (paid) return paid;
+  const billed = parseDateOnly(due.period);
+  return billed ? periodOf(billed.getFullYear(), billed.getMonth()) : null;
+}
+
+/** The calendar year cashPeriodOf() puts a collected invoice in. */
+export function cashYearOf(due: Pick<DueLike, "period" | "paid_at">): string | null {
+  return cashPeriodOf(due)?.slice(0, 4) ?? null;
+}
+
+/** A collected invoice that carries no payment date — see cashPeriodOf(). */
+export function isUndatedPayment(due: Pick<DueLike, "paid_at">): boolean {
+  return !periodOfTimestamp(due.paid_at);
+}
+
+/**
  * Whether a membership that ENDED on `endDate` and one that STARTED on
  * `startDate` are the same rider carrying on, i.e. a tier change rather than a
  * departure plus an arrival. set_member_plan closes the old row on the day

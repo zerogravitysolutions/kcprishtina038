@@ -10,10 +10,18 @@
  *
  * The hardcoded default used to be https://prishtina038.cc, which does not
  * resolve in DNS — so every public page was naming a dead host as its canonical
- * address. Set NEXT_PUBLIC_SITE_URL in Vercel once the custom domain actually
- * serves the site and the sitemap, robots and canonicals all follow with no code
- * change. CAUTION: whatever that variable says wins, so pointing it at a domain
- * that is not live yet re-creates exactly the bug this replaced.
+ * address.
+ *
+ * THE INTENDED PRODUCTION DOMAIN IS https://prishtinacycling.com (the club's own
+ * addresses already use it). It is deliberately NOT hardcoded here: at the time
+ * of writing it does not resolve yet, and hardcoding a host before DNS is live
+ * re-creates the exact bug above. The switch is ONE step and no code change —
+ * set NEXT_PUBLIC_SITE_URL=https://prishtinacycling.com in the Vercel project
+ * once the domain serves the site, and canonicals, og:url, app/sitemap.ts and
+ * app/robots.ts all follow it.
+ *
+ * CAUTION: whatever that variable says wins. Setting it before the domain
+ * actually answers points every canonical at a dead host again.
  */
 export const SITE_ORIGIN = (
   process.env.NEXT_PUBLIC_SITE_URL || "https://kcprishtina038.vercel.app"

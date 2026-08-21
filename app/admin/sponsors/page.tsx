@@ -6,6 +6,8 @@ import { DeleteButton } from "./DeleteButton";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Sponsorët" };
+
 type Row = { id: string; name: string; tier: string; role_sq: string | null; website_url: string | null; contract_end: string | null; active: boolean };
 
 // Display-only labels — DB values stay `title` / `technical` / `partner` / `supporter`.

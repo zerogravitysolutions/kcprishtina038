@@ -11,6 +11,8 @@ import { fmt, sum, formatDurationShort } from "@/lib/training";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Stërvitja" };
+
 const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 
 type EntryJoined = EntryRow & {

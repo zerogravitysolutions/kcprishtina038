@@ -7,6 +7,8 @@ import type { AthleteOption } from "../AthletePicker";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Stërvitje e re" };
+
 const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 
 export default async function NewRidePage() {

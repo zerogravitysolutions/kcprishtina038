@@ -6,6 +6,8 @@ import { NewSettingForm } from "./NewSettingForm";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Cilësimet" };
+
 type Row = { key: string; value: unknown; updated_at: string };
 
 export default async function SettingsAdminPage() {

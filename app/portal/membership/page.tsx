@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { CLUB } from "@/lib/club";
 import {
   BILLING_MODE_LABEL, EFFECTIVE_STATUS_LABEL, EFFECTIVE_STATUS_TONE,
   MEMBERSHIP_STATUS_LABEL, PAID_METHOD_LABEL,
@@ -310,8 +311,12 @@ export default async function PortalMembershipPage() {
                 ? "Ke fatura që e kanë kaluar afatin. Pagesat kryhen te klubi — paguaj në zyrë ose me transfer bankar dhe klubi e shënon faturën si të paguar."
                 : "Pagesat kryhen te klubi. Kjo faqe përditësohet sapo klubi ta regjistrojë pagesën tënde."}{" "}
             Për çdo paqartësi shkruaj në{" "}
-            <a href="mailto:info@prishtina038.cc?subject=Anëtarësia" style={{ color: "var(--ember)", textDecoration: "underline" }}>
-              info@prishtina038.cc
+            {/* CLUB.email, not a literal: this address was hardcoded here AND in
+                lib/club.ts, and both pointed at a domain that resolves nowhere —
+                so the one place a member is told to ask about their money sent
+                mail into a black hole. One source now. */}
+            <a href={`mailto:${CLUB.email}?subject=Anëtarësia`} style={{ color: "var(--ember)", textDecoration: "underline" }}>
+              {CLUB.email}
             </a>.
           </p>
         </div>

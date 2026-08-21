@@ -7,6 +7,8 @@ import type { MediaOption } from "@/components/admin/MediaPicker";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Sponsor i ri" };
+
 export default async function NewSponsorPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");

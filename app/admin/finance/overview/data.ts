@@ -93,7 +93,7 @@ export type PaidDueRow = DueLike & {
  *
  * "Hyrjet e klubit" and the Pasqyra both have to print how much academy money
  * came in during a window, and the owner asked for those two numbers to be the
- * same number. So they share this read, `yearOfPayment()` below and
+ * same number. So they share this read, `yearOfCash()` below and
  * membershipIncome() from lib/finance — same rows, same bucketing, same helper,
  * therefore the same euros. Deriving it a second time anywhere is how the panel
  * previously ended up with two figures under one word.

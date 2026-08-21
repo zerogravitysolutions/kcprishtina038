@@ -7,6 +7,8 @@ import type { MediaOption } from "@/components/admin/MediaPicker";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Garë e re" };
+
 type SearchParams = Promise<{
   name?: string; date?: string; location?: string; race_type?: string;
   description?: string; result_summary?: string; external_url?: string;

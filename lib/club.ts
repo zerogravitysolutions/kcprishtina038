@@ -44,8 +44,14 @@ export const CLUB: ClubIdentity = {
   shortName: "KÇ Prishtina 038",
   legalName: "Klubi Çiklistik Prishtina 038",
   address: "Rruga e Maleve 14, 10000 Prishtinë",
-  email: "info@prishtina038.cc",
-  website: "prishtina038.cc",
+  // prishtinacycling.com, NOT prishtina038.cc: the latter is NXDOMAIN — it
+  // resolves nowhere, so mail to it bounces and the address printed on an
+  // invoice was unreachable. The club's own accounts already use
+  // @prishtinacycling.com. CONFIRM the exact mailbox with the club: the local
+  // part is carried over unchanged from the old address, which is the likely
+  // but unverified mapping.
+  email: "info@prishtinacycling.com",
+  website: "prishtinacycling.com",
   registration: "I regjistruar pranë FÇK · ID: KS-22-038",
 
   // ---- fill these in when the club provides them -------------------------

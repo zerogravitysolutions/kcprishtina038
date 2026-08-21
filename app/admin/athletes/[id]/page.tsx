@@ -8,6 +8,8 @@ import { computeBests, fmt, toHours, formatDurationShort, weeklyVolume, type Ent
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Atleti" };
+
 const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 
 type Athlete = { id: string; full_name: string; section_slug: string | null; dob: string | null; gender: "m" | "f" | null };

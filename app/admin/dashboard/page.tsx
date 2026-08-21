@@ -6,6 +6,8 @@ import { ApplicationActions } from "../applications/ApplicationActions";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = { title: "Paneli" };
+
 type AppRow = { id: string; full_name: string; email: string; status: string; experience: string | null; created_at: string; section: { slug: string; name_sq: string } | null };
 
 // Approving and rejecting are admin + staff in SQL. An editor may read an

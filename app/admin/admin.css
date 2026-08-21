@@ -92,13 +92,23 @@ h1, h2, h3 { color: var(--text-1); font-family: var(--font-display); font-varian
 /* ---------- App shell ---------- */
 .app {
   display: grid;
-  grid-template-columns: var(--side-w) 1fr;
+  /* minmax(0, 1fr), NOT 1fr: a grid track sized 1fr still has an implicit
+     min-width:auto, so it refuses to shrink below the MIN-CONTENT width of what
+     is inside it. One wide row — a long description, a table, a grid with fixed
+     columns — therefore stretched the whole main column past the viewport and
+     pushed the right-hand columns (amount, status, actions) off screen, on every
+     admin page at once. minmax(0, …) lets the track actually shrink so the
+     content inside is what wraps or scrolls, not the layout. */
+  grid-template-columns: var(--side-w) minmax(0, 1fr);
   grid-template-rows: var(--top-h) 1fr;
   grid-template-areas:
     "side top"
     "side main";
   min-height: 100vh;
 }
+/* Same reason, one level down: .main is itself a grid/flex parent for the page,
+   and without this its children can re-inflate the column we just constrained. */
+.main { min-width: 0; }
 .side {
   grid-area: side;
   background: var(--surface-1);

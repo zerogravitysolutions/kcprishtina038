@@ -395,8 +395,21 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--font-display); letter-spacing: -0
   opacity: .7;
 }
 
-/* ---------- Section transitions ---------- */
+/* ---------- Section transitions ----------
+   PUBLIC PAGES ONLY. This file is imported by the ROOT layout, so a bare
+   `section` selector also hits every <section> in the admin panel and the member
+   portal — where it was silently adding 72–128px of padding TOP AND BOTTOM to
+   each one, i.e. up to 256px of dead space per section. That is what made the
+   expense detail read as a few facts separated by empty screens, and it was
+   invisible to anyone reading the admin's own stylesheet. The rule stays for the
+   public pages, which do use <section> as a full-width page band; the two app
+   shells opt out immediately below. */
 section { padding-block: clamp(72px, 8vw, 128px); }
+
+/* The admin shell and the member portal lay their own space out with cards and
+   grids; a section there is a grouping element, not a page band. */
+.app section,
+.portal-shell section { padding-block: 0; }
 .section-head {
   display: grid;
   grid-template-columns: 1fr 1fr;

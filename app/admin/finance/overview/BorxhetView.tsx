@@ -4,7 +4,7 @@ import { dbError } from "@/lib/errors";
 import { RowBars } from "../../training/charts";
 import {
   AGING_BUCKETS, AGING_BUCKET_LABEL, UNKNOWN_MEMBER_LABEL, agingBucket, amountTotalLabel,
-  averageEur, daysOverdue, formatEur, outstandingTotal, owedToMembers, owedToMembersTotal,
+  averageEur, daysOverdue, formatEur, membershipTouchesMonth, outstandingTotal, owedToMembers, owedToMembersTotal,
   periodLabel, periodParam, sumEur, toEuros, type AgingBucket,
 } from "@/lib/finance";
 import type { MembershipStatus } from "@/lib/supabase/types";
@@ -79,11 +79,13 @@ export async function BorxhetView() {
   }
 
   // The tier the DEBT was issued under, not the one the rider is on today: the
-  // plan column sits next to "fatura më e vjetër" and describes it.
+  // plan column sits next to "fatura më e vjetër" and describes it. The
+  // fallback for a row with no membership_id is month-level: a membership that
+  // starts on 18 Aug covers the August invoice (period 2026-08-01).
   function planOf(due: OpenDueRow): PlanRow | null {
     const own = due.membership_id ? membershipById.get(due.membership_id) : null;
     const m = own ?? (historyByMember.get(due.member_id) ?? []).find(
-      (r) => r.start_date <= due.period && (!r.end_date || r.end_date >= due.period),
+      (r) => membershipTouchesMonth(r, due.period),
     );
     return m ? planById.get(m.plan_id) ?? null : null;
   }

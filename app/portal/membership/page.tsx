@@ -5,8 +5,8 @@ import { CLUB } from "@/lib/club";
 import {
   BILLING_MODE_LABEL, EFFECTIVE_STATUS_LABEL, EFFECTIVE_STATUS_TONE,
   MEMBERSHIP_STATUS_LABEL, PAID_METHOD_LABEL,
-  billingMode, daysOverdue, dueDateOf, effectiveStatus, formatDate, formatEur,
-  isOutstanding, issuedDateLabel, outstandingTotal, periodLabel, planAmountLabel, sumEur,
+  billingMode, daysOverdue, discountReasonLabel, dueDateOf, effectiveStatus, formatDate, formatEur,
+  isOutstanding, isReduced, issuedDateLabel, outstandingTotal, periodLabel, planAmountLabel, sumEur,
   type BillingMode, type DueLike, type EffectiveDuesStatus,
 } from "@/lib/finance";
 import type { DuesStatus, MembershipStatus, PaidMethod } from "@/lib/supabase/types";
@@ -71,6 +71,9 @@ type DueRow = {
   paid_method: PaidMethod | null;
   invoice_no: string | null;
   membership_id: string | null;
+  /** Set only while the invoice is at half price (numeric → maybe a string). */
+  full_amount_eur: number | string | null;
+  discount_reason: string | null;
 };
 
 /** "1 faturë" / "3 fatura" — a bare count reads wrong in the singular. */
@@ -115,7 +118,7 @@ export default async function PortalMembershipPage() {
       .limit(50),
     supabase
       .from("dues")
-      .select("id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, membership_id")
+      .select("id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, membership_id, full_amount_eur, discount_reason")
       .eq("member_id", profile.id)
       .order("period", { ascending: false })
       .limit(DUES_CAP),
@@ -432,6 +435,7 @@ function InvoiceCard({ due, plan }: { due: DueRow; plan: string | null }) {
   // The invoice date, when the row carries one. Legacy rows (no issued_on, and
   // created_at is not loaded here) return null and the pill is simply omitted.
   const issued = issuedDateLabel(due.issued_on);
+  const reduced = isReduced(due);
 
   return (
     <div style={{ ...CARD, padding: "15px 17px" }}>
@@ -441,6 +445,11 @@ function InvoiceCard({ due, plan }: { due: DueRow; plan: string | null }) {
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 400, color: "var(--ink-3)", marginLeft: 8 }}>
             {formatEur(due.amount_eur)}
           </span>
+          {reduced ? (
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, fontWeight: 400, color: "var(--ink-3)", marginLeft: 6 }}>
+              nga <s>{formatEur(due.full_amount_eur)}</s>
+            </span>
+          ) : null}
         </strong>
         <Badge tone={tone} label={EFFECTIVE_STATUS_LABEL[status]} />
       </div>
@@ -450,6 +459,7 @@ function InvoiceCard({ due, plan }: { due: DueRow; plan: string | null }) {
         {issued ? <Pill label="Lëshuar" value={issued} /> : null}
         {status === "paid" || status === "waived" ? null : <Pill label="Afati" value={dueLabel(due)} />}
         {plan ? <Pill label="Plani" value={plan} /> : null}
+        {reduced ? <Pill label="½ çmimi" value={discountReasonLabel(due)} /> : null}
         {status === "paid" ? (
           <>
             <Pill label="Paguar më" value={paid ?? "datë e pashënuar"} />

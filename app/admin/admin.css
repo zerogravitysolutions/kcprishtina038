@@ -1404,3 +1404,153 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 /* .btn.exd-del, not .exd-del: .btn-ghost:hover is two classes and would
    otherwise out-specify this and repaint the delete button grey on hover. */
 .btn.exd-del:hover { background: var(--err-bg); border-color: var(--err); color: var(--err); }
+
+/* ==========================================================
+   THE MEMBERSHIP FACET (/admin/people)
+   app/admin/people/MembershipFacet.tsx + StartDateNote.tsx
+
+   A person's payment schedule, summarised in the row and
+   managed in the shared Modal. Two things drive the styling:
+
+   1. It is read on a PHONE, standing in a car park. Every
+      control is a 44px target, the summary never becomes a
+      cramped table cell, and the modal's own pinned footer
+      (globals.css .ui-modal-footer) carries Ruaj / Mbyll.
+   2. Money must be legible at a glance and never lie: the
+      amount is tabular, and a Garues reads "Pa pagesë"
+      rather than €0.00 — that is copy, not styling, but the
+      .mbs-amount rule deliberately does NOT force a
+      monospace figure onto it.
+   ========================================================== */
+
+/* ---------- the row summary ---------- */
+.mbs-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.mbs-sum { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.mbs-amount {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-1);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+}
+.mbs-meta {
+  font-family: var(--font-mono); font-size: 10.5px; line-height: 1.6;
+  color: var(--text-3); overflow-wrap: anywhere;
+}
+.mbs-none { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); }
+/* .btn.mbs-open out-specifies .btn-sm: the row trigger is a 44px target at
+   every width, not only once the table has become cards. */
+.btn.mbs-open { align-self: flex-start; min-height: 44px; padding: 9px 15px; font-size: 13px; }
+/* Every action inside the panel (footer Mbyll / Ruaj, Përfundo) — .btn alone
+   is ~38px tall. */
+.btn.mbs-btn { min-height: 44px; padding: 10px 16px; font-size: 13.5px; justify-content: center; }
+
+/* The /admin/people table carries one column more than any other admin table,
+   and the shared .table-wrap clips overflow (overflow: hidden) — at tablet
+   widths the Veprime buttons fell into the clipped strip. Scoped to that one
+   wrapper: it scrolls sideways instead of clipping, and its action buttons may
+   wrap inside the cell. The shared table rules are untouched. At <= 800px the
+   table is already stacked cards and none of this applies.
+   The /admin/finance invoice table (.inv-table-wrap) gets the same treatment:
+   an open invoice carries Printo · Shëno si të paguar · Fal · Gjysmë çmimi ·
+   Fshij, the widest actions cell in the admin. */
+@media (min-width: 801px) {
+  .table-wrap.mbs-table-wrap,
+  .table-wrap.inv-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .mbs-table-wrap table.t td.actions,
+  .inv-table-wrap table.t td.actions { white-space: normal; }
+  .mbs-table-wrap table.t td.actions > *,
+  .inv-table-wrap table.t td.actions > * { margin: 2px 0; }
+}
+/* Invoice row actions are 44px touch targets at every width — out-specifies
+   the shared 36px card-mode rule (table.t td.actions .btn). */
+.inv-table-wrap table.t td.actions .btn { min-height: 44px; }
+
+/* ---------- the panel ---------- */
+.mbs { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.mbs-sec { min-width: 0; }
+.mbs-h {
+  margin: 0 0 10px; padding-bottom: 7px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono); font-weight: 500; font-size: 10px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--text-3);
+}
+/* Fixed halves rather than auto-fit, so the labels line up down the panel. */
+.mbs-dl { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 18px; }
+.mbs-f { min-width: 0; }
+.mbs-k {
+  margin: 0; font-family: var(--font-mono); font-size: 9.5px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--text-3);
+}
+/* margin-inline-start: the UA indents every <dd> by 40px. */
+.mbs-v {
+  margin: 4px 0 0; margin-inline-start: 0;
+  font-size: 14.5px; line-height: 1.45; color: var(--text-1); overflow-wrap: anywhere;
+}
+.mbs-v.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.mbs-vs { display: block; margin-top: 3px; font-size: 12px; line-height: 1.45; color: var(--text-3); overflow-wrap: anywhere; }
+.mbs-empty { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
+
+/* ---------- the form ---------- */
+.mbs-form { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mbs-form .field { margin-bottom: 12px; }
+.mbs-hint { font-family: var(--font-mono); font-size: 9.5px; line-height: 1.6; letter-spacing: .03em; color: var(--text-3); }
+.mbs-inline {
+  margin: 0 0 12px; padding: 10px 12px;
+  border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line);
+  font-size: 13px; line-height: 1.6; color: var(--text-2);
+}
+/* Closing an invoiced period is an accounting event, so it is coloured like
+   one — a warning the reader has to pass, not a hint they can skim. */
+.mbs-warn {
+  margin: 0 0 12px; padding: 11px 13px;
+  border-radius: var(--r-sm); background: var(--warn-bg);
+  border: 1px solid color-mix(in oklab, var(--warn) 30%, transparent);
+  font-size: 13px; line-height: 1.6; color: var(--text-1);
+}
+.mbs-err { margin: 0 0 12px; font-size: 13px; line-height: 1.6; color: var(--err); }
+
+/* ---------- ending it ---------- */
+.mbs-danger { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+.btn.mbs-end {
+  min-height: 44px;
+  color: var(--err);
+  border-color: color-mix(in oklab, var(--err) 34%, transparent);
+}
+.btn.mbs-end:hover { background: var(--err-bg); border-color: var(--err); color: var(--err); }
+
+/* ---------- what the start date causes (StartDateNote) ---------- */
+.mbs-note {
+  display: flex; flex-direction: column; gap: 7px;
+  margin: 0 0 12px; padding: 11px 13px;
+  border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line);
+  min-width: 0;
+}
+/* minmax(0, 1fr) on the value track: a fixed 1fr refuses to shrink below its
+   min-content and pushes the date off a 360px screen. */
+.mbs-note-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px 12px; align-items: baseline; }
+.mbs-note-k {
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.mbs-note-v { font-size: 13.5px; line-height: 1.5; color: var(--text-1); overflow-wrap: anywhere; }
+.mbs-note-s { font-style: normal; color: var(--text-3); font-size: 12.5px; }
+.mbs-note-past {
+  margin: 2px 0 0; padding-top: 8px; border-top: 1px solid var(--line);
+  font-size: 12.5px; line-height: 1.6; color: var(--text-2);
+}
+
+/* The people table becomes stacked cards at 800px, where every [data-lab] cell
+   is a label-left / value-right row. This cell is not one value: it is a block
+   of facts plus a 44px button, so it takes the whole card width with its label
+   above it. */
+@media (max-width: 800px) {
+  table.t td[data-lab="Anëtarësia"] { display: block; }
+  table.t td[data-lab="Anëtarësia"]::before { display: block; margin-bottom: 6px; }
+  .mbs-cell { gap: 8px; }
+}
+
+@media (max-width: 560px) {
+  .mbs { gap: 16px; }
+  .mbs-dl { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  /* Label above value: two columns leave ~140px a side inside the modal card,
+     and every date wraps mid-word. */
+  .mbs-note-row { grid-template-columns: minmax(0, 1fr); }
+}

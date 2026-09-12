@@ -6,11 +6,12 @@ import { Modal } from "@/components/ui/Modal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { actionError } from "@/lib/errors";
 import {
-  EFFECTIVE_STATUS_LABEL, EFFECTIVE_STATUS_TONE, PAID_METHOD_LABEL,
-  daysOverdue, dueDateOf, effectiveStatus, formatEur, issuedDateLabel, periodLabel,
+  DISCOUNT_REASON_MAX, EFFECTIVE_STATUS_LABEL, EFFECTIVE_STATUS_TONE, HALF_PRICE_DEFAULT_REASON,
+  PAID_METHOD_LABEL, daysOverdue, discountReasonLabel, dueDateOf, effectiveStatus, formatEur,
+  halfOf, isReduced, issuedDateLabel, periodLabel, toEuros,
 } from "@/lib/finance";
 import type { DuesStatus, PaidMethod } from "@/lib/supabase/types";
-import { deleteInvoice, markInvoicePaid, reopenInvoice, waiveInvoice } from "./actions";
+import { deleteInvoice, markInvoicePaid, reopenInvoice, setInvoiceHalfPrice, waiveInvoice } from "./actions";
 
 /** One invoice as the list renders it — flattened by the page, not embedded. */
 export type InvoiceView = {
@@ -24,6 +25,10 @@ export type InvoiceView = {
   paid_at: string | null;
   paid_method: PaidMethod | null;
   notes: string | null;
+  /** The undiscounted price while the invoice is at half price; null = not
+   * reduced (never "a full price of €0"). amount_eur is what is owed. */
+  full_amount_eur: number | null;
+  discount_reason: string | null;
   member_name: string;
   member_email: string;
   /** Plan name from the linked membership; null on invoices with no membership. */
@@ -39,21 +44,20 @@ function initials(n: string) {
   return n.trim().split(/\s+/).slice(0, 2).map((s) => s[0] || "").join("").toUpperCase() || "?";
 }
 
-function todayIso(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
-
 /**
  * `canDelete` is admin-only and therefore narrower than `canWrite` (admin +
  * staff). Hiding the button is only tidiness — deleteInvoice() re-checks the
  * role and the account status itself, because a Server Action is a POST
  * endpoint that anyone can call directly.
+ *
+ * `today` is the CLUB's calendar day, computed on the server: it prefills and
+ * caps the payment date. Reading the browser clock in the useState initialiser
+ * made SSR (UTC) and hydration (Kosovo) disagree for the first hour or two
+ * after midnight.
  */
 export function InvoiceRow({
-  inv, canWrite, canDelete = false,
-}: { inv: InvoiceView; canWrite: boolean; canDelete?: boolean }) {
+  inv, today, canWrite, canDelete = false,
+}: { inv: InvoiceView; today: string; canWrite: boolean; canDelete?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -61,12 +65,15 @@ export function InvoiceRow({
   const [waiveOpen, setWaiveOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
+  const [halfOpen, setHalfOpen] = useState(false);
+  const [fullOpen, setFullOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const [method, setMethod] = useState<PaidMethod>("cash");
-  const [date, setDate] = useState(todayIso());
+  const [date, setDate] = useState(today);
   const [payNote, setPayNote] = useState("");
   const [reason, setReason] = useState("");
+  const [halfReason, setHalfReason] = useState(HALF_PRICE_DEFAULT_REASON);
 
   const status = effectiveStatus(inv);
   const late = daysOverdue(inv);
@@ -91,11 +98,19 @@ export function InvoiceRow({
   const methodLabel = inv.paid_method ? PAID_METHOD_LABEL[inv.paid_method] : null;
   const amount = formatEur(inv.amount_eur);
   const period = periodLabel(inv.period);
+  // Half price. Only an OPEN invoice is repriced (set_due_half_price refuses
+  // paid and waived rows too): changing a paid invoice's amount would leave
+  // the money on record and the amount on the invoice disagreeing.
+  const reduced = isReduced(inv);
+  const fullLabel = reduced ? formatEur(inv.full_amount_eur) : null;
+  const halfLabel = formatEur(halfOf(inv.amount_eur));
+  const canHalve = !settled && !reduced && toEuros(inv.amount_eur) > 0;
+  const halfReasonTrim = halfReason.trim();
 
   function openPay() {
     setErr(null);
     setMethod("cash");
-    setDate(todayIso());
+    setDate(today);
     setPayNote("");
     setPayOpen(true);
   }
@@ -104,6 +119,12 @@ export function InvoiceRow({
     setErr(null);
     setReason("");
     setWaiveOpen(true);
+  }
+
+  function openHalf() {
+    setErr(null);
+    setHalfReason(HALF_PRICE_DEFAULT_REASON);
+    setHalfOpen(true);
   }
 
   // Server Actions here return { ok, error }; a throw (e.g. "forbidden") is
@@ -151,7 +172,21 @@ export function InvoiceRow({
             </small>
           </span>
         </td>
-        <td className="num" data-lab="Shuma">{formatEur(inv.amount_eur)}</td>
+        <td className="num" data-lab="Shuma">
+          {reduced ? (
+            // What is owed first, the full price muted beside it: the list's
+            // totals sum amount_eur, so the big number must be that one.
+            <span>
+              {amount}
+              <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
+                nga <s>{fullLabel}</s>
+              </small>
+              <small style={{ display: "block", fontSize: 11, color: "var(--warn)", marginTop: 2 }}>
+                ½ · {discountReasonLabel(inv)}
+              </small>
+            </span>
+          ) : amount}
+        </td>
         <td className="mono" data-lab="Afati">
           <span>
             {due ? due.toLocaleDateString("sq") : "Pa afat"}
@@ -211,6 +246,27 @@ export function InvoiceRow({
               >
                 Fal
               </button>
+              {reduced ? (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ marginLeft: 6 }}
+                  onClick={() => { setErr(null); setFullOpen(true); }}
+                  disabled={pending}
+                >
+                  Kthe çmimin e plotë
+                </button>
+              ) : canHalve ? (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ marginLeft: 6 }}
+                  onClick={openHalf}
+                  disabled={pending}
+                >
+                  Gjysmë çmimi
+                </button>
+              ) : null}
             </>
           )}
           {canDelete ? (
@@ -233,12 +289,13 @@ export function InvoiceRow({
         title="Regjistro pagesën"
         footer={
           <>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPayOpen(false)} disabled={pending}>
+            <button type="button" className="btn btn-ghost btn-sm" style={{ minHeight: 44 }} onClick={() => setPayOpen(false)} disabled={pending}>
               Anulo
             </button>
             <button
               type="button"
               className="btn btn-ember btn-sm"
+              style={{ minHeight: 44 }}
               disabled={pending}
               onClick={() => run(() => markInvoicePaid(inv.id, { method, date, notes: payNote }), () => setPayOpen(false))}
             >
@@ -258,7 +315,7 @@ export function InvoiceRow({
         </div>
         <div className="field">
           <label htmlFor={`d-${inv.id}`}>Data e pagesës</label>
-          <input id={`d-${inv.id}`} type="date" value={date} max={todayIso()} onChange={(e) => setDate(e.target.value)} />
+          <input id={`d-${inv.id}`} type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
         </div>
         <div className="field">
           <label htmlFor={`n-${inv.id}`}>Shënim (opsional)</label>
@@ -273,12 +330,13 @@ export function InvoiceRow({
         title="Fal faturën"
         footer={
           <>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setWaiveOpen(false)} disabled={pending}>
+            <button type="button" className="btn btn-ghost btn-sm" style={{ minHeight: 44 }} onClick={() => setWaiveOpen(false)} disabled={pending}>
               Anulo
             </button>
             <button
               type="button"
               className="btn btn-ember btn-sm"
+              style={{ minHeight: 44 }}
               disabled={pending || reason.trim().length < 3}
               onClick={() => run(() => waiveInvoice(inv.id, reason), () => setWaiveOpen(false))}
             >
@@ -303,6 +361,79 @@ export function InvoiceRow({
         </div>
         {err ? <div className="mm-msg err">{err}</div> : null}
       </Modal>
+
+      {/* Half price — for a member away on holiday. The confirmation names the
+          change itself ("€40.00 → €20.00"), and the reason is printed on the
+          member's invoice, so it is prefilled with the common case rather than
+          left blank. */}
+      <Modal
+        open={halfOpen}
+        onClose={() => { if (!pending) setHalfOpen(false); }}
+        title="Gjysmë çmimi"
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost btn-sm" style={{ minHeight: 44 }} onClick={() => setHalfOpen(false)} disabled={pending}>
+              Anulo
+            </button>
+            <button
+              type="button"
+              className="btn btn-ember btn-sm"
+              style={{ minHeight: 44 }}
+              disabled={pending || halfReasonTrim.length > DISCOUNT_REASON_MAX}
+              onClick={() => run(() => setInvoiceHalfPrice(inv.id, true, halfReasonTrim), () => setHalfOpen(false))}
+            >
+              {pending ? "Duke ruajtur…" : "Konfirmo"}
+            </button>
+          </>
+        }
+      >
+        <div style={{ fontSize: 13.5, color: "var(--text-2)", marginBottom: 6 }}>
+          {inv.member_name} · {period}
+        </div>
+        <div className="mono" style={{ fontSize: 20, fontWeight: 600, color: "var(--text-1)", marginBottom: 14 }}>
+          {amount} → {halfLabel}
+        </div>
+        <div className="field">
+          <label htmlFor={`h-${inv.id}`}>Arsyeja</label>
+          <input
+            id={`h-${inv.id}`}
+            value={halfReason}
+            maxLength={DISCOUNT_REASON_MAX}
+            onChange={(e) => setHalfReason(e.target.value)}
+            placeholder={HALF_PRICE_DEFAULT_REASON}
+          />
+        </div>
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.6 }}>
+          Arsyeja shfaqet te fatura e anëtarit. Çmimi i plotë ruhet dhe mund ta kthesh
+          sa kohë fatura është e papaguar.
+        </div>
+        {err ? <div className="mm-msg err">{err}</div> : null}
+      </Modal>
+
+      <ConfirmModal
+        open={fullOpen}
+        onClose={() => setFullOpen(false)}
+        title="Kthe çmimin e plotë"
+        confirmLabel="Konfirmo"
+        message={
+          <>
+            Fatura e <strong>{inv.member_name}</strong> për {period} kthehet nga{" "}
+            <strong className="mono">{amount}</strong> në <strong className="mono">{fullLabel}</strong>. Arsyeja e
+            zbritjes ({discountReasonLabel(inv)}) hiqet.
+          </>
+        }
+        onConfirm={async () => {
+          try {
+            const r = await setInvoiceHalfPrice(inv.id, false);
+            if (r.ok) router.refresh();
+            return r.ok ? { ok: true as const } : { ok: false as const, error: r.error };
+          } catch (e) {
+            const msg = actionError(e, "Ndryshimi i çmimit dështoi. Provo sërish.");
+            if (!msg) { router.refresh(); return { ok: true as const }; }
+            return { ok: false as const, error: msg };
+          }
+        }}
+      />
 
       <ConfirmModal
         open={undoOpen}

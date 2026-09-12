@@ -6,7 +6,7 @@ import { BilledVsCollected, type TrendPoint } from "./TrendChart";
 import { MembershipFlow, type GrowthPoint } from "./GrowthChart";
 import {
   PAID_METHOD_LABEL, averageEur, collectionRate, coveringMemberships, currentPeriod,
-  effectiveStatus, formatEur, isBillable, isTierChangeGap, outstandingTotal, parsePeriodParam,
+  effectiveStatus, formatEur, isBillable, isTierChangeGap, membershipTouchesMonth, outstandingTotal, parsePeriodParam,
   periodLabel, periodOfTimestamp, periodParam, periodRange, planAmountLabel, shiftPeriod, sumEur,
   toEuros, yearStartPeriod, type DueLike,
 } from "@/lib/finance";
@@ -181,17 +181,18 @@ export async function AnetaresiaView({ p, y, canEditPlans }: { p?: string; y?: s
   // membership_id; for those, the honest fallback is the membership whose
   // window CONTAINS the billed month — not the rider's subscription today,
   // which would label a still-unpaid Akademia II month "Garues" the moment they
-  // are promoted, on a view that also says racers are never billed. Both dates
-  // are "YYYY-MM-DD", so comparing them as strings orders them correctly.
+  // are promoted, on a view that also says racers are never billed. The window
+  // test is MONTH-level (membershipTouchesMonth), like the generator's: a
+  // membership starting 18 Aug covers the August invoice, although 2026-08-18
+  // is later than its period 2026-08-01. History is newest start first, so the
+  // latest start wins, as in coveringMemberships().
   function membershipOf(due: { member_id: string; period: string; membership_id: string | null }): MembershipRow | null {
     if (due.membership_id) {
       const byId = membershipById.get(due.membership_id);
       if (byId) return byId;
     }
     const history = historyByMember.get(due.member_id) ?? [];
-    return history.find(
-      (m) => m.start_date <= due.period && (!m.end_date || m.end_date >= due.period),
-    ) ?? null;
+    return history.find((m) => membershipTouchesMonth(m, due.period)) ?? null;
   }
 
   function planOf(due: { member_id: string; period: string; membership_id: string | null }): PlanRow | null {

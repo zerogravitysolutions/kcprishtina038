@@ -5,15 +5,33 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { rejectApplication } from "../actions";
 import { enrolApplication, type EnrolResult } from "./actions";
-import { billingMode, currentPeriod, formatEur, periodLabel, periodParam, planAmountLabel, shiftPeriod } from "@/lib/finance";
+import { billingMode, formatDate, formatEur, hasAmount as rowHasAmount, periodLabel, planAmountLabel } from "@/lib/finance";
 import { NumericInput } from "@/components/admin/NumericInput";
 import { parseStrictNumber } from "@/lib/numeric";
+import { addDays, anchorDay, monthStartOf, startDateError } from "@/app/admin/people/membership";
+import { StartDateNote } from "@/app/admin/people/StartDateNote";
 
 export type PlanOption = {
   id: string;
   name_sq: string;
   amount_eur: number | string | null;
   billable: boolean;
+};
+
+/** An ACTIVE membership the applicant's account already holds (read by the
+ * detail page on the caller's session). */
+export type ExistingMembership = {
+  planId: string;
+  planName: string;
+  amountEur: number | string | null;
+  startDate: string;
+  /** Opened after this application was submitted, while it is still pending:
+   * an earlier attempt of this enrolment (or Njerëzit in the meantime). Its
+   * start date is the member's billing day and a retry must not move it — the
+   * server refuses a different one, so the field is locked here. */
+  openedWhilePending: boolean;
+  /** Months (first-of-month) the account already has an invoice for. */
+  invoicedPeriods: string[];
 };
 
 type Props = {
@@ -28,14 +46,22 @@ type Props = {
   chosenPlanId?: string | null;
   /** False for an editor: may read the application, may not approve or reject. */
   canAct?: boolean;
+  /** Detail only: the CLUB's today (clubTodayISO), computed on the server. */
+  today?: string;
+  /** Detail only: the last day the billing job processed (lastBillingRunDay). */
+  lastRunDay?: string;
+  /** Detail only: an active membership the applicant's account already has. */
+  existing?: ExistingMembership | null;
+  /** Detail only: admin — the plan catalogue is theirs to edit. */
+  canEditPlans?: boolean;
 };
 
 const MUTED: React.CSSProperties = { color: "var(--text-3)", fontSize: 12.5 };
 
-/** First of next month — the usual start, because the club bills whole months. */
-function defaultStartMonth(): string {
-  return periodParam(shiftPeriod(currentPeriod(), 1));
-}
+// The default used to be the FIRST OF NEXT MONTH, and the action then flattened
+// whatever was chosen to the 1st anyway. Both are gone: the club bills on the
+// day a rider joined, so the honest default is TODAY — the day the admin is
+// enrolling them — and the note under the field says what that day causes.
 
 function planOf(plans: PlanOption[], id: string): PlanOption | null {
   return plans.find((p) => p.id === id) ?? null;
@@ -43,30 +69,51 @@ function planOf(plans: PlanOption[], id: string): PlanOption | null {
 
 /** The price a plan starts the amount field at. Non-billable tiers have none. */
 function defaultAmount(plan: PlanOption | null): string {
-  if (!plan || !plan.billable) return "";
-  const n = Number(plan.amount_eur ?? 0);
-  return Number.isFinite(n) ? String(n) : "";
+  if (!plan || !plan.billable || !rowHasAmount(plan)) return "";
+  return String(Number(plan.amount_eur));
+}
+
+/** A stored amount as field text — a missing amount stays empty, never "0". */
+function amountField(value: number | string | null): string {
+  return rowHasAmount({ amount_eur: value }) ? String(Number(value)) : "";
 }
 
 // Approve / reject for one application. In the list this is a link to the
 // detail page plus "Refuzo" — approving is never one click any more, because
 // enrolment needs decisions (tier, amount, start month) only a human can make.
-export function ApplicationActions({ id, name, status, variant = "row", plans = [], chosenPlanId = null, canAct = true }: Props) {
+export function ApplicationActions({
+  id, name, status, variant = "row", plans = [], chosenPlanId = null, canAct = true,
+  today = "", lastRunDay = "", existing = null, canEditPlans = false,
+}: Props) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Extract<EnrolResult, { ok: true }> | null>(null);
   const [rejected, setRejected] = useState(false);
   const router = useRouter();
 
+  // A membership the account already holds wins over the applicant's choice:
+  // a retry of a half-finished enrolment must send exactly what the first
+  // attempt wrote, or set_member_plan would move the member's billing day.
+  const existingPlan = existing ? planOf(plans, existing.planId) : null;
   const initialPlanId =
+    existingPlan?.id ||
     (chosenPlanId && planOf(plans, chosenPlanId)?.id) ||
     plans.find((p) => p.billable)?.id ||
     plans[0]?.id ||
     "";
   const [planId, setPlanId] = useState(initialPlanId);
-  const [amount, setAmount] = useState(() => defaultAmount(planOf(plans, initialPlanId)));
-  const [startMonth, setStartMonth] = useState(defaultStartMonth);
+  const [amount, setAmount] = useState(() =>
+    existing && existingPlan
+      ? (existingPlan.billable ? amountField(existing.amountEur) : "")
+      : defaultAmount(planOf(plans, initialPlanId)),
+  );
+  // The default start is the CLUB's today, computed on the server and passed
+  // in: a clock read here (render or useState initialiser) disagrees with the
+  // server render around midnight, and the day it lands on becomes the
+  // member's billing day for good.
+  const [startDate, setStartDate] = useState(existing?.startDate ?? today);
   const [invoiceNow, setInvoiceNow] = useState(true);
+  const lockedStart = existing?.openedWhilePending === true;
 
   const plan = planOf(plans, planId);
   const billable = plan?.billable === true;
@@ -79,7 +126,15 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
   // "e falur" at the admin.
   const mode = !billable ? "non_billable" : hasAmount ? billingMode({ billable: true, amount_eur: amountNum }) : null;
   const canInvoice = billable && hasAmount && amountNum > 0;
-  const startPeriod = /^\d{4}-\d{2}$/.test(startMonth) ? `${startMonth}-01` : null;
+  // The MONTH the first invoice would bill. The start date itself keeps its day.
+  const startPeriod = monthStartOf(startDate);
+  const startProblem = startDateError(startDate, today);
+  // Months the billing job will skip because an invoice exists: the account's
+  // own, plus the first invoice this form is about to create when ticked.
+  const knownInvoiced = [
+    ...(existing?.invoicedPeriods ?? []),
+    ...(canInvoice && invoiceNow && startPeriod ? [startPeriod] : []),
+  ];
 
   // The success panel outlives the row: after the action runs the application
   // is no longer 'pending', so without this the whole thing would vanish and
@@ -100,11 +155,21 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
         )}
         <div style={MUTED}>
           {done.billable
-            ? `Anëtarësia: ${formatEur(done.amountEur)} / muaj, nga ${periodLabel(done.startDate)}.`
-            : `Anëtarësia: pa pagesë mujore, nga ${periodLabel(done.startDate)}.`}
+            ? `Anëtarësia: ${formatEur(done.amountEur)} / muaj, nga ${formatDate(done.startDate)}.`
+            : `Anëtarësia: pa pagesë mujore, nga ${formatDate(done.startDate)}.`}
         </div>
+        {done.billable && done.amountEur > 0 && anchorDay(done.startDate) !== null && (
+          <div style={MUTED}>
+            Faturimi përsëritet çdo muaj ditën {anchorDay(done.startDate)} — dita e fillimit.
+          </div>
+        )}
         {done.invoiceNo
-          ? <div style={MUTED}>Fatura e parë u gjenerua: <span className="mono">{done.invoiceNo}</span></div>
+          ? (
+            <div style={MUTED}>
+              Fatura e parë u gjenerua: <span className="mono">{done.invoiceNo}</span> për {periodLabel(done.startDate)},
+              me datë {formatDate(done.startDate)} dhe afat {formatDate(addDays(done.startDate, 5) ?? done.startDate)}.
+            </div>
+          )
           : done.billable && <div style={MUTED}>Nuk u gjenerua asnjë faturë tani. Gjeneroje te Faturat e anëtarëve kur ta duash.</div>}
         {done.warning && <div style={{ color: "var(--warn)", fontSize: 12.5, lineHeight: 1.6 }}>{done.warning}</div>}
         <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
@@ -159,20 +224,29 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
     setPlanId(nextId);
     // The amount and the notice must follow the tier immediately — a racer must
     // never be left showing €40 from the tier the admin just switched away from.
-    setAmount(defaultAmount(planOf(plans, nextId)));
+    // Going back to the tier the account is already on restores ITS price.
+    setAmount(
+      existing && existingPlan && nextId === existingPlan.id && existingPlan.billable
+        ? amountField(existing.amountEur)
+        : defaultAmount(planOf(plans, nextId)),
+    );
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!planId) { setError("Zgjidh një plan anëtarësie."); return; }
     if (billable && !hasAmount) { setError("Shuma mujore duhet të jetë numër, p.sh. 40 ose 40,5."); return; }
+    // The server checks this again — React masks a Server Action throw in
+    // production, so this copy exists to name the problem, not to enforce it.
+    if (startProblem) { setError(startProblem); return; }
     start(async () => {
       setError(null);
       const r = await enrolApplication({
         appId: id,
         planId,
         amountEur: billable ? amountNum : 0,
-        startDate: startMonth,
+        // The DAY goes through untouched: it is the billing anchor.
+        startDate,
         generateFirstInvoice: canInvoice && invoiceNow,
       });
       if (r.ok) { setDone(r); router.refresh(); }
@@ -210,16 +284,70 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
         )}
 
         <div className="field" style={{ margin: 0 }}>
-          <label>Muaji i parë</label>
-          {/* type="month" degrades to a text box in Safari — the placeholder is
-              the only hint the admin gets about the expected format there. */}
-          <input type="month" placeholder="2026-09" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} required />
+          <label htmlFor="ap-start">Data e fillimit</label>
+          {/* A real DATE, not a month. Its DAY is the day this member is billed
+              on every month from now on, so flattening it to the 1st (which is
+              what this field used to do) took that choice away from the club. */}
+          <input
+            id="ap-start"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            readOnly={lockedStart}
+            aria-describedby={existing ? "ap-existing" : undefined}
+            required
+          />
+        </div>
+
+        {existing && (
+          <div
+            id="ap-existing"
+            style={{ gridColumn: "1 / -1", padding: "10px 12px", borderRadius: "var(--r-sm)", background: "var(--warn-bg)", border: "1px solid color-mix(in oklab, var(--warn) 30%, transparent)", fontSize: 13, color: "var(--text-1)", lineHeight: 1.6 }}
+          >
+            {lockedStart ? (
+              <>
+                Një përpjekje e mëparshme e këtij regjistrimi e ka hapur tashmë anëtarësinë:{" "}
+                <strong>{existing.planName}</strong>, nga <strong>{formatDate(existing.startDate)}</strong>. Data e
+                fillimit mbetet ajo, sepse është dita e faturimit të anëtarit. Nëse duhet ndryshuar, ndryshoje te
+                Njerëzit › Anëtarësia pasi të aprovohet aplikimi.
+              </>
+            ) : (
+              <>
+                Ky email ka tashmë një anëtarësi aktive: <strong>{existing.planName}</strong>, nga{" "}
+                <strong>{formatDate(existing.startDate)}</strong>. Fushat nisin nga ajo, që aprovimi të mos e ndryshojë.
+                Një ndryshim që do ta përfundonte refuzohet këtu — bëje te Njerëzit › Anëtarësia, ku konfirmohet.
+              </>
+            )}
+          </div>
+        )}
+
+        <div style={{ gridColumn: "1 / -1" }}>
+          <StartDateNote
+            startDate={startDate}
+            today={today}
+            lastRunDay={lastRunDay}
+            billable={billable}
+            amountEur={hasAmount ? amountNum : null}
+            invoicedPeriods={knownInvoiced}
+            variant="enrol"
+            offersFirstInvoiceFor={canInvoice && !invoiceNow ? startPeriod : null}
+          />
+          {startProblem && (
+            <div style={{ marginTop: 8, color: "var(--err)", fontSize: 12.5, lineHeight: 1.6 }}>{startProblem}</div>
+          )}
         </div>
       </div>
 
       {plans.length === 0 && (
         <div style={{ marginTop: 12, fontSize: 13, color: "var(--err)", lineHeight: 1.6 }}>
-          Nuk ka plane anëtarësie. Shtoji te Financat › Planet para se ta aprovosh këtë aplikim.
+          {canEditPlans ? (
+            <>
+              Nuk ka plane anëtarësie. Shtoji te <Link href="/admin/plans">Klubi › Planet e anëtarësisë</Link> para se
+              ta aprovosh këtë aplikim.
+            </>
+          ) : (
+            "Nuk ka plane anëtarësie. Kërkoji një admini t’i shtojë te Klubi › Planet e anëtarësisë, pastaj aprovoje këtë aplikim."
+          )}
         </div>
       )}
 
@@ -237,12 +365,13 @@ export function ApplicationActions({ id, name, status, variant = "row", plans = 
       {canInvoice && (
         <label style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 14, fontSize: 13.5, color: "var(--text-2)", cursor: "pointer" }}>
           <input type="checkbox" checked={invoiceNow} onChange={(e) => setInvoiceNow(e.target.checked)} />
-          Gjenero faturën e parë menjëherë ({formatEur(amountNum)}{startPeriod ? ` për ${periodLabel(startPeriod)}` : ""})
+          Gjenero faturën e parë menjëherë ({formatEur(amountNum)}{startPeriod ? ` për ${periodLabel(startPeriod)}` : ""}
+          {addDays(startDate, 5) ? `, me afat ${formatDate(addDays(startDate, 5))}` : ""})
         </label>
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 18, flexWrap: "wrap" }}>
-        <button type="submit" className="btn btn-ember" disabled={pending || plans.length === 0}>
+        <button type="submit" className="btn btn-ember" disabled={pending || plans.length === 0 || !!startProblem}>
           {pending ? "Duke regjistruar…" : "Aprovo dhe regjistro"}
         </button>
         <button type="button" className="btn btn-ghost" disabled={pending} onClick={onReject}>Refuzo</button>

@@ -324,9 +324,14 @@ interface PublicTables {
           // first-of-month idempotency bucket) and created_at (generation
           // timestamp). Null on rows created before invoice dates existed.
           issued_on: string | null;
+          // The undiscounted price, set ONLY while the invoice is reduced (half
+          // price); amount_eur is then what is actually owed. Null = not
+          // reduced. discount_reason travels with it. Migration 20260912000001.
+          full_amount_eur: number | null;
+          discount_reason: string | null;
           created_at: string; updated_at: string;
         };
-        Insert: { member_id: string; period: string; amount_eur: number; status?: DuesStatus; paid_at?: string | null; paid_method?: PaidMethod | null; notes?: string | null; membership_id?: string | null; due_date?: string | null; invoice_no?: string | null; issued_on?: string | null };
+        Insert: { member_id: string; period: string; amount_eur: number; status?: DuesStatus; paid_at?: string | null; paid_method?: PaidMethod | null; notes?: string | null; membership_id?: string | null; due_date?: string | null; invoice_no?: string | null; issued_on?: string | null; full_amount_eur?: number | null; discount_reason?: string | null };
         Update: Partial<PublicTables["dues"]["Row"]>;
       };
       expense_categories: {
@@ -661,18 +666,38 @@ export interface Database {
       // invoice date. p_issued_on is stored on dues.issued_on and drives the due
       // date (issued_on + 5); null → the trigger fills the due date from the
       // period. Returns the count actually created. Admin/staff only; migration
-      // 20260818000001.
+      // 20260818000001. Since 20260912000001: members in p_half_member_ids are
+      // billed at half price (full price kept in dues.full_amount_eur, reason in
+      // dues.discount_reason, default 'Pushime'), and a period later than
+      // latestBillablePeriod() raises 'billing_window_closed'.
       generate_dues_for_members: {
-        Args: { p_period: string; p_member_ids: string[]; p_issued_on?: string | null };
+        Args: {
+          p_period: string;
+          p_member_ids: string[];
+          p_issued_on?: string | null;
+          p_half_member_ids?: string[] | null;
+          p_discount_reason?: string | null;
+        };
         Returns: number;
+      };
+      // Halves one unpaid/overdue invoice (p_half = true) or restores its full
+      // price (false). Returns a code: 'ok' | 'unchanged' | 'not_found' |
+      // 'not_open' | 'zero'. Admin/staff only; migration 20260912000001.
+      set_due_half_price: {
+        Args: { p_due_id: string; p_half: boolean; p_reason?: string | null };
+        Returns: string;
       };
       // Puts a member on a plan and returns the id of the ACTIVE membership
       // afterwards — the same row when nothing changed or the change was a
       // correction, a brand-new one when an invoiced membership was closed and
       // reopened. Service-role only; see migration 20260808000002, section E.
       set_member_plan: {
-        Args: { p_member_id: string; p_plan_id: string; p_amount: number; p_billable: boolean; p_start: string };
-        Returns: string;
+        Args: {
+          p_member_id: string; p_plan_id: string; p_amount: number; p_billable: boolean; p_start: string;
+          /** Case 4 (close-and-open) is refused — NULL returned, nothing written — unless true. */
+          p_allow_close?: boolean;
+        };
+        Returns: string | null;
       };
       current_role:        { Args: Record<string, never>; Returns: UserRole | null };
       has_role:            { Args: { roles: UserRole[] }; Returns: boolean };

@@ -1,6 +1,45 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
+// Page scroll lock, shared by every open modal.
+//
+// Each modal used to save body.style on open and restore it on close. With two
+// open at once (a panel plus its ConfirmModal) the second saved the FIRST one's
+// "hidden" as the value to restore — and the effect re-ran on every render,
+// because onClose is usually an inline arrow — so closing them in the "wrong"
+// order left the page permanently unscrollable. A count fixes both: the first
+// modal to open saves the page's own values, the last to close puts them back.
+let lockCount = 0;
+let savedOverflow = "";
+let savedOverscroll = "";
+
+function lockPage() {
+  const body = document.body;
+  if (lockCount === 0) {
+    savedOverflow = body.style.overflow;
+    savedOverscroll = body.style.overscrollBehavior;
+    // overflow:hidden stops the desktop scrollbar; overscrollBehavior:none
+    // stops a trackpad/touch scroll that reaches the modal body's edge from
+    // chaining through to the page under it (the "scroll is mixed with the
+    // back panel" bug). .ui-modal-body also sets overscroll-behavior:contain.
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+  }
+  lockCount += 1;
+}
+
+function unlockPage() {
+  lockCount = Math.max(0, lockCount - 1);
+  if (lockCount === 0) {
+    document.body.style.overflow = savedOverflow;
+    document.body.style.overscrollBehavior = savedOverscroll;
+  }
+}
+
+// Open modals, oldest first. Escape closes only the top one: pressing it on a
+// confirmation used to close the confirmation AND the panel beneath it.
+const openStack: object[] = [];
 
 type Props = {
   open: boolean;
@@ -13,28 +52,29 @@ type Props = {
 };
 
 export function Modal({ open, onClose, title, wide, children, footer }: Props) {
+  // The latest onClose, read at key-press time, so the lock below depends on
+  // `open` alone and does not re-run on every render.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
+    const token = {};
+    openStack.push(token);
+    lockPage();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && openStack[openStack.length - 1] === token) onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
-    // Lock the page behind the modal. overflow:hidden stops the desktop
-    // scrollbar; overscrollBehavior:none stops a trackpad/touch scroll that
-    // reaches the modal body's edge from chaining through to the page under it
-    // (the "scroll is mixed with the back panel" bug). The scrollable
-    // .ui-modal-body also sets overscroll-behavior:contain in CSS.
-    const body = document.body;
-    const prevOverflow = body.style.overflow;
-    const prevOverscroll = body.style.overscrollBehavior;
-    body.style.overflow = "hidden";
-    body.style.overscrollBehavior = "none";
     return () => {
       document.removeEventListener("keydown", onKey);
-      body.style.overflow = prevOverflow;
-      body.style.overscrollBehavior = prevOverscroll;
+      const i = openStack.indexOf(token);
+      if (i !== -1) openStack.splice(i, 1);
+      unlockPage();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

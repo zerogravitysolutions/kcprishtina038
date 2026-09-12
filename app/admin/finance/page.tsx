@@ -2,9 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
+import { clubCurrentPeriod, clubTodayISO } from "@/lib/clubtime";
 import {
-  currentPeriod, effectiveStatus, formatEur,
-  isOutstanding, outstandingTotal, parsePeriodParam, periodLabel, periodParam,
+  discountOf, earlyBillingOpensOn, effectiveStatus, formatDate, formatEur, isOutstanding,
+  isReduced, latestBillablePeriod, outstandingTotal, parsePeriodParam, periodLabel, periodParam,
   shiftPeriod, sumEur,
   type EffectiveDuesStatus,
 } from "@/lib/finance";
@@ -51,12 +52,15 @@ type DueRow = {
   paid_method: PaidMethod | null;
   invoice_no: string | null;
   notes: string | null;
+  full_amount_eur: number | string | null;
+  discount_reason: string | null;
   member: { id: string; full_name: string; email: string } | null;
   membership: { id: string; billable: boolean; plan: { name_sq: string } | null } | null;
 };
 
 const SELECT =
   "id, member_id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, notes, " +
+  "full_amount_eur, discount_reason, " +
   "member:profiles!member_id(id, full_name, email), " +
   "membership:memberships!membership_id(id, billable, plan:membership_plans!plan_id(name_sq))";
 
@@ -68,7 +72,14 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
   if (!FINANCE_ROLES.includes(profile.role)) redirect("/admin/dashboard");
 
   const sp = await searchParams;
-  const period = parsePeriodParam(sp.p);
+  // The club's calendar decides "this month" and the early-billing window —
+  // computed once, here on the server, and handed down, so the page, the
+  // modal and the server action all reach the same verdict and hydration
+  // never sees a second clock.
+  const today = clubTodayISO();
+  const nowPeriod = clubCurrentPeriod();
+  const latestPeriod = latestBillablePeriod(today);
+  const period = sp.p ? parsePeriodParam(sp.p) : nowPeriod;
   const statusFilter = STATUS_FILTERS.some((s) => s.value === sp.st) ? sp.st! : "all";
   const query = (sp.q ?? "").trim();
 
@@ -134,6 +145,10 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
     paid_at: d.paid_at,
     paid_method: d.paid_method,
     notes: d.notes,
+    // Kept null when not reduced — a missing full price is "not reduced", never
+    // a full price of €0.
+    full_amount_eur: d.full_amount_eur == null ? null : Number(d.full_amount_eur),
+    discount_reason: d.discount_reason,
     member_name: d.member?.full_name ?? "Anëtar i panjohur",
     member_email: d.member?.email ?? "Pa email",
     plan_name: d.membership?.plan?.name_sq ?? null,
@@ -154,6 +169,12 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
   const billed = sumEur(billedRows);
   const collected = sumEur(collectedRows);
   const outstanding = outstandingTotal(invoices);
+  // Half-price invoices of the month. Every total above already sums what was
+  // actually invoiced (amount_eur); this only says how much was taken off, so
+  // the owner sees the reductions at a glance. Waived ones are left out, like
+  // they are from "Faturuar": a forgiven invoice has no discount to speak of.
+  const reducedRows = billedRows.filter(isReduced);
+  const reducedTotal = reducedRows.reduce((s, i) => s + discountOf(i), 0);
 
   // ---- filtered list -------------------------------------------------------
   const needle = query.toLowerCase();
@@ -171,14 +192,14 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
   const label = periodLabel(period);
   const prev = periodParam(shiftPeriod(period, -1));
   const next = periodParam(shiftPeriod(period, 1));
-  const isCurrent = period === currentPeriod();
+  const isCurrent = period === nowPeriod;
   const base = "/admin/finance";
   const link = (over: { p?: string; st?: string; q?: string }) => {
     const params = new URLSearchParams();
     const p = over.p ?? periodParam(period);
     const st = over.st ?? statusFilter;
     const q = over.q ?? query;
-    if (p !== periodParam(currentPeriod())) params.set("p", p);
+    if (p !== periodParam(nowPeriod)) params.set("p", p);
     if (st !== "all") params.set("st", st);
     if (q) params.set("q", q);
     const s = params.toString();
@@ -200,7 +221,10 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
         <GenerateInvoices
           period={period}
           label={label}
-          nowPeriod={currentPeriod()}
+          today={today}
+          nowPeriod={nowPeriod}
+          latestPeriod={latestPeriod}
+          earlyHref={latestPeriod > nowPeriod ? link({ p: periodParam(latestPeriod) }) : null}
           initial={eligibility}
         />
       </div>
@@ -221,12 +245,18 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
         </div>
       ) : null}
 
+      {reducedRows.length > 0 ? (
+        <div className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 12px" }}>
+          ½ · {reducedRows.length} me gjysmë çmimi · −{formatEur(reducedTotal)} zbritje
+        </div>
+      ) : null}
+
       <div className="filter-bar">
         <Link className="chip" href={link({ p: prev })}>← {periodLabel(shiftPeriod(period, -1))}</Link>
         <span className="chip active">{label}</span>
         <Link className="chip" href={link({ p: next })}>{periodLabel(shiftPeriod(period, 1))} →</Link>
         {!isCurrent ? (
-          <Link className="chip" href={link({ p: periodParam(currentPeriod()) })}>Muaji aktual</Link>
+          <Link className="chip" href={link({ p: periodParam(nowPeriod) })}>Muaji aktual</Link>
         ) : null}
         <span aria-hidden style={{ width: 1, alignSelf: "stretch", background: "var(--line-strong)", margin: "2px 4px" }} />
         {STATUS_FILTERS.map((s) => (
@@ -240,7 +270,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
         ))}
         <div className="spacer" />
         <form method="get" action={base} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {periodParam(period) !== periodParam(currentPeriod())
+          {periodParam(period) !== periodParam(nowPeriod)
             ? <input type="hidden" name="p" value={periodParam(period)} /> : null}
           {statusFilter !== "all" ? <input type="hidden" name="st" value={statusFilter} /> : null}
           <input type="search" name="q" defaultValue={query} placeholder="Kërko anëtar…" aria-label="Kërko anëtar" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} />
@@ -255,7 +285,9 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
         </div>
       ) : null}
 
-      <div className="table-wrap">
+      {/* inv-table-wrap: an open invoice carries up to five action buttons,
+          the widest actions cell in the admin — see admin.css. */}
+      <div className="table-wrap inv-table-wrap">
         <table className="t">
           <thead>
             <tr>
@@ -275,8 +307,8 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
               <tr>
                 <td colSpan={7} style={{ padding: 18, color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
                   {invoices.length === 0
-                    ? period > currentPeriod()
-                      ? `Nuk ka fatura për ${label}. Ky muaj nuk ka filluar ende.`
+                    ? period > latestPeriod
+                      ? `Nuk ka fatura për ${label}. Ky muaj nuk ka filluar ende — faturat për të mund të gjenerohen nga ${formatDate(earlyBillingOpensOn(period))}.`
                       : `Nuk ka fatura për ${label}. Shtyp “Gjenero faturat për ${label}” për t’i krijuar.`
                     : "Asnjë faturë nuk i përgjigjet këtij filtri."}
                 </td>
@@ -286,7 +318,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
               // invoice is admin only, one step stricter — the action re-checks
               // it server-side, this only hides the button.
               rows.map((inv) => (
-                <InvoiceRow key={inv.id} inv={inv} canWrite canDelete={profile.role === "admin"} />
+                <InvoiceRow key={inv.id} inv={inv} today={today} canWrite canDelete={profile.role === "admin"} />
               ))
             )}
           </tbody>

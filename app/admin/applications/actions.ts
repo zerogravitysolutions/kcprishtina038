@@ -6,6 +6,13 @@ import { revalidatePath } from "next/cache";
 import { dbError } from "@/lib/errors";
 import type { TableUpdate } from "@/lib/supabase/types";
 import { slugifyName, splitName, uniqueSlug } from "@/lib/slug";
+// The billing-anchor helpers. They live under /admin/people because that is the
+// other screen that writes a membership start date; they are a plain module (no
+// "use client", no server-only import), so the form, this action and the panel
+// all validate with the identical rules.
+import { monthStartOf, planChangeCase, startDateError } from "@/app/admin/people/membership";
+import { clubTodayISO } from "@/lib/clubtime";
+import { formatDate } from "@/lib/finance";
 
 // Enrolment = turning an approved application into a real cyclist:
 // an auth user + profile, a membership (which IS the payment schedule) and,
@@ -69,18 +76,22 @@ function generatePassword(len = 12): string {
   return Array.from(bytes, (b) => PASSWORD_ALPHABET[b % PASSWORD_ALPHABET.length]).join("");
 }
 
-/** "2026-09" or "2026-09-14" → "2026-09-01". Null when unparseable. */
-function normalisePeriod(value: string): string | null {
-  const m = (value ?? "").match(/^(\d{4})-(\d{2})/);
-  if (!m) return null;
-  const month = Number(m[2]);
-  if (month < 1 || month > 12) return null;
-  return `${m[1]}-${m[2]}-01`;
-}
-
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+// normalisePeriod() used to live here and was applied to the ENROLMENT START
+// DATE: "2026-09-18" came in and "2026-09-01" went to set_member_plan. Every
+// membership in the club therefore started on the 1st, and since the club bills
+// on the membership's start DAY (generate_dues_anchored_for_date, migration
+// 20260818000001), no rider could ever be billed on the day they actually
+// joined. One member was misfiled by six weeks by exactly that.
+//
+// It is replaced by monthStartOf() from the membership helpers, which does the
+// same thing but is now applied to ONE value only: dues.period, the
+// first-of-month bucket that unique(member_id, period) uses to stop a member
+// being invoiced twice for one month. The start date itself travels intact.
+// The only caller of normalisePeriod() was the line below (checked repo-wide:
+// nothing else imported it — it was file-local and never exported).
+//
+// "Today" is clubTodayISO() — the club's calendar day. The server runs in UTC,
+// so for the first hours after midnight in Kosovo its own date is yesterday.
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -199,7 +210,15 @@ export type EnrolInput = {
   planId: string;
   /** Monthly amount in euro. IGNORED when the plan is not billable. */
   amountEur: number;
-  /** First billed month, "YYYY-MM" or "YYYY-MM-DD". */
+  /**
+   * The membership start DATE, "YYYY-MM-DD" — a real day, not a month.
+   *
+   * It reaches set_member_plan(p_start) untouched, because its DAY is the
+   * club's billing anchor: a rider who joins on the 18th is billed on the 18th
+   * of every month afterwards. Only the first invoice's `period` is flattened
+   * to the first of the month, and only because that column is the
+   * unique(member_id, period) bucket.
+   */
   startDate: string;
   generateFirstInvoice: boolean;
 };
@@ -229,6 +248,16 @@ type AppRow = {
   section_id: string | null;
   plan_id: string | null;
   status: string;
+  created_at: string;
+};
+
+type ActiveMembershipRow = {
+  id: string;
+  plan_id: string;
+  amount_eur: number | string;
+  billable: boolean;
+  start_date: string;
+  created_at: string;
 };
 
 type PlanRow = { id: string; name_sq: string; amount_eur: number | string | null; billable: boolean };
@@ -269,7 +298,7 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
   // --- 1. the application must exist and still be pending -------------------
   const { data: appData, error: appErr } = await admin
     .from("applications")
-    .select("id, full_name, email, phone, dob, section_id, plan_id, status")
+    .select("id, full_name, email, phone, dob, section_id, plan_id, status, created_at")
     .eq("id", input.appId)
     .maybeSingle();
   if (appErr) return { ok: false, error: dbError(appErr, "Leximi i aplikimit dështoi. Provo sërish.") };
@@ -297,8 +326,17 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
     if (amount > 100000) return { ok: false, error: "Shuma mujore është shumë e madhe." };
   }
 
-  const startDate = normalisePeriod(input.startDate);
-  if (!startDate) return { ok: false, error: "Muaji i fillimit nuk është i vlefshëm." };
+  // The start date survives EXACTLY as typed — it is the billing anchor. It is
+  // validated as a real calendar date within a sane window (startDateError also
+  // runs in the form, but React masks a Server Action throw in production, so
+  // the server copy is the guard and the client copy is only the message).
+  const startDate = (input.startDate ?? "").trim();
+  const startErr = startDateError(startDate, clubTodayISO());
+  if (startErr) return { ok: false, error: startErr };
+
+  // The invoice bucket, and the ONLY place the date is flattened to a month.
+  const invoicePeriod = monthStartOf(startDate);
+  if (!invoicePeriod) return { ok: false, error: "Data e fillimit nuk është e vlefshme." };
 
   const wantsInvoice = input.generateFirstInvoice && billable && amount > 0;
 
@@ -360,7 +398,7 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
     // quietly undo it, so it is reported instead of overwritten.
     const reactivate = existing.status !== "active" && existing.status !== "suspended";
     if (reactivate) patch.status = "active";
-    if (!existing.joined_at) patch.joined_at = todayISO();
+    if (!existing.joined_at) patch.joined_at = clubTodayISO();
     if (!existing.section_id && app.section_id) patch.section_id = app.section_id;
     if (!existing.phone && app.phone) patch.phone = app.phone;
     if (!existing.dob && app.dob) patch.dob = app.dob;
@@ -386,7 +424,7 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
       email,
       role: "member",
       status: "active",
-      joined_at: todayISO(),
+      joined_at: clubTodayISO(),
       ...(app.phone ? { phone: app.phone } : {}),
       ...(app.dob ? { dob: app.dob } : {}),
       ...(app.section_id ? { section_id: app.section_id } : {}),
@@ -413,14 +451,82 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
   //                                        opened, in that order so only ever
   //                                        one active row exists.
   // See migration 20260808000002, section E.
+  //
+  // A RETRY MUST NOT MOVE THE BILLING DAY. "Re-runnable" above holds only if a
+  // retry sends the SAME start date: the first attempt may have opened the
+  // membership (and cut its first invoice) and then failed at approval, and a
+  // retry on a later day used to default to that later day — set_member_plan
+  // then closed the first row and opened another, moving the member's billing
+  // day and orphaning the first invoice on a stub. So before the RPC:
+  //   • an active row opened AFTER this application was submitted, while it is
+  //     still pending, came from an earlier attempt of this enrolment (or from
+  //     Njerëzit in the meantime). Its start date is already the member's
+  //     billing day, so a different one is refused, never applied;
+  //   • any change that set_member_plan would turn into close-and-open (case 4)
+  //     is refused as well. Enrolment has no confirmation step, and closing a
+  //     period is an accounting event — it belongs on Njerëzit › Anëtarësia,
+  //     which asks first. An identical request (case 2) and an in-place
+  //     correction of an uninvoiced row (case 3) go through.
+  // The form pre-fills the existing row's plan, amount and start date, so a
+  // plain retry is identical and simply continues.
+  const { data: activeData, error: activeErr } = await admin
+    .from("memberships")
+    .select("id, plan_id, amount_eur, billable, start_date, created_at")
+    .eq("member_id", memberId)
+    .eq("status", "active")
+    .order("start_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (activeErr) return { ok: false, error: dbError(activeErr, "Leximi i anëtarësisë ekzistuese dështoi. Provo sërish.") };
+  const active = activeData as ActiveMembershipRow | null;
+  if (active) {
+    const openedWhilePending = Date.parse(active.created_at) >= Date.parse(app.created_at);
+    if (openedWhilePending && active.start_date !== startDate) {
+      return {
+        ok: false,
+        error:
+          `Anëtarësia e këtij personi është hapur tashmë nga ${formatDate(active.start_date)}, nga një përpjekje e ` +
+          "mëparshme e këtij regjistrimi. Ajo datë është dita e faturimit dhe një përsëritje nuk e ndryshon. " +
+          `Vendos datën e fillimit ${formatDate(active.start_date)} dhe provo sërish; nëse data duhet ndryshuar ` +
+          "vërtet, ndryshoje te Njerëzit › Anëtarësia pasi të aprovohet aplikimi.",
+      };
+    }
+    const { data: activeDues, error: activeDuesErr } = await admin
+      .from("dues").select("id").eq("membership_id", active.id).limit(1);
+    if (activeDuesErr) return { ok: false, error: dbError(activeDuesErr, "Leximi i faturave dështoi. Provo sërish.") };
+    const activeHasDues = ((activeDues as { id: string }[] | null) ?? []).length > 0;
+    if (planChangeCase(active, activeHasDues, { planId: plan.id, amount, billable, startDate }) === "reopen") {
+      return {
+        ok: false,
+        error:
+          `Ky person ka tashmë një anëtarësi aktive nga ${formatDate(active.start_date)}` +
+          (activeHasDues ? ", me fatura të lëshuara" : "") +
+          ". Regjistrimi nuk e përfundon atë. Lëri planin, shumën dhe datën e fillimit siç janë për ta aprovuar " +
+          "aplikimin, pastaj ndryshoje te Njerëzit › Anëtarësia, ku ndryshimi konfirmohet.",
+      };
+    }
+  }
+
   const { data: membershipData, error: membershipErr } = await admin.rpc("set_member_plan", {
     p_member_id: memberId,
     p_plan_id: plan.id,
     p_amount: amount,
     p_billable: billable,
     p_start: startDate,
+    // Never a close-and-open from here. The refusal above runs on a read taken
+    // before this call; this one is decided under set_member_plan's lock.
+    p_allow_close: false,
   });
   if (membershipErr) return { ok: false, error: dbError(membershipErr, "Ruajtja e anëtarësisë dështoi.") };
+  if (membershipData === null) {
+    return {
+      ok: false,
+      error:
+        "Ndërkohë anëtarësia e këtij personi u ndryshua, dhe regjistrimi tani do ta përfundonte periudhën e " +
+        "tanishme. Asgjë nuk u ruajt. Rifresko faqen dhe provo sërish; nëse periudha duhet përfunduar, " +
+        "ndryshoje te Njerëzit › Anëtarësia.",
+    };
+  }
   if (typeof membershipData !== "string") {
     return { ok: false, error: "Anëtarësia nuk u ruajt. Provo sërish." };
   }
@@ -429,7 +535,20 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
   // --- 6. the first invoice (optional, billable tiers only) -----------------
   let invoiceNo: string | null = null;
   if (wantsInvoice) {
-    const r = await createInvoice(admin, { memberId, membershipId, period: startDate, amount });
+    const r = await createInvoice(admin, {
+      memberId,
+      membershipId,
+      // First of the billed month: the idempotency bucket, so the anchored cron
+      // and a manual month backfill both recognise this invoice as "already
+      // issued" and cannot bill the member a second time for it.
+      period: invoicePeriod,
+      // The INVOICE DATE is the day the membership starts, which is also the
+      // day every later invoice for this member will carry. The trigger then
+      // derives due_date = issued_on + 5, the same rule as every other
+      // generation path (migration 20260818000001, section B).
+      issuedOn: startDate,
+      amount,
+    });
     if (!r.ok) return { ok: false, error: r.error };
     invoiceNo = r.invoiceNo;
   }
@@ -478,16 +597,20 @@ export async function enrolApplication(input: EnrolInput): Promise<EnrolResult> 
  * One invoice row in `dues` for the member's first month.
  *
  * invoice_no and due_date are NOT computed here. The BEFORE INSERT trigger on
- * `dues` (migration 20260808000002, section F) assigns them, so the format and
- * the per-period counter live in exactly one place and this path can no longer
- * hand out a number the SQL generator is about to use. We only read back what
- * the database chose.
+ * `dues` (migration 20260808000002 section F, updated by 20260818000001 section
+ * B) assigns them, so the format, the per-period counter and the +5 due date
+ * live in exactly one place and this path can no longer hand out a number the
+ * SQL generator is about to use. We only read back what the database chose.
+ *
+ * We DO send issued_on — the invoice date, which is the membership's start day.
+ * That is a business fact this path knows and the trigger cannot guess, and it
+ * is what the trigger then adds 5 days to.
  */
 async function createInvoice(
   admin: AdminClient,
-  args: { memberId: string; membershipId: string; period: string; amount: number },
+  args: { memberId: string; membershipId: string; period: string; issuedOn: string; amount: number },
 ): Promise<{ ok: true; invoiceNo: string | null } | { ok: false; error: string }> {
-  const { memberId, membershipId, period, amount } = args;
+  const { memberId, membershipId, period, issuedOn, amount } = args;
 
   const readExisting = async (): Promise<string | null | undefined> => {
     const { data } = await admin.from("dues")
@@ -508,6 +631,7 @@ async function createInvoice(
       member_id: memberId,
       membership_id: membershipId,
       period,
+      issued_on: issuedOn,
       amount_eur: amount,
       status: "unpaid",
     })

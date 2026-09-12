@@ -7,9 +7,11 @@ import { dbError } from "@/lib/errors";
 // The same admin gate the account screens use — one definition, so "admin only"
 // cannot come to mean something weaker here than it does there.
 import { requireAdmin } from "../guards";
+import { clubTodayISO } from "@/lib/clubtime";
 import {
-  billingMode, coveringMemberships, currentPeriod, isBillable, periodLabel, periodOf,
-  shiftPeriod, type BillingMode,
+  DISCOUNT_REASON_MAX, HALF_PRICE_DEFAULT_REASON,
+  billingMode, coveringMemberships, earlyBillingOpensOn, formatDate, isBillable,
+  latestBillablePeriod, periodLabel, periodOf, shiftPeriod, toEuros, type BillingMode,
 } from "@/lib/finance";
 import type { DueUpdate, MembershipStatus, PaidMethod } from "@/lib/supabase/types";
 
@@ -54,10 +56,21 @@ function paidAtFromDate(date: string): string {
   return new Date(`${date}T12:00:00Z`).toISOString();
 }
 
+/**
+ * The club's day, not the server's: Vercel is on UTC, so between midnight and
+ * 01:00/02:00 in Kosovo a payment dated "today" would be refused as future.
+ */
 function todayIso(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return clubTodayISO();
+}
+
+/**
+ * "Faturat për Tetor 2026 mund të gjenerohen nga 16.9.2026." — the one sentence
+ * for a month whose early-billing window has not opened yet. Shared by the
+ * pre-check and by the mapping of the SQL backstop, so both say the same date.
+ */
+function windowClosedMessage(period: string): string {
+  return `Faturat për ${periodLabel(period)} mund të gjenerohen nga ${formatDate(earlyBillingOpensOn(period))}.`;
 }
 
 // The invoice screens are force-dynamic, but the member portal and the
@@ -281,45 +294,60 @@ export async function deleteInvoice(invoiceId: string): Promise<ActionResult> {
   }
 }
 
-/**
- * Runs the monthly invoice generation for one period. The RPC is idempotent
- * (unique(member_id, period)), so calling it twice creates nothing the second
- * time — the UI says so, because the owner will press it twice.
- */
-export async function generateInvoices(
-  period: string,
-): Promise<{ ok: true; created: number } | { ok: false; error: string }> {
+// ------------------------------------------------------- half price
+//
+// A member on holiday pays half for the month. The work is done by
+// set_due_half_price (migration 20260912000001), which locks the row, keeps
+// the full price in full_amount_eur so the reversal is exact, refuses paid and
+// waived invoices, and writes the audit row. It answers with a code rather
+// than an exception, so every outcome gets its own Albanian sentence here.
+//
+// (The whole-month generateInvoices(period) that used to sit here had no
+// caller left — the modal only uses generateInvoicesForMembers — so it was
+// removed rather than kept as a second, differently guarded POST endpoint.)
+
+const HALF_PRICE_RESULT: Record<string, string> = {
+  unchanged: "Fatura është tashmë në këtë çmim. Rifresko faqen.",
+  not_found: "Fatura nuk u gjet — ndoshta është fshirë. Rifresko faqen.",
+  not_open: "Çmimi ndryshohet vetëm te faturat e papaguara. Nëse kjo është paguar ose falur, përdor “Zhbëj” së pari.",
+  zero: "Kjo faturë nuk ka shumë për t’u përgjysmuar.",
+};
+
+/** Halves one open invoice (`half` = true) or restores its full price. */
+export async function setInvoiceHalfPrice(
+  invoiceId: string,
+  half: boolean,
+  reason?: string,
+): Promise<ActionResult> {
   try {
     await assertFinanceStaff();
 
-    if (!DATE_RE.test(period)) {
-      return { ok: false, error: "Periudha nuk është e vlefshme." };
-    }
-    // The month chips let the admin browse any month, and the button always
-    // names the month on screen — so one stray click on a future month would
-    // issue real invoices for a month that has not started and freeze today's
-    // price into them. deleteInvoice() can undo that now, but only an admin can
-    // and only one invoice at a time — cheaper to refuse the click.
-    // The cron issues each month on the 1st; there is never a reason to run
-    // ahead of it.
-    if (period > currentPeriod()) {
-      return {
-        ok: false,
-        error: `${periodLabel(period)} nuk ka filluar ende — faturat gjenerohen në fillim të muajit.`,
-      };
+    const id = (invoiceId || "").trim();
+    if (!UUID_RE.test(id)) return { ok: false, error: "Fatura nuk është e vlefshme." };
+
+    const why = (reason ?? "").trim() || HALF_PRICE_DEFAULT_REASON;
+    if (half && why.length > DISCOUNT_REASON_MAX) {
+      return { ok: false, error: `Arsyeja mund të ketë deri në ${DISCOUNT_REASON_MAX} shenja.` };
     }
 
     const supabase = await createClient();
-    const { data, error } = await supabase.rpc(
-      "generate_dues_for_period",
-      { p_period: period },
-    );
-    if (error) return { ok: false, error: dbError(error, "Gjenerimi i faturave dështoi. Provo sërish.") };
+    const { data, error } = await supabase.rpc("set_due_half_price", {
+      p_due_id: id,
+      p_half: half === true,
+      p_reason: half ? why : null,
+    });
+    if (error) return { ok: false, error: dbError(error, "Ndryshimi i çmimit dështoi. Provo sërish.") };
+    if (data !== "ok") {
+      return {
+        ok: false,
+        error: HALF_PRICE_RESULT[String(data)] ?? "Ndryshimi i çmimit dështoi. Provo sërish.",
+      };
+    }
 
     revalidateFinance();
-    return { ok: true, created: typeof data === "number" ? data : 0 };
+    return { ok: true };
   } catch (e) {
-    return { ok: false, error: dbError(e) };
+    return { ok: false, error: dbError(e, "Ndryshimi i çmimit dështoi. Provo sërish.") };
   }
 }
 
@@ -337,6 +365,10 @@ export type EligibleMember = {
   member_id: string;
   full_name: string;
   plan_name: string | null;
+  /** The monthly price of the covering membership — the exact amount the
+   * generator bills (half of it when marked ½). Coerced from PostgREST's
+   * numeric-as-string; always > 0, since only billable rows land here. */
+  amount_eur: number;
 };
 
 /** A membership that exists but has not started yet in the asked period. */
@@ -475,6 +507,7 @@ export async function eligibleMembersForPeriod(period: string): Promise<Eligibil
         member_id: m.member_id,
         full_name: m.member?.full_name ?? UNKNOWN_MEMBER,
         plan_name: m.plan?.name_sq ?? null,
+        amount_eur: toEuros(m.amount_eur),
       }))
       .sort(byName);
 
@@ -550,11 +583,17 @@ export async function eligibleMembersForPeriod(period: string): Promise<Eligibil
  * used to pick the bucket — the date still decides that — it is only checked
  * against it, so a screen whose date and whose member list have drifted apart
  * gets an error instead of quietly billing a different month than it showed.
+ *
+ * `halfMemberIds` are billed at half price with `discountReason` (default
+ * "Pushime"). They must be a subset of `memberIds`: a ½ mark on someone who is
+ * not being billed is a screen out of step, not something to guess about.
  */
 export async function generateInvoicesForMembers(
   memberIds: string[],
   issuedOn: string,
   expectedPeriod: string,
+  halfMemberIds: string[] = [],
+  discountReason?: string,
 ): Promise<{ ok: true; created: number } | { ok: false; error: string }> {
   try {
     await assertFinanceStaff();
@@ -577,21 +616,32 @@ export async function generateInvoicesForMembers(
         error: `Data e faturës nuk bie në ${periodLabel(expected)}. Rifresko faqen dhe provo sërish.`,
       };
     }
-    // A future MONTH cannot be billed: the invoices would freeze today's price
-    // into a month that has not begun, and cleaning them up afterwards is one
-    // admin-only deletion per invoice.
-    if (period > currentPeriod()) {
-      return {
-        ok: false,
-        error: `${periodLabel(period)} nuk ka filluar ende — faturat gjenerohen brenda muajit.`,
-      };
+    // EARLY BILLING: next month may be billed from 15 days before it begins,
+    // nothing later. Decided on the CLUB's day (not the server's UTC one), by
+    // the same rule generate_dues_for_members enforces in SQL — a month further
+    // out would freeze today's price into invoices nobody asked for yet.
+    if (period > latestBillablePeriod(clubTodayISO())) {
+      return { ok: false, error: windowClosedMessage(period) };
     }
 
-    const ids = Array.from(new Set(
-      (Array.isArray(memberIds) ? memberIds : []).map((s) => String(s || "").trim()),
+    const clean = (list: unknown) => Array.from(new Set(
+      (Array.isArray(list) ? list : []).map((s) => String(s || "").trim()),
     )).filter((s) => UUID_RE.test(s));
+    const ids = clean(memberIds);
     if (ids.length === 0) {
       return { ok: false, error: "Zgjidh të paktën një anëtar." };
+    }
+    const halfIds = clean(halfMemberIds);
+    const selected = new Set(ids);
+    if (halfIds.some((id) => !selected.has(id))) {
+      return {
+        ok: false,
+        error: "Gjysmë çmimi mund t’u vihet vetëm anëtarëve të zgjedhur. Rifresko faqen dhe provo sërish.",
+      };
+    }
+    const reason = (discountReason ?? "").trim() || HALF_PRICE_DEFAULT_REASON;
+    if (halfIds.length > 0 && reason.length > DISCOUNT_REASON_MAX) {
+      return { ok: false, error: `Arsyeja mund të ketë deri në ${DISCOUNT_REASON_MAX} shenja.` };
     }
 
     const supabase = await createClient();
@@ -599,8 +649,17 @@ export async function generateInvoicesForMembers(
       p_period: period,
       p_member_ids: ids,
       p_issued_on: on,
+      p_half_member_ids: halfIds.length > 0 ? halfIds : null,
+      p_discount_reason: halfIds.length > 0 ? reason : null,
     });
-    if (error) return { ok: false, error: dbError(error, "Gjenerimi i faturave dështoi. Provo sërish.") };
+    if (error) {
+      // The SQL backstop of the window above. Only reachable when the two
+      // clocks straddle the opening minute; say the same sentence either way.
+      if (String(error.message ?? "").includes("billing_window_closed")) {
+        return { ok: false, error: windowClosedMessage(period) };
+      }
+      return { ok: false, error: dbError(error, "Gjenerimi i faturave dështoi. Provo sërish.") };
+    }
 
     revalidateFinance();
     return { ok: true, created: typeof data === "number" ? data : 0 };

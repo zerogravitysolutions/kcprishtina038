@@ -1,8 +1,11 @@
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { ApplicationActions, type PlanOption } from "../ApplicationActions";
+// Component + types only from the client module; values come from plain modules.
+import { ApplicationActions, type ExistingMembership, type PlanOption } from "../ApplicationActions";
 import { planAmountLabel } from "@/lib/finance";
+import { clubTodayISO, lastBillingRunDay } from "@/lib/clubtime";
+import { monthStartOf } from "@/app/admin/people/membership";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -63,8 +66,52 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
   const { data: planData } = await supabase.from("membership_plans")
     .select("id, name_sq, amount_eur, billable, active, display_order")
     .order("display_order", { ascending: true });
-  const plans: PlanOption[] = ((planData as unknown as (PlanOption & { active: boolean })[] | null) ?? [])
-    .filter((p) => p.active || p.id === row.plan_id)
+  const allPlans = (planData as unknown as (PlanOption & { active: boolean })[] | null) ?? [];
+
+  // The club's day and the billing job's progress, for the start-date default
+  // and the note under it. Computed HERE: the form is a client component and a
+  // clock read during its render would disagree with hydration around midnight.
+  const today = clubTodayISO();
+  const lastRunDay = lastBillingRunDay();
+
+  // An active membership the applicant's account already holds — most often
+  // because an earlier attempt of THIS enrolment opened it and then failed at
+  // a later step. The form pre-fills from it so a retry sends the same start
+  // date (the billing day) instead of a later "today". Read on the caller's
+  // session: only admin/staff get the form, and RLS lets exactly them read.
+  let existing: ExistingMembership | null = null;
+  if (canAct && row.status === "pending") {
+    const email = (row.email ?? "").trim().toLowerCase();
+    const { data: acc } = await supabase.from("profiles").select("id").eq("email", email).maybeSingle();
+    const accountId = (acc as { id: string } | null)?.id ?? null;
+    if (accountId) {
+      const { data: mData } = await supabase.from("memberships")
+        .select("id, plan_id, amount_eur, start_date, created_at")
+        .eq("member_id", accountId).eq("status", "active")
+        .order("start_date", { ascending: false }).limit(1).maybeSingle();
+      const m = mData as { id: string; plan_id: string; amount_eur: number | string | null; start_date: string; created_at: string } | null;
+      if (m) {
+        // One member: at most one dues row per month (unique member_id, period).
+        const { data: dData } = await supabase.from("dues")
+          .select("period").eq("member_id", accountId).order("period").limit(1200);
+        existing = {
+          planId: m.plan_id,
+          planName: allPlans.find((p) => p.id === m.plan_id)?.name_sq ?? "Plan i arkivuar",
+          amountEur: m.amount_eur,
+          startDate: m.start_date,
+          openedWhilePending: Date.parse(m.created_at) >= Date.parse(row.created_at),
+          invoicedPeriods: ((dData as { period: string }[] | null) ?? [])
+            .map((d) => monthStartOf(d.period))
+            .filter((p): p is string => !!p),
+        };
+      }
+    }
+  }
+
+  const plans: PlanOption[] = allPlans
+    // The account's own tier stays selectable even if archived, or a retry
+    // could not send what the first attempt wrote.
+    .filter((p) => p.active || p.id === row.plan_id || p.id === existing?.planId)
     .map(({ id: planId, name_sq, amount_eur, billable }) => ({ id: planId, name_sq, amount_eur, billable }));
 
   // Split reviewer notes appended by reject_application from original applicant notes.
@@ -151,6 +198,10 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
             plans={plans}
             chosenPlanId={row.plan_id}
             canAct={canAct}
+            today={today}
+            lastRunDay={lastRunDay}
+            existing={existing}
+            canEditPlans={profile.role === "admin"}
           />
 
           {row.status !== "pending" && (

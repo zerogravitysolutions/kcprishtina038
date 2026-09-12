@@ -169,6 +169,55 @@ export function sumEur(rows: Array<{ amount_eur?: number | string | null }>): nu
   return rows.reduce((total, r) => total + toNumber(r.amount_eur), 0);
 }
 
+// ------------------------------------------------------------- half price
+//
+// An invoice can be cut to half (a member on holiday). The row then carries
+// the price actually owed in amount_eur and the undiscounted price in
+// full_amount_eur (migration 20260912000001). Every total keeps summing
+// amount_eur — that is what was invoiced — and these helpers only describe the
+// reduction.
+
+/** The reason a reduced invoice gets when nobody typed one. Same as the SQL. */
+export const HALF_PRICE_DEFAULT_REASON = "Pushime";
+
+/** Same cap as the SQL: the reason is printed on the member's invoice. */
+export const DISCOUNT_REASON_MAX = 120;
+
+/**
+ * round(full / 2, 2), exactly as Postgres computes it. Worked in integer cents
+ * so 40.01 halves to 20.01 (half away from zero) — the float route,
+ * 20.005 * 100 = 2000.4999…, would say 20.00 and the modal would promise an
+ * amount the database does not write.
+ */
+export function halfOf(v: number | string | null | undefined): number {
+  const cents = Math.round(toNumber(v) * 100);
+  return Math.round(cents / 2) / 100;
+}
+
+/** The subset of a dues row the reduction helpers read. */
+export type ReducibleDue = {
+  amount_eur?: number | string | null;
+  full_amount_eur?: number | string | null;
+  discount_reason?: string | null;
+};
+
+/** True while the invoice is reduced, i.e. it carries its undiscounted price. */
+export function isReduced(due: ReducibleDue): boolean {
+  const v = due.full_amount_eur;
+  return v !== null && v !== undefined && !(typeof v === "string" && v.trim() === "");
+}
+
+/** Euros taken off a reduced invoice. 0 when it is not reduced. */
+export function discountOf(due: ReducibleDue): number {
+  if (!isReduced(due)) return 0;
+  return Math.max(0, toNumber(due.full_amount_eur) - toNumber(due.amount_eur));
+}
+
+/** The reason to print on a reduced invoice — never blank. */
+export function discountReasonLabel(due: ReducibleDue): string {
+  return due.discount_reason?.trim() || HALF_PRICE_DEFAULT_REASON;
+}
+
 // ------------------------------------------------------------------ periods
 
 /**
@@ -264,6 +313,43 @@ export function periodRange(start: string, count: number): string[] {
   const out: string[] = [];
   for (let i = 0; i < Math.max(0, count); i++) out.push(shiftPeriod(start, i));
   return out;
+}
+
+// ------------------------------------------------------------ early billing
+//
+// Next month's invoices may be generated from EARLY_BILLING_DAYS before that
+// month begins (16 Sep for October, 17 Dec for January). The same rule is
+// enforced inside generate_dues_for_members (migration 20260912000001) on the
+// club's calendar day, so the caller passes clubTodayISO() from lib/clubtime —
+// never the server's UTC day, and never a browser clock.
+//
+// All "YYYY-MM-DD" arithmetic here goes through Date.UTC and back through
+// toISOString, so no local timezone can shift a day.
+
+export const EARLY_BILLING_DAYS = 15;
+
+/** "2026-10-01" → "2026-09-16": the first day `period` may be billed early. */
+export function earlyBillingOpensOn(period: string): string {
+  const m = period.match(/^(\d{4})-(\d{2})/);
+  if (!m) return period;
+  const t = Date.UTC(Number(m[1]), Number(m[2]) - 1, 1 - EARLY_BILLING_DAYS);
+  return new Date(t).toISOString().slice(0, 10);
+}
+
+/**
+ * The latest month that may be billed on `today` ("YYYY-MM-DD", the club's
+ * day): next month once its early-billing window has opened, else the current
+ * month. 2026-09-12 → 2026-09-01; 2026-09-16 → 2026-10-01;
+ * 2026-12-17 → 2027-01-01.
+ */
+export function latestBillablePeriod(today: string): string {
+  const m = today.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return currentPeriod();
+  const year = Number(m[1]);
+  const month0 = Number(m[2]) - 1;
+  const current = periodOf(year, month0);
+  const next = periodOf(year, month0 + 1);
+  return today >= earlyBillingOpensOn(next) ? next : current;
 }
 
 /** "2026-08-01" → "2026-01-01", the first month of the same year. */
@@ -383,6 +469,20 @@ export function coveringMemberships<T extends MembershipLike>(rows: T[], period:
     if (!held || coverageBeats(m, held)) best.set(m.member_id, m);
   }
   return [...best.values()];
+}
+
+/**
+ * Whether a membership's dates touch `period`'s MONTH — the same window test
+ * coveringMemberships() applies: started before the first of the next month,
+ * and not ended before the first of this one. Start dates are real days now
+ * (a member joining on 18 Aug has start_date 2026-08-18), so comparing
+ * start_date <= period would say that membership does not cover August.
+ */
+export function membershipTouchesMonth(
+  m: { start_date: string; end_date: string | null },
+  period: string,
+): boolean {
+  return m.start_date < shiftPeriod(period, 1) && (!m.end_date || m.end_date >= period);
 }
 
 /** "latest start desc, end desc nulls first, id" as a comparison. */

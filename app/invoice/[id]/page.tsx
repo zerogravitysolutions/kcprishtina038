@@ -6,7 +6,8 @@ import { dbError } from "@/lib/errors";
 import { CLUB, PAYMENT_FALLBACK } from "@/lib/club";
 import {
   EFFECTIVE_STATUS_LABEL, EFFECTIVE_STATUS_TONE, PAID_METHOD_LABEL,
-  daysOverdue, dueDateOf, effectiveStatus, formatEur, isOutstanding, issuedDateLabel, periodLabel,
+  daysOverdue, discountOf, discountReasonLabel, dueDateOf, effectiveStatus, formatEur, isOutstanding,
+  isReduced, issuedDateLabel, periodLabel,
 } from "@/lib/finance";
 import type { DuesStatus, PaidMethod } from "@/lib/supabase/types";
 import { PrintButton } from "./PrintButton";
@@ -30,6 +31,7 @@ type Params = Promise<{ id: string }>;
  */
 const SELECT =
   "id, member_id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, created_at, " +
+  "full_amount_eur, discount_reason, " +
   "member:profiles!member_id(full_name, email), " +
   "membership:memberships!membership_id(plan:membership_plans!plan_id(name_sq))";
 
@@ -45,6 +47,10 @@ type InvoiceData = {
   paid_method: PaidMethod | null;
   invoice_no: string | null;
   created_at: string;
+  /** Set only while the invoice is at half price; amount_eur is then what is
+   * owed. numeric → may arrive as a string. */
+  full_amount_eur: number | string | null;
+  discount_reason: string | null;
   member: { full_name: string; email: string } | null;
   membership: { plan: { name_sq: string } | null } | null;
 };
@@ -134,6 +140,10 @@ export default async function InvoicePage({ params }: { params: Params }) {
   const period = periodLabel(inv.period);
   const amount = formatEur(inv.amount_eur);
   const outstanding = isOutstanding(inv);
+  // A half-price invoice prints the full monthly price, the discount as its
+  // own line with the reason, and what is owed as the total — so the member
+  // sees both what the month costs and why they pay less.
+  const reduced = isReduced(inv);
 
   // A legacy row has no invoice_no, so the uuid becomes the sole identifier —
   // printing "Pa numër" as though it were the number would give two invoices
@@ -231,13 +241,23 @@ export default async function InvoicePage({ params }: { params: Params }) {
                 <span className="inv-item__sub">Kuota mujore e anëtarësisë për {period}</span>
               </td>
               <td className="mono" style={{ fontSize: 13 }}>{period}</td>
-              <td className="num">{amount}</td>
+              <td className="num">{reduced ? formatEur(inv.full_amount_eur) : amount}</td>
             </tr>
+            {reduced ? (
+              <tr>
+                <td>
+                  <span className="inv-item__name">Zbritje 50% — {discountReasonLabel(inv)}</span>
+                  <span className="inv-item__sub">Çmimi mujor {formatEur(inv.full_amount_eur)}, gjysma e tij për {period}</span>
+                </td>
+                <td className="mono" style={{ fontSize: 13 }}>{period}</td>
+                <td className="num">−{formatEur(discountOf(inv))}</td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
 
         <div className="inv-total">
-          <span className="inv-lab">Gjithsej</span>
+          <span className="inv-lab">{reduced ? "Për t’u paguar" : "Gjithsej"}</span>
           <span className="inv-total__val">{amount}</span>
         </div>
 

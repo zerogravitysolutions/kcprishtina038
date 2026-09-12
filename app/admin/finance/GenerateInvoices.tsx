@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { actionError } from "@/lib/errors";
-import { BILLING_MODE_LABEL, formatDate, periodLabel, periodOf } from "@/lib/finance";
+import {
+  BILLING_MODE_LABEL, DISCOUNT_REASON_MAX, HALF_PRICE_DEFAULT_REASON,
+  earlyBillingOpensOn, formatDate, formatEur, halfOf, periodLabel, periodOf,
+} from "@/lib/finance";
 import { Modal } from "@/components/ui/Modal";
 import { eligibleMembersForPeriod, generateInvoicesForMembers } from "./actions";
 import type { Eligibility, EligibilityResult, EligibleMember } from "./actions";
@@ -13,6 +16,11 @@ const LOAD_FAILED = "Leximi i anëtarëve për faturim dështoi. Provo sërish."
 
 /** One shared empty list, so "nobody" has a stable identity across renders. */
 const NO_MEMBERS: EligibleMember[] = [];
+
+/** "1 faturë" / "3 fatura" — a bare count reads wrong in the singular. */
+function invoiceCount(n: number): string {
+  return `${n} ${n === 1 ? "faturë" : "fatura"}`;
+}
 
 /**
  * Opens a modal that asks for the INVOICE DATE and a multiselect of the members
@@ -26,17 +34,32 @@ const NO_MEMBERS: EligibleMember[] = [];
  * billed a July period from an August list and created nothing, with no
  * explanation. Now every change of month refetches the roster from the same
  * server pick the generator itself makes.
+ *
+ * EARLY BILLING: next month can be generated from 15 days before it begins
+ * (latestBillablePeriod in lib/finance). Every date that decides it — today,
+ * this month, the latest billable month — comes from the SERVER, on the club's
+ * calendar, so this screen, the server action and the SQL wrapper reach the
+ * same verdict and hydration never meets a second clock.
+ *
+ * HALF PRICE: any member on the list can be marked ½ (on holiday). They are
+ * billed round(price / 2, 2), with the full price kept on the invoice.
  */
 export function GenerateInvoices({
-  period, label, nowPeriod, initial,
+  period, label, today, nowPeriod, latestPeriod, earlyHref, initial,
 }: {
   /** The month the PAGE is showing, first-of-month. The initial invoice date. */
   period: string;
   label: string;
-  /** First of the current month, from the SERVER clock — so the future/past
-   * verdict is the same one the server action will reach, and so the first
-   * render cannot disagree with hydration on a browser in another timezone. */
+  /** The club's calendar day ("YYYY-MM-DD"), from the server. */
+  today: string;
+  /** First of the club's current month, from the server. */
   nowPeriod: string;
+  /** The latest month that may be billed today: `nowPeriod`, or next month
+   * once its early-billing window has opened. From the server. */
+  latestPeriod: string;
+  /** Link to the page for `latestPeriod` while early billing is open; null
+   * otherwise. Offered from the current month as a secondary action. */
+  earlyHref: string | null;
   /** Who would be billed for `period`, or why nobody would — server-rendered,
    * so the modal paints its real list before any client fetch. */
   initial: EligibilityResult;
@@ -56,6 +79,10 @@ export function GenerateInvoices({
   );
   const [loadingPeriod, setLoadingPeriod] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>(() => initialIds(initial));
+  // Members marked ½. Only those ALSO selected are sent: un-selecting someone
+  // drops their mark with them.
+  const [half, setHalf] = useState<string[]>([]);
+  const [halfReason, setHalfReason] = useState(HALF_PRICE_DEFAULT_REASON);
   const [search, setSearch] = useState("");
 
   // Which fetch is the current one: a slow answer for an abandoned month must
@@ -80,12 +107,14 @@ export function GenerateInvoices({
         setLoadingPeriod(null);
         setState({ period: target, result });
         setSelected(initialIds(result));
+        setHalf([]);
       })
       .catch((e) => {
         if (seqRef.current !== seq) return;
         setLoadingPeriod(null);
         setState({ period: target, result: { ok: false, error: actionError(e, LOAD_FAILED) ?? LOAD_FAILED } });
         setSelected([]);
+        setHalf([]);
       });
   }, []);
 
@@ -98,6 +127,8 @@ export function GenerateInvoices({
       setIssuedOn(period);
       setState({ period, result: initial });
       setSelected(initialIds(initial));
+      setHalf([]);
+      setHalfReason(HALF_PRICE_DEFAULT_REASON);
       setSearch("");
       setMsg(null);
     }
@@ -124,11 +155,18 @@ export function GenerateInvoices({
   const dueLabel = useMemo(() => dueDateLabel(issuedOn), [issuedOn]);
   const invalidDate = !dueLabel || !datePeriod;
 
-  // Where the CHOSEN month sits relative to today — not the page's month. A
-  // future month can never be generated: the invoices would freeze today's
-  // price into a month that has not begun and can only be waived, never deleted.
+  // Where the CHOSEN month sits relative to today — not the page's month.
+  // "early" is next month inside its window; "closed" is anything later, which
+  // the server refuses (the invoices would freeze today's price into a month
+  // nobody is billing yet).
   const dateWhen = !datePeriod ? null
-    : datePeriod > nowPeriod ? "future" : datePeriod === nowPeriod ? "current" : "past";
+    : datePeriod > latestPeriod ? "closed"
+      : datePeriod > nowPeriod ? "early"
+        : datePeriod === nowPeriod ? "current" : "past";
+  // A back-dated invoice whose due date (invoice date + 5) has already passed
+  // is overdue the moment it exists — worth saying before, not after.
+  const dueIso = useMemo(() => dueDateIso(issuedOn), [issuedOn]);
+  const lateOnArrival = !!dueIso && dueIso < today;
 
   // The roster in `state` is authoritative only while it matches the date.
   const inSync = !!datePeriod && state.period === datePeriod;
@@ -147,9 +185,36 @@ export function GenerateInvoices({
   }, [members, search]);
 
   const selectedSet = new Set(selected);
+  const halfSet = new Set(half);
+  // What is actually sent: marked AND selected, in the roster on screen.
+  const halfSelected = selected.filter((id) => halfSet.has(id));
+  const halfReasonTrim = halfReason.trim();
+  // The total the run will bill, in cents so a column of halves adds up to
+  // exactly what the database writes.
+  const totalCents = members.reduce((sum, m) => {
+    if (!selectedSet.has(m.member_id)) return sum;
+    const eur = halfSet.has(m.member_id) ? halfOf(m.amount_eur) : m.amount_eur;
+    return sum + Math.round(eur * 100);
+  }, 0);
 
   function toggle(id: string) {
-    setSelected((cur) => cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]);
+    if (selectedSet.has(id)) {
+      setSelected((cur) => cur.filter((x) => x !== id));
+      setHalf((cur) => cur.filter((x) => x !== id));
+    } else {
+      setSelected((cur) => [...cur, id]);
+    }
+  }
+
+  // Marking ½ also selects the member — a half-price invoice for someone who is
+  // not being billed would be a mark that does nothing.
+  function toggleHalf(id: string) {
+    if (halfSet.has(id)) {
+      setHalf((cur) => cur.filter((x) => x !== id));
+    } else {
+      setHalf((cur) => [...cur, id]);
+      if (!selectedSet.has(id)) setSelected((cur) => [...cur, id]);
+    }
   }
 
   function created(n: number): string {
@@ -164,7 +229,7 @@ export function GenerateInvoices({
     setMsg(null);
     start(async () => {
       try {
-        const r = await generateInvoicesForMembers(selected, issuedOn, target);
+        const r = await generateInvoicesForMembers(selected, issuedOn, target, halfSelected, halfReasonTrim);
         if (!r.ok) { setMsg({ ok: false, text: r.error }); return; }
         setMsg({ ok: true, text: created(r.created) });
         // Refresh the page behind the modal AND this list, so the roster stops
@@ -180,14 +245,15 @@ export function GenerateInvoices({
     });
   }
 
-  // A future PAGE month has no button at all — but it does say who is waiting,
-  // which is the one thing the owner needed to read.
-  if (period > nowPeriod) {
+  // A PAGE month beyond the early-billing window has no button at all — but it
+  // says from which day it can be generated, and who is waiting, which is what
+  // the owner needed to read.
+  if (period > latestPeriod) {
     const preview = state.result.ok ? state.result.data : null;
     return (
       <div style={{ textAlign: "right", maxWidth: 280 }}>
         <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".06em", color: "var(--text-3)", lineHeight: 1.7 }}>
-          {label} nuk ka filluar ende. Faturat gjenerohen brenda muajit.
+          {label} nuk ka filluar ende. Faturat për të mund të gjenerohen nga {formatDate(earlyBillingOpensOn(period))}.
         </div>
         {loadError ? (
           <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".06em", color: "var(--err)", lineHeight: 1.7, marginTop: 6 }}>
@@ -196,8 +262,8 @@ export function GenerateInvoices({
         ) : preview && preview.members.length > 0 ? (
           <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".06em", color: "var(--text-3)", lineHeight: 1.7, marginTop: 6 }}>
             {preview.members.length === 1
-              ? `1 anëtar faturohet më ${formatDate(period)}.`
-              : `${preview.members.length} anëtarë faturohen më ${formatDate(period)}.`}
+              ? `1 anëtar pret faturën për ${label}.`
+              : `${preview.members.length} anëtarë presin faturën për ${label}.`}
           </div>
         ) : preview && preview.alreadyBilled > 0 ? (
           <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".06em", color: "var(--text-3)", lineHeight: 1.7, marginTop: 6 }}>
@@ -211,16 +277,33 @@ export function GenerateInvoices({
   }
 
   const noneSelected = selected.length === 0;
-  const blocked = loading || !inSync || !!loadError || dateWhen === "future";
+  const blocked = loading || !inSync || !!loadError || dateWhen === "closed"
+    || (halfSelected.length > 0 && halfReasonTrim.length > DISCOUNT_REASON_MAX);
 
   return (
     <div style={{ textAlign: "right" }}>
       <button type="button" className="btn btn-ember" onClick={() => setOpen(true)}>
         Gjenero faturat për {label}
       </button>
+      {period > nowPeriod ? (
+        <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".06em", color: "var(--text-3)", marginTop: 8, lineHeight: 1.7, maxWidth: 280, marginLeft: "auto" }}>
+          Faturim para kohe — {label} fillon më {formatDate(period)}.
+        </div>
+      ) : null}
       <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".06em", color: "var(--text-3)", marginTop: 8 }}>
         Mund ta shtypësh disa herë — fatura e dyfishtë nuk krijohet.
       </div>
+      {period === nowPeriod && earlyHref && latestPeriod > nowPeriod ? (
+        <div style={{ marginTop: 8 }}>
+          <Link
+            className="btn btn-ghost btn-sm"
+            href={earlyHref}
+            style={{ minHeight: 44, display: "inline-flex", alignItems: "center" }}
+          >
+            Gjenero para kohe për {periodLabel(latestPeriod)} →
+          </Link>
+        </div>
+      ) : null}
       {loadError ? (
         // Visible WITHOUT opening the modal: a read that failed must not wait
         // behind a click to be admitted.
@@ -270,14 +353,26 @@ export function GenerateInvoices({
                 {activePeriod !== period ? " — ndryshoi bashkë me datën" : ""}
               </div>
             ) : null}
-            {dateWhen === "future" ? (
+            {dateWhen === "closed" ? (
               <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".06em", color: "var(--warn)", marginTop: 6, lineHeight: 1.7 }}>
-                {activeLabel} nuk ka filluar ende — faturat gjenerohen brenda muajit. Zgjidh një datë të këtij muaji ose më herët.
+                Faturat për {activeLabel} mund të gjenerohen nga {formatDate(earlyBillingOpensOn(activePeriod))}.
+                Zgjidh një datë deri më {formatDate(lastDayOf(latestPeriod))}.
+              </div>
+            ) : null}
+            {dateWhen === "early" ? (
+              // Neutral, not a warning: billing ahead is allowed. What the owner
+              // needs to know is that nothing is billed twice.
+              <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".06em", color: "var(--ink-3)", marginTop: 6, lineHeight: 1.7 }}>
+                Faturim para kohe: {activeLabel} fillon më {formatDate(activePeriod)}. Shuma merret nga plani i
+                sotëm i secilit anëtar. Gjenerimi automatik ditor nuk i faturon sërish këta anëtarë
+                për {activeLabel} — ai kapërcen këdo që e ka tashmë faturën e muajit.
               </div>
             ) : null}
             {dateWhen === "past" && !invalidDate ? (
               <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".06em", color: "var(--warn)", marginTop: 6, lineHeight: 1.7 }}>
-                Kujdes: {activeLabel} ka kaluar — këto fatura krijohen menjëherë në vonesë dhe nuk fshihen dot.
+                Kujdes: {activeLabel} ka kaluar.
+                {lateOnArrival ? " Afati i pagesës ka kaluar tashmë, prandaj këto fatura dalin menjëherë në vonesë." : ""}
+                {" "}Një faturë e gabuar mund ta fshijë vetëm administratori, një nga një.
               </div>
             ) : null}
           </div>
@@ -311,7 +406,7 @@ export function GenerateInvoices({
                 </button>
               </div>
             ) : members.length === 0 && data ? (
-              <EmptyReason data={data} onPickMonth={(p) => setIssuedOn(p)} nowPeriod={nowPeriod} />
+              <EmptyReason data={data} onPickMonth={(p) => setIssuedOn(p)} latestPeriod={latestPeriod} />
             ) : (
               <div style={{ border: "1px solid var(--line-strong)", borderRadius: 10, background: "var(--white)", overflow: "hidden" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderBottom: "1px solid var(--line)" }}>
@@ -326,56 +421,131 @@ export function GenerateInvoices({
                     spellCheck={false}
                     className="athlete-search"
                   />
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelected(members.map((m) => m.member_id))}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ minHeight: 44 }}
+                    onClick={() => setSelected(members.map((m) => m.member_id))}
+                  >
                     Zgjidh të gjithë
                   </button>
                   {selected.length > 0 && (
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelected([])}>Pastro</button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ minHeight: 44 }}
+                      onClick={() => { setSelected([]); setHalf([]); }}
+                    >
+                      Pastro
+                    </button>
                   )}
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: 10, maxHeight: 260, overflowY: "auto" }}>
+                {/* One row per member: the row itself selects, the ½ button on
+                    its right halves that member's invoice. Two separate 44px
+                    targets, so a thumb on a phone cannot hit one for the other. */}
+                <div style={{ maxHeight: 320, overflowY: "auto" }}>
                   {filtered.length === 0 ? (
-                    <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)", padding: 8 }}>Asnjë anëtar.</div>
+                    <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)", padding: 12 }}>Asnjë anëtar.</div>
                   ) : (
                     filtered.map((m) => {
                       const on = selectedSet.has(m.member_id);
+                      const isHalf = on && halfSet.has(m.member_id);
                       return (
-                        <button
+                        <div
                           key={m.member_id}
-                          type="button"
-                          className="athlete-chip"
-                          onClick={() => toggle(m.member_id)}
-                          aria-pressed={on}
                           style={{
-                            display: "inline-flex", alignItems: "center", gap: 8,
-                            padding: "8px 12px", borderRadius: 999, cursor: "pointer", fontSize: 13,
-                            border: `1px solid ${on ? "var(--ember)" : "var(--line-strong)"}`,
-                            background: on ? "color-mix(in oklab, var(--ember) 12%, var(--white))" : "var(--white)",
-                            color: "var(--ink)", minHeight: 36,
+                            display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "center",
+                            gap: 8, padding: "2px 10px", borderBottom: "1px solid var(--line)",
+                            background: on ? "color-mix(in oklab, var(--ember) 6%, var(--white))" : "var(--white)",
                           }}
                         >
-                          <span style={{
-                            width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                            border: `1.5px solid ${on ? "var(--ember)" : "var(--slate)"}`,
-                            background: on ? "var(--ember)" : "transparent",
-                            display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11,
-                          }}>{on ? "✓" : ""}</span>
-                          <span>
-                            {m.full_name}
-                            {m.plan_name ? <span style={{ color: "var(--ink-3)", marginLeft: 6, fontSize: 11 }}>{m.plan_name}</span> : null}
-                          </span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => toggle(m.member_id)}
+                            aria-pressed={on}
+                            style={{
+                              display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", alignItems: "center",
+                              gap: 10, minHeight: 48, padding: "6px 2px", width: "100%",
+                              background: "transparent", border: 0, cursor: "pointer", textAlign: "left",
+                              color: "var(--ink)", fontSize: 14,
+                            }}
+                          >
+                            <span style={{
+                              width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                              border: `1.5px solid ${on ? "var(--ember)" : "var(--slate)"}`,
+                              background: on ? "var(--ember)" : "transparent",
+                              display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12,
+                            }}>{on ? "✓" : ""}</span>
+                            <span style={{ minWidth: 0 }}>
+                              <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {m.full_name}
+                              </span>
+                              {m.plan_name ? (
+                                <span style={{ display: "block", color: "var(--ink-3)", fontSize: 11 }}>{m.plan_name}</span>
+                              ) : null}
+                            </span>
+                            <span className="mono" style={{ fontSize: 13, textAlign: "right", whiteSpace: "nowrap", color: on ? "var(--ink)" : "var(--ink-3)" }}>
+                              {formatEur(isHalf ? halfOf(m.amount_eur) : m.amount_eur)}
+                              {isHalf ? (
+                                <span style={{ display: "block", fontSize: 10.5, color: "var(--ink-3)" }}>
+                                  nga <s>{formatEur(m.amount_eur)}</s>
+                                </span>
+                              ) : null}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleHalf(m.member_id)}
+                            aria-pressed={isHalf}
+                            aria-label={`Gjysmë çmimi për ${m.full_name}`}
+                            title="Gjysmë çmimi"
+                            style={{
+                              minWidth: 44, minHeight: 44, borderRadius: 10, cursor: "pointer",
+                              fontSize: 15, fontWeight: 700,
+                              border: `1px solid ${isHalf ? "var(--warn)" : "var(--line-strong)"}`,
+                              background: isHalf ? "color-mix(in oklab, var(--warn) 14%, var(--white))" : "var(--white)",
+                              color: isHalf ? "var(--warn)" : "var(--ink-3)",
+                            }}
+                          >
+                            ½
+                          </button>
+                        </div>
                       );
                     })
                   )}
                 </div>
-                <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", padding: "6px 10px", borderTop: "1px solid var(--line)", letterSpacing: ".08em" }}>
-                  {selected.length} të zgjedhur nga {members.length} · {activeLabel}
-                  {data && data.alreadyBilled > 0 ? ` · ${data.alreadyBilled} e kanë faturën tashmë` : ""}
+                <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", padding: "8px 10px", letterSpacing: ".04em", lineHeight: 1.7 }}>
+                  <div style={{ color: "var(--ink)" }}>
+                    {invoiceCount(selected.length)}
+                    {halfSelected.length > 0 ? ` · ${halfSelected.length} me gjysmë çmimi` : ""}
+                    {` · gjithsej ${formatEur(totalCents / 100)}`}
+                  </div>
+                  <div>
+                    {selected.length} të zgjedhur nga {members.length} · {activeLabel}
+                    {data && data.alreadyBilled > 0 ? ` · ${data.alreadyBilled} e kanë faturën tashmë` : ""}
+                  </div>
                 </div>
               </div>
             )}
           </div>
+
+          {/* 3) The reason printed on each half-price invoice. Only asked for
+              when somebody is actually marked ½. */}
+          {halfSelected.length > 0 && inSync && !loading ? (
+            <div className="field" style={{ margin: 0 }}>
+              <label htmlFor="gen-half-reason">Arsyeja e gjysmë çmimit</label>
+              <input
+                id="gen-half-reason"
+                value={halfReason}
+                maxLength={DISCOUNT_REASON_MAX}
+                onChange={(e) => setHalfReason(e.target.value)}
+                placeholder={HALF_PRICE_DEFAULT_REASON}
+              />
+              <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", lineHeight: 1.6 }}>
+                Shfaqet te fatura e {halfSelected.length === 1 ? "anëtarit" : `${halfSelected.length} anëtarëve`} me ½. Çmimi i plotë ruhet te fatura.
+              </div>
+            </div>
+          ) : null}
 
           <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".06em", color: "var(--text-3)", lineHeight: 1.7 }}>
             Mund ta shtypësh disa herë — fatura e dyfishtë nuk krijohet.
@@ -397,10 +567,10 @@ export function GenerateInvoices({
  * nothing — it only reads out what was counted.
  */
 function EmptyReason({
-  data, nowPeriod, onPickMonth,
+  data, latestPeriod, onPickMonth,
 }: {
   data: Eligibility;
-  nowPeriod: string;
+  latestPeriod: string;
   /** Jump the invoice date to another month, which refetches the roster. */
   onPickMonth: (period: string) => void;
 }) {
@@ -482,7 +652,7 @@ function EmptyReason({
               <li>+{data.upcomingTotal - data.upcoming.length} të tjerë</li>
             ) : null}
           </ul>
-          <UpcomingJump upcoming={data.upcoming} nowPeriod={nowPeriod} onPickMonth={onPickMonth} />
+          <UpcomingJump upcoming={data.upcoming} latestPeriod={latestPeriod} onPickMonth={onPickMonth} />
         </>
       ) : (
         <p style={note}>
@@ -496,22 +666,23 @@ function EmptyReason({
 /**
  * "Kalo te Shtatori 2026" — moves the invoice date to the first month in which
  * somebody actually starts, which refetches the roster for it. Only offered
- * when that month has begun: a future month cannot be generated at all, so
- * sending the admin there would swap one dead end for another.
+ * when that month can be generated today (up to next month once its early
+ * window is open): sending the admin to a month the server refuses would swap
+ * one dead end for another.
  */
 function UpcomingJump({
-  upcoming, nowPeriod, onPickMonth,
+  upcoming, latestPeriod, onPickMonth,
 }: {
   upcoming: { start_date: string }[];
-  nowPeriod: string;
+  latestPeriod: string;
   onPickMonth: (period: string) => void;
 }) {
   const first = upcoming[0]?.start_date;
   const target = first ? monthStartOf(first) : null;
-  if (!target || target > nowPeriod) return null;
+  if (!target || target > latestPeriod) return null;
   return (
     <div>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={() => onPickMonth(target)}>
+      <button type="button" className="btn btn-ghost btn-sm" style={{ minHeight: 44 }} onClick={() => onPickMonth(target)}>
         Kalo te {periodLabel(target)}
       </button>
     </div>
@@ -546,4 +717,20 @@ function dueDateLabel(issuedOn: string): string | null {
   d.setDate(d.getDate() + 5);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+
+/** "2026-09-14" → "2026-09-19", the due date (invoice date + 5) as a date-only
+ * string. Date.UTC, so no timezone can move the day. Null when unusable. */
+function dueDateIso(issuedOn: string): string | null {
+  const m = issuedOn.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const t = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 5);
+  return Number.isNaN(t) ? null : new Date(t).toISOString().slice(0, 10);
+}
+
+/** "2026-09-01" → "2026-09-30", the last day of the period's month. */
+function lastDayOf(period: string): string {
+  const m = period.match(/^(\d{4})-(\d{2})/);
+  if (!m) return period;
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]), 0)).toISOString().slice(0, 10);
 }

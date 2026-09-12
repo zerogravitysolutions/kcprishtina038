@@ -6,8 +6,14 @@ import { AddMember } from "./AddMember";
 import { ManageMember } from "./ManageMember";
 import { CreateAccount } from "./CreateAccount";
 import { AddToRoster } from "./AddToRoster";
+import { MembershipFacet } from "./MembershipFacet";
 import { DeleteButton } from "../team-members/DeleteButton";
 import { POSITION_LABEL } from "./positions";
+// Types only from the client module (a Server Component may import components
+// and types from "use client", never values — a value comes back as a proxy).
+import type { CurrentMembership, MembershipPlanOption, PreviousMembership } from "./MembershipFacet";
+import { membershipAmountLabel, monthStartOf } from "./membership";
+import { clubTodayISO, lastBillingRunDay } from "@/lib/clubtime";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -52,6 +58,18 @@ type RosterRow = {
   photo: { storage_path: string } | null;
 };
 
+/** One period spent on one plan. See app/admin/people/membership.ts. */
+type MembershipRow = {
+  id: string;
+  member_id: string;
+  plan_id: string;
+  amount_eur: number | string | null;
+  billable: boolean;
+  start_date: string;
+  end_date: string | null;
+  status: string;
+};
+
 /** One human. `roster` is an array only to survive bad data: two roster rows
  * pointing at the same profile are ONE person, so they collapse into one line
  * instead of showing that person twice. */
@@ -85,6 +103,33 @@ type View = (typeof VIEWS)[number];
 
 const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 
+/** One PostgREST page. Supabase caps a response at its max-rows setting and
+ * says nothing when it does, so every money read below is paged to the end —
+ * a silent cap once decided whether an invoiced membership looked invoiced. */
+const PAGE = 1000;
+
+/** Reads every page of a query; null when any page fails. */
+async function readAll<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>,
+): Promise<T[] | null> {
+  const out: T[] = [];
+  for (let from = 0; from < 100 * PAGE; from += PAGE) {
+    const { data, error } = await page(from, from + PAGE - 1);
+    if (error) return null;
+    const rows = (data as T[] | null) ?? [];
+    out.push(...rows);
+    if (rows.length < PAGE) return out;
+  }
+  return out;
+}
+
+/** Splits an id list so an `in (...)` filter never outgrows a request URL. */
+function chunks<T>(items: T[], size = 100): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 function initials(n: string) {
   return n.trim().split(/\s+/).slice(0, 2).map(s => s[0] || "").join("").toUpperCase() || "?";
 }
@@ -107,13 +152,74 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
   if (!["admin", "editor", "staff"].includes(me.role)) redirect("/admin/dashboard");
   const canManageAccounts = me.role === "admin";              // requireAdmin()
   const canEditRoster = ["admin", "editor"].includes(me.role); // requireEditor()
+  // MONEY = admin + staff, the same bar as memberships_select_staff /
+  // dues_select_staff in SQL and as requireMoneyStaff() in ./actions.ts, which
+  // is where writes are ENFORCED. An editor does not get a read-only membership
+  // column: they get none, and the money is never queried on their behalf.
+  const canManageMoney = ["admin", "staff"].includes(me.role); // requireMoneyStaff()
+  // The plan catalogue (/admin/plans) is admin-only; staff are sent to an admin.
+  const canEditPlans = me.role === "admin";
+  // The CLUB's day (not the server's UTC day, which is still yesterday for the
+  // first hours after midnight in Kosovo) and the last day the 03:20 UTC billing
+  // job has processed. Both are computed HERE and handed to the client panel:
+  // a start date defaults to `today` and becomes the member's billing day, and
+  // a clock read during hydration would disagree with the server render.
+  const today = clubTodayISO();
+  const lastRunDay = lastBillingRunDay();
 
   const sp = await searchParams;
   const view: View = (VIEWS as readonly string[]).includes(sp.view ?? "") ? (sp.view as View) : "all";
   const roleFilter: Role | null = (ROLES as readonly string[]).includes(sp.role ?? "") ? (sp.role as Role) : null;
   const q = (sp.q ?? "").trim();
 
-  const [{ data: profileData }, { data: rosterData }, { data: sectionData }] = await Promise.all([
+  // THE MONEY READ — on the caller's OWN session, so RLS decides, and only for
+  // admin/staff. (It used to go through the service-role client "so an editor
+  // could see the facet", which handed every member's plan, price and billing
+  // day to a role RLS denies them.) Returns null when any part fails: "Nuk ka
+  // anëtarësi" would then be a lie about every person on the screen.
+  async function readMoney() {
+    const [membershipRows, planRes] = await Promise.all([
+      // Newest period first, so the first row per member is the latest one.
+      readAll<MembershipRow>((from, to) =>
+        supabase.from("memberships")
+          .select("id, member_id, plan_id, amount_eur, billable, start_date, end_date, status")
+          .order("start_date", { ascending: false }).order("id").range(from, to)),
+      // Archived tiers included: a membership can outlive its plan and the
+      // period is still real, so the name has to resolve.
+      supabase.from("membership_plans")
+        .select("id, name_sq, amount_eur, billable, active, display_order")
+        .order("display_order").limit(100),
+    ]);
+    if (!membershipRows || planRes.error) return null;
+
+    // Dues ONLY for the members who hold an active membership — the rows the
+    // panel reasons about — and every page of them. Two facts come out of it:
+    // whether the active row already carries an invoice (set_member_plan's
+    // case 3 vs 4; the server action re-checks it, this is only the early
+    // warning) and which months the member is already invoiced for, which the
+    // billing job skips and so must the "next invoice" line.
+    const activeMemberIds = Array.from(new Set(
+      membershipRows.filter((m) => m.status === "active").map((m) => m.member_id),
+    ));
+    const duesChunks = await Promise.all(chunks(activeMemberIds).map((ids) =>
+      readAll<{ id: string; member_id: string; membership_id: string | null; period: string }>((from, to) =>
+        supabase.from("dues")
+          .select("id, member_id, membership_id, period")
+          .in("member_id", ids)
+          .order("id").range(from, to)),
+    ));
+    if (duesChunks.some((c) => c === null)) return null;
+
+    return {
+      memberships: membershipRows,
+      plans: (planRes.data as (MembershipPlanOption & { display_order: number })[] | null) ?? [],
+      dues: duesChunks.flatMap((c) => c ?? []),
+    };
+  }
+
+  const [
+    { data: profileData }, { data: rosterData }, { data: sectionData }, money,
+  ] = await Promise.all([
     supabase.from("profiles")
       .select("id, full_name, email, role, status, joined_at, section_id")
       .order("full_name").limit(1000),
@@ -121,11 +227,40 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
       .select("id, slug, full_name, positions, section_slug, status, display_order, profile_id, photo:media!photo_media_id(storage_path)")
       .order("display_order").order("last_name").limit(1000),
     supabase.from("sections").select("id, slug, name_sq"),
+    canManageMoney ? readMoney() : Promise.resolve(null),
   ]);
 
   const profiles = (profileData as ProfileRow[] | null) ?? [];
   const roster = (rosterData as unknown as RosterRow[] | null) ?? [];
   const sectionRows = (sectionData as { id: string; slug: string; name_sq: string }[] | null) ?? [];
+  const moneyReadable = money !== null;
+  const memberships = money?.memberships ?? [];
+  const plans: MembershipPlanOption[] = (money?.plans ?? []).map((p) => ({
+    id: p.id, name_sq: p.name_sq, amount_eur: p.amount_eur, billable: p.billable, active: p.active,
+  }));
+  const planNameById = new Map(plans.map((p) => [p.id, p.name_sq]));
+  const invoicedMemberships = new Set<string>();
+  const invoicedPeriodsByMember = new Map<string, string[]>();
+  for (const d of money?.dues ?? []) {
+    if (d.membership_id) invoicedMemberships.add(d.membership_id);
+    const period = monthStartOf(d.period);
+    if (!period) continue;
+    const list = invoicedPeriodsByMember.get(d.member_id);
+    if (list) list.push(period);
+    else invoicedPeriodsByMember.set(d.member_id, [period]);
+  }
+
+  // At most one ACTIVE row per member (memberships_one_active_per_member); the
+  // latest closed row is kept only to say what the last period was.
+  const activeMembership = new Map<string, MembershipRow>();
+  const lastClosedMembership = new Map<string, MembershipRow>();
+  for (const m of memberships) {
+    if (m.status === "active") {
+      if (!activeMembership.has(m.member_id)) activeMembership.set(m.member_id, m);
+    } else if (!lastClosedMembership.has(m.member_id)) {
+      lastClosedMembership.set(m.member_id, m);
+    }
+  }
   // The roster stores a section SLUG, the profile a section UUID — two lookups
   // for one column.
   const sectionBySlug = new Map(sectionRows.map(s => [s.slug, s]));
@@ -206,7 +341,10 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
           <div className="sub">
             {rows.length === counts.all ? `${counts.all} veta` : `${rows.length} nga ${counts.all} veta`} — secili një herë.
             “Llogari” do të thotë që personi kyçet dhe mban faturat; “Publik” do të thotë që shfaqet te <em>Ekipi</em>{" "}
-            dhe mund të zgjidhet në stërvitje.
+            dhe mund të zgjidhet në stërvitje
+            {canManageMoney
+              ? "; “Anëtarësia” është plani i pagesave — dita e fillimit është dita në të cilën faturohet çdo muaj."
+              : "."}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -239,7 +377,11 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
         ))}
       </div>
 
-      <div className="table-wrap">
+      {/* mbs-table-wrap: this table is one column wider than any other in the
+          admin, and the shared .table-wrap clips overflow — at tablet widths
+          the Veprime buttons were cut off. See the membership block at the end
+          of admin.css; the shared table styles are untouched. */}
+      <div className="table-wrap mbs-table-wrap">
         <table className="t">
           <thead>
             <tr>
@@ -247,15 +389,41 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
               <th>Seksioni</th>
               <th>Llogari</th>
               <th>Publik</th>
+              {canManageMoney && <th>Anëtarësia</th>}
               <th>Veprime</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Asnjë person në këtë filtër.</td></tr>
+              <tr><td colSpan={canManageMoney ? 6 : 5} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Asnjë person në këtë filtër.</td></tr>
             ) : rows.map(p => {
               const tm = p.roster[0] ?? null;
               const acc = p.account;
+              // The membership hangs off the ACCOUNT: memberships.member_id
+              // references profiles(id), so a roster-only person cannot hold one.
+              const active = acc ? activeMembership.get(acc.id) ?? null : null;
+              const closed = acc && !active ? lastClosedMembership.get(acc.id) ?? null : null;
+              const membership: CurrentMembership | null = active
+                ? {
+                    id: active.id,
+                    plan_id: active.plan_id,
+                    amount_eur: active.amount_eur,
+                    billable: active.billable,
+                    start_date: active.start_date,
+                    end_date: active.end_date,
+                    status: active.status,
+                    hasInvoices: invoicedMemberships.has(active.id),
+                  }
+                : null;
+              const previousMembership: PreviousMembership | null = closed
+                ? {
+                    planName: planNameById.get(closed.plan_id) ?? "Plan i arkivuar",
+                    amountLabel: membershipAmountLabel(closed),
+                    start_date: closed.start_date,
+                    end_date: closed.end_date,
+                    status: closed.status,
+                  }
+                : null;
               const sec = (tm?.section_slug ? sectionBySlug.get(tm.section_slug) : null)
                 ?? (acc?.section_id ? sectionById.get(acc.section_id) : null)
                 ?? null;
@@ -331,6 +499,32 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
                       <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>Pa ekip</span>
                     )}
                   </td>
+
+                  {canManageMoney && (
+                    <td data-lab="Anëtarësia">
+                      {!acc ? (
+                        <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                          Kërkon llogari
+                        </span>
+                      ) : !moneyReadable ? (
+                        <span className="mono" style={{ fontSize: 11, color: "var(--warn)" }}>
+                          Anëtarësia nuk u lexua. Rifresko faqen.
+                        </span>
+                      ) : (
+                        <MembershipFacet
+                          memberId={acc.id}
+                          name={p.name}
+                          plans={plans}
+                          current={membership}
+                          previous={previousMembership}
+                          invoicedPeriods={invoicedPeriodsByMember.get(acc.id) ?? []}
+                          canEditPlans={canEditPlans}
+                          today={today}
+                          lastRunDay={lastRunDay}
+                        />
+                      )}
+                    </td>
+                  )}
 
                   <td className="actions">
                     {tm && canEditRoster && (

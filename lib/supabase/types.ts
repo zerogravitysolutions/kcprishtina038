@@ -329,10 +329,40 @@ interface PublicTables {
           // reduced. discount_reason travels with it. Migration 20260912000001.
           full_amount_eur: number | null;
           discount_reason: string | null;
+          // The prepayment (dues_prepayments) that settled this invoice, if any.
+          // Written only by record_prepayment / undo_prepayment. Migration
+          // 20260913000001.
+          prepayment_id: string | null;
           created_at: string; updated_at: string;
         };
-        Insert: { member_id: string; period: string; amount_eur: number; status?: DuesStatus; paid_at?: string | null; paid_method?: PaidMethod | null; notes?: string | null; membership_id?: string | null; due_date?: string | null; invoice_no?: string | null; issued_on?: string | null; full_amount_eur?: number | null; discount_reason?: string | null };
+        Insert: { member_id: string; period: string; amount_eur: number; status?: DuesStatus; paid_at?: string | null; paid_method?: PaidMethod | null; notes?: string | null; membership_id?: string | null; due_date?: string | null; invoice_no?: string | null; issued_on?: string | null; full_amount_eur?: number | null; discount_reason?: string | null; prepayment_id?: string | null };
         Update: Partial<PublicTables["dues"]["Row"]>;
+      };
+      // One member paying N consecutive months at once (migration
+      // 20260913000001). Each month is an ordinary dues row with prepayment_id
+      // set. No insert/update/delete policy: record_prepayment and
+      // undo_prepayment are the only writers, so Insert/Update are never.
+      dues_prepayments: {
+        Row: {
+          id: string; member_id: string;
+          /** First month prepaid, "YYYY-MM-01". */
+          first_period: string;
+          /** 1..12 consecutive months from first_period. */
+          months: number;
+          /** The payment date ("YYYY-MM-DD"). */
+          paid_on: string;
+          paid_method: "cash" | "bank" | "online";
+          /** numeric(10,2) — arrives from PostgREST as a string; coerce. */
+          total_eur: number | string;
+          notes: string | null;
+          recorded_by: string | null;
+          created_at: string;
+          /** Exact prior values of the invoices that existed before the
+           * prepayment marked them paid (see the migration). */
+          prior_states: unknown;
+        };
+        Insert: never;
+        Update: never;
       };
       expense_categories: {
         Row: {
@@ -686,6 +716,32 @@ export interface Database {
       set_due_half_price: {
         Args: { p_due_id: string; p_half: boolean; p_reason?: string | null };
         Returns: string;
+      };
+      // Records one prepayment: N consecutive months, each an ordinary PAID
+      // dues row linked to the returned dues_prepayments id. Refuses with an
+      // exception whose message starts with a token (forbidden, invalid_months,
+      // invalid_method, invalid_date, invalid_period, future_payment,
+      // half_outside_range, not_covered:YYYY-MM, already_settled:YYYY-MM) —
+      // see lib/prepay.ts. Admin/staff; migration 20260913000001.
+      record_prepayment: {
+        Args: {
+          p_member_id: string;
+          p_first_period: string;
+          p_months: number;
+          p_paid_on: string;
+          p_method: string;
+          p_half_periods?: string[] | null;
+          p_discount_reason?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: string;
+      };
+      // Undoes one prepayment exactly: created invoices deleted (audited),
+      // pre-existing ones restored from prior_states. Returns the number of
+      // invoices touched. Admin only; tokens forbidden / not_found.
+      undo_prepayment: {
+        Args: { p_prepayment_id: string };
+        Returns: number;
       };
       // Puts a member on a plan and returns the id of the ACTIVE membership
       // afterwards — the same row when nothing changed or the change was a

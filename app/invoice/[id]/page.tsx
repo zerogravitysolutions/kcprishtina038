@@ -9,6 +9,7 @@ import {
   daysOverdue, discountOf, discountReasonLabel, dueDateOf, effectiveStatus, formatEur, isOutstanding,
   isReduced, issuedDateLabel, periodLabel,
 } from "@/lib/finance";
+import { prepayRangeLabel } from "@/lib/prepay";
 import type { DuesStatus, PaidMethod } from "@/lib/supabase/types";
 import { PrintButton } from "./PrintButton";
 
@@ -31,7 +32,7 @@ type Params = Promise<{ id: string }>;
  */
 const SELECT =
   "id, member_id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, created_at, " +
-  "full_amount_eur, discount_reason, " +
+  "full_amount_eur, discount_reason, prepayment_id, " +
   "member:profiles!member_id(full_name, email), " +
   "membership:memberships!membership_id(plan:membership_plans!plan_id(name_sq))";
 
@@ -51,6 +52,8 @@ type InvoiceData = {
    * owed. numeric → may arrive as a string. */
   full_amount_eur: number | string | null;
   discount_reason: string | null;
+  /** The prepayment that settled this invoice, if any (migration 20260913000001). */
+  prepayment_id: string | null;
   member: { full_name: string; email: string } | null;
   membership: { plan: { name_sq: string } | null } | null;
 };
@@ -128,6 +131,21 @@ export default async function InvoicePage({ params }: { params: Params }) {
 
   const inv = data as unknown as InvoiceData | null;
   if (!inv) notFound();
+
+  // Part of a prepayment: name its months and link its document. Same session
+  // and RLS as the invoice (dues_prepayments_select_own / _staff), so a member
+  // reaches only their own. The label is decoration — a failed read keeps the
+  // link and drops the months, it does not fail the invoice.
+  let prepay: { id: string; label: string } | null = null;
+  if (inv.prepayment_id) {
+    const { data: pp } = await supabase
+      .from("dues_prepayments")
+      .select("first_period, months")
+      .eq("id", inv.prepayment_id)
+      .maybeSingle();
+    const row = pp as { first_period: string; months: number } | null;
+    prepay = { id: inv.prepayment_id, label: row ? prepayRangeLabel(row.first_period, row.months) : "" };
+  }
 
   const status = effectiveStatus(inv);
   const late = daysOverdue(inv);
@@ -280,7 +298,16 @@ export default async function InvoicePage({ params }: { params: Params }) {
               Klubi e ka falur këtë faturë. Nuk ke asgjë për të paguar dhe kjo shumë nuk
               llogaritet as si borxh, as si pagesë.
             </p>
-          ) : status === "overdue" ? (
+          ) : null}
+          {prepay ? (
+            <p>
+              Pjesë e parapagimit{prepay.label ? ` (${prepay.label})` : ""}.{" "}
+              <a href={`/invoice/prepay/${prepay.id}`} style={{ color: "var(--ember, #c25a2d)", textDecoration: "underline" }}>
+                Shiko dokumentin e parapagimit
+              </a>
+            </p>
+          ) : null}
+          {status === "paid" || status === "waived" ? null : status === "overdue" ? (
             <p>
               Afati i pagesës skadoi{due ? ` më ${due.toLocaleDateString("sq")}` : ""} — {late} ditë
               vonesë. Shuma prej {amount} pritet të paguhet sa më parë.

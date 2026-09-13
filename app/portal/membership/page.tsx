@@ -9,6 +9,7 @@ import {
   isOutstanding, isReduced, issuedDateLabel, outstandingTotal, periodLabel, planAmountLabel, sumEur,
   type BillingMode, type DueLike, type EffectiveDuesStatus,
 } from "@/lib/finance";
+import { prepayRangeLabel } from "@/lib/prepay";
 import type { DuesStatus, MembershipStatus, PaidMethod } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -74,7 +75,12 @@ type DueRow = {
   /** Set only while the invoice is at half price (numeric → maybe a string). */
   full_amount_eur: number | string | null;
   discount_reason: string | null;
+  /** Set when a prepayment settled this invoice (migration 20260913000001). */
+  prepayment_id: string | null;
 };
+
+/** One prepayment of this member, for the "Parapaguar" marker. */
+type PrepayRow = { id: string; first_period: string; months: number };
 
 /** "1 faturë" / "3 fatura" — a bare count reads wrong in the singular. */
 function invoiceCount(n: number): string {
@@ -109,7 +115,7 @@ export default async function PortalMembershipPage() {
   // retired tiers this member was actually enrolled on, so an archived plan still
   // resolves to the same name staff see in /admin/finance. The "Plan i arkivuar"
   // fallback below is now only reachable if the plan row itself is gone.
-  const [membershipRes, duesRes, planRes] = await Promise.all([
+  const [membershipRes, duesRes, planRes, prepayRes] = await Promise.all([
     supabase
       .from("memberships")
       .select("id, plan_id, amount_eur, billable, start_date, end_date, status")
@@ -118,7 +124,7 @@ export default async function PortalMembershipPage() {
       .limit(50),
     supabase
       .from("dues")
-      .select("id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, membership_id, full_amount_eur, discount_reason")
+      .select("id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, membership_id, full_amount_eur, discount_reason, prepayment_id")
       .eq("member_id", profile.id)
       .order("period", { ascending: false })
       .limit(DUES_CAP),
@@ -126,6 +132,14 @@ export default async function PortalMembershipPage() {
       .from("membership_plans")
       .select("id, name_sq")
       .order("display_order", { ascending: true }),
+    // Own rows only (dues_prepayments_select_own). Labels for the marker —
+    // not money figures — so a failed read is NOT a page error: the marker
+    // simply loses its months and keeps its link.
+    supabase
+      .from("dues_prepayments")
+      .select("id, first_period, months")
+      .eq("member_id", profile.id)
+      .limit(200),
   ]);
 
   // Half a money page is worse than none: "nuk ke borxh" printed because a
@@ -153,6 +167,12 @@ export default async function PortalMembershipPage() {
 
   const planById = new Map(plans.map((p) => [p.id, p]));
   const membershipById = new Map(memberships.map((m) => [m.id, m]));
+  const prepayLabel = new Map(
+    ((prepayRes.data as PrepayRow[] | null) ?? []).map((p) => [p.id, prepayRangeLabel(p.first_period, p.months)]),
+  );
+  function prepayOf(d: DueRow): { id: string; label: string } | null {
+    return d.prepayment_id ? { id: d.prepayment_id, label: prepayLabel.get(d.prepayment_id) ?? "" } : null;
+  }
 
   /** The plan an invoice was billed under, or null when it cannot be resolved. */
   function planOfDue(d: DueRow): string | null {
@@ -355,7 +375,7 @@ export default async function PortalMembershipPage() {
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
           {dues.map((d) => (
-            <InvoiceCard key={d.id} due={d} plan={planOfDue(d)} />
+            <InvoiceCard key={d.id} due={d} plan={planOfDue(d)} prepay={prepayOf(d)} />
           ))}
           {dues.length >= DUES_CAP ? (
             <p style={{ ...MONO, margin: "2px 0 0" }}>
@@ -427,7 +447,9 @@ function Section({ title, sub }: { title: string; sub?: string }) {
   );
 }
 
-function InvoiceCard({ due, plan }: { due: DueRow; plan: string | null }) {
+function InvoiceCard({
+  due, plan, prepay,
+}: { due: DueRow; plan: string | null; prepay: { id: string; label: string } | null }) {
   const status: EffectiveDuesStatus = effectiveStatus(due);
   const tone = EFFECTIVE_STATUS_TONE[status];
   const late = daysOverdue(due);
@@ -460,6 +482,7 @@ function InvoiceCard({ due, plan }: { due: DueRow; plan: string | null }) {
         {status === "paid" || status === "waived" ? null : <Pill label="Afati" value={dueLabel(due)} />}
         {plan ? <Pill label="Plani" value={plan} /> : null}
         {reduced ? <Pill label="½ çmimi" value={discountReasonLabel(due)} /> : null}
+        {prepay ? <Pill label="Parapaguar" value={prepay.label || "po"} /> : null}
         {status === "paid" ? (
           <>
             <Pill label="Paguar më" value={paid ?? "datë e pashënuar"} />
@@ -495,6 +518,21 @@ function InvoiceCard({ due, plan }: { due: DueRow; plan: string | null }) {
         >
           {status === "paid" ? "Shiko dhe printo vërtetimin ↗" : "Shiko dhe printo faturën ↗"}
         </a>
+        {prepay ? (
+          <>
+            {" · "}
+            {/* The whole prepayment this month belongs to — one document for
+                every month paid at once. */}
+            <a
+              href={`/invoice/prepay/${prepay.id}`}
+              target="_blank"
+              rel="noopener"
+              style={{ color: "var(--ember)", textDecoration: "underline" }}
+            >
+              Shiko parapagimin ↗
+            </a>
+          </>
+        ) : null}
       </p>
     </div>
   );

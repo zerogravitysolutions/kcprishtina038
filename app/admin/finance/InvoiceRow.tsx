@@ -29,6 +29,10 @@ export type InvoiceView = {
    * reduced (never "a full price of €0"). amount_eur is what is owed. */
   full_amount_eur: number | null;
   discount_reason: string | null;
+  /** The prepayment that settled this invoice (migration 20260913000001), and
+   * its months as "Shtator–Nëntor 2026" when they could be read. */
+  prepayment_id: string | null;
+  prepay_label: string | null;
   member_name: string;
   member_email: string;
   /** Plan name from the linked membership; null on invoices with no membership. */
@@ -211,6 +215,24 @@ export function InvoiceRow({
                 {paidAtLabel ? ` · ${paidAtLabel}` : ""}
               </small>
             ) : null}
+            {inv.prepayment_id ? (
+              // One line of a prepayment: the marker opens the group's document,
+              // which is also where an admin undoes it as a whole.
+              <a
+                href={`/invoice/prepay/${inv.prepayment_id}`}
+                target="_blank"
+                rel="noopener"
+                title={inv.prepay_label ? `Parapagim · ${inv.prepay_label}` : "Parapagim"}
+                style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center", minHeight: 44, textDecoration: "none" }}
+              >
+                <span className="badge-st ember">Parapaguar ↗</span>
+                {inv.prepay_label ? (
+                  <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
+                    {inv.prepay_label}
+                  </small>
+                ) : null}
+              </a>
+            ) : null}
           </span>
         </td>
         <td className="actions">
@@ -228,6 +250,10 @@ export function InvoiceRow({
           </a>
           {!canWrite ? (
             <span className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>Vetëm shikim</span>
+          ) : settled && inv.prepayment_id ? (
+            // Reopened or deleted alone, it would disagree with its
+            // prepayment; the whole group is undone from its document.
+            null
           ) : settled ? (
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setErr(null); setUndoOpen(true); }}>
               Zhbëj
@@ -269,7 +295,7 @@ export function InvoiceRow({
               ) : null}
             </>
           )}
-          {canDelete ? (
+          {canDelete && !inv.prepayment_id ? (
             <button
               type="button"
               className="btn btn-ghost btn-sm"

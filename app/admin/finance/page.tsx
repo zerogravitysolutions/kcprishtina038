@@ -6,13 +6,15 @@ import { clubCurrentPeriod, clubTodayISO } from "@/lib/clubtime";
 import {
   discountOf, earlyBillingOpensOn, effectiveStatus, formatDate, formatEur, isOutstanding,
   isReduced, latestBillablePeriod, outstandingTotal, parsePeriodParam, periodLabel, periodParam,
-  shiftPeriod, sumEur,
+  shiftPeriod, sumEur, toEuros,
   type EffectiveDuesStatus,
 } from "@/lib/finance";
+import { prepayRangeLabel, type PrepayMemberOption } from "@/lib/prepay";
 import type { DuesStatus, PaidMethod } from "@/lib/supabase/types";
 import { eligibleMembersForPeriod } from "./actions";
 import { GenerateInvoices } from "./GenerateInvoices";
 import { InvoiceRow, type InvoiceView } from "./InvoiceRow";
+import { PrepayModal } from "./PrepayModal";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -54,13 +56,22 @@ type DueRow = {
   notes: string | null;
   full_amount_eur: number | string | null;
   discount_reason: string | null;
+  prepayment_id: string | null;
   member: { id: string; full_name: string; email: string } | null;
   membership: { id: string; billable: boolean; plan: { name_sq: string } | null } | null;
 };
 
+/** An active billable membership, as the prepayment modal's member list. */
+type PrepayMemberRow = {
+  member_id: string;
+  amount_eur: number | string | null;
+  member: { full_name: string } | null;
+  plan: { name_sq: string } | null;
+};
+
 const SELECT =
   "id, member_id, period, due_date, issued_on, amount_eur, status, paid_at, paid_method, invoice_no, notes, " +
-  "full_amount_eur, discount_reason, " +
+  "full_amount_eur, discount_reason, prepayment_id, " +
   "member:profiles!member_id(id, full_name, email), " +
   "membership:memberships!membership_id(id, billable, plan:membership_plans!plan_id(name_sq))";
 
@@ -92,12 +103,25 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
   //
   // Ordered before the cap: an unordered limit would return an arbitrary slice,
   // so which invoices got dropped would change between refreshes.
-  const invoiceRes = await supabase
-    .from("dues")
-    .select(SELECT)
-    .eq("period", period)
-    .order("created_at", { ascending: true })
-    .limit(ROW_CAP);
+  //
+  // Beside it, the prepayment modal's member list: everyone holding an ACTIVE
+  // billable membership (one active row per member, memberships_one_active_
+  // per_member). A failed read is shown as an error, never as "nobody".
+  const [invoiceRes, prepayRes] = await Promise.all([
+    supabase
+      .from("dues")
+      .select(SELECT)
+      .eq("period", period)
+      .order("created_at", { ascending: true })
+      .limit(ROW_CAP),
+    supabase
+      .from("memberships")
+      .select("member_id, amount_eur, member:profiles!member_id(full_name), plan:membership_plans!plan_id(name_sq)")
+      .eq("status", "active")
+      .eq("billable", true)
+      .gt("amount_eur", 0)
+      .limit(2000),
+  ]);
 
   const loadError = invoiceRes.error;
   if (loadError) {
@@ -122,6 +146,30 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
   }
 
   const raw = (invoiceRes.data as unknown as DueRow[] | null) ?? [];
+
+  const prepayMembers: PrepayMemberOption[] = ((prepayRes.data as unknown as PrepayMemberRow[] | null) ?? [])
+    .map((m) => ({
+      member_id: m.member_id,
+      full_name: m.member?.full_name ?? "Anëtar i panjohur",
+      plan_name: m.plan?.name_sq ?? null,
+      amount_eur: toEuros(m.amount_eur),
+    }))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name, "sq"));
+  const prepayMembersError = prepayRes.error
+    ? dbError(prepayRes.error, "Leximi i anëtarëve për parapagim dështoi.")
+    : null;
+
+  // The range of each prepayment an invoice on screen belongs to, for the
+  // "Parapaguar" marker. Only a label: a failed read leaves the marker without
+  // its months, the link still works.
+  const prepayIds = Array.from(new Set(raw.map((d) => d.prepayment_id).filter((v): v is string => !!v)));
+  const prepayLabel = new Map<string, string>();
+  if (prepayIds.length > 0) {
+    const ppRes = await supabase.from("dues_prepayments").select("id, first_period, months").in("id", prepayIds);
+    for (const pp of (ppRes.data as { id: string; first_period: string; months: number }[] | null) ?? []) {
+      prepayLabel.set(pp.id, prepayRangeLabel(pp.first_period, pp.months));
+    }
+  }
 
   // The members the modal offers for THIS month, with the counts that explain
   // an empty answer. Same function the modal re-calls when the admin picks an
@@ -149,6 +197,8 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
     // a full price of €0.
     full_amount_eur: d.full_amount_eur == null ? null : Number(d.full_amount_eur),
     discount_reason: d.discount_reason,
+    prepayment_id: d.prepayment_id,
+    prepay_label: d.prepayment_id ? prepayLabel.get(d.prepayment_id) ?? null : null,
     member_name: d.member?.full_name ?? "Anëtar i panjohur",
     member_email: d.member?.email ?? "Pa email",
     plan_name: d.membership?.plan?.name_sq ?? null,
@@ -218,15 +268,20 @@ export default async function FinancePage({ searchParams }: { searchParams: Sear
             {profile.role === "admin" ? <>{" · "}<Link href="/admin/plans">Planet</Link></> : null}
           </div>
         </div>
-        <GenerateInvoices
-          period={period}
-          label={label}
-          today={today}
-          nowPeriod={nowPeriod}
-          latestPeriod={latestPeriod}
-          earlyHref={latestPeriod > nowPeriod ? link({ p: periodParam(latestPeriod) }) : null}
-          initial={eligibility}
-        />
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "flex-start" }}>
+          {/* Prepayment records money received, so it is NOT bound by the
+              early-billing window and is offered on every month's page. */}
+          <PrepayModal members={prepayMembers} membersError={prepayMembersError} today={today} nowPeriod={nowPeriod} />
+          <GenerateInvoices
+            period={period}
+            label={label}
+            today={today}
+            nowPeriod={nowPeriod}
+            latestPeriod={latestPeriod}
+            earlyHref={latestPeriod > nowPeriod ? link({ p: periodParam(latestPeriod) }) : null}
+            initial={eligibility}
+          />
+        </div>
       </div>
 
       {/* Exactly the totals of the rows on screen — a table footer, not a

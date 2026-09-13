@@ -73,6 +73,30 @@ function windowClosedMessage(period: string): string {
   return `Faturat për ${periodLabel(period)} mund të gjenerohen nga ${formatDate(earlyBillingOpensOn(period))}.`;
 }
 
+// An invoice settled by a prepayment (dues.prepayment_id, migration
+// 20260913000001) is one line of a group: its payment, the prepayment's total
+// and the printed document all say the same thing. Re-marking, waiving,
+// reopening or deleting it alone would make them disagree — and would make
+// undo_prepayment's exact restore impossible. So the single-invoice actions
+// below leave such rows alone; the whole group is undone from its document.
+const PREPAID_LOCKED =
+  "Kjo faturë është pjesë e një parapagimi, prandaj nuk ndryshohet më vete. " +
+  "Për ta korrigjuar, administratori e anulon parapagimin nga dokumenti i tij dhe e regjistron sërish.";
+
+type Client = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Why an update guarded by `prepayment_id is null` touched no row: the
+ * invoice belongs to a prepayment, or it is gone / not writable (RLS answers
+ * a refused UPDATE with zero rows, not an error).
+ */
+async function untouchedReason(supabase: Client, invoiceId: string): Promise<string> {
+  const { data } = await supabase.from("dues").select("prepayment_id").eq("id", invoiceId).maybeSingle();
+  const row = data as { prepayment_id: string | null } | null;
+  if (row?.prepayment_id) return PREPAID_LOCKED;
+  return "Fatura nuk u gjet ose nuk u lejua ndryshimi. Rifresko faqen dhe provo sërish.";
+}
+
 // The invoice screens are force-dynamic, but the member portal and the
 // dashboard both read dues too — nudge them after every write.
 function revalidateFinance() {
@@ -114,11 +138,14 @@ export async function markInvoicePaid(
     if (note) patch.notes = note;
 
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("dues")
       .update(patch)
-      .eq("id", invoiceId);
+      .eq("id", invoiceId)
+      .is("prepayment_id", null)
+      .select("id");
     if (error) return { ok: false, error: dbError(error, "Regjistrimi i pagesës dështoi. Provo sërish.") };
+    if (!updated?.length) return { ok: false, error: await untouchedReason(supabase, invoiceId) };
 
     revalidateFinance();
     return { ok: true };
@@ -138,7 +165,7 @@ export async function waiveInvoice(invoiceId: string, reason: string): Promise<A
     }
 
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("dues")
       .update({
         status: "waived",
@@ -147,8 +174,11 @@ export async function waiveInvoice(invoiceId: string, reason: string): Promise<A
         recorded_by: me.id,
         notes: note,
       })
-      .eq("id", invoiceId);
+      .eq("id", invoiceId)
+      .is("prepayment_id", null)
+      .select("id");
     if (error) return { ok: false, error: dbError(error, "Falja e faturës dështoi. Provo sërish.") };
+    if (!updated?.length) return { ok: false, error: await untouchedReason(supabase, invoiceId) };
 
     revalidateFinance();
     return { ok: true };
@@ -167,7 +197,7 @@ export async function reopenInvoice(invoiceId: string): Promise<ActionResult> {
     const me = await assertFinanceStaff();
 
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("dues")
       .update({
         status: "unpaid",
@@ -175,8 +205,11 @@ export async function reopenInvoice(invoiceId: string): Promise<ActionResult> {
         paid_method: null,
         recorded_by: me.id,
       })
-      .eq("id", invoiceId);
+      .eq("id", invoiceId)
+      .is("prepayment_id", null)
+      .select("id");
     if (error) return { ok: false, error: dbError(error, "Zhbërja e pagesës dështoi. Provo sërish.") };
+    if (!updated?.length) return { ok: false, error: await untouchedReason(supabase, invoiceId) };
 
     revalidateFinance();
     return { ok: true };
@@ -238,6 +271,12 @@ export async function deleteInvoice(invoiceId: string): Promise<ActionResult> {
     if (read.error) return { ok: false, error: dbError(read.error, "Leximi i faturës dështoi. Provo sërish.") };
     if (!read.data) {
       return { ok: false, error: "Fatura nuk u gjet — ndoshta është fshirë tashmë. Rifresko faqen." };
+    }
+    // One line of a prepayment is removed only with the whole prepayment
+    // (undo_prepayment), which keeps the group, its total and its document
+    // consistent and audits every row it deletes.
+    if ((read.data as { prepayment_id?: string | null }).prepayment_id) {
+      return { ok: false, error: PREPAID_LOCKED };
     }
 
     let admin;

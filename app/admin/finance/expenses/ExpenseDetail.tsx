@@ -10,7 +10,7 @@ import {
   isOwedToMember, paidByLabel,
 } from "@/lib/finance";
 import { type ExpenseOptions, type ExpenseView } from "./ExpenseForm";
-import { dateLabel } from "./labels";
+import { dateLabel, sourceLabel } from "./labels";
 import { receiptPublicUrl } from "./receipt";
 
 /** One labelled fact of the definition list: label above, value under it. */
@@ -118,9 +118,10 @@ export function ExpenseDetail({
 
   // A cost charged to a sponsor whose row is gone still says it is charged to
   // somebody; a null sponsor is genuinely "no source", a different sentence.
-  const sponsorName = expense.funding_sponsor_id
-    ? options.sponsors.find((s) => s.id === expense.funding_sponsor_id)?.name ?? UNKNOWN_SPONSOR_LABEL
-    : null;
+  const sponsorName = sourceLabel(
+    expense,
+    (id) => options.sponsors.find((s) => s.id === id)?.name ?? UNKNOWN_SPONSOR_LABEL,
+  );
 
   const owed = isOwedToMember(expense);
   const payer = paidByLabel(expense, nameOf);

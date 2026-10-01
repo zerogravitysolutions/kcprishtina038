@@ -20,3 +20,19 @@ export function dateLabel(value: string | null | undefined): string {
   const d = formatDate(value);
   return d === "—" ? UNKNOWN_DATE_LABEL : d;
 }
+
+/**
+ * The academy as an expense source. It shares the sponsor <select> and the
+ * `sp` filter, so it needs a value no sponsor uuid can ever equal.
+ */
+export const ACADEMY_SOURCE = "academy";
+export const ACADEMY_SOURCE_LABEL = "Nga Akademia";
+
+/** The source line for one expense, or null when it has none. */
+export function sourceLabel(
+  e: { funded_by_academy?: boolean | null; funding_sponsor_id: string | null },
+  sponsorName: (id: string) => string,
+): string | null {
+  if (e.funded_by_academy) return ACADEMY_SOURCE_LABEL;
+  return e.funding_sponsor_id ? sponsorName(e.funding_sponsor_id) : null;
+}

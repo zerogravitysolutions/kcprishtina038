@@ -66,6 +66,7 @@ export type ExpenseInput = {
   paid_by: ExpensePaidBy;
   paid_by_member_id: string | null;
   funding_sponsor_id: string | null;
+  funded_by_academy?: boolean;
   status: ExpenseStatus;
   reimbursed: boolean;
   reimbursed_note: string;
@@ -86,6 +87,7 @@ type ExpensePayload = {
   paid_by: ExpensePaidBy;
   paid_by_member_id: string | null;
   funding_sponsor_id: string | null;
+  funded_by_academy?: boolean;
   status: ExpenseStatus;
   reimbursed: boolean;
   reimbursed_note: string | null;
@@ -228,7 +230,10 @@ function coerceExpense(
       payment_method: paymentMethod,
       paid_by: paidBy,
       paid_by_member_id: payerId,
-      funding_sponsor_id: idOrNull(input.funding_sponsor_id),
+      // One source at most (club_expenses_one_source): the academy wins over
+      // a stale sponsor id rather than failing the save on the constraint.
+      funding_sponsor_id: input.funded_by_academy === true ? null : idOrNull(input.funding_sponsor_id),
+      funded_by_academy: input.funded_by_academy === true,
       status,
       reimbursed,
       reimbursed_note: reimbursed ? clean(input.reimbursed_note) : null,

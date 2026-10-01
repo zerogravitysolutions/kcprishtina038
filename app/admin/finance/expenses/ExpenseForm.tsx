@@ -1,5 +1,7 @@
 "use client";
 
+import { ACADEMY_SOURCE, ACADEMY_SOURCE_LABEL } from "./labels";
+
 import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
@@ -34,6 +36,7 @@ export type ExpenseView = {
   paid_by: ExpensePaidBy;
   paid_by_member_id: string | null;
   funding_sponsor_id: string | null;
+  funded_by_academy: boolean;
   status: ExpenseStatus;
   reimbursed: boolean;
   reimbursed_note: string | null;
@@ -115,7 +118,7 @@ function stateOf(e: ExpenseView): FormState {
     invoiceNo: e.invoice_no ?? "",
     method: e.payment_method ?? "",
     payer: e.paid_by === "member" && e.paid_by_member_id ? e.paid_by_member_id : CLUB,
-    sponsor: e.funding_sponsor_id ?? "",
+    sponsor: e.funded_by_academy ? ACADEMY_SOURCE : e.funding_sponsor_id ?? "",
     status: e.status,
     reimbursed: e.reimbursed,
     reimbursedNote: e.reimbursed_note ?? "",
@@ -136,7 +139,8 @@ function toInput(s: FormState): ExpenseInput {
     payment_method: s.method,
     paid_by: payerIsMember ? "member" : "club",
     paid_by_member_id: payerIsMember ? s.payer : null,
-    funding_sponsor_id: s.sponsor || null,
+    funding_sponsor_id: s.sponsor && s.sponsor !== ACADEMY_SOURCE ? s.sponsor : null,
+    funded_by_academy: s.sponsor === ACADEMY_SOURCE,
     status: s.status,
     reimbursed: payerIsMember ? s.reimbursed : false,
     reimbursed_note: s.reimbursedNote,
@@ -552,9 +556,10 @@ export function ExpenseFormModal({
         </div>
 
         <div className="field" style={{ marginTop: 14 }}>
-          <label htmlFor="ex-sponsor">Burimi (buxheti i sponsorit)</label>
+          <label htmlFor="ex-sponsor">Burimi</label>
           <select id="ex-sponsor" value={s.sponsor} onChange={(e) => set("sponsor", e.target.value)}>
             <option value="">Pa burim të caktuar</option>
+            <option value={ACADEMY_SOURCE}>{ACADEMY_SOURCE_LABEL}</option>
             {options.sponsors.filter((sp) => sp.active || sp.id === s.sponsor).map((sp) => (
               <option key={sp.id} value={sp.id}>
                 {sp.name}{sp.active ? "" : " (joaktiv)"}
@@ -562,7 +567,7 @@ export function ExpenseFormModal({
             ))}
           </select>
           <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
-            Zgjidhe edhe nëse sponsori nuk i ka transferuar ende paratë.
+            Nga Akademia = paguar nga të hyrat e anëtarësisë. Një sponsor zgjidhe edhe nëse nuk i ka transferuar ende paratë.
           </div>
         </div>
 

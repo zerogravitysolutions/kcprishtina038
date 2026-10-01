@@ -16,7 +16,7 @@ import {
 } from "../filters";
 import { ExpenseRow } from "./ExpenseRow";
 // Plain module, not a "use client" one — UNKNOWN_DATE_LABEL is a VALUE.
-import { UNKNOWN_DATE_LABEL } from "./labels";
+import { ACADEMY_SOURCE, ACADEMY_SOURCE_LABEL, UNKNOWN_DATE_LABEL } from "./labels";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -42,6 +42,7 @@ type ExpenseRowDb = {
   paid_by: ExpensePaidBy;
   paid_by_member_id: string | null;
   funding_sponsor_id: string | null;
+  funded_by_academy: boolean;
   status: ExpenseStatus;
   reimbursed: boolean;
   reimbursed_note: string | null;
@@ -52,7 +53,7 @@ type ExpenseRowDb = {
 
 const SELECT =
   "id, occurred_on, category_id, description, amount_eur, beneficiary_member_id, invoice_no, " +
-  "payment_method, paid_by, paid_by_member_id, funding_sponsor_id, status, reimbursed, " +
+  "payment_method, paid_by, paid_by_member_id, funding_sponsor_id, funded_by_academy, status, reimbursed, " +
   "reimbursed_note, notes, receipt_paths, created_at";
 
 type SearchParams = Promise<{
@@ -276,6 +277,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     paid_by: e.paid_by,
     paid_by_member_id: e.paid_by_member_id,
     funding_sponsor_id: e.funding_sponsor_id,
+    funded_by_academy: e.funded_by_academy === true,
     status: e.status,
     reimbursed: e.reimbursed,
     reimbursed_note: e.reimbursed_note,
@@ -294,7 +296,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     }
     if (statusFilter !== ALL && e.status !== statusFilter) return false;
     if (sponsorFilter === "none") {
-      if (e.funding_sponsor_id) return false;
+      if (e.funding_sponsor_id || e.funded_by_academy) return false;
+    } else if (sponsorFilter === ACADEMY_SOURCE) {
+      if (!e.funded_by_academy) return false;
     } else if (sponsorFilter !== ALL && e.funding_sponsor_id !== sponsorFilter) {
       return false;
     }
@@ -477,7 +481,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         years={years}
         categories={categoryRows.map((c) => ({ value: c.id, label: `${c.name_sq}${c.active ? "" : " (joaktive)"}` }))}
         members={memberRows.map((m) => ({ value: m.id, label: m.full_name }))}
-        sponsors={sponsorRows.map((s) => ({ value: s.id, label: s.name }))}
+        sponsors={[{ value: ACADEMY_SOURCE, label: ACADEMY_SOURCE_LABEL }, ...sponsorRows.map((s) => ({ value: s.id, label: s.name }))]}
         activeCount={activeCount}
         value={{
           y: year, cat: categoryFilter, b: beneficiaryFilter, st: statusFilter,

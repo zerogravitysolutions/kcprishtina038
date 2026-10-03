@@ -642,7 +642,6 @@ interface PublicTables {
           best_power_60m_w: number | null;
           tss: number | null;
           intensity_factor: number | null;
-          rpe: number | null;
           avg_cadence: number | null;
           strava_url: string | null;
           strava_activity_id: number | null;

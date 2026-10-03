@@ -71,7 +71,6 @@ export const RIDE_METRIC_FIELDS: MetricField[] = [
   // Effort — IF and TSS are auto-computed from NP + FTP + moving time (read-only).
   { key: "intensity_factor",label: "IF",           group: "effort", kind: "num", ui: "number", computed: true },
   { key: "tss",             label: "TSS",          group: "effort", kind: "num", ui: "number", computed: true },
-  { key: "rpe",             label: "RPE (1–10)",   group: "effort", kind: "int", ui: "number", min: 1, max: 10, placeholder: "6" },
   // Extra
   { key: "avg_cadence",     label: "Kadenca",      group: "extra",  kind: "int", ui: "number", unit: "rpm", min: 0, placeholder: "88" },
 ];

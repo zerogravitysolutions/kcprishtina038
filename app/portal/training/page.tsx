@@ -8,7 +8,6 @@ export const revalidate = 0;
 
 type EntryRow = EntryLike & {
   id: string;
-  rpe: number | null;
   ride: { id: string; ride_date: string; focus: string | null } | null;
 };
 
@@ -27,7 +26,7 @@ export default async function PortalTrainingPage() {
   const entries = athlete
     ? (((await supabase
         .from("ride_entries")
-        .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, rpe, ride:training_rides(id, ride_date, focus)")
+        .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, ride:training_rides(id, ride_date, focus)")
         .eq("athlete_id", athlete.id)).data) as unknown as EntryRow[] | null) ?? []
     : [];
 
@@ -65,7 +64,6 @@ export default async function PortalTrainingPage() {
                   e.avg_hr != null ? { l: "HR mes", v: String(e.avg_hr) } : null,
                   e.ftp_w != null ? { l: "FTP", v: `${e.ftp_w} W` } : null,
                   e.best_power_10m_w != null ? { l: "10 min", v: `${e.best_power_10m_w} W` } : null,
-                  e.rpe != null ? { l: "RPE", v: String(e.rpe) } : null,
                 ].filter((m): m is { l: string; v: string } => m != null);
                 return (
                   <div key={e.id} style={{ background: "var(--white, #fff)", border: "1px solid color-mix(in oklab, var(--ink, #0f1a2e) 8%, transparent)", borderRadius: 16, padding: "15px 17px", boxShadow: "0 1px 2px rgba(15,26,46,.04), 0 8px 24px rgba(15,26,46,.05)" }}>

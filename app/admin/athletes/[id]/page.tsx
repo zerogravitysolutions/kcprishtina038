@@ -21,7 +21,6 @@ type EntryRow = EntryLike & {
   id: string;
   np_w: number | null;
   tss: number | null;
-  rpe: number | null;
   ride: { id: string; ride_date: string; focus: string | null } | null;
 };
 
@@ -38,7 +37,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
     supabase.from("athlete_profiles").select("ftp_w, ftp_updated_at, weight_kg, max_hr, resting_hr, notes").eq("athlete_id", id).maybeSingle(),
     supabase
       .from("ride_entries")
-      .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, rpe, ride:training_rides(id, ride_date, focus)")
+      .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, ride:training_rides(id, ride_date, focus)")
       .eq("athlete_id", id),
     supabase.from("sections").select("slug, name_sq"),
     supabase.from("team_kpi_targets").select("effective_from, weekly_hours, weekly_elevation_m").order("effective_from"),
@@ -169,11 +168,11 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
       <div className="table-wrap">
         <table className="t">
           <thead>
-            <tr><th>Data</th><th>Stërvitja</th><th>KM</th><th>Koha</th><th>HR mes.</th><th>FTP</th><th>10 min</th><th>RPE</th></tr>
+            <tr><th>Data</th><th>Stërvitja</th><th>KM</th><th>Koha</th><th>HR mes.</th><th>FTP</th><th>10 min</th></tr>
           </thead>
           <tbody>
             {recent.length === 0 ? (
-              <tr><td colSpan={8} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Ende asnjë stërvitje e regjistruar.</td></tr>
+              <tr><td colSpan={7} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Ende asnjë stërvitje e regjistruar.</td></tr>
             ) : (
               recent.map((e) => (
                 <tr key={e.id}>
@@ -184,7 +183,6 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
                   <td className="mono">{e.avg_hr ?? "—"}</td>
                   <td className="mono">{e.ftp_w ?? "—"}</td>
                   <td className="mono">{e.best_power_10m_w ?? "—"}</td>
-                  <td className="mono">{e.rpe ?? "—"}</td>
                 </tr>
               ))
             )}

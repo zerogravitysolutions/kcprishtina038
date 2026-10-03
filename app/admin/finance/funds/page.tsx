@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { dbError } from "@/lib/errors";
 import {
-  FUND_KINDS, FUND_KIND_LABEL, UNKNOWN_SPONSOR_LABEL, formatEur,
+  FUND_KINDS, FUND_KIND_LABEL, formatEur,
   membershipIncome, sumEur,
 } from "@/lib/finance";
 import type { ClubFundKind } from "@/lib/supabase/types";
@@ -16,7 +16,7 @@ import {
   PAID_DUES_CAP, overviewHref, paidDuesInYear, readPaidDues, undatedPaidCount, undatedPaidNote,
   yearOfPayment,
 } from "../overview/data";
-import { NewFundButton, type FundView, type SponsorOption } from "./FundForm";
+import { NewFundButton, type FundView } from "./FundForm";
 import { FundRow } from "./FundRow";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,6 @@ const FINANCE_ROLES = ["admin", "staff"];
 // without three round-trips. The cap is surfaced in the UI when it bites — a
 // total that was quietly cut short is not a total.
 const FUND_CAP = 1000;
-const SPONSOR_CAP = 200;
 
 type FundRowData = {
   id: string;
@@ -40,12 +39,10 @@ type FundRowData = {
   occurred_on: string;
   amount_eur: number;
   kind: ClubFundKind;
-  sponsor_id: string | null;
   reference: string | null;
   notes: string | null;
 };
 
-type SponsorRow = { id: string; name: string; active: boolean };
 
 /** "3 hyrje". The noun does not inflect for number in this construction. */
 function fundCount(n: number): string {
@@ -89,15 +86,12 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
   const sp = await searchParams;
 
   const supabase = await createClient();
-  const [fundRes, sponsorRes, paid] = await Promise.all([
+  const [fundRes, paid] = await Promise.all([
     supabase
       .from("club_funds")
-      .select("id, title, occurred_on, amount_eur, kind, sponsor_id, reference, notes")
+      .select("id, title, occurred_on, amount_eur, kind, reference, notes")
       .order("occurred_on", { ascending: false })
       .limit(FUND_CAP),
-    // Read separately and joined by hand below: the same list feeds the form's
-    // sponsor picker, so one query serves both and no PostgREST embed is needed.
-    supabase.from("sponsors").select("id, name, active").order("name", { ascending: true }).limit(SPONSOR_CAP),
     // The academy's money. This page is called "Hyrjet e klubit" and kuotat are
     // the club's largest and most regular income, so leaving them out made the
     // title a lie. The invoice DETAIL stays on /admin/finance; what belongs
@@ -105,7 +99,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
     readPaidDues(supabase),
   ]);
 
-  if (fundRes.error || sponsorRes.error || paid.error) {
+  if (fundRes.error || paid.error) {
     return (
       <>
         <div className="page-head">
@@ -119,7 +113,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
               academy income renders €0.00 — "asgjë nuk ka hyrë", a lie told in
               green on the very screen that exists to add money up. */}
           <p style={{ margin: 0, fontSize: 14, color: "var(--err)" }}>
-            {dbError(fundRes.error ?? sponsorRes.error ?? paid.error, "Leximi i hyrjeve dështoi.")}
+            {dbError(fundRes.error ?? paid.error, "Leximi i hyrjeve dështoi.")}
           </p>
           <p style={{ marginBottom: 0, fontSize: 13, color: "var(--text-3)" }}>
             Nëse kjo përsëritet, ka gjasa që skema e financave të klubit nuk është aplikuar ende në bazën e të dhënave.
@@ -130,15 +124,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
   }
 
   const all = (fundRes.data as unknown as FundRowData[] | null) ?? [];
-  const sponsorRows = (sponsorRes.data as unknown as SponsorRow[] | null) ?? [];
-  const sponsors: SponsorOption[] = sponsorRows.map((s) => ({ id: s.id, name: s.name, active: s.active }));
-  const sponsorName = new Map(sponsorRows.map((s) => [s.id, s.name]));
-
-  const funds: FundView[] = all.map((f) => ({
-    ...f,
-    // A deleted sponsor must not hide the money that came from them.
-    sponsor_name: f.sponsor_id ? sponsorName.get(f.sponsor_id) ?? UNKNOWN_SPONSOR_LABEL : null,
-  }));
+  const funds: FundView[] = all;
 
   // ---- the window ----------------------------------------------------------
   // The year is the FRAME of this screen and it defaults to the newest year
@@ -222,7 +208,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
             {" · "}<Link href={invoicesHref}>Faturat e anëtarëve</Link>
           </div>
         </div>
-        <NewFundButton sponsors={sponsors} />
+        <NewFundButton />
       </div>
 
       {paid.truncated ? (
@@ -353,7 +339,7 @@ export default async function FundsPage({ searchParams }: { searchParams: Search
               </tr>
             ) : (
               rows.map((f) => (
-                <FundRow key={f.id} fund={f} sponsors={sponsors} canDelete={canDelete} />
+                <FundRow key={f.id} fund={f} canDelete={canDelete} />
               ))
             )}
           </tbody>

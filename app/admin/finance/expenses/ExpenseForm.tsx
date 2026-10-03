@@ -36,6 +36,7 @@ export type ExpenseView = {
   paid_by: ExpensePaidBy;
   paid_by_member_id: string | null;
   funding_sponsor_id: string | null;
+  funding_fund_id: string | null;
   funded_by_academy: boolean;
   status: ExpenseStatus;
   reimbursed: boolean;
@@ -48,11 +49,13 @@ export type ExpenseView = {
 export type CategoryOption = { id: string; name_sq: string; active: boolean };
 export type MemberOption = { id: string; full_name: string; active: boolean };
 export type SponsorOption = { id: string; name: string; active: boolean };
+export type FundOption = { id: string; title: string };
 
 export type ExpenseOptions = {
   categories: CategoryOption[];
   members: MemberOption[];
   sponsors: SponsorOption[];
+  funds: FundOption[];
 };
 
 // ------------------------------------------------------------------ helpers
@@ -80,7 +83,7 @@ type FormState = {
   invoiceNo: string;
   method: ExpensePaymentMethod | "";
   payer: string;
-  sponsor: string;
+  source: string;
   status: ExpenseStatus;
   reimbursed: boolean;
   reimbursedNote: string;
@@ -99,7 +102,7 @@ function blankState(categories: CategoryOption[]): FormState {
     invoiceNo: "",
     method: "cash",
     payer: CLUB,
-    sponsor: "",
+    source: "",
     status: "paid",
     reimbursed: false,
     reimbursedNote: "",
@@ -118,7 +121,8 @@ function stateOf(e: ExpenseView): FormState {
     invoiceNo: e.invoice_no ?? "",
     method: e.payment_method ?? "",
     payer: e.paid_by === "member" && e.paid_by_member_id ? e.paid_by_member_id : CLUB,
-    sponsor: e.funded_by_academy ? ACADEMY_SOURCE : e.funding_sponsor_id ?? "",
+    source: e.funded_by_academy ? ACADEMY_SOURCE
+      : e.funding_fund_id ?? (e.funding_sponsor_id ? `legacy:${e.funding_sponsor_id}` : ""),
     status: e.status,
     reimbursed: e.reimbursed,
     reimbursedNote: e.reimbursed_note ?? "",
@@ -139,8 +143,9 @@ function toInput(s: FormState): ExpenseInput {
     payment_method: s.method,
     paid_by: payerIsMember ? "member" : "club",
     paid_by_member_id: payerIsMember ? s.payer : null,
-    funding_sponsor_id: s.sponsor && s.sponsor !== ACADEMY_SOURCE ? s.sponsor : null,
-    funded_by_academy: s.sponsor === ACADEMY_SOURCE,
+    funding_sponsor_id: s.source.startsWith("legacy:") ? s.source.slice(7) : null,
+    funding_fund_id: s.source && s.source !== ACADEMY_SOURCE && !s.source.startsWith("legacy:") ? s.source : null,
+    funded_by_academy: s.source === ACADEMY_SOURCE,
     status: s.status,
     reimbursed: payerIsMember ? s.reimbursed : false,
     reimbursed_note: s.reimbursedNote,
@@ -556,18 +561,17 @@ export function ExpenseFormModal({
         </div>
 
         <div className="field" style={{ marginTop: 14 }}>
-          <label htmlFor="ex-sponsor">Burimi</label>
-          <select id="ex-sponsor" value={s.sponsor} onChange={(e) => set("sponsor", e.target.value)}>
+          <label htmlFor="ex-source">Burimi</label>
+          <select id="ex-source" value={s.source} onChange={(e) => set("source", e.target.value)}>
             <option value="">Pa burim të caktuar</option>
             <option value={ACADEMY_SOURCE}>{ACADEMY_SOURCE_LABEL}</option>
-            {options.sponsors.filter((sp) => sp.active || sp.id === s.sponsor).map((sp) => (
-              <option key={sp.id} value={sp.id}>
-                {sp.name}{sp.active ? "" : " (joaktiv)"}
-              </option>
-            ))}
+            {options.funds.map((fund) => <option key={fund.id} value={fund.id}>{fund.title}</option>)}
+            {s.source.startsWith("legacy:") ? <option value={s.source}>
+              {options.sponsors.find((sp) => sp.id === s.source.slice(7))?.name ?? "Sponsor i panjohur"} (pa hyrje)
+            </option> : null}
           </select>
           <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
-            Nga Akademia = paguar nga të hyrat e anëtarësisë. Një sponsor zgjidhe edhe nëse nuk i ka transferuar ende paratë.
+            Nga Akademia = paguar nga të hyrat e anëtarësisë. Burimet e tjera regjistrohen te “Hyrjet e klubit”.
           </div>
         </div>
 

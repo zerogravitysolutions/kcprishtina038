@@ -121,6 +121,7 @@ export function ExpenseDetail({
   const sponsorName = sourceLabel(
     expense,
     (id) => options.sponsors.find((s) => s.id === id)?.name ?? UNKNOWN_SPONSOR_LABEL,
+    (id) => options.funds.find((f) => f.id === id)?.title ?? "Hyrje e panjohur",
   );
 
   const owed = isOwedToMember(expense);

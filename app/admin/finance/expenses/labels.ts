@@ -30,9 +30,11 @@ export const ACADEMY_SOURCE_LABEL = "Nga Akademia";
 
 /** The source line for one expense, or null when it has none. */
 export function sourceLabel(
-  e: { funded_by_academy?: boolean | null; funding_sponsor_id: string | null },
+  e: { funded_by_academy?: boolean | null; funding_sponsor_id: string | null; funding_fund_id?: string | null },
   sponsorName: (id: string) => string,
+  fundTitle: (id: string) => string,
 ): string | null {
   if (e.funded_by_academy) return ACADEMY_SOURCE_LABEL;
-  return e.funding_sponsor_id ? sponsorName(e.funding_sponsor_id) : null;
+  if (e.funding_fund_id) return fundTitle(e.funding_fund_id);
+  return e.funding_sponsor_id ? `${sponsorName(e.funding_sponsor_id)} (pa hyrje)` : null;
 }

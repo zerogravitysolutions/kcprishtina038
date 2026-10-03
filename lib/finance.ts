@@ -249,7 +249,7 @@ export function periodLabel(period: string): string {
 export function formatDate(value: string | null | undefined): string {
   const d = parseDateOnly(value);
   if (!d) return "—";
-  return d.toLocaleDateString("sq");
+  return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`;
 }
 
 /**
@@ -582,6 +582,7 @@ export function outstandingTotal(dues: DueLike[]): number {
 
 /** The subset of a club_funds row the helpers here need. */
 export type FundLike = {
+  id?: string;
   amount_eur?: number | string | null;
   sponsor_id?: string | null;
 };
@@ -595,6 +596,7 @@ export type ExpenseLike = {
   paid_by_member_id?: string | null;
   reimbursed?: boolean | null;
   funding_sponsor_id?: string | null;
+  funding_fund_id?: string | null;
 };
 
 /**
@@ -661,6 +663,8 @@ export type SponsorPosition = {
   fundCount: number;
   expenseCount: number;
 };
+
+export type FundSourcePosition = Omit<SponsorPosition, "sponsorId"> & { sourceKey: string };
 
 // ------------------------------------------------------------------ labels
 
@@ -1002,4 +1006,30 @@ export function sponsorPositions(
         b.received - a.received ||
         (a.sponsorId < b.sponsorId ? -1 : 1),
     );
+}
+
+/** One budget per fund row, with unmatched historical sponsor costs separate. */
+export function fundSourcePositions(funds: FundLike[], expenses: ExpenseLike[]): FundSourcePosition[] {
+  const keys = new Set<string>();
+  for (const fund of funds) if (fund.id) keys.add(`fund:${fund.id}`);
+  for (const expense of expenses) {
+    if (expense.funding_fund_id) keys.add(`fund:${expense.funding_fund_id}`);
+    else if (expense.funding_sponsor_id) keys.add(`legacy:${expense.funding_sponsor_id}`);
+  }
+  return [...keys].map((sourceKey) => {
+    const fundId = sourceKey.startsWith("fund:") ? sourceKey.slice(5) : null;
+    const sponsorId = sourceKey.startsWith("legacy:") ? sourceKey.slice(7) : null;
+    const mine = fundId ? funds.filter((f) => f.id === fundId) : [];
+    const charged = expenses.filter((e) => fundId ? e.funding_fund_id === fundId
+      : !e.funding_fund_id && e.funding_sponsor_id === sponsorId);
+    const paid = sumAmounts(charged.filter((e) => e.status === "paid"));
+    const unpaid = sumAmounts(charged.filter((e) => e.status === "unpaid"));
+    const received = sumEur(mine);
+    const spent = paid.total + unpaid.total;
+    return {
+      sourceKey, received, spent, spentPaid: paid.total, spentUnpaid: unpaid.total,
+      remaining: received - spent, missingAmount: paid.missing + unpaid.missing,
+      fundCount: mine.length, expenseCount: charged.length,
+    };
+  }).sort((a, b) => b.spent - a.spent || b.received - a.received || a.sourceKey.localeCompare(b.sourceKey));
 }

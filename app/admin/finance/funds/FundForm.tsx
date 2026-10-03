@@ -16,14 +16,9 @@ export type FundView = {
   occurred_on: string;
   amount_eur: number;
   kind: ClubFundKind;
-  sponsor_id: string | null;
   reference: string | null;
   notes: string | null;
-  /** Resolved on the server; null when the fund names no sponsor. */
-  sponsor_name: string | null;
 };
-
-export type SponsorOption = { id: string; name: string; active: boolean };
 
 function todayIso(): string {
   const now = new Date();
@@ -37,44 +32,34 @@ function todayIso(): string {
  * so a donation is four taps and a sponsorship is five.
  */
 export function FundDialog({
-  open, onClose, fund, sponsors,
+  open, onClose, fund,
 }: {
   open: boolean;
   onClose: () => void;
   /** Absent = create. */
   fund?: FundView;
-  sponsors: SponsorOption[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
-  // A club with no sponsors on file cannot save kind='sponsor' (the CHECK needs
-  // a sponsor_id), so the default falls back to a kind that is always valid.
-  const defaultKind: ClubFundKind = sponsors.length > 0 ? "sponsor" : "other";
-
   const [title, setTitle] = useState(fund?.title ?? "");
   const [date, setDate] = useState(fund?.occurred_on ?? todayIso());
   const [amount, setAmount] = useState(fund ? String(fund.amount_eur) : "");
-  const [kind, setKind] = useState<ClubFundKind>(fund?.kind ?? defaultKind);
-  const [sponsorId, setSponsorId] = useState(fund?.sponsor_id ?? "");
+  const [kind, setKind] = useState<ClubFundKind>(fund?.kind ?? "sponsor");
   const [reference, setReference] = useState(fund?.reference ?? "");
   const [notes, setNotes] = useState(fund?.notes ?? "");
   const [err, setErr] = useState<string | null>(null);
 
   const isEdit = !!fund;
   const id = fund?.id ?? "new";
-  // Sponsors that were retired stay selectable on the row that already names
-  // them, so editing an old fund cannot silently drop its sponsor.
-  const sponsorChoices = sponsors.filter((s) => s.active || s.id === fund?.sponsor_id);
-  const needsSponsor = kind === "sponsor";
   const ready =
-    title.trim().length > 0 && date.length > 0 && amount.trim().length > 0 && (!needsSponsor || !!sponsorId);
+    title.trim().length > 0 && date.length > 0 && amount.trim().length > 0;
 
   function save() {
     setErr(null);
     const input: FundInput = {
       title, occurred_on: date, amount_eur: amount, kind,
-      sponsor_id: sponsorId, reference, notes,
+      reference, notes,
     };
     start(async () => {
       try {
@@ -112,12 +97,12 @@ export function FundDialog({
           id={`t-${id}`}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="p.sh. Sponsorizim Novus 2026"
+          placeholder="p.sh. BikePlus 2026"
           autoComplete="off"
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
         <div className="field">
           <label htmlFor={`d-${id}`}>Data e pranimit</label>
           <input
@@ -141,28 +126,13 @@ export function FundDialog({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div className="field">
-          <label htmlFor={`k-${id}`}>Lloji</label>
-          <select id={`k-${id}`} value={kind} onChange={(e) => setKind(e.target.value as ClubFundKind)}>
-            {FUND_KINDS.map((k) => <option key={k} value={k}>{FUND_KIND_LABEL[k]}</option>)}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor={`s-${id}`}>Sponsori{needsSponsor ? "" : " (opsional)"}</label>
-          <select id={`s-${id}`} value={sponsorId} onChange={(e) => setSponsorId(e.target.value)}>
-            <option value="">— Pa sponsor —</option>
-            {sponsorChoices.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          {needsSponsor && sponsorChoices.length === 0 ? (
-            <div className="mono" style={{ fontSize: 10.5, color: "var(--err)", lineHeight: 1.5 }}>
-              Nuk ka asnjë sponsor të regjistruar. Shtoje së pari te Sponsorët, ose zgjidh një lloj tjetër.
-            </div>
-          ) : needsSponsor ? (
-            <div className="mono" style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-              Një sponsorizim duhet ta thotë sponsorin — pa të nuk llogaritet te buxheti i tij.
-            </div>
-          ) : null}
+      <div className="field">
+        <label htmlFor={`k-${id}`}>Lloji</label>
+        <select id={`k-${id}`} value={kind} onChange={(e) => setKind(e.target.value as ClubFundKind)}>
+          {FUND_KINDS.map((k) => <option key={k} value={k}>{FUND_KIND_LABEL[k]}</option>)}
+        </select>
+        <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
+          Titulli i hyrjes bëhet burimi që zgjidhet te shpenzimet. Shkruaj edhe vitin, p.sh. BikePlus 2026.
         </div>
       </div>
 
@@ -194,7 +164,7 @@ export function FundDialog({
 }
 
 /** The page-head button. Kept here so the dialog state stays client-side. */
-export function NewFundButton({ sponsors }: { sponsors: SponsorOption[] }) {
+export function NewFundButton() {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -202,7 +172,7 @@ export function NewFundButton({ sponsors }: { sponsors: SponsorOption[] }) {
         Shto hyrje
       </button>
       {/* Remounted on each open so a cancelled draft never reappears. */}
-      {open ? <FundDialog open onClose={() => setOpen(false)} sponsors={sponsors} /> : null}
+      {open ? <FundDialog open onClose={() => setOpen(false)} /> : null}
     </>
   );
 }

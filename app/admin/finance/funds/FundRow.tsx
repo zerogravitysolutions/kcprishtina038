@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { actionError } from "@/lib/errors";
 import { FUND_KIND_LABEL, formatDate, formatEur } from "@/lib/finance";
-import { FundDialog, type FundView, type SponsorOption } from "./FundForm";
+import { FundDialog, type FundView } from "./FundForm";
 import { deleteFund } from "./actions";
 
 export function FundRow({
-  fund, sponsors, canDelete,
+  fund, canDelete,
 }: {
   fund: FundView;
-  sponsors: SponsorOption[];
   /** Deleting money history is admin-only; staff correct rows by editing them. */
   canDelete: boolean;
 }) {
@@ -35,14 +34,7 @@ export function FundRow({
             ) : null}
           </span>
         </td>
-        <td data-lab="Lloji">
-          <span>
-            {FUND_KIND_LABEL[fund.kind]}
-            <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
-              {fund.sponsor_name ?? "Pa sponsor"}
-            </small>
-          </span>
-        </td>
+        <td data-lab="Lloji">{FUND_KIND_LABEL[fund.kind]}</td>
         <td className="mono" data-lab="Pranuar më">
           <span>
             {formatDate(fund.occurred_on)}
@@ -76,7 +68,7 @@ export function FundRow({
       </tr>
 
       {editOpen ? (
-        <FundDialog open onClose={() => setEditOpen(false)} fund={fund} sponsors={sponsors} />
+        <FundDialog open onClose={() => setEditOpen(false)} fund={fund} />
       ) : null}
 
       <ConfirmModal

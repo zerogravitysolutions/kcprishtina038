@@ -42,6 +42,7 @@ type ExpenseRowDb = {
   paid_by: ExpensePaidBy;
   paid_by_member_id: string | null;
   funding_sponsor_id: string | null;
+  funding_fund_id: string | null;
   funded_by_academy: boolean;
   status: ExpenseStatus;
   reimbursed: boolean;
@@ -53,7 +54,7 @@ type ExpenseRowDb = {
 
 const SELECT =
   "id, occurred_on, category_id, description, amount_eur, beneficiary_member_id, invoice_no, " +
-  "payment_method, paid_by, paid_by_member_id, funding_sponsor_id, funded_by_academy, status, reimbursed, " +
+  "payment_method, paid_by, paid_by_member_id, funding_sponsor_id, funding_fund_id, funded_by_academy, status, reimbursed, " +
   "reimbursed_note, notes, receipt_paths, created_at";
 
 type SearchParams = Promise<{
@@ -181,7 +182,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   }
 
   const [
-    expensesRes, categoriesRes, membersRes, sponsorsRes, owedRes, oldestRes, newestRes,
+    expensesRes, categoriesRes, membersRes, sponsorsRes, fundsRes, owedRes, oldestRes, newestRes,
   ] = await Promise.all([
     expensesQuery,
     supabase
@@ -194,6 +195,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       .order("full_name", { ascending: true })
       .limit(1000),
     supabase.from("sponsors").select("id, name, active").order("name", { ascending: true }).limit(200),
+    supabase.from("club_funds").select("id, title").order("occurred_on", { ascending: false }).limit(1000),
     // The club's debt to the people who fronted costs is NOT a per-year figure
     // — a bill Albioni paid in 2024 is still owed in 2026 — so it is read
     // across all years, straight off club_expenses_owed_idx.
@@ -220,7 +222,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   // "the club owes nobody", a lie told in green. A liability that cannot be
   // read is not a liability of zero.
   const loadError =
-    expensesRes.error ?? categoriesRes.error ?? membersRes.error ?? sponsorsRes.error ?? owedRes.error;
+    expensesRes.error ?? categoriesRes.error ?? membersRes.error ?? sponsorsRes.error ?? fundsRes.error ?? owedRes.error;
   if (loadError) {
     return (
       <>
@@ -249,6 +251,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     { id: string; full_name: string; status: "active" | "past" }[] | null) ?? [];
   const sponsorRows = (sponsorsRes.data as unknown as
     { id: string; name: string; active: boolean }[] | null) ?? [];
+  const fundRows = (fundsRes.data as unknown as { id: string; title: string }[] | null) ?? [];
   const owedRows = (owedRes.data as unknown as
     { id: string; occurred_on: string; description: string; amount_eur: number | string | null;
       status: ExpenseStatus; paid_by: ExpensePaidBy; paid_by_member_id: string | null;
@@ -258,6 +261,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     categories: categoryRows.map((c) => ({ id: c.id, name_sq: c.name_sq, active: c.active })),
     members: memberRows.map((m) => ({ id: m.id, full_name: m.full_name, active: m.status === "active" })),
     sponsors: sponsorRows.map((s) => ({ id: s.id, name: s.name, active: s.active })),
+    funds: fundRows,
   };
   const categoryName = new Map(categoryRows.map((c) => [c.id, c.name_sq]));
   const memberName = new Map(memberRows.map((m) => [m.id, m.full_name]));
@@ -277,6 +281,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     paid_by: e.paid_by,
     paid_by_member_id: e.paid_by_member_id,
     funding_sponsor_id: e.funding_sponsor_id,
+    funding_fund_id: e.funding_fund_id,
     funded_by_academy: e.funded_by_academy === true,
     status: e.status,
     reimbursed: e.reimbursed,
@@ -296,10 +301,12 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     }
     if (statusFilter !== ALL && e.status !== statusFilter) return false;
     if (sponsorFilter === "none") {
-      if (e.funding_sponsor_id || e.funded_by_academy) return false;
+      if (e.funding_sponsor_id || e.funding_fund_id || e.funded_by_academy) return false;
     } else if (sponsorFilter === ACADEMY_SOURCE) {
       if (!e.funded_by_academy) return false;
-    } else if (sponsorFilter !== ALL && e.funding_sponsor_id !== sponsorFilter) {
+    } else if (sponsorFilter.startsWith("legacy:")) {
+      if (e.funding_fund_id || e.funding_sponsor_id !== sponsorFilter.slice(7)) return false;
+    } else if (sponsorFilter !== ALL && e.funding_fund_id !== sponsorFilter) {
       return false;
     }
     if (payerFilter === "club") {
@@ -481,7 +488,12 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         years={years}
         categories={categoryRows.map((c) => ({ value: c.id, label: `${c.name_sq}${c.active ? "" : " (joaktive)"}` }))}
         members={memberRows.map((m) => ({ value: m.id, label: m.full_name }))}
-        sponsors={[{ value: ACADEMY_SOURCE, label: ACADEMY_SOURCE_LABEL }, ...sponsorRows.map((s) => ({ value: s.id, label: s.name }))]}
+        sponsors={[
+          { value: ACADEMY_SOURCE, label: ACADEMY_SOURCE_LABEL },
+          ...fundRows.map((f) => ({ value: f.id, label: f.title })),
+          ...sponsorRows.filter((s) => expenses.some((e) => e.funding_sponsor_id === s.id && !e.funding_fund_id))
+            .map((s) => ({ value: `legacy:${s.id}`, label: `${s.name} (pa hyrje)` })),
+        ]}
         activeCount={activeCount}
         value={{
           y: year, cat: categoryFilter, b: beneficiaryFilter, st: statusFilter,

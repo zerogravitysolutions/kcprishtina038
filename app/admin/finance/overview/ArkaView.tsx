@@ -5,7 +5,7 @@ import { RowBars, type Point } from "../../training/charts";
 import {
   UNKNOWN_CATEGORY_LABEL, UNKNOWN_SPONSOR_LABEL, amountTotalLabel, amountTotalValue, clubBalance,
   formatEur, isOwedToMember, membershipIncome, outstandingTotal, owedToMembers, owedToMembersTotal,
-  sponsorPositions, sumAmounts, type ExpenseLike, type FundLike,
+  fundSourcePositions, sumAmounts, type ExpenseLike, type FundLike,
 } from "@/lib/finance";
 import type {
   ClubFundKind, ExpensePaidBy, ExpenseStatus,
@@ -33,7 +33,7 @@ type FundRow = FundLike & {
 type ExpenseRow = ExpenseLike & {
   id: string; occurred_on: string; category_id: string; description: string;
   amount_eur: number | null; status: ExpenseStatus; paid_by: ExpensePaidBy;
-  paid_by_member_id: string | null; funding_sponsor_id: string | null; reimbursed: boolean;
+  paid_by_member_id: string | null; funding_sponsor_id: string | null; funding_fund_id: string | null; reimbursed: boolean;
 };
 
 type CategoryRow = { id: string; name_sq: string; display_order: number };
@@ -64,7 +64,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
       .from("club_expenses")
       .select(
         "id, occurred_on, category_id, description, amount_eur, status, paid_by, " +
-        "paid_by_member_id, funding_sponsor_id, reimbursed",
+        "paid_by_member_id, funding_sponsor_id, funding_fund_id, reimbursed",
       )
       .order("occurred_on", { ascending: false })
       .limit(EXPENSE_CAP),
@@ -89,6 +89,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
 
   const categoryName = new Map(categories.map((c) => [c.id, c.name_sq]));
   const sponsorName = new Map(sponsorRows.map((s) => [s.id, s.name]));
+  const fundTitle = new Map(funds.map((f) => [f.id, f.title]));
 
   // ---- the window ----------------------------------------------------------
   // The default is the NEWEST YEAR THE CLUB HAS A MOVEMENT IN — a payment, an
@@ -148,7 +149,11 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const owedDebts = owedToMembers(owed.rows);
   const owedTotal = owedToMembersTotal(owed.rows);
 
-  const sponsorStand = sponsorPositions(windowFunds, windowExpenses);
+  // A project budget can receive money in 2025 and cover costs in 2026.
+  const sourceStand = fundSourcePositions(funds, expenses);
+  const sourceName = (key: string) => key.startsWith("fund:")
+    ? fundTitle.get(key.slice(5)) ?? "Hyrje e panjohur"
+    : `${sponsorName.get(key.slice(7)) ?? UNKNOWN_SPONSOR_LABEL} (pa hyrje)`;
 
   // ---- breakdowns ----------------------------------------------------------
   // By year, over EVERYTHING — this is the section that puts the selected year
@@ -435,22 +440,22 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
         />
       </div>
 
-      {/* ------------------------------------------------- sponsor positions */}
+      {/* ------------------------------------------------- fund positions */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-head">
-          <h3>Sipas sponsorit</h3>
-          <span className="kicker">{yearLabel}</span>
+          <h3>Sipas burimit</h3>
+          <span className="kicker">të gjitha vitet</span>
         </div>
-        {sponsorStand.length === 0 ? (
+        {sourceStand.length === 0 ? (
           <p style={{ margin: 0, fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.7 }}>
-            Asnjë sponsor nuk ka as para të regjistruara, as shpenzime të ngarkuara për këtë periudhë.
+            Nuk ka ende hyrje ose shpenzime me burim të caktuar.
           </p>
         ) : (
           <>
             <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
-              “Shpenzuar” numëron çdo kosto të ngarkuar në buxhetin e sponsorit, të paguar apo jo — një shpenzim i
-              ngarkuar është i zënë sido që të jetë. Kur mbetja del negative, klubi ka shpenzuar më shumë sesa ka
-              marrë nga ky sponsor. Kjo tabelë ndjek filtrin e vitit: {yearLabel}.
+              Çdo hyrje ka buxhetin e vet. “Shpenzuar” përfshin kostot e paguara dhe të papaguara që përdorin atë
+              hyrje si burim. Kjo tabelë përfshin të gjitha vitet, sepse një hyrje e vitit 2025 mund të mbulojë
+              shpenzime të vitit 2026.
             </p>
             <div className="table-wrap">
               <table className="t">
@@ -459,18 +464,18 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
                       styled apart from its column drifts the moment a figure
                       grows a digit or a cell wraps. */}
                   <tr>
-                    <th>Sponsori</th>
+                    <th>Burimi</th>
                     <th className="num">Pranuar</th>
                     <th className="num">Shpenzuar</th>
                     <th>Gjendja</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sponsorStand.map((s) => (
-                    <tr key={s.sponsorId}>
+                  {sourceStand.map((s) => (
+                    <tr key={s.sourceKey}>
                       <td>
                         <span>
-                          {sponsorName.get(s.sponsorId) ?? UNKNOWN_SPONSOR_LABEL}
+                          {sourceName(s.sourceKey)}
                           <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
                             {fundCount(s.fundCount)} · {expenseCount(s.expenseCount)}
                           </small>

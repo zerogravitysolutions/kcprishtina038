@@ -83,8 +83,6 @@ export type FundInput = {
   /** Raw text from the numeric field; "2500,50" is normalised, not truncated. */
   amount_eur: string;
   kind: string;
-  /** "" = no sponsor. Required by CHECK when kind is 'sponsor'. */
-  sponsor_id: string;
   reference: string;
   notes: string;
 };
@@ -94,7 +92,6 @@ type FundRowValues = {
   occurred_on: string;
   amount_eur: number;
   kind: ClubFundKind;
-  sponsor_id: string | null;
   reference: string | null;
   notes: string | null;
 };
@@ -105,7 +102,7 @@ type FundRowValues = {
  */
 function normalize(input: FundInput): { ok: true; row: FundRowValues } | { ok: false; error: string } {
   const title = (input.title ?? "").trim();
-  if (!title) return { ok: false, error: "Shkruaj një titull për hyrjen, p.sh. “Sponsorizim Novus 2026”." };
+  if (!title) return { ok: false, error: "Shkruaj një titull për hyrjen, p.sh. “BikePlus 2026”." };
   if (title.length > 200) return { ok: false, error: "Titulli është shumë i gjatë. Shkurtoje." };
 
   const date = checkDate(input.occurred_on, "Data e pranimit");
@@ -124,14 +121,6 @@ function normalize(input: FundInput): { ok: true; row: FundRowValues } | { ok: f
   }
   const kind = input.kind as ClubFundKind;
 
-  const sponsorId = (input.sponsor_id ?? "").trim() || null;
-  // club_funds_sponsor_required_ck: a sponsorship without a sponsor could never
-  // be counted in that sponsor's position, so the report would under-state what
-  // the club actually received from them.
-  if (kind === "sponsor" && !sponsorId) {
-    return { ok: false, error: "Një sponsorizim duhet të thotë se cili sponsor është. Zgjidh sponsorin ose ndrysho llojin." };
-  }
-
   return {
     ok: true,
     row: {
@@ -139,7 +128,6 @@ function normalize(input: FundInput): { ok: true; row: FundRowValues } | { ok: f
       occurred_on: date.value,
       amount_eur: amount.value,
       kind,
-      sponsor_id: sponsorId,
       reference: (input.reference ?? "").trim() || null,
       notes: (input.notes ?? "").trim() || null,
     },
@@ -151,6 +139,7 @@ function normalize(input: FundInput): { ok: true; row: FundRowValues } | { ok: f
 function revalidateFunds() {
   revalidatePath("/admin/finance/funds");
   revalidatePath("/admin/finance/overview");
+  revalidatePath("/admin/finance/expenses");
   revalidatePath("/admin/dashboard");
 }
 
@@ -204,6 +193,7 @@ export async function deleteFund(fundId: string): Promise<FundResult> {
 
     const supabase = await createClient();
     const { error } = await supabase.from("club_funds").delete().eq("id", fundId);
+    if (error?.code === "23503") return { ok: false, error: "Kjo hyrje është burim për shpenzime. Ndrysho burimin e tyre para se ta fshish." };
     if (error) return { ok: false, error: dbError(error, "Fshirja e hyrjes dështoi. Provo sërish.") };
 
     revalidateFunds();

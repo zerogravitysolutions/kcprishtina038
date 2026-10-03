@@ -66,6 +66,7 @@ export type ExpenseInput = {
   paid_by: ExpensePaidBy;
   paid_by_member_id: string | null;
   funding_sponsor_id: string | null;
+  funding_fund_id: string | null;
   funded_by_academy?: boolean;
   status: ExpenseStatus;
   reimbursed: boolean;
@@ -87,6 +88,7 @@ type ExpensePayload = {
   paid_by: ExpensePaidBy;
   paid_by_member_id: string | null;
   funding_sponsor_id: string | null;
+  funding_fund_id: string | null;
   funded_by_academy?: boolean;
   status: ExpenseStatus;
   reimbursed: boolean;
@@ -230,9 +232,10 @@ function coerceExpense(
       payment_method: paymentMethod,
       paid_by: paidBy,
       paid_by_member_id: payerId,
-      // One source at most (club_expenses_one_source): the academy wins over
-      // a stale sponsor id rather than failing the save on the constraint.
-      funding_sponsor_id: input.funded_by_academy === true ? null : idOrNull(input.funding_sponsor_id),
+      // A received fund row is the source; keep the old sponsor FK only for
+      // historical expenses that could not be assigned automatically.
+      funding_sponsor_id: input.funded_by_academy === true || input.funding_fund_id ? null : idOrNull(input.funding_sponsor_id),
+      funding_fund_id: input.funded_by_academy === true ? null : idOrNull(input.funding_fund_id),
       funded_by_academy: input.funded_by_academy === true,
       status,
       reimbursed,
@@ -382,6 +385,17 @@ async function assertCategoryUsable(
   return null;
 }
 
+async function assertFundUsable(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  fundId: string | null,
+): Promise<string | null> {
+  if (!fundId) return null;
+  const { data, error } = await supabase.from("club_funds")
+    .select("id").eq("id", fundId).maybeSingle<{ id: string }>();
+  if (error) return dbError(error, "Leximi i hyrjeve dështoi.");
+  return data ? null : "Kjo hyrje nuk ekziston më. Zgjidh një burim tjetër.";
+}
+
 // ------------------------------------------------------------------ create
 
 export async function createExpense(input: ExpenseInput): Promise<ExpenseCreated> {
@@ -393,6 +407,8 @@ export async function createExpense(input: ExpenseInput): Promise<ExpenseCreated
     const supabase = await createClient();
     const catErr = await assertCategoryUsable(supabase, coerced.value.category_id);
     if (catErr) return { ok: false, error: catErr };
+    const fundErr = await assertFundUsable(supabase, coerced.value.funding_fund_id);
+    if (fundErr) return { ok: false, error: fundErr };
 
     const { data, error } = await supabase
       .from("club_expenses")
@@ -435,6 +451,8 @@ export async function updateExpense(id: string, input: ExpenseInput): Promise<Ex
       const catErr = await assertCategoryUsable(supabase, coerced.value.category_id);
       if (catErr) return { ok: false, error: catErr };
     }
+    const fundErr = await assertFundUsable(supabase, coerced.value.funding_fund_id);
+    if (fundErr) return { ok: false, error: fundErr };
 
     const { error } = await supabase
       .from("club_expenses")

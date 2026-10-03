@@ -383,7 +383,7 @@ interface PublicTables {
           occurred_on: string;
           amount_eur: number;
           kind: ClubFundKind;
-          // Required by CHECK when kind = 'sponsor'.
+          // Historical catalogue link. New funds are named by their title.
           sponsor_id: string | null;
           reference: string | null;
           notes: string | null;
@@ -415,6 +415,8 @@ interface PublicTables {
           // Whose budget the cost draws on — independent of whether that sponsor
           // has transferred anything yet (see club_funds.status).
           funding_sponsor_id: string | null;
+          // The received club_funds row that pays for this cost.
+          funding_fund_id: string | null;
           // Source = academy income; excludes funding_sponsor_id (migration 20261001000001).
           funded_by_academy: boolean;
           status: ExpenseStatus;

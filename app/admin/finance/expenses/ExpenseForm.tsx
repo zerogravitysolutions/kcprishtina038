@@ -181,10 +181,16 @@ function memberName(members: MemberOption[], id: string | null): string | null {
   return members.find((m) => m.id === id)?.full_name ?? null;
 }
 
-/** Active people first, past members below, so the common case is one tap. */
-function MemberOptions({ members }: { members: MemberOption[] }) {
+/** Keep a past payer selectable only on an expense that already names them. */
+function MemberOptions({
+  members, includePast = false, selectedId,
+}: {
+  members: MemberOption[];
+  includePast?: boolean;
+  selectedId?: string;
+}) {
   const active = members.filter((m) => m.active);
-  const past = members.filter((m) => !m.active);
+  const past = members.filter((m) => !m.active && (includePast || m.id === selectedId));
   return (
     <>
       {active.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
@@ -411,7 +417,7 @@ export function ExpenseFormModal({
         <label htmlFor="ex-benef">Për kë (ciklisti)</label>
         <select id="ex-benef" value={s.beneficiary} onChange={(e) => set("beneficiary", e.target.value)}>
           <option value="">Klubi</option>
-          <MemberOptions members={options.members} />
+          <MemberOptions members={options.members} includePast />
         </select>
         <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
           Lëre te “Klubi” nëse shpenzimi nuk është për një person të caktuar.
@@ -437,7 +443,7 @@ export function ExpenseFormModal({
           }}
         >
           <option value={CLUB}>Klubi</option>
-          <MemberOptions members={options.members} />
+          <MemberOptions members={options.members} selectedId={s.payer} />
         </select>
         {s.status === "unpaid" && payerIsMember ? (
           <div className="mm-msg err" style={{ marginTop: 4 }}>

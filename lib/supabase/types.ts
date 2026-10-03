@@ -670,6 +670,33 @@ interface PublicTables {
         } & Partial<PublicTables["athlete_profiles"]["Row"]>;
         Update: Partial<PublicTables["athlete_profiles"]["Row"]>;
       };
+      // The whole team's weekly target, "from this date on" (migration
+      // 20261002000001). Actuals are derived from ride_entries, never stored.
+      team_kpi_targets: {
+        Row: {
+          id: string;
+          effective_from: string;
+          weekly_hours: number | string | null;
+          weekly_elevation_m: number | null;
+          created_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: { effective_from: string } & Partial<PublicTables["team_kpi_targets"]["Row"]>;
+        Update: Partial<PublicTables["team_kpi_targets"]["Row"]>;
+      };
+      // One optional 20-minute power target (W) per athlete per month; period = first of month.
+      athlete_ftp_targets: {
+        Row: {
+          id: string;
+          athlete_id: string;
+          period: string;
+          target_w: number;
+          created_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: { athlete_id: string; period: string; target_w: number } & Partial<PublicTables["athlete_ftp_targets"]["Row"]>;
+        Update: Partial<PublicTables["athlete_ftp_targets"]["Row"]>;
+      };
 }
 
 /**

@@ -8,7 +8,7 @@ import { MobileNav } from "./MobileNav";
 import { AdminSideNav, type AdminNavGroup, type AdminIcon } from "./AdminNav";
 
 /**
- * The admin menu: 4 headings, 16 rows.
+ * The admin menu: 4 headings, 17 rows.
  *
  * A heading is spent only where it separates one block of rows from another.
  * The two singletons that book-end the list — Paneli at the top, Cilësimet at
@@ -78,6 +78,8 @@ const NAV_GROUPS: Array<{ group: string; items: Array<{ id: string; label: strin
       // The athlete profile is reachable only from the progress table, so
       // Progresi owns /admin/athletes for the active state.
       { id: "progress", label: "Progresi", href: "/admin/training/progress", icon: "chart", allow: ["admin", "editor", "staff", "coach"], owns: ["/admin/athletes"] },
+      // Team targets (hours, climbing, 20-min power) and every cyclist against them.
+      { id: "kpi", label: "KPI-të", href: "/admin/training/kpi", icon: "bike", allow: ["admin", "editor", "staff", "coach"] },
     ],
   },
   {
@@ -159,7 +161,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v4.6</span>
+            <span className="sub">Admin · v4.7</span>
           </div>
         </Link>
 

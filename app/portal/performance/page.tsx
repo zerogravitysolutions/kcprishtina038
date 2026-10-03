@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { ColumnChart, LineChart } from "../../admin/training/charts";
 import { computeBests, weeklyVolume, wPerKg, fmt, type EntryLike } from "@/lib/training";
+import { AthleteKpiCharts } from "@/components/training/AthleteKpiCharts";
+import { clubTodayISO } from "@/lib/clubtime";
+import type { FtpTarget, TeamTarget } from "@/lib/kpi";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -22,20 +25,32 @@ export default async function PortalPerformancePage() {
     .limit(1);
   const athlete = (athleteRows as { id: string; full_name: string }[] | null)?.[0] ?? null;
 
-  const [{ data: profileData }, { data: entryData }] = athlete
+  // The team target is readable by every logged-in user (team_kpi_targets_read); the
+  // 20-min targets only for this cyclist's own athlete record (athlete_ftp_targets_select_own).
+  const [{ data: profileData }, { data: entryData }, { data: teamTargetData }, { data: ftpTargetData }] = athlete
     ? await Promise.all([
         supabase.from("athlete_profiles").select("ftp_w, weight_kg, max_hr, resting_hr").eq("athlete_id", athlete.id).maybeSingle(),
         supabase
           .from("ride_entries")
           .select("participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, ride:training_rides(ride_date)")
           .eq("athlete_id", athlete.id),
+        supabase.from("team_kpi_targets").select("effective_from, weekly_hours, weekly_elevation_m").order("effective_from"),
+        supabase.from("athlete_ftp_targets").select("period, target_w").eq("athlete_id", athlete.id),
       ])
-    : [{ data: null }, { data: null }];
+    : [{ data: null }, { data: null }, { data: null }, { data: null }];
 
   const prof = (profileData as { ftp_w: number | null; weight_kg: number | null; max_hr: number | null; resting_hr: number | null } | null) ?? null;
   const entries = (entryData as unknown as EntryRow[] | null) ?? [];
   const bests = computeBests(entries);
   const wkg = wPerKg(prof?.ftp_w ?? null, prof?.weight_kg ?? null);
+  const kpiEntries = entries.map((e) => ({
+    athlete_id: athlete?.id ?? "",
+    ride_date: e.ride?.ride_date ?? "",
+    participated: e.participated,
+    moving_seconds: e.moving_seconds,
+    elevation_m: e.elevation_m,
+    best_power_20m_w: e.best_power_20m_w,
+  }));
 
   const volume = weeklyVolume(
     entries.map((e) => ({ ride_date: e.ride?.ride_date ?? "", distance_km: e.distance_km, moving_seconds: e.moving_seconds, participated: e.participated })),
@@ -70,6 +85,15 @@ export default async function PortalPerformancePage() {
         </div>
       ) : (
         <div style={{ display: "grid", gap: 16, marginTop: 22 }}>
+          {/* KPIs — where this week/month stands against the targets. */}
+          <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, letterSpacing: "-0.02em", margin: "0 0 -4px" }}>KPI-të e mia</h2>
+          <AthleteKpiCharts
+            entries={kpiEntries}
+            targets={(teamTargetData as TeamTarget[] | null) ?? []}
+            ftpTargets={(ftpTargetData as FtpTarget[] | null) ?? []}
+            today={clubTodayISO()}
+          />
+
           {/* Baseline tiles — only present values. */}
           <div style={{ ...CARD, display: "flex", gap: 24, flexWrap: "wrap", padding: "16px 20px" }}>
             {prof?.ftp_w ? <Stat label="FTP" value={`${prof.ftp_w} W`} sub={wkg != null ? `${wkg} W/kg` : undefined} /> : null}

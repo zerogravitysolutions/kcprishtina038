@@ -19,6 +19,7 @@ import {
   ALL, ALL_TIME_NOTE, ALL_YEARS_LABEL, defaultYear, parseYearParam, yearChoices, yearWindowLabel,
 } from "../filters";
 import { AllTimeBalance, Kpi, LoadError, OutsideCard, TruncationWarning } from "./ui";
+import { expenseYear } from "../expense-year";
 
 // Caps, as on the page this view replaces. Each one is surfaced when it bites.
 const FUND_CAP = 2000;
@@ -90,10 +91,16 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const categoryName = new Map(categories.map((c) => [c.id, c.name_sq]));
   const sponsorName = new Map(sponsorRows.map((s) => [s.id, s.name]));
   const fundTitle = new Map(funds.map((f) => [f.id, f.title]));
+  const fundsById = new Map(funds.map((f) => [f.id, f]));
+  if (expenses.some((e) => e.funding_fund_id && !fundsById.has(e.funding_fund_id))) {
+    return <LoadError message="Burimi i një shpenzimi nuk u lexua. Pasqyra vjetore nuk mund të llogaritet me saktësi." />;
+  }
+  const yearOfExpense = (e: ExpenseRow) => expenseYear(e, fundsById);
 
   // ---- the window ----------------------------------------------------------
   // The default is the NEWEST YEAR THE CLUB HAS A MOVEMENT IN — a payment, an
-  // incoming fund or an expense — not the calendar year. On 2 January the
+  // incoming fund or an expense attributed to its source — not the calendar year.
+  // On 2 January the
   // calendar year would open this page on €0.00 / €0.00 / €0.00 with the whole
   // ledger one chip away; the newest year with rows always opens on money.
   // "Të gjitha vitet" stays a choice you make, never the state you land in.
@@ -104,7 +111,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   // FUTURE is offered as a chip but never defaulted to — see defaultYear.
   const activeYears = [
     ...funds.map((f) => yearOf(f.occurred_on)),
-    ...expenses.map((e) => yearOf(e.occurred_on)),
+    ...expenses.map(yearOfExpense).filter((v): v is string => !!v),
     ...paidDues.map((d) => yearOfPayment(d.paid_at)).filter((v): v is string => !!v),
   ];
   const defaultY = defaultYear(activeYears);
@@ -113,7 +120,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const yearLabel = yearWindowLabel(year);
 
   const windowFunds = funds.filter((f) => year === ALL || yearOf(f.occurred_on) === year);
-  const windowExpenses = expenses.filter((e) => year === ALL || yearOf(e.occurred_on) === year);
+  const windowExpenses = expenses.filter((e) => year === ALL || yearOfExpense(e) === year);
   const windowPaidDues = paidDuesInYear(paidDues, year);
   // Paid invoices with no payment date cannot be placed in a year. Under a year
   // filter they are left out, and the page says so rather than pretending. They
@@ -165,7 +172,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   let running = 0;
   const byYear = allYears.map((yr) => {
     const f = funds.filter((r) => yearOf(r.occurred_on) === yr);
-    const e = expenses.filter((r) => yearOf(r.occurred_on) === yr);
+    const e = expenses.filter((r) => yearOfExpense(r) === yr);
     const d = paidDues.filter((r) => yearOfPayment(r.paid_at) === yr);
     const b = clubBalance({ dues: d, funds: f, expenses: e });
     running += b.balance;
@@ -366,7 +373,8 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
 
       <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 18px", lineHeight: 1.8 }}>
         Hyrjet = {paymentCount(windowPaidDues.length)} anëtarësie të arkëtuara + {fundCount(windowFunds.length)} të
-        klubit. Daljet = shpenzimet e shënuara si të paguara. Faturat e papaguara nuk hyjnë në këtë bilanc —
+        klubit. Daljet = shpenzimet e shënuara si të paguara, sipas vitit të fondit të zgjedhur;
+        shpenzimet pa fond ndjekin datën e tyre. Faturat e papaguara nuk hyjnë në këtë bilanc —
         janë më poshtë.
         {balance.paidMissingAmount > 0
           ? ` ${balance.paidMissingAmount} shpenzime të paguara nuk kanë shumë të shënuar, prandaj daljet reale janë më të mëdha se kjo shifër.`
@@ -454,8 +462,8 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
           <>
             <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
               Çdo hyrje ka buxhetin e vet. “Shpenzuar” përfshin kostot e paguara dhe të papaguara që përdorin atë
-              hyrje si burim. Kjo tabelë përfshin të gjitha vitet, sepse një hyrje e vitit 2025 mund të mbulojë
-              shpenzime të vitit 2026.
+              hyrje si burim. Një shpenzim i vitit 2026 nga fondi “Novus 2025” i përket vitit 2025 në pasqyrën
+              vjetore, ndërsa data e tij mbetet 2026.
             </p>
             <div className="table-wrap">
               <table className="t">
@@ -527,7 +535,9 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
           <>
             <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
               Kjo tabelë nuk ndjek filtrin lart — e tregon çdo vit, që të krahasohen mes vete. Hyrjet e një viti
-              janë pagesat e anëtarësisë të arkëtuara atë vit plus fondet e pranuara atë vit. Kolona “Kumulativ”
+              janë pagesat e anëtarësisë të arkëtuara atë vit plus fondet e pranuara atë vit. Shpenzimet me burim
+              llogariten në vitin e shënuar te titulli i fondit, edhe kur data e shpenzimit është më vonë;
+              shpenzimet pa fond ndjekin datën e tyre. Kolona “Kumulativ”
               e mbart bilancin nga një vit në tjetrin, ndaj rreshti i fundit i saj është pikërisht kartela e
               zezë lart — minus çka nuk vendoset dot në një vit.
               {undatedPaid > 0

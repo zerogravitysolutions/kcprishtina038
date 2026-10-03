@@ -132,7 +132,8 @@ export function FundDialog({
           {FUND_KINDS.map((k) => <option key={k} value={k}>{FUND_KIND_LABEL[k]}</option>)}
         </select>
         <div className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
-          Titulli i hyrjes bëhet burimi që zgjidhet te shpenzimet. Shkruaj edhe vitin, p.sh. BikePlus 2026.
+          Titulli bëhet burimi i shpenzimeve. Shkruaj vitin në fund, p.sh. BikePlus 2026 —
+          shpenzimet e këtij fondi llogariten në atë vit edhe kur data e tyre është më vonë.
         </div>
       </div>
 

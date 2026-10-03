@@ -12,8 +12,9 @@ import { NewExpenseButton, type ExpenseOptions, type ExpenseView } from "./Expen
 // comes from the plain one, or the server would see a module proxy.
 import { ExpenseFilters } from "./ExpenseFilters";
 import {
-  ALL, ALL_TIME_NOTE, defaultYear, isYear, parseYearParam, yearChoices, yearSpan, yearWindowLabel,
+  ALL, ALL_TIME_NOTE, defaultYear, parseYearParam, yearChoices, yearSpan, yearWindowLabel,
 } from "../filters";
+import { expenseYear, fundYear, type FundYearSource } from "../expense-year";
 import { ExpenseRow } from "./ExpenseRow";
 // Plain module, not a "use client" one — UNKNOWN_DATE_LABEL is a VALUE.
 import { ACADEMY_SOURCE, ACADEMY_SOURCE_LABEL, UNKNOWN_DATE_LABEL } from "./labels";
@@ -105,6 +106,20 @@ function groupByMonth(rows: ExpenseView[]): MonthGroup[] {
   return out.filter((g) => g.rows.length > 0);
 }
 
+/** Read the small columns needed to build accurate year choices, without a silent row cap. */
+async function readEvery<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>,
+): Promise<{ rows: T[]; error: unknown }> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await page(from, from + 999);
+    if (error) return { rows: [], error };
+    const batch = (data as T[] | null) ?? [];
+    rows.push(...batch);
+    if (batch.length < 1000) return { rows, error: null };
+  }
+}
+
 export default async function ExpensesPage({ searchParams }: { searchParams: SearchParams }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
@@ -127,50 +142,39 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
 
   const supabase = await createClient();
 
-  // ---- the two ends of the ledger ------------------------------------------
-  // Both are limit-1 walks of club_expenses_occurred_idx (occurred_on desc), so
-  // each returns a single row off the head or the tail of an index and neither
-  // touches the table at large. The pair gives this screen two things: the year
-  // a bare URL resolves to (the newest one holding a shpenzim) and the span the
-  // year picker covers. The oldest bound was already read here; the newest is
-  // the one this costs.
-  //
-  // WHEN THEY RUN. This is the one screen that filters by year in SQL, so it
-  // cannot build its main query until it knows the year — but only when the
-  // year has to be RESOLVED. An explicit ?y=2024 or ?y=all is the answer
-  // already, and then the bounds are needed for nothing but the picker, which
-  // renders after the data anyway; in that case they join the main batch and
-  // the page still costs a single wave. Only a bare URL pays for a phase of its
-  // own, and it pays one round trip for two queries, not two.
-  //
-  // What was rejected: dropping the SQL year filter and windowing in memory
-  // (the ROW_CAP that protects this page depends on the filter — an unwindowed
-  // read would cut the newest 1500 rows out of every year at once and quietly
-  // under-total the one on screen); a new SQL function returning both bounds in
-  // one call (a migration to save ~20ms on an admin page); and guessing the
-  // year from an unwindowed first page of rows, which cannot tell "the year
-  // ended" from "the cap bit" without a second query anyway.
-  const oldestQuery = supabase
-    .from("club_expenses").select("occurred_on").order("occurred_on", { ascending: true }).limit(1);
-  const newestQuery = supabase
-    .from("club_expenses").select("occurred_on").order("occurred_on", { ascending: false }).limit(1);
-  const yParam = (sp.y ?? "").trim();
-  const chosenYear = yParam === ALL ? ALL : isYear(yParam) ? yParam : null;
-  const bounds = chosenYear === null ? await Promise.all([oldestQuery, newestQuery]) : null;
-  const boundOf = (res: { data: unknown } | null) =>
-    (res?.data as { occurred_on: string }[] | null)?.[0]?.occurred_on;
-
-  // Their sheets are per-year ("2024-2025", "2026"), so the year is the frame,
-  // not a filter you have to remember to set: no ?y= means the newest year that
-  // holds a shpenzim, which on 2 January is last year and not an empty page.
-  // parseYearParam is still what reads the parameter — handed the bound this
-  // page just resolved, or nothing at all when the parameter already decided.
-  const year = chosenYear ?? parseYearParam(sp.y, [boundOf(bounds?.[1] ?? null)]);
+  // Fund titles name the budget year. The expense's own date remains the year
+  // for Academy, legacy sponsor and unsourced costs. Read the distinct source
+  // IDs across the ledger and the date bounds for the latter group before
+  // building the SQL window; otherwise a 2026 Novus 2025 cost could make a bare
+  // URL open on an empty 2026 ledger.
+  const [fundsRead, sourcesRead, oldestRes, newestRes] = await Promise.all([
+    readEvery<FundYearSource>((from, to) => supabase.from("club_funds")
+      .select("id, title, occurred_on").order("occurred_on", { ascending: false }).order("id").range(from, to)),
+    readEvery<{ funding_fund_id: string }>((from, to) => supabase.from("club_expenses")
+      .select("funding_fund_id").not("funding_fund_id", "is", null).order("id").range(from, to)),
+    supabase.from("club_expenses").select("occurred_on").is("funding_fund_id", null)
+      .order("occurred_on", { ascending: true }).limit(1),
+    supabase.from("club_expenses").select("occurred_on").is("funding_fund_id", null)
+      .order("occurred_on", { ascending: false }).limit(1),
+  ]);
+  const prelimError = fundsRead.error ?? sourcesRead.error ?? oldestRes.error ?? newestRes.error;
+  if (prelimError) return <div className="card"><p style={{ margin: 0, color: "var(--err)" }}>{dbError(prelimError, "Leximi i viteve të shpenzimeve dështoi.")}</p></div>;
+  const fundRows = fundsRead.rows;
+  const fundsById = new Map(fundRows.map((f) => [f.id, f]));
+  const usedFunds = new Set(sourcesRead.rows.map((r) => r.funding_fund_id));
+  const oldest = oldestRes.data?.[0]?.occurred_on;
+  const newest = newestRes.data?.[0]?.occurred_on;
+  const knownYears = [
+    ...(oldest || newest ? yearSpan(oldest, newest) : []),
+    ...fundRows.filter((f) => usedFunds.has(f.id)).map(fundYear).filter((v): v is string => !!v),
+  ];
+  const defaultY = defaultYear(knownYears);
+  const year = parseYearParam(sp.y, knownYears);
+  const years = yearChoices(knownYears, year);
 
   // ---- the reads -----------------------------------------------------------
-  // The year window is applied in SQL; every other filter runs in JS over the
-  // rows this page holds, so the totals printed above the list can never
-  // disagree with the list itself.
+  // Keep the limit after SQL's year selection. Applying this filter after a
+  // global 1500-row read could silently omit older costs of a selected fund.
   let expensesQuery = supabase
     .from("club_expenses")
     .select(SELECT)
@@ -178,11 +182,19 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     .order("created_at", { ascending: false })
     .limit(ROW_CAP);
   if (year !== ALL) {
-    expensesQuery = expensesQuery.gte("occurred_on", `${year}-01-01`).lte("occurred_on", `${year}-12-31`);
+    const fundIds = fundRows.filter((f) => fundYear(f) === year).map((f) => f.id);
+    if (fundIds.length > 0) {
+      expensesQuery = expensesQuery.or(
+        `and(funding_fund_id.is.null,occurred_on.gte.${year}-01-01,occurred_on.lte.${year}-12-31),funding_fund_id.in.(${fundIds.join(",")})`,
+      );
+    } else {
+      expensesQuery = expensesQuery.is("funding_fund_id", null)
+        .gte("occurred_on", `${year}-01-01`).lte("occurred_on", `${year}-12-31`);
+    }
   }
 
   const [
-    expensesRes, categoriesRes, membersRes, sponsorsRes, fundsRes, owedRes, oldestRes, newestRes,
+    expensesRes, categoriesRes, membersRes, sponsorsRes, owedRes,
   ] = await Promise.all([
     expensesQuery,
     supabase
@@ -195,7 +207,6 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       .order("full_name", { ascending: true })
       .limit(1000),
     supabase.from("sponsors").select("id, name, active").order("name", { ascending: true }).limit(200),
-    supabase.from("club_funds").select("id, title").order("occurred_on", { ascending: false }).limit(1000),
     // The club's debt to the people who fronted costs is NOT a per-year figure
     // — a bill Albioni paid in 2024 is still owed in 2026 — so it is read
     // across all years, straight off club_expenses_owed_idx.
@@ -206,23 +217,14 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       .eq("reimbursed", false)
       .order("occurred_on", { ascending: false })
       .limit(500),
-    // Already resolved above when the year had to be worked out; awaited here
-    // (and so ISSUED here, in this one wave) when ?y= said which year it is.
-    bounds ? bounds[0] : oldestQuery,
-    bounds ? bounds[1] : newestQuery,
   ]);
-  const oldest = boundOf(oldestRes);
-  const newest = boundOf(newestRes);
-  // The year a URL with no ?y= comes back to — the one year every link on this
-  // page leaves out of the querystring.
-  const defaultY = defaultYear([newest]);
 
   // owedRes is in here on purpose. It feeds the "Borxh ndaj anëtarëve" KPI and
   // the "Klubi u ka borxh" card, and if it fails silently both render €0.00 —
   // "the club owes nobody", a lie told in green. A liability that cannot be
   // read is not a liability of zero.
   const loadError =
-    expensesRes.error ?? categoriesRes.error ?? membersRes.error ?? sponsorsRes.error ?? fundsRes.error ?? owedRes.error;
+    expensesRes.error ?? categoriesRes.error ?? membersRes.error ?? sponsorsRes.error ?? owedRes.error;
   if (loadError) {
     return (
       <>
@@ -245,13 +247,15 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   }
 
   const raw = (expensesRes.data as unknown as ExpenseRowDb[] | null) ?? [];
+  if (year !== ALL && raw.some((e) => expenseYear(e, fundsById) !== year)) {
+    return <div className="card"><p style={{ margin: 0, color: "var(--err)" }}>Vitet e burimeve nuk u përputhën me shpenzimet. Rifresko faqen.</p></div>;
+  }
   const categoryRows = (categoriesRes.data as unknown as
     { id: string; name_sq: string; active: boolean; display_order: number }[] | null) ?? [];
   const memberRows = (membersRes.data as unknown as
     { id: string; full_name: string; status: "active" | "past" }[] | null) ?? [];
   const sponsorRows = (sponsorsRes.data as unknown as
     { id: string; name: string; active: boolean }[] | null) ?? [];
-  const fundRows = (fundsRes.data as unknown as { id: string; title: string }[] | null) ?? [];
   const owedRows = (owedRes.data as unknown as
     { id: string; occurred_on: string; description: string; amount_eur: number | string | null;
       status: ExpenseStatus; paid_by: ExpensePaidBy; paid_by_member_id: string | null;
@@ -349,13 +353,6 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
   // The list itself, cut into months. Same rows, same order.
   const months = groupByMonth(rows);
 
-  // ---- year picker ---------------------------------------------------------
-  // Built from the two bounds, so it spans every year the ledger covers and
-  // stops at the newest one — which is also the default, so the default is
-  // always a chip you can come back to. A row dated past this year is offered
-  // as its own chip without the dead years in between (see yearSpan).
-  const years = yearChoices(yearSpan(oldest, newest), year);
-
   const base = "/admin/finance/expenses";
   const link = (
     over: Partial<Record<"y" | "cat" | "b" | "st" | "sp" | "pb" | "owed" | "q" | "rcpt", string>>,
@@ -409,6 +406,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
             Çka del nga arka e klubit — {yearLabel}. <Link href="/admin/finance">Faturat e anëtarëve</Link>
             {" · "}<Link href={overviewLink}>Pasqyra financiare</Link>
             {isAdmin ? <>{" · "}<Link href="/admin/finance/expenses/categories">Kategoritë</Link></> : null}
+          </div>
+          <div className="sub" style={{ marginTop: 4 }}>
+            Me fond, viti ndjek titullin e fondit; pa fond, viti ndjek datën. Grupet mujore tregojnë kur ka ndodhur shpenzimi.
           </div>
         </div>
         {canWrite ? <NewExpenseButton options={options} /> : null}

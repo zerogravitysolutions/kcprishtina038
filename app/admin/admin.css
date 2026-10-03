@@ -1461,6 +1461,14 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 
 /* ---------- the row summary ---------- */
 .mbs-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.mbs-cell-empty { justify-content: center; min-height: 36px; }
+.mbs-empty-action {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 36px;
+  padding: 6px 0; border: 0; background: transparent; color: var(--accent-lo);
+  font: 600 12.5px var(--font-body); cursor: pointer;
+}
+.mbs-empty-action:hover { text-decoration: underline; }
+.mbs-empty-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 .mbs-sum { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .mbs-amount {
   font-family: var(--font-mono); font-size: 12px; color: var(--text-1);
@@ -1481,8 +1489,7 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 /* The /admin/people table carries one column more than any other admin table,
    and the shared .table-wrap clips overflow (overflow: hidden) — at tablet
    widths the Veprime buttons fell into the clipped strip. Scoped to that one
-   wrapper: it scrolls sideways instead of clipping, and its action buttons may
-   wrap inside the cell. The shared table rules are untouched. At <= 800px the
+   wrapper: it scrolls sideways instead of clipping. At <= 800px the
    table is already stacked cards and none of this applies.
    The /admin/finance invoice table (.inv-table-wrap) gets the same treatment:
    an open invoice carries Printo · Shëno si të paguar · Fal · Gjysmë çmimi ·
@@ -1623,17 +1630,17 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 
 .people-table { table-layout: fixed; min-width: 1050px; }
 .people-table-money { min-width: 1180px; }
-.people-table th:first-child { width: 27%; }
-.people-table th:nth-child(2) { width: 11%; }
-.people-table th:nth-child(3) { width: 22%; }
-.people-table th:nth-child(4) { width: 25%; }
-.people-table th:last-child { width: 15%; }
-.people-table-money th:first-child { width: 24%; }
-.people-table-money th:nth-child(2) { width: 9%; }
-.people-table-money th:nth-child(3) { width: 18%; }
-.people-table-money th:nth-child(4) { width: 20%; }
-.people-table-money th:nth-child(5) { width: 18%; }
-.people-table-money th:last-child { width: 11%; }
+.people-table th:first-child { width: 22%; }
+.people-table th:nth-child(2) { width: 9%; }
+.people-table th:nth-child(3) { width: 21%; }
+.people-table th:nth-child(4) { width: 23%; }
+.people-table th:last-child { width: 25%; }
+.people-table-money th:first-child { width: 20%; }
+.people-table-money th:nth-child(2) { width: 8%; }
+.people-table-money th:nth-child(3) { width: 16%; }
+.people-table-money th:nth-child(4) { width: 17%; }
+.people-table-money th:nth-child(5) { width: 17%; }
+.people-table-money th:last-child { width: 22%; }
 .people-table thead th { color: var(--slate-2); font-size: 10.5px; letter-spacing: .1em; }
 .people-table tbody td { vertical-align: top; padding: 17px 15px; line-height: 1.4; }
 .people-table tbody tr:hover { background: color-mix(in oklab, var(--accent) 3%, #fff); }
@@ -1647,9 +1654,11 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 .people-account, .people-public { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; min-width: 0; }
 .people-account { flex-direction: row; flex-wrap: wrap; align-items: center; }
 .people-secondary { display: block; width: 100%; color: var(--slate-2); font-size: 11.5px; line-height: 1.45; overflow-wrap: anywhere; }
-.people-table .mbs-meta, .people-table .mbs-none { color: var(--slate-2); font-family: var(--font-body); font-size: 11.5px; }
+.people-table .mbs-meta { color: var(--slate-2); font-family: var(--font-body); font-size: 11.5px; }
 .people-table .btn.mbs-open { min-height: 36px; padding: 7px 12px; font-size: 12px; }
-.people-action-list { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.people-table tbody td[data-lab="Anëtarësia"], .people-table tbody td.people-actions { vertical-align: middle; }
+.people-action-list { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
+.people-action-list > * { flex-shrink: 0; }
 .people-table td.people-actions .btn { margin: 0; }
 
 .people-account-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -1664,8 +1673,9 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   .people-table .person .nm > a, .people-table .person .nm > span { font-size: 15px; }
   .people-table td[data-lab] { align-items: flex-start; }
   .people-table .btn.mbs-open { min-height: 44px; }
+  .mbs-empty-action { min-height: 44px; }
   .people-table td.people-actions { padding-top: 12px; }
-  .people-action-list { width: 100%; }
+  .people-action-list { width: 100%; flex-wrap: wrap; }
 }
 @media (max-width: 560px) {
   .people-head { align-items: flex-start; }

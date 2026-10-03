@@ -310,7 +310,7 @@ export function MembershipFacet({
 
   return (
     <>
-      <div className="mbs-cell">
+      <div className={`mbs-cell${current ? "" : " mbs-cell-empty"}`}>
         {current ? (
           <>
             <div className="mbs-sum">
@@ -327,18 +327,15 @@ export function MembershipFacet({
             </div>
           </>
         ) : (
-          <>
-            <span className="mbs-none">Nuk ka anëtarësi</span>
-            {previous && (
-              <div className="mbs-meta">
-                {MEMBERSHIP_STATUS_LABEL[previous.status as keyof typeof MEMBERSHIP_STATUS_LABEL] ?? previous.status}
-                {previous.end_date ? ` më ${formatDate(previous.end_date)}` : ""} · {previous.planName}
-              </div>
-            )}
-          </>
+          previous ? (
+            <div className="mbs-meta">
+              {MEMBERSHIP_STATUS_LABEL[previous.status as keyof typeof MEMBERSHIP_STATUS_LABEL] ?? previous.status}
+              {previous.end_date ? ` më ${formatDate(previous.end_date)}` : ""} · {previous.planName}
+            </div>
+          ) : null
         )}
-        <button type="button" className="btn btn-ghost btn-sm mbs-open" onClick={() => setOpen(true)}>
-          {current ? "Menaxho planin" : "Cakto plan"}
+        <button type="button" className={current ? "btn btn-ghost btn-sm mbs-open" : "mbs-empty-action"} onClick={() => setOpen(true)}>
+          {current ? "Menaxho planin" : <>Cakto plan <span aria-hidden="true">→</span></>}
         </button>
       </div>
 

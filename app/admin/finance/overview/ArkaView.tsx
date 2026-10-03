@@ -4,15 +4,15 @@ import { dbError } from "@/lib/errors";
 import { RowBars, type Point } from "../../training/charts";
 import {
   UNKNOWN_CATEGORY_LABEL, UNKNOWN_SPONSOR_LABEL, amountTotalLabel, amountTotalValue, clubBalance,
-  formatEur, isOwedToMember, membershipIncome, outstandingTotal, owedToMembers, owedToMembersTotal,
+  formatEur, isOwedToMember, membershipIncome,
   fundSourcePositions, sumAmounts, type ExpenseLike, type FundLike,
 } from "@/lib/finance";
 import type {
   ClubFundKind, ExpensePaidBy, ExpenseStatus,
 } from "@/lib/supabase/types";
 import {
-  PAID_DUES_CAP, expenseCount, fundCount, invoiceCount, overviewHref, paidDuesInYear, paymentCount,
-  personCount, readOpenDues, readOwedExpenses, readPaidDues, undatedPaidNote, undatedPaidRows,
+  PAID_DUES_CAP, expenseCount, fundCount, overviewHref, paidDuesInYear, paymentCount,
+  readPaidDues, undatedPaidNote, undatedPaidRows,
   yearOfPayment,
 } from "./data";
 import {
@@ -48,14 +48,11 @@ function yearOf(date: string): string {
 /** `p` is not read here — it is carried so the other tab keeps its month. */
 export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const supabase = await createClient();
-  // Six flat selects, then every grouping in memory. Two of them are NOT
-  // windowed on purpose (see below): debt is debt no matter how old. Only this
-  // view's reads run — the other two views never touch these tables.
-  const [paid, open, fundRes, expenseRes, categoryRes, sponsorRes, owed] = await Promise.all([
+  // The debt view reads its own all-time totals; this view reads club movements.
+  const [paid, fundRes, expenseRes, categoryRes, sponsorRes] = await Promise.all([
     // The same read /admin/finance/funds uses for academy cash-in, so the two
     // screens print the same euros for the same window.
     readPaidDues(supabase),
-    readOpenDues(supabase),
     supabase
       .from("club_funds")
       .select("id, title, occurred_on, amount_eur, kind, sponsor_id")
@@ -71,18 +68,16 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
       .limit(EXPENSE_CAP),
     supabase.from("expense_categories").select("id, name_sq, display_order").order("display_order"),
     supabase.from("sponsors").select("id, name").limit(NAME_CAP),
-    readOwedExpenses(supabase),
   ]);
 
   // Every figure here is a total, and a total that silently reads zero is worse
-  // than no page at all — "the club owes nobody" would be a lie told in green.
+  // than no page at all.
   const loadError =
-    paid.error ?? open.error ?? fundRes.error ?? expenseRes.error
-    ?? categoryRes.error ?? sponsorRes.error ?? owed.error;
+    paid.error ?? fundRes.error ?? expenseRes.error
+    ?? categoryRes.error ?? sponsorRes.error;
   if (loadError) return <LoadError message={dbError(loadError, "Leximi i të dhënave financiare dështoi.")} />;
 
   const paidDues = paid.rows;
-  const openDues = open.rows;
   const funds = (fundRes.data as unknown as FundRow[] | null) ?? [];
   const expenses = (expenseRes.data as unknown as ExpenseRow[] | null) ?? [];
   const categories = (categoryRes.data as unknown as CategoryRow[] | null) ?? [];
@@ -142,19 +137,9 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const paidExpenses = windowExpenses.filter((e) => e.status === "paid");
   const unpaidExpenses = windowExpenses.filter((e) => e.status === "unpaid");
   const missingAmountCount = balance.paidMissingAmount + balance.unpaidMissingAmount;
-  // Costs inside "Daljet" that a PERSON fronted and has not been paid back for.
-  // They are a real outflow for the club, but they have not left the club's
-  // account yet — and the same euros appear again below as "Detyrime ndaj
-  // personave". Whoever reads both figures has to be told not to subtract them
-  // twice, or the club looks poorer than it is by exactly this amount.
+  // Costs fronted by a person are included in spending. The Borxhet view
+  // shows the corresponding reimbursement obligation.
   const frontedStillOwed = sumAmounts(paidExpenses.filter(isOwedToMember));
-
-  // NOT windowed, on purpose. Both of these come from the shared helpers, which
-  // is the whole point of the merge: the Borxhet view prints the very same two
-  // figures off the very same reads, so the two tabs can never disagree.
-  const memberDebt = outstandingTotal(openDues);
-  const owedDebts = owedToMembers(owed.rows);
-  const owedTotal = owedToMembersTotal(owed.rows);
 
   // A project budget can receive money in 2025 and cover costs in 2026.
   const sourceStand = fundSourcePositions(funds, expenses);
@@ -226,8 +211,6 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const cut = balanceTruncated.length > 0;
   const truncated = [
     ...balanceTruncated,
-    open.truncated ? "faturat e hapura" : null,
-    owed.truncated ? "shpenzimet e pa rimbursuara" : null,
   ].filter(Boolean) as string[];
 
   // ---- the all-time card's own words ---------------------------------------
@@ -261,59 +244,18 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
     q.set("y", year);
     return `/admin/finance/expenses?${q.toString()}`;
   };
-  // The detail of both figures lives on the Borxhet tab; the window comes along
-  // so coming back lands on the same year.
-  const borxhetHref = overviewHref("borxhet", { y: year === defaultY ? undefined : year, p });
-
   return (
     <>
-      {/* ------------------------------------------------ the club, all time */}
-      {/* Above the chips on purpose: everything BELOW this line follows the
-          year filter, this does not. It is the first thing the eye lands on
-          because it is the question the owner opens the page with — what has
-          the club taken in, spent, and got left since it started. */}
-      {nothingYet ? null : (
-        <AllTimeBalance
-          window={`Që nga fillimi · ${ALL_TIME_NOTE}`}
-          income={cut ? `së paku ${formatEur(allTime.income)}` : formatEur(allTime.income)}
-          incomeSub={`anëtarësi ${formatEur(allTime.membershipIncome)} + fonde ${formatEur(allTime.fundsTotal)}`}
-          spent={cut && allTimePaidExpenses.counted > 0 ? `së paku ${allTimeSpentValue}` : allTimeSpentValue}
-          spentSub={
-            `${expenseCount(allTimePaidExpenses.counted + allTimePaidExpenses.missing)} të paguara`
-            + (allTime.paidMissingAmount > 0 ? ` · ${allTime.paidMissingAmount} pa shumë` : "")
-          }
-          balance={cut ? "I paplotë" : formatEur(allTime.balance)}
-          balanceSub={
-            cut
-              ? "dy anët e tij janë prerë nga kufiri i leximit"
-              : allTimeNegative
-                ? `klubi ka dalë ${formatEur(-allTime.balance)} mbi hyrjet`
-                : "hyrjet minus daljet, të gjitha vitet bashkë"
-          }
-          negative={allTimeNegative}
-          note={
-            <>
-              Kjo kartë nuk e ndjek filtrin e vitit: mbledh çdo pagesë anëtarësie të arkëtuar, çdo fond dhe
-              çdo shpenzim të paguar që nga rreshti i parë i regjistruar. Bilanci poshtë i tregon
-              të njëjtat para përmes dritares që zgjedh me çipat; kartat te “Jashtë bilancit” e kanë secila
-              dritaren e vet të shënuar mbi to.{" "}
-              {undatedPaid > 0
-                ? `Vitet poshtë nuk mblidhen sa kjo shifër: ${undatedSentence} Diferenca mes tabelës “Sipas vitit” dhe kësaj karte është pikërisht aq.`
-                : "Vitet poshtë mblidhen pikërisht sa kjo shifër — çdo pagesë e ka datën e vet dhe zë vend në një vit."}
-              {allTime.paidMissingAmount > 0 ? ` ${allTimeMissingSentence}` : ""}
-            </>
-          }
-          warning={
-            cut
-              ? `Kujdes: janë lexuar vetëm rreshtat e parë për ${balanceTruncated.join(", ")}. Hyrjet dhe daljet këtu mbulojnë vetëm një pjesë të historikut, prandaj bilanci total nuk shfaqet si shifër — do të ishte një numër i sigurt mbi të dhëna të cunguara.`
-              : null
-          }
-        />
-      )}
-
+      <div className="overview-section-head">
+        <div>
+          <span className="overview-eyebrow">PERIUDHA E ZGJEDHUR</span>
+          <h2>{year === ALL ? "Të gjitha vitet" : `Viti ${year}`}</h2>
+          <p>Hyrjet sipas datës së arkëtimit; shpenzimet sipas vitit të fondit ose, pa fond, datës së tyre.</p>
+        </div>
+      </div>
       {/* Newest year first, the catch-all last: the frame this page opens in is
           the newest year with movements, not the whole history. */}
-      <div className="filter-bar">
+      <div className="filter-bar overview-period-filter" aria-label="Viti i pasqyrës">
         {years.map((v) => (
           <Link key={v} className={`chip ${year === v ? "active" : ""}`} href={link(v)}>{v}</Link>
         ))}
@@ -335,11 +277,8 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
       ) : null}
 
       {/* ---------------------------------------------------------- balance */}
-      {/* Titled, because the inked card above says "Bilanci total" and this trio
-          says "Bilanci": whoever reads them has to see at once which window each
-          one is in, without reading down to a sub-label. */}
       <div className="card-head" style={{ border: 0, padding: 0, marginBottom: 12 }}>
-        <h3>{year === ALL ? "Bilanci i dritares së zgjedhur" : `Bilanci i vitit ${year}`}</h3>
+        <h3>{year === ALL ? "Bilanci i të gjitha viteve" : `Bilanci i vitit ${year}`}</h3>
         <span className="kicker">{yearLabel}</span>
       </div>
 
@@ -371,55 +310,29 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
         />
       </div>
 
-      <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 18px", lineHeight: 1.8 }}>
-        Hyrjet = {paymentCount(windowPaidDues.length)} anëtarësie të arkëtuara + {fundCount(windowFunds.length)} të
-        klubit. Daljet = shpenzimet e shënuara si të paguara, sipas vitit të fondit të zgjedhur;
-        shpenzimet pa fond ndjekin datën e tyre. Faturat e papaguara nuk hyjnë në këtë bilanc —
-        janë më poshtë.
-        {balance.paidMissingAmount > 0
-          ? ` ${balance.paidMissingAmount} shpenzime të paguara nuk kanë shumë të shënuar, prandaj daljet reale janë më të mëdha se kjo shifër.`
-          : ""}
-        {frontedStillOwed.total > 0 || frontedStillOwed.missing > 0
-          ? ` Nga daljet, ${amountTotalLabel(frontedStillOwed)} i kanë paguar persona nga xhepi i tyre dhe ende s’u janë kthyer: këto para nuk kanë dalë nga llogaria e klubit, por dalin sërish më poshtë te “Detyrime ndaj personave” — mos i zbrit dy herë.`
-          : ""}
-        {year !== ALL && undatedPaid > 0
-          ? ` ${undatedPaidNote(undatedPaid)}`
-          : ""}
-      </p>
+      <details className="overview-method">
+        <summary>Si llogaritet bilanci?</summary>
+        <p>
+          Hyrjet përfshijnë {paymentCount(windowPaidDues.length)} anëtarësie të arkëtuara dhe {fundCount(windowFunds.length)} fonde.
+          Daljet përfshijnë shpenzimet e paguara; të papaguarat shfaqen veçmas më poshtë.
+          Shpenzimet me fond ndjekin vitin e fondit, ndërsa ato pa fond ndjekin datën e shpenzimit.
+          {balance.paidMissingAmount > 0
+            ? ` ${balance.paidMissingAmount} shpenzime të paguara nuk kanë shumë të shënuar, prandaj daljet reale janë më të mëdha.`
+            : ""}
+          {frontedStillOwed.total > 0 || frontedStillOwed.missing > 0
+            ? ` ${amountTotalLabel(frontedStillOwed)} janë paguar nga persona ende të parimbursuar. Detyrimi shfaqet te “Borxhet”; mos e zbrit dy herë.`
+            : ""}
+          {year !== ALL && undatedPaid > 0 ? ` ${undatedPaidNote(undatedPaid)}` : ""}
+        </p>
+      </details>
 
       {/* ------------------------------------------------- outside the balance */}
       <div className="card-head" style={{ border: 0, padding: 0, marginBottom: 12 }}>
-        <h3>Jashtë bilancit</h3>
-        <span className="kicker">para që nuk janë në llogari</span>
+        <h3>Shpenzime për t’u ndjekur</h3>
+        <span className="kicker">{yearLabel}</span>
       </div>
 
       <div className="card-grid" style={{ marginBottom: 20 }}>
-        <OutsideCard
-          title="Për t’u arkëtuar nga anëtarët"
-          value={formatEur(memberDebt)}
-          window={ALL_TIME_NOTE}
-          tone={memberDebt > 0 ? "warn" : "neutral"}
-          note={
-            openDues.length === 0
-              ? "Asnjë faturë e hapur — të gjitha kuotat janë paguar ose falur."
-              : `${invoiceCount(openDues.length)} të hapura. Një faturë e hapur nga maji është borxh edhe sot, prandaj kjo shifër nuk e ndjek filtrin lart.`
-          }
-          href={borxhetHref}
-          hrefLabel="Shiko borxhet"
-        />
-        <OutsideCard
-          title="Detyrime ndaj personave"
-          value={amountTotalLabel(owedTotal)}
-          window={ALL_TIME_NOTE}
-          tone={owedTotal.total > 0 || owedTotal.missing > 0 ? "err" : "neutral"}
-          note={
-            owedDebts.length === 0
-              ? "Klubi nuk i ka borxh askujt — asnjë shpenzim i paguar nga xhepi i dikujt nuk ka mbetur pa u kthyer."
-              : `${personCount(owedDebts.length)} kanë paguar nga xhepi i tyre dhe presin t’u kthehet. Një borxh i vitit 2024 është borxh edhe sot, prandaj kjo shifër nuk e ndjek filtrin lart.`
-          }
-          href={borxhetHref}
-          hrefLabel="Shiko kujt"
-        />
         <OutsideCard
           title="Shpenzime të papaguara"
           value={amountTotalValue(sumAmounts(unpaidExpenses))}
@@ -441,12 +354,76 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
           note={
             missingAmountCount === 0
               ? "Çdo shpenzim i kësaj periudhe ka një shumë të shënuar."
-              : "Kosto reale me çmim të pacaktuar ende. Nuk janë zero — bilanci lart është aq më i vogël sa këto."
+              : "Kosto reale me çmim ende të pacaktuar. Nuk llogariten si zero; bilanci i shfaqur mund të jetë më i lartë se bilanci real."
           }
           href={expensesHref({})}
           hrefLabel="Plotëso shumat"
         />
       </div>
+
+      {/* ----------------------------------------------------- by category */}
+      <div className="card">
+        <div className="card-head">
+          <h3>Shpenzimet sipas kategorisë</h3>
+          <span className="kicker">{yearLabel}</span>
+        </div>
+        {byCategory.length === 0 ? (
+          <p style={{ margin: 0, fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.7 }}>
+            Nuk ka asnjë shpenzim të regjistruar për këtë periudhë.
+          </p>
+        ) : (
+          <>
+            <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
+              Të paguara dhe të papaguara bashkë, {expenseCount(windowExpenses.length)} gjithsej. Rreshtat me
+              “pa shumë” kanë kosto reale që ende nuk është çmuar.
+            </p>
+            <RowBars data={categoryPoints} />
+          </>
+        )}
+      </div>
+
+      <section className="overview-history" aria-labelledby="overview-history-title">
+        <div className="overview-section-head">
+          <div>
+            <span className="overview-eyebrow">HISTORIKU</span>
+            <h2 id="overview-history-title">Të gjitha vitet</h2>
+            <p>{year === ALL ? "Buxheti sipas burimit dhe krahasimi vjetor." : "Bilanci që nga fillimi, buxheti sipas burimit dhe krahasimi vjetor."}</p>
+          </div>
+        </div>
+      {/* The full history follows the selected-year analysis. */}
+      {nothingYet || year === ALL ? null : (
+        <AllTimeBalance
+          window={`Që nga fillimi · ${ALL_TIME_NOTE}`}
+          income={cut ? `së paku ${formatEur(allTime.income)}` : formatEur(allTime.income)}
+          incomeSub={`anëtarësi ${formatEur(allTime.membershipIncome)} + fonde ${formatEur(allTime.fundsTotal)}`}
+          spent={cut && allTimePaidExpenses.counted > 0 ? `së paku ${allTimeSpentValue}` : allTimeSpentValue}
+          spentSub={
+            `${expenseCount(allTimePaidExpenses.counted + allTimePaidExpenses.missing)} të paguara`
+            + (allTime.paidMissingAmount > 0 ? ` · ${allTime.paidMissingAmount} pa shumë` : "")
+          }
+          balance={cut ? "I paplotë" : formatEur(allTime.balance)}
+          balanceSub={
+            cut
+              ? "dy anët e tij janë prerë nga kufiri i leximit"
+              : allTimeNegative
+                ? `klubi ka dalë ${formatEur(-allTime.balance)} mbi hyrjet`
+                : "hyrjet minus daljet, të gjitha vitet bashkë"
+          }
+          negative={allTimeNegative}
+          note={
+            <>
+              Përfshin të gjitha pagesat e arkëtuara, fondet dhe shpenzimet e paguara.
+              {undatedPaid > 0 ? ` ${undatedSentence}` : ""}
+              {allTime.paidMissingAmount > 0 ? ` ${allTimeMissingSentence}` : ""}
+            </>
+          }
+          warning={
+            cut
+              ? `Kujdes: janë lexuar vetëm rreshtat e parë për ${balanceTruncated.join(", ")}. Hyrjet dhe daljet këtu mbulojnë vetëm një pjesë të historikut, prandaj bilanci total nuk shfaqet si shifër — do të ishte një numër i sigurt mbi të dhëna të cunguara.`
+              : null
+          }
+        />
+      )}
 
       {/* ------------------------------------------------- fund positions */}
       <div className="card" style={{ marginBottom: 20 }}>
@@ -461,9 +438,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
         ) : (
           <>
             <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
-              Çdo hyrje ka buxhetin e vet. “Shpenzuar” përfshin kostot e paguara dhe të papaguara që përdorin atë
-              hyrje si burim. Një shpenzim i vitit 2026 nga fondi “Novus 2025” i përket vitit 2025 në pasqyrën
-              vjetore, ndërsa data e tij mbetet 2026.
+              Çdo fond ka buxhetin e vet. “Shpenzuar” përfshin kostot e paguara dhe të papaguara të lidhura me të.
             </p>
             <div className="table-wrap">
               <table className="t">
@@ -534,12 +509,9 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
         ) : (
           <>
             <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
-              Kjo tabelë nuk ndjek filtrin lart — e tregon çdo vit, që të krahasohen mes vete. Hyrjet e një viti
-              janë pagesat e anëtarësisë të arkëtuara atë vit plus fondet e pranuara atë vit. Shpenzimet me burim
-              llogariten në vitin e shënuar te titulli i fondit, edhe kur data e shpenzimit është më vonë;
-              shpenzimet pa fond ndjekin datën e tyre. Kolona “Kumulativ”
-              e mbart bilancin nga një vit në tjetrin, ndaj rreshti i fundit i saj është pikërisht kartela e
-              zezë lart — minus çka nuk vendoset dot në një vit.
+              Hyrjet ndjekin datën e arkëtimit. Shpenzimet ndjekin vitin e fondit të zgjedhur ose,
+              kur s’kanë fond, datën e tyre. “Kumulativ” mbart bilancin nga një vit në tjetrin.
+              Pagesat pa datë shfaqen veçmas.
               {undatedPaid > 0
                 ? ` ${undatedPaidNote(undatedPaid)}`
                 : ""}
@@ -637,7 +609,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
                     <td>
                       Që nga fillimi
                       <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
-                        shifra e kartelës lart
+                        bilanci i të gjitha viteve
                       </small>
                     </td>
                     {/* Cut short by a cap: the same refusal as the card, or the
@@ -647,7 +619,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
                     </td>
                     {/* amountTotalValue, not formatEur: when NOT ONE paid
                         expense carries an amount the card prints "Pa shumë",
-                        and a row that calls itself "shifra e kartelës lart"
+                        and a row that calls itself "bilanci i të gjitha viteve"
                         must not answer "€0.00" to the same question. */}
                     <td className="num" data-lab="Daljet">
                       <span>
@@ -673,26 +645,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
         )}
       </div>
 
-      {/* ----------------------------------------------------- by category */}
-      <div className="card">
-        <div className="card-head">
-          <h3>Shpenzimet sipas kategorisë</h3>
-          <span className="kicker">{yearLabel}</span>
-        </div>
-        {byCategory.length === 0 ? (
-          <p style={{ margin: 0, fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.7 }}>
-            Nuk ka asnjë shpenzim të regjistruar për këtë periudhë.
-          </p>
-        ) : (
-          <>
-            <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
-              Të paguara dhe të papaguara bashkë, {expenseCount(windowExpenses.length)} gjithsej. Rreshtat me
-              “pa shumë” kanë kosto reale që ende nuk është çmuar.
-            </p>
-            <RowBars data={categoryPoints} />
-          </>
-        )}
-      </div>
+      </section>
     </>
   );
 }

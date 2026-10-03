@@ -507,7 +507,14 @@ export async function AnetaresiaView({ p, y, canEditPlans }: { p?: string; y?: s
 
   return (
     <>
-      <div className="filter-bar">
+      <div className="overview-section-head">
+        <div>
+          <span className="overview-eyebrow">PERIUDHA E ZGJEDHUR</span>
+          <h2>{label}</h2>
+          <p>Pagesat dhe faturimi i muajit. Grafikat tregojnë edhe 12 muajt deri në këtë periudhë.</p>
+        </div>
+      </div>
+      <div className="filter-bar overview-period-filter" aria-label="Muaji i pasqyrës">
         <Link className="chip" href={hrefFor(periodParam(shiftPeriod(period, -1)))}>
           ← {periodLabel(shiftPeriod(period, -1))}
         </Link>
@@ -516,10 +523,6 @@ export async function AnetaresiaView({ p, y, canEditPlans }: { p?: string; y?: s
           {periodLabel(shiftPeriod(period, 1))} →
         </Link>
         {!isCurrent ? <Link className="chip" href={hrefFor(periodParam(thisMonth))}>Muaji aktual</Link> : null}
-        <div className="spacer" />
-        <span className="mono" style={{ fontSize: 11, color: "var(--text-3)" }}>
-          Trendi dhe rritja: {periodLabel(windowStart)} – {label}
-        </span>
       </div>
 
       <TruncationWarning parts={truncated} />

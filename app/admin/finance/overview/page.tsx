@@ -62,32 +62,17 @@ export default async function FinanceOverviewPage({ searchParams }: { searchPara
           <h1>Pasqyra financiare</h1>
           <div className="sub">
             {view === "arka" ? (
-              <>
-                Hyrjet, daljet dhe bilanci i klubit.{" "}
-                <Link href={`/admin/finance/funds${yq}`}>Hyrjet e klubit</Link>
-                {" · "}<Link href={`/admin/finance/expenses${yq}`}>Shpenzimet</Link>
-                {" · "}<Link href="/admin/finance">Faturat e anëtarëve</Link>
-              </>
+              "Hyrjet, shpenzimet dhe bilanci i klubit."
             ) : view === "anetaresia" ? (
-              <>
-                Sa para hyjnë, sa faturohet, sa pritet të vijë çdo muaj dhe sa ka mbetur pa u arkëtuar.
-                Të gjitha shumat llogariten vetëm mbi anëtarësitë me pagesë — garuesit nuk faturohen
-                dhe nuk hyjnë as te të hyrat, as te borxhi, as te norma e arkëtimit.{" "}
-                <Link href="/admin/finance">Faturat e anëtarëve</Link>
-                {profile.role === "admin" ? <>{" · "}<Link href="/admin/plans">Planet</Link></> : null}
-              </>
+              "Pagesat dhe faturimi i anëtarësive sipas muajit."
             ) : (
-              <>
-                Çka i kanë borxh anëtarët klubit dhe çka u ka borxh klubi njerëzve.{" "}
-                <Link href="/admin/finance">Faturat e anëtarëve</Link>
-                {" · "}<Link href="/admin/finance/expenses">Shpenzimet</Link>
-              </>
+              "Detyrimet e hapura të anëtarëve dhe të klubit."
             )}
           </div>
         </div>
       </div>
 
-      <nav className="filter-bar" aria-label="Pamjet e pasqyrës">
+      <nav className="filter-bar overview-tabs" aria-label="Pamjet e pasqyrës">
         {VIEWS.map((v) => (
           <Link
             key={v.id}
@@ -99,6 +84,20 @@ export default async function FinanceOverviewPage({ searchParams }: { searchPara
           </Link>
         ))}
       </nav>
+
+      <div className="overview-actions" aria-label="Regjistrat financiarë">
+        {view === "arka" ? <>
+          <Link href={`/admin/finance/funds${yq}`}>Hyrjet e klubit →</Link>
+          <Link href={`/admin/finance/expenses${yq}`}>Shpenzimet →</Link>
+          <Link href="/admin/finance">Faturat e anëtarëve →</Link>
+        </> : view === "anetaresia" ? <>
+          <Link href="/admin/finance">Faturat e anëtarëve →</Link>
+          {profile.role === "admin" ? <Link href="/admin/plans">Planet →</Link> : null}
+        </> : <>
+          <Link href="/admin/finance">Faturat e anëtarëve →</Link>
+          <Link href="/admin/finance/expenses">Shpenzimet →</Link>
+        </>}
+      </div>
 
       {view === "arka" ? <ArkaView y={sp.y} p={sp.p} /> : null}
       {view === "anetaresia" ? <AnetaresiaView p={sp.p} y={sp.y} canEditPlans={profile.role === "admin"} /> : null}

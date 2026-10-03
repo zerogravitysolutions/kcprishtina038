@@ -185,6 +185,13 @@ export async function BorxhetView() {
 
   return (
     <>
+      <div className="overview-section-head">
+        <div>
+          <span className="overview-eyebrow">GJENDJA AKTUALE</span>
+          <h2>Të gjitha detyrimet e hapura</h2>
+          <p>Përfshin faturat e papaguara dhe rimbursimet e pashlyera, pavarësisht vitit.</p>
+        </div>
+      </div>
       <TruncationWarning parts={truncated} />
 
       {/* ---------------------------------------------- members → club */}

@@ -338,7 +338,7 @@ export function MembershipFacet({
           </>
         )}
         <button type="button" className="btn btn-ghost btn-sm mbs-open" onClick={() => setOpen(true)}>
-          Anëtarësia
+          {current ? "Menaxho planin" : "Cakto plan"}
         </button>
       </div>
 

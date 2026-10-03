@@ -328,61 +328,63 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
   function chip(label: string, target: string, count: number, active: boolean) {
     return (
       <Link href={target} className={`chip ${active ? "active" : ""}`} aria-current={active ? "page" : undefined}>
-        {label} <span style={{ opacity: 0.7, marginLeft: 4 }}>{count}</span>
+        {label} <span className="people-chip-count">{count}</span>
       </Link>
     );
   }
 
   return (
-    <>
-      <div className="page-head">
+    <div className="people-page">
+      <div className="page-head people-head">
         <div>
           <h1>Njerëzit</h1>
           <div className="sub">
-            {rows.length === counts.all ? `${counts.all} veta` : `${rows.length} nga ${counts.all} veta`} — secili një herë.
-            “Llogari” do të thotë që personi kyçet dhe mban faturat; “Publik” do të thotë që shfaqet te <em>Ekipi</em>{" "}
-            dhe mund të zgjidhet në stërvitje
-            {canManageMoney
-              ? "; “Anëtarësia” është plani i pagesave — dita e fillimit është dita në të cilën faturohet çdo muaj."
-              : "."}
+            Menaxho llogaritë, ekipin publik{canManageMoney ? " dhe anëtarësitë" : ""} në një vend.
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {canEditRoster && <Link className="btn btn-ghost" href="/admin/team-members/new">+ Person i ri në ekip</Link>}
+        <div className="people-head-actions">
+          {canEditRoster && <Link className="btn btn-ghost" href="/admin/team-members/new">+ Shto në ekip</Link>}
+          {canManageAccounts && <AddMember />}
         </div>
       </div>
 
-      {canManageAccounts ? <div style={{ marginBottom: 16 }}><AddMember /></div> : null}
-
-      <div className="filter-bar">
-        {chip("Të gjithë", href({ view: "all" }), counts.all, view === "all")}
-        {chip("Pa llogari", href({ view: "no-account" }), counts.noAccount, view === "no-account")}
-        {chip("Pa ekip", href({ view: "no-roster" }), counts.noRoster, view === "no-roster")}
-        {chip("Ish-anëtarë", href({ view: "past" }), counts.past, view === "past")}
-        <div className="spacer" />
-        <form method="get" action="/admin/people" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {view !== "all" && <input type="hidden" name="view" value={view} />}
-          {roleFilter && <input type="hidden" name="role" value={roleFilter} />}
-          <input type="search" name="q" defaultValue={q} placeholder="Kërko sipas emrit…" aria-label="Kërko person" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} />
-          <button type="submit" className="btn btn-sm">Kërko</button>
-          {q && <Link className="btn btn-ghost btn-sm" href={href({ q: "" })}>Pastro</Link>}
-        </form>
-      </div>
-
-      <div className="filter-bar">
-        <span className="meta">Roli</span>
-        {chip("Të gjithë", href({ role: null }), withAccount, roleFilter === null)}
-        {ROLES.map(r => (
-          <span key={r}>{chip(ROLE_LABEL[r], href({ role: r }), roleCounts[r] ?? 0, roleFilter === r)}</span>
-        ))}
+      <div className="people-toolbar">
+        <div className="people-toolbar-top">
+          <div className="people-result-count"><strong>{rows.length}</strong> {rows.length === 1 ? "person" : "persona"}{rows.length !== counts.all ? ` nga ${counts.all}` : " gjithsej"}</div>
+          <form method="get" action="/admin/people" className="people-search">
+            {view !== "all" && <input type="hidden" name="view" value={view} />}
+            {roleFilter && <input type="hidden" name="role" value={roleFilter} />}
+            <input type="search" name="q" defaultValue={q} placeholder="Kërko emër ose email…" aria-label="Kërko person" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} />
+            <button type="submit" className="btn btn-sm">Kërko</button>
+            {q && <Link className="btn btn-ghost btn-sm" href={href({ q: "" })}>Pastro</Link>}
+          </form>
+        </div>
+        <div className="people-filter-row">
+          <span className="people-filter-label">Shfaq</span>
+          <div className="people-chips">
+            {chip("Të gjithë", href({ view: "all" }), counts.all, view === "all")}
+            {chip("Pa llogari", href({ view: "no-account" }), counts.noAccount, view === "no-account")}
+            {chip("Pa ekip", href({ view: "no-roster" }), counts.noRoster, view === "no-roster")}
+            {chip("Ish-anëtarë", href({ view: "past" }), counts.past, view === "past")}
+          </div>
+        </div>
+        <div className="people-filter-row">
+          <span className="people-filter-label">Roli</span>
+          <div className="people-chips">
+            {chip("Të gjithë", href({ role: null }), withAccount, roleFilter === null)}
+            {ROLES.map(r => (
+              <span key={r}>{chip(ROLE_LABEL[r], href({ role: r }), roleCounts[r] ?? 0, roleFilter === r)}</span>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* mbs-table-wrap: this table is one column wider than any other in the
           admin, and the shared .table-wrap clips overflow — at tablet widths
           the Veprime buttons were cut off. See the membership block at the end
           of admin.css; the shared table styles are untouched. */}
-      <div className="table-wrap mbs-table-wrap">
-        <table className="t">
+      <div className="table-wrap mbs-table-wrap people-table-wrap">
+        <table className={`t people-table ${canManageMoney ? "people-table-money" : ""}`}>
           <thead>
             <tr>
               <th>Personi</th>
@@ -439,7 +441,8 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
                         {tm && canEditRoster
                           ? <Link href={`/admin/team-members/${tm.id}`} style={{ fontWeight: 600 }}>{p.name}</Link>
                           : <span style={{ fontWeight: 600 }}>{p.name}</span>}
-                        <small>{[acc?.email, tm?.slug].filter(Boolean).join(" · ") || "—"}</small>
+                        {acc?.email && <small className="people-email">{acc.email}</small>}
+                        {!acc?.email && tm?.slug && <small className="people-slug">{tm.slug}</small>}
                       </div>
                     </div>
                     {/* Two roster rows for one account is bad data (profile_id
@@ -467,18 +470,18 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
 
                   <td data-lab="Llogari">
                     {acc ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <div className="people-account">
                         {canManageAccounts
                           ? <RolePicker id={acc.id} current={acc.role} name={p.name} />
                           : <span className="mono">{ROLE_LABEL[acc.role] ?? acc.role}</span>}
                         <span className={`badge-st ${acc.status === "active" ? "ok" : acc.status === "pending" ? "warn" : "err"}`}>
                           {STATUS_LABEL[acc.status] ?? acc.status}
                         </span>
-                        <span className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)" }}>
-                          {acc.joined_at
-                            ? `U bashkua ${new Date(acc.joined_at).toLocaleDateString("sq", { month: "short", year: "numeric" })}`
-                            : "Pa datë bashkimi"}
-                        </span>
+                        {acc.joined_at && (
+                          <span className="people-secondary">
+                            U bashkua {new Date(acc.joined_at).toLocaleDateString("sq", { month: "short", year: "numeric" })}
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>Pa llogari</span>
@@ -487,12 +490,12 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
 
                   <td data-lab="Publik">
                     {tm ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <div className="people-public">
                         <span className={`badge-st ${tm.status === "active" ? "ok" : "neutral"}`}>
                           {tm.status === "active" ? "Në ekip" : "Ish-anëtar"}
                         </span>
-                        <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                          {tm.positions.map(x => POSITION_LABEL[x] ?? x).join(" · ")} · renditja {tm.display_order}
+                        <span className="people-secondary">
+                          {tm.positions.map(x => POSITION_LABEL[x] ?? x).join(" · ") || "Pa rol në ekip"}
                         </span>
                       </div>
                     ) : (
@@ -526,17 +529,19 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
                     </td>
                   )}
 
-                  <td className="actions">
-                    {tm && canEditRoster && (
-                      <Link className="btn btn-ghost btn-sm" href={`/admin/team-members/${tm.id}`}>Ndrysho</Link>
-                    )}
-                    {/* The one contextual action: the facet this person is missing. */}
-                    {!acc && tm && canManageAccounts && <CreateAccount teamMemberId={tm.id} name={p.name} />}
-                    {acc && !tm && canEditRoster && <AddToRoster profileId={acc.id} name={p.name} role={acc.role} />}
-                    {tm && canEditRoster && <DeleteButton id={tm.id} name={tm.full_name} />}
-                    {acc && canManageAccounts && (
-                      <ManageMember id={acc.id} name={p.name} email={acc.email} status={acc.status} isSelf={acc.id === user.id} />
-                    )}
+                  <td className="actions people-actions">
+                    <div className="people-action-list">
+                      {tm && canEditRoster && (
+                        <Link className="btn btn-ghost btn-sm" href={`/admin/team-members/${tm.id}`}>Ndrysho</Link>
+                      )}
+                      {/* The one contextual action: the facet this person is missing. */}
+                      {!acc && tm && canManageAccounts && <CreateAccount teamMemberId={tm.id} name={p.name} />}
+                      {acc && !tm && canEditRoster && <AddToRoster profileId={acc.id} name={p.name} role={acc.role} />}
+                      {tm && canEditRoster && <DeleteButton id={tm.id} name={tm.full_name} />}
+                      {acc && canManageAccounts && (
+                        <ManageMember id={acc.id} name={p.name} email={acc.email} status={acc.status} isSelf={acc.id === user.id} />
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -544,6 +549,6 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   );
 }

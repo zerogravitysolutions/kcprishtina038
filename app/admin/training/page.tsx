@@ -14,7 +14,10 @@ type EntryLite = { participated: boolean; distance_km: number | null };
 type RideRow = {
   id: string;
   ride_date: string;
+  title: string | null;
   focus: string | null;
+  review_status: "approved" | "under_review";
+  has_pending_changes: boolean;
   section: { slug: string; name_sq: string } | null;
   entries: EntryLite[];
 };
@@ -27,7 +30,7 @@ export default async function TrainingPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("training_rides")
-    .select("id, ride_date, focus, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km)")
+    .select("id, ride_date, title, focus, review_status, has_pending_changes, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km)")
     .order("ride_date", { ascending: false })
     .limit(80);
   const rows = (data as unknown as RideRow[] | null) ?? [];
@@ -36,7 +39,7 @@ export default async function TrainingPage() {
     r,
     parts: r.entries.filter((e) => e.participated).length,
     km: sum(r.entries.map((e) => e.distance_km)),
-    title: r.focus || "Stërvitje",
+    title: r.title || r.focus || "Stërvitje",
     dateShort: new Date(r.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short" }),
     dateLong: new Date(r.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short", year: "numeric" }),
   }));
@@ -48,7 +51,10 @@ export default async function TrainingPage() {
           <h1>Stërvitjet</h1>
           <div className="sub">Regjistro stërvitjet — zgjidh 1 ose më shumë çiklistë për secilën.</div>
         </div>
-        <Link className="btn btn-ember" href="/admin/training/new">+ Stërvitje e re</Link>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Link className="btn btn-ghost" href="/admin/training/import">Importo nga Strava</Link>
+          <Link className="btn btn-ember" href="/admin/training/new">+ Stërvitje e re</Link>
+        </div>
       </div>
 
       <div className="filter-bar" style={{ borderRadius: 12, border: "1px solid var(--line)", marginBottom: 12 }}>
@@ -68,6 +74,10 @@ export default async function TrainingPage() {
                 <span className="ex-card-title">{title}</span>
                 <span className="ex-card-date">{dateShort}</span>
               </div>
+              {(r.review_status === "under_review" || r.has_pending_changes) &&
+                <div className="mono" style={{ color: "var(--ember)", fontSize: 11, marginTop: 5 }}>
+                  {r.review_status === "under_review" ? "Në shqyrtim" : "Çiklist i ri për shqyrtim"}
+                </div>}
               {r.section && (
                 <div className="ex-card-meta">
                   <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span>
@@ -98,6 +108,10 @@ export default async function TrainingPage() {
                 <tr key={r.id}>
                   <td>
                     <Link href={`/admin/training/${r.id}`} style={{ fontWeight: 600 }}>{title}</Link>
+                    {(r.review_status === "under_review" || r.has_pending_changes) &&
+                      <span className="mono" style={{ display: "block", color: "var(--ember)", fontSize: 11 }}>
+                        {r.review_status === "under_review" ? "Në shqyrtim" : "Çiklist i ri për shqyrtim"}
+                      </span>}
                   </td>
                   <td className="mono">{dateLong}</td>
                   <td>{r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : "—"}</td>

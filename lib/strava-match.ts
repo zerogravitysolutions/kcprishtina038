@@ -1,0 +1,103 @@
+// Pure route matching; no Strava tokens, database access, or persistent GPS data.
+// A group is proposed only when every pair clears the route, time, and elevation
+// checks. Coaches confirm or edit the proposal before a training is written.
+
+export type LatLng = [number, number];
+export type MatchRide = {
+  athleteId: string;
+  activityId: string;
+  startMs: number;
+  elapsedSeconds: number;
+  distanceMeters: number;
+  elevationMeters: number;
+  route: LatLng[];
+};
+
+export type MatchGroup = { rides: MatchRide[]; minimumRouteOverlap: number };
+
+export const ROUTE_THRESHOLD = 0.6;
+const NEAR_METERS = 120;
+const MAX_START_GAP_MS = 30 * 60_000;
+
+function distanceMeters(a: LatLng, b: LatLng): number {
+  const radians = Math.PI / 180;
+  const lat = ((a[0] + b[0]) / 2) * radians;
+  const north = (a[0] - b[0]) * 111_195;
+  const east = (a[1] - b[1]) * 111_195 * Math.cos(lat);
+  return Math.hypot(north, east);
+}
+
+function sampleRoute(route: LatLng[]): LatLng[] {
+  if (route.length < 2) return [];
+  const segments = route.slice(1).map((point, index) => distanceMeters(route[index], point));
+  const total = segments.reduce((sum, length) => sum + length, 0);
+  if (total < 2_000) return [];
+  const step = Math.max(100, total / 600);
+  const samples: LatLng[] = [route[0]];
+  let covered = 0, next = step;
+  for (let i = 0; i < segments.length; i++) {
+    const length = segments[i];
+    if (length <= 0) continue;
+    while (next <= covered + length) {
+      const fraction = (next - covered) / length;
+      samples.push([
+        route[i][0] + fraction * (route[i + 1][0] - route[i][0]),
+        route[i][1] + fraction * (route[i + 1][1] - route[i][1]),
+      ]);
+      next += step;
+    }
+    covered += length;
+  }
+  samples.push(route[route.length - 1]);
+  return samples;
+}
+
+function fractionNear(source: LatLng[], target: LatLng[]): number {
+  let near = 0;
+  for (const point of source) {
+    if (target.some((other) => distanceMeters(point, other) <= NEAR_METERS)) near++;
+  }
+  return near / source.length;
+}
+
+/** The lesser of both directions prevents a short shared segment matching a long ride. */
+export function routeOverlap(a: LatLng[], b: LatLng[]): number {
+  const left = sampleRoute(a), right = sampleRoute(b);
+  if (!left.length || !right.length) return 0;
+  return Math.min(fractionNear(left, right), fractionNear(right, left));
+}
+
+/** Returns the GPS overlap only if every independent group-ride check passes. */
+export function matchRides(a: MatchRide, b: MatchRide): number | null {
+  if (a.athleteId === b.athleteId || a.activityId === b.activityId) return null;
+  if (!Number.isFinite(a.startMs) || !Number.isFinite(b.startMs)) return null;
+  if (!a.elapsedSeconds || !b.elapsedSeconds || Math.abs(a.startMs - b.startMs) > MAX_START_GAP_MS) return null;
+  const endA = a.startMs + a.elapsedSeconds * 1000;
+  const endB = b.startMs + b.elapsedSeconds * 1000;
+  const sharedTime = Math.max(0, Math.min(endA, endB) - Math.max(a.startMs, b.startMs));
+  if (sharedTime < 0.7 * Math.min(a.elapsedSeconds, b.elapsedSeconds) * 1000) return null;
+  if (Math.abs(a.elevationMeters - b.elevationMeters) > Math.max(150, 0.2 * Math.max(a.elevationMeters, b.elevationMeters))) return null;
+  if (Math.abs(a.distanceMeters - b.distanceMeters) > Math.max(3_000, 0.25 * Math.max(a.distanceMeters, b.distanceMeters))) return null;
+  const overlap = routeOverlap(a.route, b.route);
+  return overlap >= ROUTE_THRESHOLD ? overlap : null;
+}
+
+export function groupMatchingRides(rides: MatchRide[]): MatchGroup[] {
+  const remaining = [...rides].sort((a, b) => a.startMs - b.startMs || a.activityId.localeCompare(b.activityId));
+  const groups: MatchGroup[] = [];
+  while (remaining.length) {
+    const group = [remaining.shift()!];
+    let minimumRouteOverlap = 1;
+    for (let i = 0; i < remaining.length;) {
+      const candidate = remaining[i];
+      const scores = group.map((member) => matchRides(member, candidate));
+      if (scores.every((score) => score !== null)) {
+        minimumRouteOverlap = Math.min(minimumRouteOverlap, ...(scores as number[]));
+        group.push(candidate);
+        remaining.splice(i, 1);
+      } else i++;
+    }
+    if (group.length > 1) groups.push({ rides: group, minimumRouteOverlap });
+  }
+  return groups;
+}

@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { StravaEmbed } from "@/components/public/StravaEmbed";
 import { updateRide, resolveStravaUrl } from "../actions";
-import { stravaActivityId } from "@/lib/strava";
 import { TRAINING_FOCUS } from "@/lib/training";
 
 export type RideHeader = {
   id: string;
   ride_date: string;
+  title: string | null;
   focus: string | null;
   section_id: string | null;
   strava_url: string | null;
+  review_status: "approved" | "under_review";
+  has_pending_changes: boolean;
 };
 
 export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections: { id: string; name_sq: string }[] }) {
@@ -19,16 +20,15 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [rideDate, setRideDate] = useState(ride.ride_date);
+  const [title, setTitle] = useState(ride.title ?? "");
   const [focus, setFocus] = useState(ride.focus ?? "");
   const [sectionId, setSectionId] = useState(ride.section_id ?? sections[0]?.id ?? "");
   const [stravaUrl, setStravaUrl] = useState(ride.strava_url ?? "");
   const [resolving, startResolve] = useTransition();
 
-  const canEmbed = !!stravaActivityId(stravaUrl);
-
   const snapshot = useMemo(
-    () => JSON.stringify({ rideDate, focus, sectionId, stravaUrl }),
-    [rideDate, focus, sectionId, stravaUrl],
+    () => JSON.stringify({ rideDate, title, focus, sectionId, stravaUrl }),
+    [rideDate, title, focus, sectionId, stravaUrl],
   );
 
   const mounted = useRef(false);
@@ -38,7 +38,7 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
       setMsg(null);
       start(async () => {
         const r = await updateRide(ride.id, {
-          ride_date: rideDate, focus,
+          ride_date: rideDate, title, focus,
           section_id: sectionId || null,
           strava_url: stravaUrl,
         });
@@ -101,6 +101,11 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
         </div>
       </div>
 
+      <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
+        <label>Titulli</label>
+        <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} placeholder="Emri i stërvitjes" />
+      </div>
+
       {/* Strava — one shared link for the whole exercise (embeds on paste). */}
       <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
         <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke lexuar…</span> : null}</label>
@@ -115,7 +120,6 @@ export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections:
           placeholder="Ngjit lidhjen e aktivitetit"
         />
       </div>
-      {canEmbed && <div style={{ marginTop: 12 }}><StravaEmbed url={stravaUrl} compact /></div>}
 
       {msg?.ok === false && <div className="mono" style={{ color: "var(--err)", fontSize: 12, marginTop: 10 }}>Gabim: {msg.text}</div>}
     </div>

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { ProfileForm } from "./ProfileForm";
+import { disconnectStrava } from "./strava-actions";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { stravaIsConfigured } from "@/lib/strava-api";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -12,14 +15,23 @@ type FullProfile = {
   metadata: Record<string, string> | null;
 };
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ strava?: string }> }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
+  const { strava: stravaStatus } = await searchParams;
   const supabase = await createClient();
-  const { data } = await supabase.from("profiles")
-    .select("full_name, email, phone, dob, bio, metadata")
-    .eq("id", profile.id).maybeSingle();
+  const [{ data }, { data: rider }] = await Promise.all([
+    supabase.from("profiles").select("full_name, email, phone, dob, bio, metadata").eq("id", profile.id).maybeSingle(),
+    supabase.from("team_members").select("id").eq("profile_id", profile.id).contains("positions", ["rider"]).maybeSingle(),
+  ]);
   const full = (data as FullProfile | null) ?? null;
+  const configured = stravaIsConfigured();
+  let connected = false;
+  if (rider && configured) {
+    const { data: connection } = await createAdminClient().from("strava_connections")
+      .select("athlete_id").eq("athlete_id", rider.id).maybeSingle();
+    connected = !!connection;
+  }
 
   return (
     <>
@@ -37,6 +49,20 @@ export default async function ProfilePage() {
         <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "4px 0 20px" }}>Të dhënat e tua të kontaktit. Përdoren nga trajneri i seksionit tënd dhe për regjistrimet në gara.</p>
         <ProfileForm initial={full ?? { full_name: profile.full_name, email: profile.email, phone: null, dob: null, bio: null, metadata: null }} />
       </div>
+
+      {rider && <div style={{ background: "var(--white)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 14, padding: 24, marginTop: 16 }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, margin: 0 }}>Strava</h2>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "6px 0 14px" }}>
+          {connected ? "Llogaria jote është lidhur. Aktivitetet mund të propozohen për stërvitjet e klubit." : "Lidhe llogarinë për t’i propozuar aktivitetet e tua në stërvitjet e klubit."}
+        </p>
+        {stravaStatus && stravaStatus !== "connected" && stravaStatus !== "disconnected" &&
+          <p role="alert" style={{ color: "var(--err)", fontSize: 12 }}>Lidhja me Strava nuk u përfundua. Provo sërish.</p>}
+        {configured ? connected ? (
+          <form action={disconnectStrava}><button type="submit" className="btn btn-ghost">Shkëput Strava</button></form>
+        ) : (
+          <a href="/api/strava/connect" className="btn btn-ember">Lidh me Strava</a>
+        ) : <span style={{ color: "var(--ink-3)", fontSize: 12 }}>Lidhja me Strava është në përgatitje.</span>}
+      </div>}
 
       {/* The money panel is not a sixth tab on the phone, so it needs a door
           here as well as on the dashboard. */}

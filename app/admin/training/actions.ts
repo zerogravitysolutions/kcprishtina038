@@ -42,6 +42,7 @@ function coerceBase(src: BaseSrc): { ok: true; base: BaseValues } | { ok: false;
 
 export type CreateRideInput = {
   ride_date: string;
+  title?: string;
   focus?: string;
   section_id?: string | null;
   strava_url?: string;
@@ -62,13 +63,19 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
     if (!baseR.ok) return baseR;
     const base = baseR.base;
 
-    const stravaUrl = input.strava_url?.trim() || null;
+    let stravaUrl = input.strava_url?.trim() || null;
+    if (stravaUrl && isStravaAppLink(stravaUrl)) {
+      const resolved = await resolveActivity(stravaUrl);
+      if (!resolved) return { ok: false, error: "S’u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
+      stravaUrl = resolved.url;
+    }
     const stravaAid = stravaUrl ? stravaActivityId(stravaUrl) : null;
 
     const { data: ride, error: rideErr } = await supabase
       .from("training_rides")
       .insert({
         ride_date: input.ride_date,
+        title: input.title?.trim().slice(0, 120) || null,
         focus: input.focus?.trim() || null,
         section_id: input.section_id || null,
         strava_url: stravaUrl,
@@ -103,6 +110,7 @@ export async function createRide(input: CreateRideInput): Promise<Result<{ id: s
 
 export type RidePatch = {
   ride_date?: string;
+  title?: string;
   focus?: string;
   section_id?: string | null;
   strava_url?: string;
@@ -117,10 +125,16 @@ export async function updateRide(id: string, patch: RidePatch): Promise<Result> 
       if (!patch.ride_date) return { ok: false, error: "Data mungon." };
       update.ride_date = patch.ride_date;
     }
+    if (patch.title !== undefined) update.title = patch.title.trim().slice(0, 120) || null;
     if (patch.focus !== undefined) update.focus = patch.focus.trim() || null;
     if (patch.section_id !== undefined) update.section_id = patch.section_id || null;
     if (patch.strava_url !== undefined) {
-      const u = patch.strava_url.trim();
+      let u = patch.strava_url.trim();
+      if (u && isStravaAppLink(u)) {
+        const resolved = await resolveActivity(u);
+        if (!resolved) return { ok: false, error: "S’u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
+        u = resolved.url;
+      }
       update.strava_url = u || null;
       const aid = u ? stravaActivityId(u) : null;
       update.strava_activity_id = aid ? Number(aid) : null;
@@ -160,10 +174,13 @@ export async function addEntry(rideId: string, athleteId: string): Promise<Resul
     // Inherit the ride's session base (distance / duration / elevation).
     const { data: ride } = await supabase
       .from("training_rides")
-      .select("distance_km, moving_seconds, elevation_m")
+      .select("distance_km, moving_seconds, elevation_m, review_status")
       .eq("id", rideId)
-      .maybeSingle<{ distance_km: number | null; moving_seconds: number | null; elevation_m: number | null }>();
-    const insertRow: TableInsert<"ride_entries"> = { ride_id: rideId, athlete_id: athleteId };
+      .maybeSingle<{ distance_km: number | null; moving_seconds: number | null; elevation_m: number | null; review_status: "approved" | "under_review" }>();
+    const insertRow: TableInsert<"ride_entries"> = {
+      ride_id: rideId, athlete_id: athleteId,
+      review_status: ride?.review_status === "under_review" ? "under_review" : "approved",
+    };
     if (ride?.distance_km != null) insertRow.distance_km = ride.distance_km;
     if (ride?.moving_seconds != null) insertRow.moving_seconds = ride.moving_seconds;
     if (ride?.elevation_m != null) insertRow.elevation_m = ride.elevation_m;
@@ -252,10 +269,10 @@ export async function updateEntry(
     // written, so weight / HR / notes on the profile are preserved.
     const { data: e } = await supabase
       .from("ride_entries")
-      .select("athlete_id, ftp_w, set_ftp, training_rides(ride_date)")
+      .select("athlete_id, ftp_w, set_ftp, review_status, training_rides(ride_date)")
       .eq("id", entryId)
-      .maybeSingle<{ athlete_id: string; ftp_w: number | null; set_ftp: boolean; training_rides: { ride_date: string } | null }>();
-    if (e?.set_ftp && e.ftp_w != null) {
+      .maybeSingle<{ athlete_id: string; ftp_w: number | null; set_ftp: boolean; review_status: "approved" | "under_review"; training_rides: { ride_date: string } | null }>();
+    if (e?.review_status === "approved" && e.set_ftp && e.ftp_w != null) {
       await supabase.from("athlete_profiles").upsert(
         {
           athlete_id: e.athlete_id,
@@ -426,7 +443,7 @@ function parseStravaWidget(rawHtml: string): { distance_km: number | null; eleva
   if (m) { const v = parseFloat(m[1].replace(/,/g, "")); if (!Number.isNaN(v)) elevation_m = m[2].toLowerCase() === "ft" ? Math.round(v * 0.3048) : Math.round(v); }
 
   let moving_seconds: number | null = null;
-  m = text.match(/(?:Moving Time|Time)\s+((?:\d+\s*h\s*)?(?:\d+\s*m\s*)?(?:\d+\s*s)?|\d{1,2}:\d{2}(?::\d{2})?)/i);
+  m = text.match(/(?:Moving Time|Time)\s+(\d{1,2}:\d{2}(?::\d{2})?|\d+\s*h(?:\s*\d+\s*m)?(?:\s*\d+\s*s)?|\d+\s*m(?:\s*\d+\s*s)?|\d+\s*s)\b/i);
   if (m) moving_seconds = parseWidgetTime(m[1]);
 
   return { distance_km, elevation_m, moving_seconds };
@@ -434,11 +451,11 @@ function parseStravaWidget(rawHtml: string): { distance_km: number | null; eleva
 
 /**
  * Auto-fill distance / elevation / time from a Strava link by reading Strava's
- * own public embed widget. No OAuth / API key — works for public activities;
- * private ones expose no stats and return an error so the coach fills manually.
+ * own public embed widget. A valid activity link still resolves when the
+ * widget is unavailable, leaving the coach free to enter the stats manually.
  */
 export async function fetchStravaStats(url: string): Promise<
-  | { ok: true; url: string; activityId: string; distance_km: number | null; elevation_m: number | null; moving_seconds: number | null }
+  | { ok: true; url: string; activityId: string; distance_km: number | null; elevation_m: number | null; moving_seconds: number | null; warning?: string }
   | { ok: false; error: string }
 > {
   try {
@@ -447,6 +464,12 @@ export async function fetchStravaStats(url: string): Promise<
     if (!raw) return { ok: false, error: "Lidhja mungon." };
     const resolved = await resolveActivity(raw);
     if (!resolved) return { ok: false, error: "S’u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
+
+    const withoutStats = {
+      ok: true as const, ...resolved,
+      distance_km: null, elevation_m: null, moving_seconds: null,
+      warning: "Lidhja u njoh. Statistikat nuk u lexuan nga Strava; plotëso Bazën me dorë.",
+    };
 
     // Fixed host + numeric id → no SSRF surface.
     const controller = new AbortController();
@@ -457,15 +480,17 @@ export async function fetchStravaStats(url: string): Promise<
         signal: controller.signal,
         headers: { "User-Agent": "Mozilla/5.0 (compatible; KCPrishtina/1.0)" },
       });
-      if (!res.ok) return { ok: false, error: `Strava ktheu ${res.status} — a është aktiviteti publik?` };
+      if (!res.ok) return withoutStats;
       html = await res.text();
+    } catch {
+      return withoutStats;
     } finally {
       clearTimeout(t);
     }
 
     const stats = parseStravaWidget(html);
     if (stats.distance_km == null && stats.elevation_m == null && stats.moving_seconds == null) {
-      return { ok: false, error: "Nuk u lexuan të dhënat — ndoshta aktiviteti nuk është publik." };
+      return withoutStats;
     }
     return { ok: true, url: resolved.url, activityId: resolved.activityId, ...stats };
   } catch (e) {

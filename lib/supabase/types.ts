@@ -592,9 +592,10 @@ interface PublicTables {
         Row: {
           id: string;
           kind: TrainingRideKind;
+          review_status: "approved" | "under_review";
+          has_pending_changes: boolean;
           ride_date: string;
-          // title / location / notes were DROPPED by migrations
-          // 20260519000015 and 20260519000016 — do not re-add them.
+          title: string | null;
           focus: string | null;
           section_id: string | null;
           route_url: string | null;
@@ -609,6 +610,9 @@ interface PublicTables {
         Insert: {
           ride_date: string;
           kind?: TrainingRideKind;
+          review_status?: "approved" | "under_review";
+          has_pending_changes?: boolean;
+          title?: string | null;
           focus?: string | null;
           section_id?: string | null;
           route_url?: string | null;
@@ -623,6 +627,7 @@ interface PublicTables {
           id: string;
           ride_id: string;
           athlete_id: string;
+          review_status: "approved" | "under_review";
           participated: boolean;
           distance_km: number | null;
           moving_seconds: number | null;
@@ -645,6 +650,7 @@ interface PublicTables {
           avg_cadence: number | null;
           strava_url: string | null;
           strava_activity_id: number | null;
+          strava_imported: boolean;
           // `notes` was DROPPED by migration 20260519000016 — do not re-add it.
           created_at: string; updated_at: string;
         };
@@ -653,6 +659,43 @@ interface PublicTables {
           participated?: boolean;
         } & Partial<PublicTables["ride_entries"]["Row"]>;
         Update: Partial<PublicTables["ride_entries"]["Row"]>;
+      };
+      strava_connections: {
+        Row: {
+          athlete_id: string;
+          profile_id: string;
+          strava_athlete_id: number;
+          access_token_ciphertext: string;
+          refresh_token_ciphertext: string;
+          access_expires_at: string;
+          scopes: string;
+          connected_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<PublicTables["strava_connections"]["Row"], "connected_at" | "updated_at">;
+        Update: Partial<PublicTables["strava_connections"]["Row"]>;
+      };
+      strava_activity_events: {
+        Row: {
+          event_kind: "upsert" | "delete" | "revoke";
+          activity_id: number;
+          owner_id: number;
+          event_time: number;
+          processed_at: string | null;
+          next_attempt_at: string;
+          claimed_until: string | null;
+          attempts: number;
+          last_error: string | null;
+          created_at: string;
+        };
+        Insert: { activity_id: number; owner_id: number; event_time: number; event_kind?: "upsert" | "delete" | "revoke" } &
+          Partial<PublicTables["strava_activity_events"]["Row"]>;
+        Update: Partial<PublicTables["strava_activity_events"]["Row"]>;
+      };
+      strava_review_rejections: {
+        Row: { athlete_id: string; strava_activity_id: number; rejected_at: string };
+        Insert: { athlete_id: string; strava_activity_id: number; rejected_at?: string };
+        Update: Partial<PublicTables["strava_review_rejections"]["Row"]>;
       };
       athlete_profiles: {
         Row: {
@@ -717,6 +760,8 @@ export interface Database {
     Views: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
     Functions: {
+      claim_strava_activity_events: { Args: { batch_size?: number }; Returns: PublicTables["strava_activity_events"]["Row"][] };
+      approve_strava_review: { Args: { p_ride_id: string }; Returns: void };
       approve_application: { Args: { app_id: string }; Returns: string };
       reject_application:  { Args: { app_id: string; reason?: string | null }; Returns: string };
       set_user_role:       { Args: { target_id: string; new_role: UserRole }; Returns: string };

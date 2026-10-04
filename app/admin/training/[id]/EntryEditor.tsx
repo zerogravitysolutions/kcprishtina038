@@ -15,6 +15,7 @@ export type EntryRow = {
   participated: boolean;
   set_ftp: boolean;
   strava_url: string | null;
+  review_status: "approved" | "under_review";
   [key: string]: unknown; // metric columns
 };
 
@@ -135,7 +136,8 @@ export function EntryEditor({
           fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13,
         }}>{initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600 }}>{athlete.full_name}</div>
+          <div style={{ fontWeight: 600 }}>{athlete.full_name}{entry.review_status === "under_review" &&
+            <span style={{ color: "var(--ember)", fontSize: 11, marginLeft: 8 }}>Në shqyrtim</span>}</div>
           <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {!participated ? "Nuk mori pjesë" : summaryLine(summaryFields, values) || "Ende pa vlera"}
           </div>

@@ -1,0 +1,282 @@
+import "server-only";
+
+import { createAdminClient } from "@/lib/supabase/admin";
+import { stravaGet, type StravaActivity, type StravaAthlete, type StravaConnection } from "@/lib/strava-api";
+import { matchRides, type LatLng, type MatchRide } from "@/lib/strava-match";
+import { metricsFromStrava, type PowerStreams } from "@/lib/strava-metrics";
+import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
+import type { TableInsert, TableRow } from "@/lib/supabase/types";
+
+const RIDE_TYPES = new Set(["Ride", "MountainBikeRide", "GravelRide", "EBikeRide", "EMountainBikeRide", "VirtualRide"]);
+const MIN_RIDE_METERS = 2_000;
+const START_WINDOW_SECONDS = 31 * 60;
+type Rider = { id: string; full_name: string; section_slug: string | null };
+type Connected = { rider: Rider; connection: StravaConnection };
+type Matched = Connected & { activity: StravaActivity; match: MatchRide };
+type Event = TableRow<"strava_activity_events">;
+
+export async function enqueueStravaActivity(activityId: number, ownerId: number, eventTime: number,
+  force = false, eventKind: "upsert" | "delete" | "revoke" = "upsert"): Promise<void> {
+  const admin = createAdminClient();
+  const row: TableInsert<"strava_activity_events"> = {
+    activity_id: activityId, owner_id: ownerId, event_time: eventTime, event_kind: eventKind,
+    ...(force ? { processed_at: null, next_attempt_at: new Date().toISOString(), claimed_until: null } : {}),
+  };
+  const { error } = await admin.from("strava_activity_events").upsert(row, {
+    onConflict: "event_kind,activity_id", ignoreDuplicates: !force,
+  });
+  if (error) throw error;
+}
+
+async function connections(): Promise<Connected[]> {
+  const admin = createAdminClient();
+  const [{ data: links, error: linksError }, { data: riders, error: ridersError }] = await Promise.all([
+    admin.from("strava_connections").select("*"),
+    admin.from("team_members").select("id, full_name, section_slug")
+      .contains("positions", ["rider"]).eq("status", "active"),
+  ]);
+  if (linksError || ridersError) throw linksError ?? ridersError;
+  const byId = new Map(((riders ?? []) as Rider[]).map((rider) => [rider.id, rider]));
+  return ((links ?? []) as StravaConnection[]).flatMap((connection) => {
+    const rider = byId.get(connection.athlete_id);
+    return rider ? [{ connection, rider }] : [];
+  });
+}
+
+function asMatch(rider: Rider, activity: StravaActivity, route: LatLng[]): MatchRide {
+  return {
+    athleteId: rider.id, activityId: String(activity.id),
+    startMs: Date.parse(activity.start_date), elapsedSeconds: activity.elapsed_time,
+    distanceMeters: activity.distance, elevationMeters: activity.total_elevation_gain, route,
+  };
+}
+
+async function routeFor(connection: StravaConnection, activityId: number): Promise<LatLng[]> {
+  const streams = await stravaGet<{ latlng?: { data?: LatLng[] } }>(connection,
+    `/activities/${activityId}/streams?keys=latlng&key_by_type=true`);
+  return (streams.latlng?.data ?? []).filter((point): point is LatLng =>
+    Array.isArray(point) && point.length === 2 && Number.isFinite(point[0]) && Number.isFinite(point[1]));
+}
+
+async function detailFor(owner: Connected, activityId: number): Promise<Matched | null> {
+  let activity: StravaActivity;
+  try { activity = await stravaGet<StravaActivity>(owner.connection, `/activities/${activityId}`); }
+  catch (error) {
+    if (error instanceof Error && error.message === "Strava API: 404") return null;
+    throw error;
+  }
+  if (activity.id !== activityId || activity.athlete?.id !== owner.connection.strava_athlete_id ||
+      !RIDE_TYPES.has(activity.sport_type) || activity.distance < MIN_RIDE_METERS || activity.elapsed_time <= 0) return null;
+  const route = await routeFor(owner.connection, activityId);
+  if (route.length < 2) return null;
+  return { ...owner, activity, match: asMatch(owner.rider, activity, route) };
+}
+
+async function activitiesNear(owner: Connected, centerSeconds: number): Promise<StravaActivity[]> {
+  const result: StravaActivity[] = [];
+  // A ride uploaded later is still returned when queried by its original start
+  // time. The webhook activity ID supplies that time even for an old ride.
+  for (let page = 1; page <= 5; page++) {
+    const rows = await stravaGet<StravaActivity[]>(owner.connection,
+      `/athlete/activities?after=${centerSeconds - START_WINDOW_SECONDS}&before=${centerSeconds + START_WINDOW_SECONDS}&per_page=100&page=${page}`);
+    if (!rows.length) break;
+    result.push(...rows);
+  }
+  return result;
+}
+
+async function metricsFor(item: Matched, fallbackFtp: number | null) {
+  const hasProfileScope = item.connection.scopes.split(/[\s,]+/).includes("profile:read_all");
+  const [streams, athlete] = await Promise.all([
+    stravaGet<PowerStreams>(item.connection,
+      `/activities/${item.activity.id}/streams?keys=time,watts&key_by_type=true`),
+    hasProfileScope ? stravaGet<StravaAthlete>(item.connection, "/athlete") : Promise.resolve(null),
+  ]);
+  return metricsFromStrava(item.activity, streams,
+    athlete?.id === item.connection.strava_athlete_id ? athlete.ftp : null, fallbackFtp);
+}
+
+async function addEntries(rideId: string, items: Matched[]): Promise<void> {
+  if (!items.length) return;
+  const admin = createAdminClient();
+  const { data: profiles, error: profilesError } = await admin.from("athlete_profiles")
+    .select("athlete_id, ftp_w").in("athlete_id", items.map((item) => item.rider.id));
+  if (profilesError) throw profilesError;
+  const ftpById = new Map((profiles ?? []).map((profile) => [profile.athlete_id, profile.ftp_w]));
+  const entries: TableInsert<"ride_entries">[] = await Promise.all(items.map(async (item) => ({
+    ride_id: rideId, athlete_id: item.rider.id, review_status: "under_review" as const,
+    ...await metricsFor(item, ftpById.get(item.rider.id) ?? null),
+    strava_url: `https://www.strava.com/activities/${item.activity.id}`,
+    strava_activity_id: item.activity.id, strava_imported: true,
+  })));
+  const { error } = await admin.from("ride_entries").insert(entries);
+  if (error) throw error;
+}
+
+async function processActivity(event: Event): Promise<void> {
+  const all = await connections();
+  const owner = all.find((item) => item.connection.strava_athlete_id === event.owner_id);
+  if (!owner) return; // disconnected or no longer an active club rider
+  const target = await detailFor(owner, event.activity_id);
+  if (!target) return;
+  const admin = createAdminClient();
+  const { data: targetRejection, error: targetRejectionError } = await admin.from("strava_review_rejections")
+    .select("strava_activity_id").eq("athlete_id", owner.rider.id)
+    .eq("strava_activity_id", event.activity_id).maybeSingle();
+  if (targetRejectionError) throw targetRejectionError;
+  if (targetRejection) return;
+  const nearby: { item: Connected; activity: StravaActivity }[] = [];
+  const center = Math.floor(target.match.startMs / 1000);
+  for (const candidateOwner of all) {
+    if (candidateOwner.rider.id === owner.rider.id) continue;
+    for (const activity of await activitiesNear(candidateOwner, center)) {
+      if (RIDE_TYPES.has(activity.sport_type) && activity.distance >= MIN_RIDE_METERS &&
+          Math.abs(Date.parse(activity.start_date) - target.match.startMs) <= 30 * 60_000 &&
+          Math.abs(activity.total_elevation_gain - target.activity.total_elevation_gain) <=
+            Math.max(150, 0.2 * Math.max(activity.total_elevation_gain, target.activity.total_elevation_gain))) {
+        nearby.push({ item: candidateOwner, activity });
+      }
+    }
+  }
+  const { data: rejected, error: rejectedError } = nearby.length
+    ? await admin.from("strava_review_rejections").select("athlete_id, strava_activity_id")
+      .in("strava_activity_id", nearby.map(({ activity }) => activity.id))
+    : { data: [], error: null };
+  if (rejectedError) throw rejectedError;
+  const rejectedKeys = new Set((rejected ?? []).map((row) => `${row.athlete_id}:${row.strava_activity_id}`));
+  const matched: { item: Matched; overlap: number }[] = [];
+  for (const candidate of nearby) {
+    if (rejectedKeys.has(`${candidate.item.rider.id}:${candidate.activity.id}`)) continue;
+    const detailed = await detailFor(candidate.item, candidate.activity.id);
+    if (!detailed) continue;
+    const overlap = matchRides(target.match, detailed.match);
+    if (overlap !== null) matched.push({ item: detailed, overlap });
+  }
+  matched.sort((a, b) => b.overlap - a.overlap);
+  const selected = [target];
+  for (const { item } of matched) {
+    if (selected.some((current) => current.rider.id === item.rider.id)) continue;
+    if (selected.every((current) => matchRides(current.match, item.match) !== null)) selected.push(item);
+  }
+  if (selected.length < 2) return;
+
+  const { data: imported, error: importedError } = await admin.from("ride_entries")
+    .select("ride_id, athlete_id, strava_activity_id")
+    .eq("strava_imported", true)
+    .in("strava_activity_id", selected.map((item) => item.activity.id));
+  if (importedError) throw importedError;
+  const importedRideByActivity = new Map((imported ?? []).map((entry) => [entry.strava_activity_id, entry.ride_id]));
+  const rideIds = [...new Set((imported ?? []).map((entry) => entry.ride_id))];
+
+  for (const rideId of rideIds) {
+    const { data: existing, error } = await admin.from("ride_entries")
+      .select("athlete_id, strava_activity_id").eq("ride_id", rideId).eq("strava_imported", true);
+    if (error) throw error;
+    const members: Matched[] = [];
+    for (const entry of existing ?? []) {
+      const linked = all.find((item) => item.rider.id === entry.athlete_id);
+      if (!linked || !entry.strava_activity_id) break;
+      const match = selected.find((item) => item.activity.id === entry.strava_activity_id)
+        ?? await detailFor(linked, entry.strava_activity_id);
+      if (!match) break;
+      members.push(match);
+    }
+    if (members.length !== (existing ?? []).length ||
+        members.some((member) => matchRides(member.match, target.match) === null && member.activity.id !== target.activity.id)) continue;
+    const additions = selected.filter((item) =>
+      !importedRideByActivity.has(item.activity.id) &&
+      !members.some((member) => member.rider.id === item.rider.id) &&
+      members.every((member) => matchRides(member.match, item.match) !== null));
+    if (!additions.length) return;
+    await addEntries(rideId, additions);
+    return;
+  }
+
+  const fresh = selected.filter((item) => !importedRideByActivity.has(item.activity.id));
+  if (fresh.length < 2) return;
+  const rideDate = target.activity.start_date_local.slice(0, 10);
+  const sectionSlugs = [...new Set(fresh.map((item) => item.rider.section_slug))];
+  const { data: sections, error: sectionError } = await admin.from("sections")
+    .select("id, slug").eq("active", true);
+  if (sectionError) throw sectionError;
+  const sectionId = sectionSlugs.length === 1
+    ? (sections ?? []).find((section) => section.slug === sectionSlugs[0])?.id ?? null : null;
+  const { data: ride, error: rideError } = await admin.from("training_rides").insert({
+    ride_date: rideDate, kind: "group", review_status: "under_review",
+    title: suggestedTitle(fresh.map((item) => item.activity), rideDate),
+    focus: suggestedFocus(fresh.map((item) => item.activity)), section_id: sectionId,
+    distance_km: Math.round(median(fresh.map((item) => item.activity.distance)) / 10) / 100,
+    moving_seconds: median(fresh.map((item) => item.activity.moving_time)),
+    elevation_m: Math.round(median(fresh.map((item) => item.activity.total_elevation_gain))),
+    strava_url: `https://www.strava.com/activities/${target.activity.id}`,
+  }).select("id").single();
+  if (rideError || !ride) throw rideError ?? new Error("Could not save Strava review ride");
+  try { await addEntries(ride.id, fresh); }
+  catch (error) {
+    await admin.from("training_rides").delete().eq("id", ride.id);
+    throw error;
+  }
+}
+
+export async function processQueuedStravaActivities(batchSize = 5): Promise<{ processed: number; failed: number }> {
+  const admin = createAdminClient();
+  const { data: events, error } = await admin.rpc("claim_strava_activity_events", { batch_size: batchSize });
+  if (error) throw error;
+  let processed = 0, failed = 0;
+  for (const event of events ?? []) {
+    try {
+      if (event.event_kind === "upsert") await processActivity(event);
+      else {
+        const { data: connection, error: lookupError } = await admin.from("strava_connections")
+          .select("athlete_id").eq("strava_athlete_id", event.owner_id).maybeSingle();
+        if (lookupError) throw lookupError;
+        if (connection) {
+          const { removeImportedStravaData } = await import("@/lib/strava-cleanup");
+          await removeImportedStravaData(connection.athlete_id,
+            event.event_kind === "delete" ? event.activity_id : undefined);
+          if (event.event_kind === "revoke") {
+            const { error: deleteError } = await admin.from("strava_connections")
+              .delete().eq("athlete_id", connection.athlete_id);
+            if (deleteError) throw deleteError;
+          }
+        }
+      }
+      const { error: saveError } = await admin.from("strava_activity_events").update({
+        processed_at: new Date().toISOString(), claimed_until: null, last_error: null,
+      }).eq("event_kind", event.event_kind).eq("activity_id", event.activity_id)
+        .eq("event_time", event.event_time);
+      if (saveError) throw saveError;
+      processed++;
+    } catch (cause) {
+      failed++;
+      const message = cause instanceof Error ? cause.message : String(cause);
+      const delaySeconds = message.includes("kufiri") ? 15 * 60 : Math.min(24 * 3600, 60 * 2 ** Math.min(event.attempts, 10));
+      await admin.from("strava_activity_events").update({
+        claimed_until: null, next_attempt_at: new Date(Date.now() + delaySeconds * 1000).toISOString(),
+        last_error: message.slice(0, 500),
+      }).eq("event_kind", event.event_kind).eq("activity_id", event.activity_id)
+        .eq("event_time", event.event_time);
+      console.error("Strava activity sync failed", { kind: event.event_kind, activityId: event.activity_id, error: message });
+    }
+  }
+  return { processed, failed };
+}
+
+export async function enqueueRecentStravaActivities(): Promise<number> {
+  const all = await connections();
+  const after = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
+  let found = 0;
+  for (const owner of all) {
+    for (let page = 1; page <= 5; page++) {
+      const rows = await stravaGet<StravaActivity[]>(owner.connection,
+        `/athlete/activities?after=${after}&per_page=100&page=${page}`);
+      if (!rows.length) break;
+      for (const activity of rows) {
+        if (!RIDE_TYPES.has(activity.sport_type)) continue;
+        await enqueueStravaActivity(activity.id, owner.connection.strava_athlete_id, Math.floor(Date.now() / 1000));
+        found++;
+      }
+    }
+  }
+  return found;
+}

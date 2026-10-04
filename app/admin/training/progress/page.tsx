@@ -51,12 +51,16 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
     supabase
       .from("ride_entries")
       .select("athlete_id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, ride:training_rides!inner(ride_date)")
+      .eq("review_status", "approved")
+      .eq("ride.review_status", "approved")
       .gte("ride.ride_date", start)
       .lt("ride.ride_date", end),
     supabase.from("team_members").select("id, full_name, section_slug, status, positions"),
     supabase
       .from("ride_entries")
       .select("participated, distance_km, moving_seconds, ride:training_rides!inner(ride_date)")
+      .eq("review_status", "approved")
+      .eq("ride.review_status", "approved")
       .gte("ride.ride_date", sinceISO),
   ]);
 

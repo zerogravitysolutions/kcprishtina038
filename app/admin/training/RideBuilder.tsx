@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { StravaEmbed } from "@/components/public/StravaEmbed";
 import { createRide, fetchStravaStats } from "./actions";
 import { AthletePicker, type AthleteOption } from "./AthletePicker";
 import { NumericInput } from "@/components/admin/NumericInput";
 import { parseDurationToSeconds, formatDurationHMS, TRAINING_FOCUS } from "@/lib/training";
-import { stravaActivityId } from "@/lib/strava";
 
 type Section = { id: string; name_sq: string };
 
@@ -22,22 +20,23 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
   const router = useRouter();
   const [pending, start] = useTransition();
   const [rideDate, setRideDate] = useState(todayISO());
+  const [title, setTitle] = useState("");
   const [focus, setFocus] = useState("");
   const [sectionId, setSectionId] = useState(sections[0]?.id ?? "");
   const [distance, setDistance] = useState("");
   const [duration, setDuration] = useState("");
   const [elevation, setElevation] = useState("");
   const [stravaUrl, setStravaUrl] = useState("");
+  const [stravaNotice, setStravaNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [resolving, startResolve] = useTransition();
   const [selected, setSelected] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
-
-  const canEmbed = !!stravaActivityId(stravaUrl);
 
   // Auto-fetch on paste/change: when a Strava link is entered, pull the public
   // stats and fill Bazë. The ref guards against re-fetching the same URL (incl.
   // the canonical URL we set after a successful fetch), so no loop.
   const lastFetched = useRef("");
+  const currentUrl = useRef("");
   useEffect(() => {
     const url = stravaUrl.trim();
     if (!url || url === lastFetched.current) return;
@@ -46,14 +45,17 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
       lastFetched.current = url;
       startResolve(async () => {
         const r = await fetchStravaStats(url);
+        if (currentUrl.current.trim() !== url) return;
         if (r.ok) {
           lastFetched.current = r.url;
+          currentUrl.current = r.url;
           setStravaUrl(r.url);
           if (r.distance_km != null) setDistance(String(r.distance_km));
           if (r.elevation_m != null) setElevation(String(r.elevation_m));
           if (r.moving_seconds != null) setDuration(formatDurationHMS(r.moving_seconds));
+          setStravaNotice(r.warning ? { error: false, text: r.warning } : null);
           setErr(null);
-        } else setErr(r.error);
+        } else setStravaNotice({ error: true, text: r.error });
       });
     }, 700);
     return () => clearTimeout(t);
@@ -69,6 +71,7 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
     start(async () => {
       const r = await createRide({
         ride_date: rideDate,
+        title,
         focus,
         section_id: sectionId || null,
         athlete_ids: selected,
@@ -104,20 +107,29 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
         </div>
       </div>
 
+      <div className="field" style={{ marginBottom: 0 }}>
+        <label>Titulli <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· opsional</span></label>
+        <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} placeholder="Emri i stërvitjes" />
+      </div>
+
       {/* Strava — auto-fills Bazë on paste. */}
       <div className="field" style={{ marginBottom: 0 }}>
         <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke lexuar…</span> : null}</label>
         <input
           value={stravaUrl}
-          onChange={(e) => setStravaUrl(e.target.value)}
+          onChange={(e) => {
+            currentUrl.current = e.target.value;
+            setStravaUrl(e.target.value);
+            setStravaNotice(null);
+          }}
           inputMode="url"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}
-          placeholder="Ngjit lidhjen — Baza plotësohet vetë"
+          placeholder="Ngjit lidhjen — statistikat publike plotësohen vetë"
         />
-        {canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} compact /></div>}
+        {stravaNotice && <div style={{ color: stravaNotice.error ? "var(--err)" : "var(--slate)", fontSize: 12, marginTop: 6 }}>{stravaNotice.text}</div>}
       </div>
 
       {/* Bazë — shared, inherited by each cyclist. */}

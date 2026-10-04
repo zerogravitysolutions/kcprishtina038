@@ -5,6 +5,7 @@ import { RideHeaderForm, type RideHeader } from "./RideHeaderForm";
 import { EntryEditor, type EntryRow } from "./EntryEditor";
 import { AddAthlete } from "./AddAthlete";
 import { RideDeleteButton } from "./RideDeleteButton";
+import { StravaReviewActions } from "./StravaReviewActions";
 import type { AthleteOption } from "../AthletePicker";
 import { fmt, sum, formatDurationShort } from "@/lib/training";
 
@@ -37,7 +38,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
   const [{ data: rideData }, { data: entryData }, { data: sectionRows }, { data: athleteRows }] = await Promise.all([
     supabase
       .from("training_rides")
-      .select("id, ride_date, focus, section_id, strava_url")
+      .select("id, ride_date, title, focus, section_id, strava_url, review_status, has_pending_changes")
       .eq("id", id)
       .maybeSingle(),
     supabase
@@ -67,7 +68,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
     <>
       <div className="page-head">
         <div>
-          <h1>{ride.focus || "Stërvitje"}</h1>
+          <h1>{ride.title || ride.focus || "Stërvitje"}</h1>
           <div className="mono" style={{ color: "var(--ink-3)", fontSize: 12, letterSpacing: ".06em", marginTop: 6 }}>
             {dateLabel}
           </div>
@@ -83,6 +84,10 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
         <Stat label="KM gjithsej" value={totalKm > 0 ? fmt(totalKm, 1) : "—"} />
         <Stat label="Koha gjithsej" value={totalSec > 0 ? formatDurationShort(totalSec) : "—"} />
       </div>
+
+      {(ride.review_status === "under_review" || ride.has_pending_changes) &&
+        <StravaReviewActions rideId={ride.id} newGroup={ride.review_status === "under_review"}
+          pendingRiders={entries.filter((entry) => entry.review_status === "under_review").length} />}
 
       <div style={{ marginBottom: 20 }}>
         <RideHeaderForm ride={ride} sections={sections} />

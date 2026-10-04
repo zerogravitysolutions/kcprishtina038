@@ -31,7 +31,7 @@ export default async function StravaImportPage() {
     <div className="page-head">
       <div>
         <h1>Importo nga Strava</h1>
-        <div className="sub">Grupe çiklizmi indoor dhe outdoor nga çiklistët e lidhur, për shqyrtim nga trajneri.</div>
+        <div className="sub">Stërvitje individuale dhe në grup nga Strava, për shqyrtim nga trajneri.</div>
       </div>
       <Link className="btn btn-ghost" href="/admin/training">← Stërvitjet</Link>
     </div>

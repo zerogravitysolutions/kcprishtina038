@@ -1,9 +1,13 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptToken, exchangeCode, revokeStrava, stravaIsConfigured } from "@/lib/strava-api";
 import { removeImportedStravaData } from "@/lib/strava-cleanup";
+import { enqueueRecentStravaActivities, processQueuedStravaActivities } from "@/lib/strava-sync";
+
+export const maxDuration = 60;
 
 function sameState(a: string, b: string): boolean {
   const left = Buffer.from(a), right = Buffer.from(b);
@@ -61,6 +65,14 @@ export async function GET(request: NextRequest) {
       scopes: [...granted].join(" "),
     }, { onConflict: "athlete_id" });
     if (error) throw error;
+    after(async () => {
+      try {
+        await enqueueRecentStravaActivities(rider.id);
+        await processQueuedStravaActivities(10);
+      } catch (error) {
+        console.error("Strava connection backfill failed", error);
+      }
+    });
     return finish("connected");
   } catch (error) {
     console.error("Strava connection failed", error);

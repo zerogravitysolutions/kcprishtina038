@@ -18,11 +18,7 @@ export async function removeImportedStravaData(athleteId: string, activityId?: n
     const { data: remaining, error: remainingError } = await admin.from("ride_entries")
       .select("distance_km, moving_seconds, elevation_m, strava_url, strava_imported, review_status").eq("ride_id", rideId);
     if (remainingError) throw remainingError;
-    const { data: ride, error: currentRideError } = await admin.from("training_rides")
-      .select("review_status").eq("id", rideId).maybeSingle();
-    if (currentRideError) throw currentRideError;
-    if (!remaining?.length || (ride?.review_status === "under_review" && remaining.length < 2 &&
-        remaining.every((entry) => entry.strava_imported))) {
+    if (!remaining?.length) {
       const { error: rideError } = await admin.from("training_rides").delete().eq("id", rideId);
       if (rideError) throw rideError;
     } else {
@@ -31,6 +27,7 @@ export async function removeImportedStravaData(athleteId: string, activityId?: n
         return values.length ? values[Math.floor(values.length / 2)] : null;
       };
       const { error: updateError } = await admin.from("training_rides").update({
+        kind: remaining.length === 1 ? "solo" : "group",
         distance_km: median("distance_km"), moving_seconds: median("moving_seconds"), elevation_m: median("elevation_m"),
         strava_url: remaining.find((entry) => entry.strava_imported && entry.strava_url)?.strava_url ?? null,
       }).eq("id", rideId);

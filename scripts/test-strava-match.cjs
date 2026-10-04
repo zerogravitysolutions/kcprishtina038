@@ -26,6 +26,9 @@ new Function("exports", suggestionCompiled)(suggestionModule);
 const indoorActivity = { name: "", sport_type: "VirtualRide" };
 assert.equal(suggestionModule.suggestedFocus([indoorActivity], true), "Stërvitje indoor");
 assert.equal(suggestionModule.suggestedTitle([indoorActivity], "2026-10-04", true), "Stërvitje indoor · 2026-10-04");
+const soloActivity = { name: "", sport_type: "Ride" };
+assert.equal(suggestionModule.suggestedFocus([soloActivity]), "Dalje individuale");
+assert.equal(suggestionModule.suggestedTitle([soloActivity], "2026-10-04"), "Dalje individuale · 2026-10-04");
 
 const route = Array.from({ length: 101 }, (_, i) => [42.65, 21.16 + i * 0.001]);
 const different = route.map(([lat, lon]) => [lat + 0.03, lon]);

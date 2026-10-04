@@ -15,7 +15,7 @@ export function StravaReviewActions({ rideId, newGroup, pendingRiders }: {
       {newGroup ? "Në shqyrtim · stërvitje e re nga Strava" : "Në shqyrtim · çiklistë të shtuar më vonë"}
     </strong>
     <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-3)" }}>
-      {pendingRiders} çiklistë presin miratimin. Kontrollo titullin, llojin dhe vlerat për secilin çiklist para miratimit.
+      {pendingRiders === 1 ? "1 çiklist pret" : `${pendingRiders} çiklistë presin`} miratimin. Kontrollo titullin, llojin dhe vlerat për secilin çiklist para miratimit.
     </p>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
       <button className="btn btn-ember" type="button" disabled={pending} onClick={() => start(async () => {

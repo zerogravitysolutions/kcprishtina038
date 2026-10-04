@@ -48,7 +48,7 @@ export function ImportReview({ sections }: { sections: Section[] }) {
   return <div style={{ display: "grid", gap: 16, maxWidth: 860 }}>
     <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
       <button type="button" className="btn btn-ember" disabled={loading} onClick={refresh}>
-        {loading ? "Duke kërkuar…" : "Rifresko grupet"}
+        {loading ? "Duke kërkuar…" : "Kërko grupe shtesë"}
       </button>
       <span className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>
         {connectedCount} çiklistë të lidhur · 7 ditët e fundit
@@ -56,7 +56,7 @@ export function ImportReview({ sections }: { sections: Section[] }) {
     </div>
     {error && <p role="alert" style={{ color: "var(--err)" }}>{error}</p>}
     {!loading && !error && suggestions.length === 0 &&
-      <div className="card" style={{ padding: 20 }}>Nuk ka grupe indoor me kohë dhe kohëzgjatje të përputhshme, ose grupe outdoor me përputhje të rrugës 60%.</div>}
+      <div className="card" style={{ padding: 20 }}>Nuk ka grupe të tjera me përputhje. Stërvitjet individuale nga Strava shfaqen automatikisht te “Në shqyrtim” më lart.</div>}
     {suggestions.map((suggestion) =>
       <SuggestionCard key={suggestion.key} suggestion={suggestion} sections={sections}
         onImported={() => setSuggestions((items) => items.filter((item) => item.key !== suggestion.key))} />)}

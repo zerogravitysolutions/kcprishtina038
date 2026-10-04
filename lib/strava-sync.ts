@@ -6,7 +6,7 @@ import { matchIndoorRides, matchRides, type LatLng, type MatchRide } from "@/lib
 import { cyclingMode } from "@/lib/strava-cycling";
 import { metricsFromStrava, type PowerStreams } from "@/lib/strava-metrics";
 import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
-import type { TableInsert, TableRow } from "@/lib/supabase/types";
+import type { TableInsert, TableRow, TableUpdate } from "@/lib/supabase/types";
 
 const MIN_RIDE_METERS = 2_000;
 const START_WINDOW_SECONDS = 31 * 60;
@@ -53,7 +53,10 @@ function asMatch(rider: Rider, activity: StravaActivity, route: LatLng[]): Match
 
 async function routeFor(connection: StravaConnection, activityId: number): Promise<LatLng[]> {
   const streams = await stravaGet<{ latlng?: { data?: LatLng[] } }>(connection,
-    `/activities/${activityId}/streams?keys=latlng&key_by_type=true`);
+    `/activities/${activityId}/streams?keys=latlng&key_by_type=true`).catch((error: unknown) => {
+      if (error instanceof Error && error.message === "Strava API: 404") return { latlng: undefined };
+      throw error;
+    });
   return (streams.latlng?.data ?? []).filter((point): point is LatLng =>
     Array.isArray(point) && point.length === 2 && Number.isFinite(point[0]) && Number.isFinite(point[1]));
 }
@@ -67,11 +70,17 @@ async function detailFor(owner: Connected, activityId: number, mode: "indoor" | 
     throw error;
   }
   if (activity.id !== activityId || activity.athlete?.id !== owner.connection.strava_athlete_id ||
-      cyclingMode(activity) !== mode || activity.elapsed_time <= 0 ||
-      (mode === "outdoor" && activity.distance < MIN_RIDE_METERS)) return null;
+      cyclingMode(activity) !== mode || activity.elapsed_time <= 0) return null;
   const route = mode === "outdoor" ? await routeFor(owner.connection, activityId) : [];
-  if (mode === "outdoor" && route.length < 2) return null;
   return { ...owner, activity, match: asMatch(owner.rider, activity, route) };
+}
+
+async function promoteToGroup(ride: { id: string; ride_date: string; title: string | null; focus: string | null }) {
+  const update: TableUpdate<"training_rides"> = { kind: "group" };
+  if (ride.focus === "Dalje individuale") update.focus = "Dalje grupore";
+  if (ride.title === `Dalje individuale · ${ride.ride_date}`) update.title = `Dalje grupore · ${ride.ride_date}`;
+  const { error } = await createAdminClient().from("training_rides").update(update).eq("id", ride.id);
+  if (error) throw error;
 }
 
 async function activitiesNear(owner: Connected, centerSeconds: number): Promise<StravaActivity[]> {
@@ -181,8 +190,6 @@ async function processActivity(event: Event): Promise<void> {
     if (selected.some((current) => current.rider.id === item.rider.id)) continue;
     if (selected.every((current) => score(current.match, item.match) !== null)) selected.push(item);
   }
-  if (selected.length < 2) return;
-
   const { data: imported, error: importedError } = await admin.from("ride_entries")
     .select("ride_id, athlete_id, strava_activity_id")
     .eq("strava_imported", true)
@@ -191,12 +198,21 @@ async function processActivity(event: Event): Promise<void> {
   const importedRideByActivity = new Map((imported ?? []).map((entry) => [entry.strava_activity_id, entry.ride_id]));
   const rideIds = [...new Set((imported ?? []).map((entry) => entry.ride_id))];
 
+  const reusable: {
+    ride: { id: string; ride_date: string; title: string | null; focus: string | null; review_status: string; created_at: string };
+    members: Matched[];
+  }[] = [];
   for (const rideId of rideIds) {
+    const { data: ride, error: rideError } = await admin.from("training_rides")
+      .select("id, ride_date, title, focus, review_status, created_at").eq("id", rideId).maybeSingle();
+    if (rideError) throw rideError;
+    if (!ride) continue;
     const { data: existing, error } = await admin.from("ride_entries")
-      .select("athlete_id, strava_activity_id").eq("ride_id", rideId).eq("strava_imported", true);
+      .select("athlete_id, strava_activity_id, strava_imported").eq("ride_id", rideId);
     if (error) throw error;
     const members: Matched[] = [];
     for (const entry of existing ?? []) {
+      if (!entry.strava_imported) break;
       const linked = all.find((item) => item.rider.id === entry.athlete_id);
       if (!linked || !entry.strava_activity_id) break;
       const match = selected.find((item) => item.activity.id === entry.strava_activity_id)
@@ -206,17 +222,39 @@ async function processActivity(event: Event): Promise<void> {
     }
     if (members.length !== (existing ?? []).length ||
         members.some((member) => score(member.match, target.match) === null && member.activity.id !== target.activity.id)) continue;
+    reusable.push({ ride, members });
+  }
+  reusable.sort((a, b) =>
+    Number(b.ride.review_status === "approved") - Number(a.ride.review_status === "approved") ||
+    b.members.length - a.members.length || a.ride.created_at.localeCompare(b.ride.created_at));
+  for (const chosen of reusable) {
+    let changed = false;
+    for (const source of reusable) {
+      if (source.ride.id === chosen.ride.id || source.members.length !== 1) continue;
+      const member = source.members[0];
+      if (!selected.some((item) => item.activity.id === member.activity.id) ||
+          chosen.members.some((item) => item.rider.id === member.rider.id) ||
+          !chosen.members.every((item) => score(item.match, member.match) !== null)) continue;
+      const { data: merged, error: mergeError } = await admin.rpc("merge_strava_singleton", {
+        p_target_ride_id: chosen.ride.id, p_source_ride_id: source.ride.id,
+      });
+      if (mergeError) throw mergeError;
+      if (merged) { chosen.members.push(member); changed = true; }
+    }
     const additions = selected.filter((item) =>
       !importedRideByActivity.has(item.activity.id) &&
-      !members.some((member) => member.rider.id === item.rider.id) &&
-      members.every((member) => score(member.match, item.match) !== null));
-    if (!additions.length) return;
-    await addEntries(rideId, additions);
+      !chosen.members.some((member) => member.rider.id === item.rider.id) &&
+      chosen.members.every((member) => score(member.match, item.match) !== null));
+    if (additions.length) {
+      await addEntries(chosen.ride.id, additions);
+      changed = true;
+    }
+    if (changed && chosen.members.length + additions.length > 1) await promoteToGroup(chosen.ride);
     return;
   }
 
   const fresh = selected.filter((item) => !importedRideByActivity.has(item.activity.id));
-  if (fresh.length < 2) return;
+  if (!fresh.length) return;
   const rideDate = target.activity.start_date_local.slice(0, 10);
   const sectionSlugs = [...new Set(fresh.map((item) => item.rider.section_slug))];
   const { data: sections, error: sectionError } = await admin.from("sections")
@@ -225,7 +263,7 @@ async function processActivity(event: Event): Promise<void> {
   const sectionId = sectionSlugs.length === 1
     ? (sections ?? []).find((section) => section.slug === sectionSlugs[0])?.id ?? null : null;
   const { data: ride, error: rideError } = await admin.from("training_rides").insert({
-    ride_date: rideDate, kind: "group", review_status: "under_review",
+    ride_date: rideDate, kind: fresh.length === 1 ? "solo" : "group", review_status: "under_review",
     title: suggestedTitle(fresh.map((item) => item.activity), rideDate, mode === "indoor"),
     focus: suggestedFocus(fresh.map((item) => item.activity), mode === "indoor"), section_id: sectionId,
     distance_km: Math.round(median(fresh.map((item) => item.activity.distance)) / 10) / 100,
@@ -285,8 +323,8 @@ export async function processQueuedStravaActivities(batchSize = 5): Promise<{ pr
   return { processed, failed };
 }
 
-export async function enqueueRecentStravaActivities(): Promise<number> {
-  const all = await connections();
+export async function enqueueRecentStravaActivities(athleteId?: string): Promise<number> {
+  const all = (await connections()).filter((owner) => !athleteId || owner.rider.id === athleteId);
   const after = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
   let found = 0;
   for (const owner of all) {

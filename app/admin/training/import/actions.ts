@@ -346,8 +346,8 @@ export async function approveStravaReview(rideId: string): Promise<{ ok: true } 
     const { data: entries, error: entriesError } = await supabase.from("ride_entries")
       .select("id, athlete_id, review_status, set_ftp, ftp_w").eq("ride_id", rideId);
     if (entriesError) throw entriesError;
-    if ((entries ?? []).length < 2) {
-      return { ok: false, error: "Stërvitja nuk ka mjaft çiklistë për miratim." };
+    if (!(entries ?? []).length) {
+      return { ok: false, error: "Stërvitja nuk ka çiklist për miratim." };
     }
     if (!(entries ?? []).some((entry) => entry.review_status === "under_review")) {
       return { ok: false, error: "Nuk ka çiklistë për shqyrtim." };

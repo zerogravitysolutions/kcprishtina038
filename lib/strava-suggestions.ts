@@ -22,12 +22,12 @@ export function suggestedFocus(activities: StravaActivity[], indoor = false): st
   for (const clue of clues) {
     if (names.filter((name) => clue.pattern.test(name)).length >= Math.ceil(names.length / 2)) return clue.focus;
   }
-  return indoor ? "Stërvitje indoor" : "Dalje grupore";
+  return indoor ? "Stërvitje indoor" : activities.length === 1 ? "Dalje individuale" : "Dalje grupore";
 }
 
 export function suggestedTitle(activities: StravaActivity[], rideDate: string, indoor = false): string {
   const names = activities.map((activity) => activity.name.trim());
   const first = names[0];
   if (first && first.length <= 120 && names.every((name) => name.toLowerCase() === first.toLowerCase())) return first;
-  return `${indoor ? "Stërvitje indoor" : "Dalje grupore"} · ${rideDate}`;
+  return `${indoor ? "Stërvitje indoor" : activities.length === 1 ? "Dalje individuale" : "Dalje grupore"} · ${rideDate}`;
 }

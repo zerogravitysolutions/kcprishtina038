@@ -762,6 +762,7 @@ export interface Database {
     Functions: {
       claim_strava_activity_events: { Args: { batch_size?: number }; Returns: PublicTables["strava_activity_events"]["Row"][] };
       approve_strava_review: { Args: { p_ride_id: string }; Returns: void };
+      merge_strava_singleton: { Args: { p_target_ride_id: string; p_source_ride_id: string }; Returns: boolean };
       approve_application: { Args: { app_id: string }; Returns: string };
       reject_application:  { Args: { app_id: string; reason?: string | null }; Returns: string };
       set_user_role:       { Args: { target_id: string; new_role: UserRole }; Returns: string };

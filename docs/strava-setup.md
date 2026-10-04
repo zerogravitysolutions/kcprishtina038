@@ -8,8 +8,9 @@ rider record is required before the connection button appears.
 
 1. Create the club's Strava API application and set its callback domain to the
    production domain. Request enough athlete capacity for the connected riders.
-2. Apply `supabase/migrations/20261004000002_strava_connections_and_training_titles.sql`
-   and `20261004000004_strava_review_and_event_queue.sql` in migration order.
+2. Apply `supabase/migrations/20261004000002_strava_connections_and_training_titles.sql`,
+   `20261004000004_strava_review_and_event_queue.sql`, and
+   `20261004000005_strava_solo_reviews.sql` in migration order.
 3. Add these **server-side** environment variables locally and in Vercel:
 
 | Variable | Purpose |
@@ -28,7 +29,7 @@ requires reconnecting every cyclist or migrating the stored tokens first.
 
 1. Each cyclist opens **Portali → Profili → Lidh me Strava**, authorizes
    `activity:read_all` and `profile:read_all`, and returns to the club portal. The app stores encrypted
-   access and refresh tokens in a service-role-only table.
+   access and refresh tokens in a service-role-only table and queues their recent rides immediately.
 2. A Strava activity create/update webhook queues the activity by ID. The app
    acknowledges the webhook promptly, then processes it after the response.
    A daily Vercel cron retries queued failures and backfills rides from the
@@ -46,10 +47,12 @@ requires reconnecting every cyclist or migrating the stored tokens first.
    starts within 30 minutes, at least 70% overlapping elapsed time, and
    elevation difference no greater than 20% or 150 m. Distance must also be
    within 25% or 3 km. Every pair in an outdoor group must pass. Outdoor rides
-   without GPS cannot pass the route check. At least two riders are needed for
-   either group; individual indoor rides are not auto-created as trainings.
-4. A new matching group is saved immediately as a training with status **Under
-   review**. Its entries do not appear in cyclist history or coach KPIs until
+   without GPS can be reviewed individually but cannot pass the group route check.
+4. Every eligible cycling activity is saved as a training with status **Under
+   review**, even when only one cyclist is connected. Matching activities from
+   other cyclists are grouped, including activities published later. A solo
+   training becomes a group when a matching cyclist joins it. Pending entries
+   do not appear in cyclist history or coach KPIs until
    the coach approves them. If a rider publishes later and matches an approved
    group, only that rider's new entry waits for review; approved riders remain
    visible. Coaches can approve or reject on the training detail page. Rejected

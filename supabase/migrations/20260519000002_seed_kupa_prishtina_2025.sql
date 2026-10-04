@@ -11,6 +11,10 @@ begin
   -- created_by must point at a profile; pick any admin so the row passes
   -- whatever FK assumption downstream code might have.
   select id into v_admin from public.profiles where role = 'admin' order by created_at asc limit 1;
+  -- Production has this uploaded cover; a fresh preview database may not.
+  if not exists (select 1 from public.media where id = v_cover) then
+    v_cover := null;
+  end if;
 
   insert into public.events (
     slug, title_sq, title_en, type, status, start_at,

@@ -1616,7 +1616,7 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 }
 
 /* ---------- People directory ---------- */
-.people-page { width: 100%; max-width: 1680px; margin-inline: auto; }
+.people-page { width: 100%; min-width: 0; }
 .people-head { align-items: center; margin-bottom: 18px; }
 .people-head .sub { max-width: none; color: var(--text-2); }
 .people-head-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }

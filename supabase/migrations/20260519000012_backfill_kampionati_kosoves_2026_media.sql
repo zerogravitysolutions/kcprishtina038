@@ -5,9 +5,9 @@
 -- general assembly, an awards gala — plus one alum result under review.)
 
 update public.race_events set
-  cover_media_id    = 'bd014337-86e9-4d80-ad98-3c77f7d85251',
+  cover_media_id    = (select id from public.media where id = 'bd014337-86e9-4d80-ad98-3c77f7d85251'),
   external_url      = 'https://www.facebook.com/901162302934178/posts/937384879311920',
-  gallery_media_ids = array[
+  gallery_media_ids = array(select candidate.id from unnest(array[
     'bd014337-86e9-4d80-ad98-3c77f7d85251','46381507-2121-4ec9-ad9b-b34ee2f89222',
     '64dc0085-fd62-44a0-8e1d-19fa73a220e8','cd727159-c5cf-4b20-94f8-ca2ac4d76e73',
     '60704b14-c16f-4dde-8bdb-cd61837bf081','98a597fc-466d-498d-a0c4-fad749a8fb13',
@@ -15,7 +15,8 @@ update public.race_events set
     '264d7024-8469-4591-84d6-e0f6d9112b21','28fd8c9e-2557-4d6b-8d41-e8341ead23b5',
     '9d1059ec-8fd0-4f69-81ea-2f461be11409','ccce3ed9-8d4c-4ea5-a2bf-3037580f032b',
     '3f201019-aa35-4abc-87b8-c6320c457567','02a63619-8382-45dc-a661-87319607a3dc'
-  ]::uuid[]
+  ]::uuid[]) with ordinality as candidate(id, position)
+    join public.media m on m.id = candidate.id order by candidate.position)
 where slug = 'kampionati-kosoves-2026';
 
 -- Link the results news post to the race (news.race_event_id).

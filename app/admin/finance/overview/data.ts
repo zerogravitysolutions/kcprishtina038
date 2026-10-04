@@ -13,7 +13,7 @@ export const FINANCE_ROLES = ["admin", "staff"];
 
 export const OVERVIEW_BASE = "/admin/finance/overview";
 
-export type OverviewView = "arka" | "anetaresia" | "borxhet";
+export type OverviewView = "arka" | "anetaresia" | "borxhet" | "historiku";
 
 /** The window each view filters by: `y` is the Arka year, `p` the Anëtarësia month. */
 export type OverviewWindow = { y?: string; p?: string };

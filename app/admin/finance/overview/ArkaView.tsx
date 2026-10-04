@@ -16,7 +16,7 @@ import {
   yearOfPayment,
 } from "./data";
 import {
-  ALL, ALL_TIME_NOTE, ALL_YEARS_LABEL, defaultYear, parseYearParam, yearChoices, yearWindowLabel,
+  ALL, defaultYear, parseYearParam, yearChoices, yearWindowLabel,
 } from "../filters";
 import { AllTimeBalance, Kpi, LoadError, OutsideCard, TruncationWarning } from "./ui";
 import { expenseYear } from "../expense-year";
@@ -46,7 +46,7 @@ function yearOf(date: string): string {
 }
 
 /** `p` is not read here — it is carried so the other tab keeps its month. */
-export async function ArkaView({ y, p }: { y?: string; p?: string }) {
+export async function ArkaView({ y, p, history = false }: { y?: string; p?: string; history?: boolean }) {
   const supabase = await createClient();
   // The debt view reads its own all-time totals; this view reads club movements.
   const [paid, fundRes, expenseRes, categoryRes, sponsorRes] = await Promise.all([
@@ -98,7 +98,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   // On 2 January the
   // calendar year would open this page on €0.00 / €0.00 / €0.00 with the whole
   // ledger one chip away; the newest year with rows always opens on money.
-  // "Të gjitha vitet" stays a choice you make, never the state you land in.
+  // The all-time view has its own Historiku tab.
   //
   // ONE list, feeding both the default and the chips, so the year this view
   // opens in is always a chip you can come back to. All three reads are ordered
@@ -119,7 +119,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   const windowPaidDues = paidDuesInYear(paidDues, year);
   // Paid invoices with no payment date cannot be placed in a year. Under a year
   // filter they are left out, and the page says so rather than pretending. They
-  // DO belong in the all-time total below — "since the club started" has no
+  // DO belong in the all-time total on Historiku — "since the club started" has no
   // bucket for them to fall out of — which is precisely why the years will not
   // add up to it, and why the euros they carry are totalled here.
   const undated = undatedPaidRows(paidDues);
@@ -148,12 +148,10 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
     : `${sponsorName.get(key.slice(7)) ?? UNKNOWN_SPONSOR_LABEL} (pa hyrje)`;
 
   // ---- breakdowns ----------------------------------------------------------
-  // By year, over EVERYTHING — this is the section that puts the selected year
-  // in context, so it deliberately ignores the filter and says so.
-  const allYears = [...years].sort((a, b) => a.localeCompare(b));
+  // The history table uses the data's years, independent of any selected year.
+  const allYears = yearChoices(activeYears, defaultY).sort((a, b) => a.localeCompare(b));
   // `running` is the club's cumulative position after each year — the column
-  // that walks the eye from the first year to the headline above, so the two
-  // windows on this page are visibly the same money seen twice.
+  // that walks the eye from the first year to the all-time balance card.
   let running = 0;
   const byYear = allYears.map((yr) => {
     const f = funds.filter((r) => yearOf(r.occurred_on) === yr);
@@ -246,23 +244,16 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
   };
   return (
     <>
-      <div className="overview-section-head">
-        <div>
-          <span className="overview-eyebrow">PERIUDHA E ZGJEDHUR</span>
-          <h2>{year === ALL ? "Të gjitha vitet" : `Viti ${year}`}</h2>
-          <p>Hyrjet sipas datës së arkëtimit; shpenzimet sipas vitit të fondit ose, pa fond, datës së tyre.</p>
+      {!history ? <>
+        <div className="overview-year-control">
+          <span className="overview-year-label">Viti</span>
+          <nav className="overview-year-options" aria-label="Viti i pasqyrës">
+            {years.map((v) => (
+              <Link key={v} className={`chip ${year === v ? "active" : ""}`} href={link(v)} aria-current={year === v ? "page" : undefined}>{v}</Link>
+            ))}
+          </nav>
+          <span className="overview-year-help">Shpenzimet ndjekin vitin e fondit; pa fond, datën e tyre.</span>
         </div>
-      </div>
-      {/* Newest year first, the catch-all last: the frame this page opens in is
-          the newest year with movements, not the whole history. */}
-      <div className="filter-bar overview-period-filter" aria-label="Viti i pasqyrës">
-        {years.map((v) => (
-          <Link key={v} className={`chip ${year === v ? "active" : ""}`} href={link(v)}>{v}</Link>
-        ))}
-        <Link className={`chip ${year === ALL ? "active" : ""}`} href={link(ALL)}>{ALL_YEARS_LABEL}</Link>
-        <div className="spacer" />
-        <span className="meta">{yearLabel}</span>
-      </div>
 
       <TruncationWarning parts={truncated} />
 
@@ -276,10 +267,8 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
         </div>
       ) : null}
 
-      {/* ---------------------------------------------------------- balance */}
-      <div className="card-head" style={{ border: 0, padding: 0, marginBottom: 12 }}>
-        <h3>{year === ALL ? "Bilanci i të gjitha viteve" : `Bilanci i vitit ${year}`}</h3>
-        <span className="kicker">{yearLabel}</span>
+      <div className="overview-section-head">
+        <div><h2>Bilanci · {year}</h2></div>
       </div>
 
       <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginBottom: 8 }}>
@@ -287,14 +276,14 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
           accent="#16A34A"
           label="Hyrjet"
           value={formatEur(balance.income)}
-          sub={`anëtarësi ${formatEur(balance.membershipIncome)} + fonde ${formatEur(balance.fundsTotal)} · ${yearLabel}`}
+          sub={`anëtarësi ${formatEur(balance.membershipIncome)} + fonde ${formatEur(balance.fundsTotal)}`}
         />
         <Kpi
           accent="#E0562D"
           label="Daljet"
           value={formatEur(balance.expensesPaid)}
           sub={
-            `${expenseCount(paidExpenses.length)} të paguara · ${yearLabel}`
+            `${expenseCount(paidExpenses.length)} të paguara`
             + (balance.paidMissingAmount > 0 ? ` · ${balance.paidMissingAmount} pa shumë` : "")
           }
         />
@@ -303,8 +292,7 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
           label="Bilanci"
           value={formatEur(balance.balance)}
           sub={
-            (balance.balance < 0 ? `klubi ka dalë ${formatEur(-balance.balance)} mbi hyrjet` : "hyrjet minus daljet")
-            + ` · ${yearLabel}`
+            balance.balance < 0 ? `klubi ka dalë ${formatEur(-balance.balance)} mbi hyrjet` : "hyrjet minus daljet"
           }
           tone={balance.balance < 0 ? "err" : undefined}
         />
@@ -382,18 +370,11 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
         )}
       </div>
 
-      <section className="overview-history" aria-labelledby="overview-history-title">
-        <div className="overview-section-head">
-          <div>
-            <span className="overview-eyebrow">HISTORIKU</span>
-            <h2 id="overview-history-title">Të gjitha vitet</h2>
-            <p>{year === ALL ? "Buxheti sipas burimit dhe krahasimi vjetor." : "Bilanci që nga fillimi, buxheti sipas burimit dhe krahasimi vjetor."}</p>
-          </div>
-        </div>
-      {/* The full history follows the selected-year analysis. */}
-      {nothingYet || year === ALL ? null : (
+      </> : <>
+      <TruncationWarning parts={truncated} />
+      {nothingYet ? null : (
         <AllTimeBalance
-          window={`Që nga fillimi · ${ALL_TIME_NOTE}`}
+          window="Të gjitha vitet"
           income={cut ? `së paku ${formatEur(allTime.income)}` : formatEur(allTime.income)}
           incomeSub={`anëtarësi ${formatEur(allTime.membershipIncome)} + fonde ${formatEur(allTime.fundsTotal)}`}
           spent={cut && allTimePaidExpenses.counted > 0 ? `së paku ${allTimeSpentValue}` : allTimeSpentValue}
@@ -424,77 +405,6 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
           }
         />
       )}
-
-      {/* ------------------------------------------------- fund positions */}
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div className="card-head">
-          <h3>Sipas burimit</h3>
-          <span className="kicker">të gjitha vitet</span>
-        </div>
-        {sourceStand.length === 0 ? (
-          <p style={{ margin: 0, fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.7 }}>
-            Nuk ka ende hyrje ose shpenzime me burim të caktuar.
-          </p>
-        ) : (
-          <>
-            <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
-              Çdo fond ka buxhetin e vet. “Shpenzuar” përfshin kostot e paguara dhe të papaguara të lidhura me të.
-            </p>
-            <div className="table-wrap">
-              <table className="t">
-                <thead>
-                  {/* Money headers carry .num like their cells do: a header
-                      styled apart from its column drifts the moment a figure
-                      grows a digit or a cell wraps. */}
-                  <tr>
-                    <th>Burimi</th>
-                    <th className="num">Pranuar</th>
-                    <th className="num">Shpenzuar</th>
-                    <th>Gjendja</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sourceStand.map((s) => (
-                    <tr key={s.sourceKey}>
-                      <td>
-                        <span>
-                          {sourceName(s.sourceKey)}
-                          <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
-                            {fundCount(s.fundCount)} · {expenseCount(s.expenseCount)}
-                          </small>
-                        </span>
-                      </td>
-                      <td className="num" data-lab="Pranuar">{formatEur(s.received)}</td>
-                      <td className="num" data-lab="Shpenzuar">
-                        <span>
-                          {formatEur(s.spent)}
-                          {s.missingAmount > 0 ? (
-                            <small style={{ display: "block", fontSize: 11, color: "var(--warn)", marginTop: 2 }}>
-                              {s.missingAmount} pa shumë
-                            </small>
-                          ) : null}
-                        </span>
-                      </td>
-                      <td data-lab="Gjendja">
-                        {s.remaining < 0 ? (
-                          <span>
-                            <span className="badge-st err">Tejkaluar</span>
-                            <small style={{ display: "block", fontSize: 11, color: "var(--err)", marginTop: 4 }}>
-                              {formatEur(-s.remaining)} mbi të pranuarat
-                            </small>
-                          </span>
-                        ) : (
-                          <span className="badge-st ok">Mbetur {formatEur(s.remaining)}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </div>
 
       {/* --------------------------------------------------------- by year */}
       <div className="card" style={{ marginBottom: 20 }}>
@@ -645,7 +555,78 @@ export async function ArkaView({ y, p }: { y?: string; p?: string }) {
         )}
       </div>
 
-      </section>
+      {/* ------------------------------------------------- fund positions */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-head">
+          <h3>Sipas burimit</h3>
+          <span className="kicker">të gjitha vitet</span>
+        </div>
+        {sourceStand.length === 0 ? (
+          <p style={{ margin: 0, fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.7 }}>
+            Nuk ka ende hyrje ose shpenzime me burim të caktuar.
+          </p>
+        ) : (
+          <>
+            <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-3)", lineHeight: 1.7 }}>
+              Çdo fond ka buxhetin e vet. “Shpenzuar” përfshin kostot e paguara dhe të papaguara të lidhura me të.
+            </p>
+            <div className="table-wrap">
+              <table className="t">
+                <thead>
+                  {/* Money headers carry .num like their cells do: a header
+                      styled apart from its column drifts the moment a figure
+                      grows a digit or a cell wraps. */}
+                  <tr>
+                    <th>Burimi</th>
+                    <th className="num">Pranuar</th>
+                    <th className="num">Shpenzuar</th>
+                    <th>Gjendja</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sourceStand.map((s) => (
+                    <tr key={s.sourceKey}>
+                      <td>
+                        <span>
+                          {sourceName(s.sourceKey)}
+                          <small style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
+                            {fundCount(s.fundCount)} · {expenseCount(s.expenseCount)}
+                          </small>
+                        </span>
+                      </td>
+                      <td className="num" data-lab="Pranuar">{formatEur(s.received)}</td>
+                      <td className="num" data-lab="Shpenzuar">
+                        <span>
+                          {formatEur(s.spent)}
+                          {s.missingAmount > 0 ? (
+                            <small style={{ display: "block", fontSize: 11, color: "var(--warn)", marginTop: 2 }}>
+                              {s.missingAmount} pa shumë
+                            </small>
+                          ) : null}
+                        </span>
+                      </td>
+                      <td data-lab="Gjendja">
+                        {s.remaining < 0 ? (
+                          <span>
+                            <span className="badge-st err">Tejkaluar</span>
+                            <small style={{ display: "block", fontSize: 11, color: "var(--err)", marginTop: 4 }}>
+                              {formatEur(-s.remaining)} mbi të pranuarat
+                            </small>
+                          </span>
+                        ) : (
+                          <span className="badge-st ok">Mbetur {formatEur(s.remaining)}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+
+      </>}
     </>
   );
 }

@@ -5,6 +5,7 @@ import { ArkaView } from "./ArkaView";
 import { AnetaresiaView } from "./AnetaresiaView";
 import { BorxhetView } from "./BorxhetView";
 import { FINANCE_ROLES, overviewHref, type OverviewView } from "./data";
+import { ALL } from "../filters";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -12,7 +13,7 @@ export const revalidate = 0;
 export const metadata = { title: "Pasqyra financiare" };
 
 /**
- * The club's whole financial position, in one nav line and three views.
+ * The club's financial position across four focused views.
  *
  * This page is the merge of "Arka e klubit" and "Raportet financiare". Those
  * two printed the same open-member-debt euros, the same monthly billed total
@@ -27,9 +28,10 @@ export const metadata = { title: "Pasqyra financiare" };
 type SearchParams = Promise<{ v?: string; y?: string; p?: string }>;
 
 const VIEWS: Array<{ id: OverviewView; label: string }> = [
-  { id: "arka", label: "Arka e klubit" },
-  { id: "anetaresia", label: "Të hyrat e akademisë" },
+  { id: "arka", label: "Arka" },
+  { id: "anetaresia", label: "Akademia" },
   { id: "borxhet", label: "Borxhet" },
+  { id: "historiku", label: "Historiku" },
 ];
 
 export default async function FinanceOverviewPage({ searchParams }: { searchParams: SearchParams }) {
@@ -38,22 +40,10 @@ export default async function FinanceOverviewPage({ searchParams }: { searchPara
   if (!FINANCE_ROLES.includes(profile.role)) redirect("/admin/dashboard");
 
   const sp = await searchParams;
-  const view: OverviewView =
-    sp.v === "anetaresia" ? "anetaresia" : sp.v === "borxhet" ? "borxhet" : "arka";
-
-  /**
-   * The year, forwarded to the sibling ledgers only when it was CHOSEN.
-   *
-   * A screen with no ?y= opens on the newest year IT has rows in, and says so
-   * in its heading — that is the panel's default and each screen resolves it
-   * against its own data. So a bare link stays bare and lets the destination
-   * pick. But a year the user picked here is a decision, and dropping it on the
-   * way out would silently undo it. This page cannot resolve the Arka default
-   * itself without repeating that view's three reads, which is exactly why only
-   * the explicit case travels.
-   */
-  const carriedYear = (sp.y ?? "").trim();
-  const yq = carriedYear ? `?y=${encodeURIComponent(carriedYear)}` : "";
+  const view: OverviewView = sp.v === "anetaresia" || sp.v === "borxhet" || sp.v === "historiku" ? sp.v : "arka";
+  // Old bookmarks for the former all-years chip now open the history tab.
+  if (view === "arka" && sp.y === ALL) redirect(overviewHref("historiku", { p: sp.p }));
+  const navWindow = { y: sp.y === ALL ? undefined : sp.y, p: sp.p };
 
   return (
     <>
@@ -62,9 +52,11 @@ export default async function FinanceOverviewPage({ searchParams }: { searchPara
           <h1>Pasqyra financiare</h1>
           <div className="sub">
             {view === "arka" ? (
-              "Hyrjet, shpenzimet dhe bilanci i klubit."
+              "Bilanci dhe shpenzimet për vitin e zgjedhur."
             ) : view === "anetaresia" ? (
               "Pagesat dhe faturimi i anëtarësive sipas muajit."
+            ) : view === "historiku" ? (
+              "Bilanci që nga fillimi dhe krahasimi i viteve e burimeve."
             ) : (
               "Detyrimet e hapura të anëtarëve dhe të klubit."
             )}
@@ -77,7 +69,7 @@ export default async function FinanceOverviewPage({ searchParams }: { searchPara
           <Link
             key={v.id}
             className={`chip ${view === v.id ? "active" : ""}`}
-            href={overviewHref(v.id, sp)}
+            href={overviewHref(v.id, navWindow)}
             aria-current={view === v.id ? "page" : undefined}
           >
             {v.label}
@@ -85,21 +77,8 @@ export default async function FinanceOverviewPage({ searchParams }: { searchPara
         ))}
       </nav>
 
-      <div className="overview-actions" aria-label="Regjistrat financiarë">
-        {view === "arka" ? <>
-          <Link href={`/admin/finance/funds${yq}`}>Hyrjet e klubit →</Link>
-          <Link href={`/admin/finance/expenses${yq}`}>Shpenzimet →</Link>
-          <Link href="/admin/finance">Faturat e anëtarëve →</Link>
-        </> : view === "anetaresia" ? <>
-          <Link href="/admin/finance">Faturat e anëtarëve →</Link>
-          {profile.role === "admin" ? <Link href="/admin/plans">Planet →</Link> : null}
-        </> : <>
-          <Link href="/admin/finance">Faturat e anëtarëve →</Link>
-          <Link href="/admin/finance/expenses">Shpenzimet →</Link>
-        </>}
-      </div>
-
       {view === "arka" ? <ArkaView y={sp.y} p={sp.p} /> : null}
+      {view === "historiku" ? <ArkaView p={sp.p} history /> : null}
       {view === "anetaresia" ? <AnetaresiaView p={sp.p} y={sp.y} canEditPlans={profile.role === "admin"} /> : null}
       {view === "borxhet" ? <BorxhetView /> : null}
     </>

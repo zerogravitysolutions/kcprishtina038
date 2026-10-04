@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { StravaEmbed } from "@/components/public/StravaEmbed";
-import { createRide, fetchStravaStats } from "./actions";
+import { createRide, resolveStravaUrl } from "./actions";
 import { AthletePicker, type AthleteOption } from "./AthletePicker";
 import { NumericInput } from "@/components/admin/NumericInput";
-import { parseDurationToSeconds, formatDurationHMS, TRAINING_FOCUS } from "@/lib/training";
-import { stravaActivityId } from "@/lib/strava";
+import { parseDurationToSeconds, TRAINING_FOCUS } from "@/lib/training";
 
 type Section = { id: string; name_sq: string };
 
@@ -28,16 +26,14 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
   const [duration, setDuration] = useState("");
   const [elevation, setElevation] = useState("");
   const [stravaUrl, setStravaUrl] = useState("");
+  const [stravaNotice, setStravaNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [resolving, startResolve] = useTransition();
   const [selected, setSelected] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
-  const canEmbed = !!stravaActivityId(stravaUrl);
-
-  // Auto-fetch on paste/change: when a Strava link is entered, pull the public
-  // stats and fill Bazë. The ref guards against re-fetching the same URL (incl.
-  // the canonical URL we set after a successful fetch), so no loop.
+  // Resolve mobile share links and keep manual metric entry clear.
   const lastFetched = useRef("");
+  const currentUrl = useRef("");
   useEffect(() => {
     const url = stravaUrl.trim();
     if (!url || url === lastFetched.current) return;
@@ -45,15 +41,15 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
     const t = setTimeout(() => {
       lastFetched.current = url;
       startResolve(async () => {
-        const r = await fetchStravaStats(url);
+        const r = await resolveStravaUrl(url);
+        if (currentUrl.current.trim() !== url) return;
         if (r.ok) {
           lastFetched.current = r.url;
+          currentUrl.current = r.url;
           setStravaUrl(r.url);
-          if (r.distance_km != null) setDistance(String(r.distance_km));
-          if (r.elevation_m != null) setElevation(String(r.elevation_m));
-          if (r.moving_seconds != null) setDuration(formatDurationHMS(r.moving_seconds));
+          setStravaNotice({ error: false, text: "Lidhja u njoh. Plotëso distancën, kohën dhe ngjitjen nga aktiviteti në Strava." });
           setErr(null);
-        } else setErr(r.error);
+        } else setStravaNotice({ error: true, text: r.error });
       });
     }, 700);
     return () => clearTimeout(t);
@@ -104,26 +100,26 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
         </div>
       </div>
 
-      {/* Strava — auto-fills Bazë on paste. */}
+      {/* Strava activity link; the coach enters the shared base values. */}
       <div className="field" style={{ marginBottom: 0 }}>
         <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke lexuar…</span> : null}</label>
         <input
           value={stravaUrl}
-          onChange={(e) => setStravaUrl(e.target.value)}
+          onChange={(e) => { currentUrl.current = e.target.value; setStravaUrl(e.target.value); setStravaNotice(null); }}
           inputMode="url"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}
-          placeholder="Ngjit lidhjen — Baza plotësohet vetë"
+          placeholder="Ngjit lidhjen e aktivitetit në Strava"
         />
-        {canEmbed && <div style={{ marginTop: 10 }}><StravaEmbed url={stravaUrl} compact /></div>}
+        {stravaNotice && <div style={{ color: stravaNotice.error ? "var(--err)" : "var(--slate)", fontSize: 12, marginTop: 6 }}>{stravaNotice.text}</div>}
       </div>
 
       {/* Bazë — shared, inherited by each cyclist. */}
       <div>
         <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 6 }}>
-          Bazë <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· për të gjithë · me dorë ose nga Strava</span>
+          Bazë <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· për të gjithë · plotëso nga aktiviteti</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           <div className="field" style={{ marginBottom: 0 }}>

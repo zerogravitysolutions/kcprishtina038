@@ -49,6 +49,16 @@ assert.equal(matchModule.matchRides(base, { ...partner, startMs: base.startMs + 
 assert.equal(matchModule.matchRides(base, { ...partner, elevationMeters: 800 }), null);
 assert.equal(matchModule.groupMatchingRides([base, partner, { ...partner, athleteId: "c", activityId: "3" }])[0].rides.length, 3);
 assert.equal(matchModule.groupMatchingRides([{ ...partner, athleteId: "late", activityId: "4" }, base, partner])[0].rides.length, 3);
+const indoor = { ...base, route: [], distanceMeters: 0, elevationMeters: 0, elapsedSeconds: 3600 };
+const indoorPartner = { ...indoor, athleteId: "b", activityId: "indoor-2", startMs: indoor.startMs + 5 * 60_000, elapsedSeconds: 3500 };
+assert.ok(matchModule.matchIndoorRides(indoor, indoorPartner) >= 0.8);
+assert.equal(matchModule.matchIndoorRides(indoor, { ...indoorPartner, startMs: indoor.startMs + 11 * 60_000 }), null);
+assert.equal(matchModule.matchIndoorRides(indoor, { ...indoorPartner, elapsedSeconds: 2700 }), null);
+assert.equal(matchModule.matchIndoorRides(indoor, { ...indoorPartner, athleteId: "a" }), null);
+assert.equal(matchModule.matchRides(indoor, indoorPartner), null);
+assert.equal(matchModule.groupMatchingIndoorRides([indoor, indoorPartner, { ...indoorPartner, athleteId: "c", activityId: "indoor-3" }])[0].rides.length, 3);
+assert.equal(matchModule.groupMatchingIndoorRides([{ ...indoorPartner, athleteId: "late", activityId: "indoor-4" }, indoor, indoorPartner])[0].rides.length, 3);
+assert.equal(matchModule.groupMatchingIndoorRides([indoor])[0], undefined);
 const metricsSource = fs.readFileSync("lib/strava-metrics.ts", "utf8");
 const metricsCompiled = ts.transpileModule(metricsSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 const metricsModule = {};

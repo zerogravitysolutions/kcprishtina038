@@ -5,7 +5,7 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stravaGet, type StravaActivity, type StravaAthlete, type StravaConnection } from "@/lib/strava-api";
 import { cyclingMode } from "@/lib/strava-cycling";
-import { groupMatchingRides, matchRides, type LatLng, type MatchRide } from "@/lib/strava-match";
+import { groupMatchingIndoorRides, groupMatchingRides, matchIndoorRides, matchRides, type LatLng, type MatchRide } from "@/lib/strava-match";
 import { metricsFromStrava, type ImportedMetrics, type PowerStreams } from "@/lib/strava-metrics";
 import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
 import { TRAINING_FOCUS, RIDE_METRIC_FIELDS, coerceMetric, computeIntensity, computeTss, parseDurationToSeconds } from "@/lib/training";
@@ -21,11 +21,12 @@ type PreparedRide = { rider: ConnectedRider; connection: StravaConnection; activ
 
 export type ImportSuggestion = {
   key: string;
+  mode: "indoor" | "outdoor";
   title: string;
   rideDate: string;
   focus: string;
   sectionId: string | null;
-  overlapPercent: number;
+  matchPercent: number;
   base: { distanceKm: number; movingSeconds: number; elevationM: number };
   riders: {
     athleteId: string; activityId: string; name: string; activityName: string;
@@ -63,7 +64,11 @@ async function activityMetrics(connection: StravaConnection, activity: StravaAct
   athleteProfile?: Promise<StravaAthlete | null>): Promise<ImportedMetrics> {
   const hasProfileScope = connection.scopes.split(/[\s,]+/).includes("profile:read_all");
   const [streams, athlete] = await Promise.all([
-    stravaGet<PowerStreams>(connection, `/activities/${activity.id}/streams?keys=time,watts&key_by_type=true`),
+    stravaGet<PowerStreams>(connection, `/activities/${activity.id}/streams?keys=time,watts&key_by_type=true`)
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.message === "Strava API: 404") return {} as PowerStreams;
+        throw error;
+      }),
     athleteProfile ?? (hasProfileScope ? stravaGet<StravaAthlete>(connection, "/athlete") : Promise.resolve(null)),
   ]);
   return metricsFromStrava(activity, streams, athlete?.id === connection.strava_athlete_id ? athlete.ftp : null, fallbackFtp);
@@ -97,22 +102,30 @@ export async function findStravaGroups(): Promise<
       const activities = await stravaGet<StravaActivity[]>(connection,
         `/athlete/activities?after=${after}&per_page=100`);
       return activities
-        .filter((activity) => cyclingMode(activity) === "outdoor" && activity.distance > 2_000 && activity.elapsed_time > 0)
+        .filter((activity) => {
+          const mode = cyclingMode(activity);
+          return mode !== null && activity.elapsed_time > 0 && (mode === "indoor" || activity.distance > 2_000);
+        })
         .map((activity) => ({ rider, connection, activity }));
     }))).flat();
 
-    // Fetch GPS streams only for rides with another cyclist in the same time
-    // window. This saves rate limit budget on unrelated solo rides.
+    // Indoor candidates are checked by start time and duration. GPS streams
+    // are fetched only for outdoor candidates that pass the cheap checks.
     const candidates = listed.filter((item) => listed.some((other) =>
       item.rider.id !== other.rider.id &&
-      Math.abs(Date.parse(item.activity.start_date) - Date.parse(other.activity.start_date)) <= 30 * 60_000 &&
-      Math.abs(item.activity.total_elevation_gain - other.activity.total_elevation_gain) <=
-        Math.max(150, 0.2 * Math.max(item.activity.total_elevation_gain, other.activity.total_elevation_gain))));
+      cyclingMode(item.activity) === cyclingMode(other.activity) &&
+      (cyclingMode(item.activity) === "indoor"
+        ? matchIndoorRides(asMatch(item.rider.id, item.activity, []), asMatch(other.rider.id, other.activity, [])) !== null
+        : Math.abs(Date.parse(item.activity.start_date) - Date.parse(other.activity.start_date)) <= 30 * 60_000 &&
+          Math.abs(item.activity.total_elevation_gain - other.activity.total_elevation_gain) <=
+            Math.max(150, 0.2 * Math.max(item.activity.total_elevation_gain, other.activity.total_elevation_gain)))));
     const prepared: PreparedRide[] = [];
     for (let i = 0; i < candidates.length; i += 4) {
       const batch = await Promise.allSettled(candidates.slice(i, i + 4).map(async (item) => {
-        const route = await activityRoute(item.connection, String(item.activity.id));
-        return route.length > 1 ? { ...item, match: asMatch(item.rider.id, item.activity, route) } : null;
+        const mode = cyclingMode(item.activity);
+        const route = mode === "outdoor" ? await activityRoute(item.connection, String(item.activity.id)) : [];
+        return mode === "indoor" || route.length > 1
+          ? { ...item, match: asMatch(item.rider.id, item.activity, route) } : null;
       }));
       for (const result of batch) {
         if (result.status === "fulfilled" && result.value) prepared.push(result.value);
@@ -135,7 +148,12 @@ export async function findStravaGroups(): Promise<
       .map((entry) => `${entry.athlete_id}:${entry.strava_activity_id}`));
     const available = prepared.filter((item) => !imported.has(`${item.match.athleteId}:${item.match.activityId}`));
     const byActivity = new Map(available.map((item) => [item.match.activityId, item]));
-    const groups = groupMatchingRides(available.map((item) => item.match));
+    const groups: { rides: MatchRide[]; mode: "indoor" | "outdoor"; score: number }[] = [
+      ...groupMatchingRides(available.filter((item) => cyclingMode(item.activity) === "outdoor")
+        .map((item) => item.match)).map((group) => ({ rides: group.rides, mode: "outdoor" as const, score: group.minimumRouteOverlap })),
+      ...groupMatchingIndoorRides(available.filter((item) => cyclingMode(item.activity) === "indoor")
+        .map((item) => item.match)).map((group) => ({ rides: group.rides, mode: "indoor" as const, score: group.minimumTimeMatch })),
+    ];
     const groupItems = groups.flatMap((group) => group.rides.map((ride) => byActivity.get(ride.activityId)!));
     const fallbackFtps = await profileFtps(groupItems.map((item) => item.rider.id));
     const full = new Map<string, { activity: StravaActivity; metrics: ImportedMetrics }>();
@@ -164,10 +182,11 @@ export async function findStravaGroups(): Promise<
         const rideDate = items[0].activity.start_date_local.slice(0, 10);
         return {
           key: group.rides.map((ride) => ride.activityId).sort().join("-"),
-          title: suggestedTitle(detailed.map((item) => item.activity), rideDate),
-          rideDate, focus: suggestedFocus(detailed.map((item) => item.activity)),
+          mode: group.mode,
+          title: suggestedTitle(detailed.map((item) => item.activity), rideDate, group.mode === "indoor"),
+          rideDate, focus: suggestedFocus(detailed.map((item) => item.activity), group.mode === "indoor"),
           sectionId: sectionSlugs.length === 1 ? sectionBySlug.get(sectionSlugs[0] ?? "") ?? null : null,
-          overlapPercent: Math.round(group.minimumRouteOverlap * 100),
+          matchPercent: Math.round(group.score * 100),
           base: {
             distanceKm: Math.round(median(detailed.map((item) => item.metrics.distance_km ?? 0)) * 100) / 100,
             movingSeconds: median(detailed.map((item) => item.metrics.moving_seconds ?? 0)),
@@ -231,15 +250,22 @@ export async function importStravaGroup(input: {
         `/activities/${encodeURIComponent(requested.activityId)}`);
       if (String(activity.id) !== requested.activityId ||
           activity.athlete?.id !== owner.connection.strava_athlete_id ||
-          cyclingMode(activity) !== "outdoor") {
-        throw new Error("Aktiviteti nuk i përket çiklistit ose nuk është çiklizëm në rrugë.");
+          !cyclingMode(activity) || activity.elapsed_time <= 0) {
+        throw new Error("Aktiviteti nuk i përket çiklistit ose nuk është çiklizëm.");
       }
-      const route = await activityRoute(owner.connection, requested.activityId);
+      const route = cyclingMode(activity) === "outdoor"
+        ? await activityRoute(owner.connection, requested.activityId) : [];
       return { ...owner, activity, match: asMatch(owner.rider.id, activity, route) };
     }));
+    const modes = new Set(prepared.map((item) => cyclingMode(item.activity)));
+    if (modes.size !== 1) return { ok: false, error: "Aktivitetet indoor dhe outdoor nuk mund të grupohen së bashku." };
+    const mode = cyclingMode(prepared[0].activity);
+    const score = mode === "indoor" ? matchIndoorRides : matchRides;
     for (let i = 0; i < prepared.length; i++) for (let j = i + 1; j < prepared.length; j++) {
-      if (matchRides(prepared[i].match, prepared[j].match) === null) {
-        return { ok: false, error: "Këto aktivitete nuk e plotësojnë më përputhjen 60% të rrugës, kohës dhe ngjitjes." };
+      if (score(prepared[i].match, prepared[j].match) === null) {
+        return { ok: false, error: mode === "indoor"
+          ? "Këto aktivitete indoor nuk e plotësojnë më përputhjen e kohës dhe kohëzgjatjes."
+          : "Këto aktivitete nuk e plotësojnë më përputhjen 60% të rrugës, kohës dhe ngjitjes." };
       }
     }
 
@@ -312,7 +338,7 @@ export async function approveStravaReview(rideId: string): Promise<{ ok: true } 
     await assertCoach();
     const supabase = await createClient();
     const { data: ride, error: rideError } = await supabase.from("training_rides")
-      .select("id, kind, review_status, has_pending_changes").eq("id", rideId).maybeSingle();
+      .select("id, review_status, has_pending_changes").eq("id", rideId).maybeSingle();
     if (rideError) throw rideError;
     if (!ride || (ride.review_status !== "under_review" && !ride.has_pending_changes)) {
       return { ok: false, error: "Nuk ka ndryshime për shqyrtim." };
@@ -320,7 +346,7 @@ export async function approveStravaReview(rideId: string): Promise<{ ok: true } 
     const { data: entries, error: entriesError } = await supabase.from("ride_entries")
       .select("id, athlete_id, review_status, set_ftp, ftp_w").eq("ride_id", rideId);
     if (entriesError) throw entriesError;
-    if ((entries ?? []).length < (ride.kind === "solo" ? 1 : 2)) {
+    if ((entries ?? []).length < 2) {
       return { ok: false, error: "Stërvitja nuk ka mjaft çiklistë për miratim." };
     }
     if (!(entries ?? []).some((entry) => entry.review_status === "under_review")) {

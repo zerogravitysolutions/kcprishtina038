@@ -2,7 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stravaGet, type StravaActivity, type StravaAthlete, type StravaConnection } from "@/lib/strava-api";
-import { matchRides, type LatLng, type MatchRide } from "@/lib/strava-match";
+import { matchIndoorRides, matchRides, type LatLng, type MatchRide } from "@/lib/strava-match";
 import { cyclingMode } from "@/lib/strava-cycling";
 import { metricsFromStrava, type PowerStreams } from "@/lib/strava-metrics";
 import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
@@ -58,7 +58,8 @@ async function routeFor(connection: StravaConnection, activityId: number): Promi
     Array.isArray(point) && point.length === 2 && Number.isFinite(point[0]) && Number.isFinite(point[1]));
 }
 
-async function detailFor(owner: Connected, activityId: number, cached?: StravaActivity): Promise<Matched | null> {
+async function detailFor(owner: Connected, activityId: number, mode: "indoor" | "outdoor",
+  cached?: StravaActivity): Promise<Matched | null> {
   let activity: StravaActivity;
   try { activity = cached ?? await stravaGet<StravaActivity>(owner.connection, `/activities/${activityId}`); }
   catch (error) {
@@ -66,9 +67,10 @@ async function detailFor(owner: Connected, activityId: number, cached?: StravaAc
     throw error;
   }
   if (activity.id !== activityId || activity.athlete?.id !== owner.connection.strava_athlete_id ||
-      cyclingMode(activity) !== "outdoor" || activity.distance < MIN_RIDE_METERS || activity.elapsed_time <= 0) return null;
-  const route = await routeFor(owner.connection, activityId);
-  if (route.length < 2) return null;
+      cyclingMode(activity) !== mode || activity.elapsed_time <= 0 ||
+      (mode === "outdoor" && activity.distance < MIN_RIDE_METERS)) return null;
+  const route = mode === "outdoor" ? await routeFor(owner.connection, activityId) : [];
+  if (mode === "outdoor" && route.length < 2) return null;
   return { ...owner, activity, match: asMatch(owner.rider, activity, route) };
 }
 
@@ -117,39 +119,6 @@ async function addEntries(rideId: string, items: Matched[]): Promise<void> {
   if (error) throw error;
 }
 
-async function proposeIndoorRide(owner: Connected, activity: StravaActivity): Promise<void> {
-  const admin = createAdminClient();
-  const [{ data: existing, error: existingError }, { data: rejected, error: rejectedError }] = await Promise.all([
-    admin.from("ride_entries").select("id").eq("athlete_id", owner.rider.id)
-      .eq("strava_activity_id", activity.id).maybeSingle(),
-    admin.from("strava_review_rejections").select("strava_activity_id")
-      .eq("athlete_id", owner.rider.id).eq("strava_activity_id", activity.id).maybeSingle(),
-  ]);
-  if (existingError || rejectedError) throw existingError ?? rejectedError;
-  if (existing || rejected) return;
-  const { data: section, error: sectionError } = owner.rider.section_slug
-    ? await admin.from("sections").select("id").eq("slug", owner.rider.section_slug)
-      .eq("active", true).maybeSingle()
-    : { data: null, error: null };
-  if (sectionError) throw sectionError;
-  const rideDate = activity.start_date_local.slice(0, 10);
-  const { data: ride, error: rideError } = await admin.from("training_rides").insert({
-    ride_date: rideDate, kind: "solo", review_status: "under_review",
-    title: suggestedTitle([activity], rideDate, true),
-    focus: suggestedFocus([activity], true), section_id: section?.id ?? null,
-    distance_km: Math.round(activity.distance / 10) / 100,
-    moving_seconds: activity.moving_time,
-    elevation_m: Math.round(activity.total_elevation_gain),
-    strava_url: `https://www.strava.com/activities/${activity.id}`,
-  }).select("id").single();
-  if (rideError || !ride) throw rideError ?? new Error("Could not save indoor Strava review ride");
-  try { await addEntries(ride.id, [{ ...owner, activity, match: asMatch(owner.rider, activity, []) }]); }
-  catch (error) {
-    await admin.from("training_rides").delete().eq("id", ride.id);
-    throw error;
-  }
-}
-
 async function processActivity(event: Event): Promise<void> {
   const all = await connections();
   const owner = all.find((item) => item.connection.strava_athlete_id === event.owner_id);
@@ -167,11 +136,7 @@ async function processActivity(event: Event): Promise<void> {
     await removeImportedStravaData(owner.rider.id, event.activity_id);
     return;
   }
-  if (mode === "indoor") {
-    if (activity.elapsed_time > 0) await proposeIndoorRide(owner, activity);
-    return;
-  }
-  const target = await detailFor(owner, event.activity_id, activity);
+  const target = await detailFor(owner, event.activity_id, mode, activity);
   if (!target) return;
   const admin = createAdminClient();
   const { data: targetRejection, error: targetRejectionError } = await admin.from("strava_review_rejections")
@@ -181,13 +146,17 @@ async function processActivity(event: Event): Promise<void> {
   if (targetRejection) return;
   const nearby: { item: Connected; activity: StravaActivity }[] = [];
   const center = Math.floor(target.match.startMs / 1000);
+  const score = mode === "indoor" ? matchIndoorRides : matchRides;
   for (const candidateOwner of all) {
     if (candidateOwner.rider.id === owner.rider.id) continue;
     for (const activity of await activitiesNear(candidateOwner, center)) {
-      if (cyclingMode(activity) === "outdoor" && activity.distance >= MIN_RIDE_METERS &&
-          Math.abs(Date.parse(activity.start_date) - target.match.startMs) <= 30 * 60_000 &&
-          Math.abs(activity.total_elevation_gain - target.activity.total_elevation_gain) <=
-            Math.max(150, 0.2 * Math.max(activity.total_elevation_gain, target.activity.total_elevation_gain))) {
+      if (cyclingMode(activity) === mode &&
+          (mode === "indoor"
+            ? score(target.match, asMatch(candidateOwner.rider, activity, [])) !== null
+            : activity.distance >= MIN_RIDE_METERS &&
+              Math.abs(Date.parse(activity.start_date) - target.match.startMs) <= 30 * 60_000 &&
+              Math.abs(activity.total_elevation_gain - target.activity.total_elevation_gain) <=
+                Math.max(150, 0.2 * Math.max(activity.total_elevation_gain, target.activity.total_elevation_gain)))) {
         nearby.push({ item: candidateOwner, activity });
       }
     }
@@ -201,16 +170,16 @@ async function processActivity(event: Event): Promise<void> {
   const matched: { item: Matched; overlap: number }[] = [];
   for (const candidate of nearby) {
     if (rejectedKeys.has(`${candidate.item.rider.id}:${candidate.activity.id}`)) continue;
-    const detailed = await detailFor(candidate.item, candidate.activity.id);
+    const detailed = await detailFor(candidate.item, candidate.activity.id, mode);
     if (!detailed) continue;
-    const overlap = matchRides(target.match, detailed.match);
+    const overlap = score(target.match, detailed.match);
     if (overlap !== null) matched.push({ item: detailed, overlap });
   }
   matched.sort((a, b) => b.overlap - a.overlap);
   const selected = [target];
   for (const { item } of matched) {
     if (selected.some((current) => current.rider.id === item.rider.id)) continue;
-    if (selected.every((current) => matchRides(current.match, item.match) !== null)) selected.push(item);
+    if (selected.every((current) => score(current.match, item.match) !== null)) selected.push(item);
   }
   if (selected.length < 2) return;
 
@@ -231,16 +200,16 @@ async function processActivity(event: Event): Promise<void> {
       const linked = all.find((item) => item.rider.id === entry.athlete_id);
       if (!linked || !entry.strava_activity_id) break;
       const match = selected.find((item) => item.activity.id === entry.strava_activity_id)
-        ?? await detailFor(linked, entry.strava_activity_id);
+        ?? await detailFor(linked, entry.strava_activity_id, mode);
       if (!match) break;
       members.push(match);
     }
     if (members.length !== (existing ?? []).length ||
-        members.some((member) => matchRides(member.match, target.match) === null && member.activity.id !== target.activity.id)) continue;
+        members.some((member) => score(member.match, target.match) === null && member.activity.id !== target.activity.id)) continue;
     const additions = selected.filter((item) =>
       !importedRideByActivity.has(item.activity.id) &&
       !members.some((member) => member.rider.id === item.rider.id) &&
-      members.every((member) => matchRides(member.match, item.match) !== null));
+      members.every((member) => score(member.match, item.match) !== null));
     if (!additions.length) return;
     await addEntries(rideId, additions);
     return;
@@ -257,8 +226,8 @@ async function processActivity(event: Event): Promise<void> {
     ? (sections ?? []).find((section) => section.slug === sectionSlugs[0])?.id ?? null : null;
   const { data: ride, error: rideError } = await admin.from("training_rides").insert({
     ride_date: rideDate, kind: "group", review_status: "under_review",
-    title: suggestedTitle(fresh.map((item) => item.activity), rideDate),
-    focus: suggestedFocus(fresh.map((item) => item.activity)), section_id: sectionId,
+    title: suggestedTitle(fresh.map((item) => item.activity), rideDate, mode === "indoor"),
+    focus: suggestedFocus(fresh.map((item) => item.activity), mode === "indoor"), section_id: sectionId,
     distance_km: Math.round(median(fresh.map((item) => item.activity.distance)) / 10) / 100,
     moving_seconds: median(fresh.map((item) => item.activity.moving_time)),
     elevation_m: Math.round(median(fresh.map((item) => item.activity.total_elevation_gain))),

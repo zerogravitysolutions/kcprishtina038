@@ -1,6 +1,7 @@
 // Pure route matching; no Strava tokens, database access, or persistent GPS data.
-// A group is proposed only when every pair clears the route, time, and elevation
-// checks. Coaches confirm or edit the proposal before a training is written.
+// Every pair in an outdoor group clears the route, time, and elevation checks.
+// Indoor groups use start time and duration because virtual routes do not prove
+// that cyclists trained together. Coaches review every proposed group.
 
 export type LatLng = [number, number];
 export type MatchRide = {
@@ -14,6 +15,7 @@ export type MatchRide = {
 };
 
 export type MatchGroup = { rides: MatchRide[]; minimumRouteOverlap: number };
+export type IndoorMatchGroup = { rides: MatchRide[]; minimumTimeMatch: number };
 
 export const ROUTE_THRESHOLD = 0.6;
 const NEAR_METERS = 120;
@@ -82,22 +84,47 @@ export function matchRides(a: MatchRide, b: MatchRide): number | null {
   return overlap >= ROUTE_THRESHOLD ? overlap : null;
 }
 
-export function groupMatchingRides(rides: MatchRide[]): MatchGroup[] {
+/** Indoor sessions must start together and run for similar lengths of time. */
+export function matchIndoorRides(a: MatchRide, b: MatchRide): number | null {
+  if (a.athleteId === b.athleteId || a.activityId === b.activityId) return null;
+  if (!Number.isFinite(a.startMs) || !Number.isFinite(b.startMs) ||
+      !Number.isFinite(a.elapsedSeconds) || !Number.isFinite(b.elapsedSeconds) ||
+      a.elapsedSeconds <= 0 || b.elapsedSeconds <= 0) return null;
+  if (Math.abs(a.startMs - b.startMs) > 10 * 60_000) return null;
+  const shorter = Math.min(a.elapsedSeconds, b.elapsedSeconds);
+  const longer = Math.max(a.elapsedSeconds, b.elapsedSeconds);
+  const durationRatio = shorter / longer;
+  if (durationRatio < 0.8) return null;
+  const shared = Math.max(0, Math.min(a.startMs + a.elapsedSeconds * 1000, b.startMs + b.elapsedSeconds * 1000) -
+    Math.max(a.startMs, b.startMs));
+  const overlap = shared / (shorter * 1000);
+  return overlap >= 0.8 ? Math.min(durationRatio, overlap) : null;
+}
+
+function groupByMatch(rides: MatchRide[], match: (a: MatchRide, b: MatchRide) => number | null) {
   const remaining = [...rides].sort((a, b) => a.startMs - b.startMs || a.activityId.localeCompare(b.activityId));
-  const groups: MatchGroup[] = [];
+  const groups: { rides: MatchRide[]; minimumScore: number }[] = [];
   while (remaining.length) {
     const group = [remaining.shift()!];
-    let minimumRouteOverlap = 1;
+    let minimumScore = 1;
     for (let i = 0; i < remaining.length;) {
       const candidate = remaining[i];
-      const scores = group.map((member) => matchRides(member, candidate));
+      const scores = group.map((member) => match(member, candidate));
       if (scores.every((score) => score !== null)) {
-        minimumRouteOverlap = Math.min(minimumRouteOverlap, ...(scores as number[]));
+        minimumScore = Math.min(minimumScore, ...(scores as number[]));
         group.push(candidate);
         remaining.splice(i, 1);
       } else i++;
     }
-    if (group.length > 1) groups.push({ rides: group, minimumRouteOverlap });
+    if (group.length > 1) groups.push({ rides: group, minimumScore });
   }
   return groups;
+}
+
+export function groupMatchingRides(rides: MatchRide[]): MatchGroup[] {
+  return groupByMatch(rides, matchRides).map(({ rides, minimumScore }) => ({ rides, minimumRouteOverlap: minimumScore }));
+}
+
+export function groupMatchingIndoorRides(rides: MatchRide[]): IndoorMatchGroup[] {
+  return groupByMatch(rides, matchIndoorRides).map(({ rides, minimumScore }) => ({ rides, minimumTimeMatch: minimumScore }));
 }

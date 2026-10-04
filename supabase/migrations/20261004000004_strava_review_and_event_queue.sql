@@ -32,17 +32,16 @@ create trigger ride_entries_pending_review
 
 create or replace function public.approve_strava_review(p_ride_id uuid)
 returns void language plpgsql security definer set search_path = public as $$
-declare v_status text; v_kind public.training_ride_kind;
+declare v_status text;
 begin
   if not public.has_role(array['admin','editor','staff','coach']::public.user_role[]) then
     raise exception 'Coach access required';
   end if;
-  select review_status, kind into v_status, v_kind from public.training_rides
+  select review_status into v_status from public.training_rides
     where id = p_ride_id for update;
   if not found then raise exception 'Training not found'; end if;
-  if (select count(*) from public.ride_entries where ride_id = p_ride_id) <
-      case when v_kind = 'solo' then 1 else 2 end then
-    raise exception 'Training has too few riders';
+  if (select count(*) from public.ride_entries where ride_id = p_ride_id) < 2 then
+    raise exception 'Group training needs at least two riders';
   end if;
   if not exists (select 1 from public.ride_entries
       where ride_id = p_ride_id and review_status = 'under_review') then

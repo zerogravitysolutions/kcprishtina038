@@ -373,7 +373,7 @@ export async function upsertAthleteProfile(athleteId: string, patch: ProfilePatc
  */
 async function resolveActivity(raw: string): Promise<{ url: string; activityId: string } | null> {
   const direct = parseStravaUrl(raw);
-  if (direct?.type === "activity") return { url: raw, activityId: direct.id };
+  if (direct?.type === "activity") return { url: `https://www.strava.com/activities/${direct.id}`, activityId: direct.id };
 
   // Deep link: validate the HOST before fetching (isStravaAppLink parses it).
   let target: URL | null = null;
@@ -405,94 +405,6 @@ export async function resolveStravaUrl(
     const r = await resolveActivity(raw);
     if (r) return { ok: true, url: r.url, activityId: r.activityId };
     return { ok: false, error: "S’u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
-  } catch (e) {
-    return { ok: false, error: dbError(e, "Lidhja me Strava-n dështoi. Provo sërish.") };
-  }
-}
-
-// --- Parse the public Strava embed widget (no OAuth needed for public rides).
-function parseWidgetTime(s: string): number | null {
-  const v = s.trim();
-  if (v.includes(":")) {
-    const parts = v.split(":").map((p) => parseInt(p, 10));
-    if (parts.some((p) => Number.isNaN(p))) return null;
-    let sec = 0;
-    for (const p of parts) sec = sec * 60 + p;
-    return sec;
-  }
-  let total = 0, matched = false;
-  const h = v.match(/(\d+)\s*h/i); if (h) { total += parseInt(h[1], 10) * 3600; matched = true; }
-  const m = v.match(/(\d+)\s*m(?!i)/i); if (m) { total += parseInt(m[1], 10) * 60; matched = true; }
-  const s2 = v.match(/(\d+)\s*s/i); if (s2) { total += parseInt(s2[1], 10); matched = true; }
-  return matched ? total : null;
-}
-
-function parseStravaWidget(rawHtml: string): { distance_km: number | null; elevation_m: number | null; moving_seconds: number | null } {
-  const text = rawHtml
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  let distance_km: number | null = null;
-  let m = text.match(/Distance\s+([\d.,]+)\s*(km|mi)/i);
-  if (m) { const v = parseFloat(m[1].replace(/,/g, "")); if (!Number.isNaN(v)) distance_km = m[2].toLowerCase() === "mi" ? Math.round(v * 1.60934 * 10) / 10 : v; }
-
-  let elevation_m: number | null = null;
-  m = text.match(/Elev(?:ation)?\s*(?:Gain)?\s+([\d.,]+)\s*(m|ft)\b/i);
-  if (m) { const v = parseFloat(m[1].replace(/,/g, "")); if (!Number.isNaN(v)) elevation_m = m[2].toLowerCase() === "ft" ? Math.round(v * 0.3048) : Math.round(v); }
-
-  let moving_seconds: number | null = null;
-  m = text.match(/(?:Moving Time|Time)\s+(\d{1,2}:\d{2}(?::\d{2})?|\d+\s*h(?:\s*\d+\s*m)?(?:\s*\d+\s*s)?|\d+\s*m(?:\s*\d+\s*s)?|\d+\s*s)\b/i);
-  if (m) moving_seconds = parseWidgetTime(m[1]);
-
-  return { distance_km, elevation_m, moving_seconds };
-}
-
-/**
- * Auto-fill distance / elevation / time from a Strava link by reading Strava's
- * own public embed widget. A valid activity link still resolves when the
- * widget is unavailable, leaving the coach free to enter the stats manually.
- */
-export async function fetchStravaStats(url: string): Promise<
-  | { ok: true; url: string; activityId: string; distance_km: number | null; elevation_m: number | null; moving_seconds: number | null; warning?: string }
-  | { ok: false; error: string }
-> {
-  try {
-    await assertCoach();
-    const raw = (url ?? "").trim();
-    if (!raw) return { ok: false, error: "Lidhja mungon." };
-    const resolved = await resolveActivity(raw);
-    if (!resolved) return { ok: false, error: "S’u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
-
-    const withoutStats = {
-      ok: true as const, ...resolved,
-      distance_km: null, elevation_m: null, moving_seconds: null,
-      warning: "Lidhja u njoh. Statistikat nuk u lexuan nga Strava; plotëso Bazën me dorë.",
-    };
-
-    // Fixed host + numeric id → no SSRF surface.
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 8000);
-    let html = "";
-    try {
-      const res = await fetch(`https://strava-embeds.com/activity/${resolved.activityId}`, {
-        signal: controller.signal,
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; KCPrishtina/1.0)" },
-      });
-      if (!res.ok) return withoutStats;
-      html = await res.text();
-    } catch {
-      return withoutStats;
-    } finally {
-      clearTimeout(t);
-    }
-
-    const stats = parseStravaWidget(html);
-    if (stats.distance_km == null && stats.elevation_m == null && stats.moving_seconds == null) {
-      return withoutStats;
-    }
-    return { ok: true, url: resolved.url, activityId: resolved.activityId, ...stats };
   } catch (e) {
     return { ok: false, error: dbError(e, "Lidhja me Strava-n dështoi. Provo sërish.") };
   }

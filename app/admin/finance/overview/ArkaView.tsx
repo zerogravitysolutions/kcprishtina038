@@ -245,16 +245,6 @@ export async function ArkaView({ y, p, history = false }: { y?: string; p?: stri
   return (
     <>
       {!history ? <>
-        <div className="overview-year-control">
-          <span className="overview-year-label">Viti</span>
-          <nav className="overview-year-options" aria-label="Viti i pasqyrës">
-            {years.map((v) => (
-              <Link key={v} className={`chip ${year === v ? "active" : ""}`} href={link(v)} aria-current={year === v ? "page" : undefined}>{v}</Link>
-            ))}
-          </nav>
-          <span className="overview-year-help">Shpenzimet ndjekin vitin e fondit; pa fond, datën e tyre.</span>
-        </div>
-
       <TruncationWarning parts={truncated} />
 
       {nothingYet ? (
@@ -267,8 +257,16 @@ export async function ArkaView({ y, p, history = false }: { y?: string; p?: stri
         </div>
       ) : null}
 
-      <div className="overview-section-head">
-        <div><h2>Bilanci · {year}</h2></div>
+      <div className="overview-section-head overview-balance-head">
+        <div><h2>Bilanci</h2></div>
+        <div className="overview-year-control">
+          <span className="overview-year-label">Viti</span>
+          <nav className="overview-year-options" aria-label="Viti i pasqyrës">
+            {years.map((v) => (
+              <Link key={v} className={`overview-year-option ${year === v ? "active" : ""}`} href={link(v)} aria-current={year === v ? "page" : undefined}>{v}</Link>
+            ))}
+          </nav>
+        </div>
       </div>
 
       <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginBottom: 8 }}>

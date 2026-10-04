@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { deleteTeamMember } from "../team-members/actions";
+import { AddToRoster } from "./AddToRoster";
+import { CreateAccount } from "./CreateAccount";
 import {
   setMemberStatus, deleteMember, updateMemberEmail, updateMemberPassword,
   sendPasswordReset, generateResetLink,
@@ -18,14 +22,28 @@ const STATUS_LABEL: Record<string, string> = {
   pending: "Në pritje",
 };
 
-export function ManageMember({ id, name, email, status, isSelf }: { id: string; name: string; email: string; status: string; isSelf: boolean }) {
+type Account = { id: string; email: string; status: string; role: string; isSelf: boolean };
+type Roster = { id: string; name: string };
+
+export function PeopleRowActions({ name, account, roster, canEditRoster, canManageAccounts }: {
+  name: string; account: Account | null; roster: Roster | null;
+  canEditRoster: boolean; canManageAccounts: boolean;
+}) {
+  const id = account?.id ?? "";
+  const email = account?.email ?? "";
+  const status = account?.status ?? "";
+  const isSelf = account?.isSelf ?? false;
   const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [deleteRosterOpen, setDeleteRosterOpen] = useState(false);
   const [pending, start] = useTransition();
   const router = useRouter();
   const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const [emailVal, setEmailVal] = useState(email);
   const [pwVal, setPwVal] = useState("");
@@ -40,11 +58,16 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
   useEffect(() => setMounted(true), []);
 
   const active = status === "active";
+  const teamActions = !!roster && canEditRoster;
+  const createAction = !!roster && !account && canManageAccounts;
+  const addAction = !!account && !roster && canEditRoster;
+  const accountActions = !!account && canManageAccounts;
+  const hasActions = teamActions || createAction || addAction || accountActions;
 
   function openMenu() {
     const r = btnRef.current?.getBoundingClientRect();
     if (!r) return;
-    const menuW = 216;
+    const menuW = 240;
     const left = Math.max(8, Math.min(r.right - menuW, window.innerWidth - menuW - 8));
     setPos({ top: r.bottom + 6, left });
     setMenuOpen(true);
@@ -53,10 +76,39 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
   useEffect(() => {
     if (!menuOpen) return;
     const close = () => setMenuOpen(false);
-    window.addEventListener("scroll", close, true);
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && menuRef.current?.contains(event.target)) return;
+      close();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { close(); btnRef.current?.focus(); }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Home" || e.key === "End") {
+        const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? []);
+        if (items.length === 0) return;
+        e.preventDefault();
+        const index = items.indexOf(document.activeElement as HTMLButtonElement);
+        const next = e.key === "Home" ? 0 : e.key === "End" ? items.length - 1
+          : index < 0 ? (e.key === "ArrowDown" ? 0 : items.length - 1)
+          : (index + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+        items[next].focus();
+      }
+    };
+    window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", close);
-    return () => { window.removeEventListener("scroll", close, true); window.removeEventListener("resize", close); };
+    document.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("scroll", onScroll, true); window.removeEventListener("resize", close); document.removeEventListener("keydown", onKey); };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen || !menuRef.current || !btnRef.current) return;
+    const anchor = btnRef.current.getBoundingClientRect();
+    const height = menuRef.current.getBoundingClientRect().height;
+    const top = anchor.bottom + height + 6 <= window.innerHeight - 8
+      ? anchor.bottom + 6
+      : Math.max(8, anchor.top - height - 6);
+    if (pos?.top !== top) { setPos((current) => current ? { ...current, top } : current); return; }
+    menuRef.current.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+  }, [menuOpen, pos?.top]);
 
   useEffect(() => {
     if (!blocked) return;
@@ -130,38 +182,87 @@ export function ManageMember({ id, name, email, status, isSelf }: { id: string; 
     });
   }
 
+  async function removeRoster() {
+    if (!roster) return { ok: false as const, error: "Personi nuk është në ekip." };
+    const result = await deleteTeamMember(roster.id);
+    if (result.ok) { router.refresh(); return { ok: true as const }; }
+    return { ok: false as const, error: result.error ?? "Fshirja nga ekipi dështoi." };
+  }
+
   const M = ({ k }: { k: string }) => msg[k] ? <div className={`mm-msg ${msg[k]!.ok ? "ok" : "err"}`}>{msg[k]!.ok ? "✓ " : ""}{msg[k]!.text}</div> : null;
 
   return (
     <>
-      <button ref={btnRef} type="button" className="kebab" aria-label={`Veprime për ${name}`} aria-haspopup="menu" onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="19" r="1.7" /></svg>
-      </button>
+      {hasActions ? (
+        <button ref={btnRef} type="button" className="kebab" aria-label={`Veprime për ${name}`} aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="19" r="1.7" /></svg>
+        </button>
+      ) : <span aria-label="Nuk ka veprime">—</span>}
 
       {menuOpen && mounted && pos && createPortal(
         <>
           <div className="kebab-backdrop" onClick={() => setMenuOpen(false)} />
-          <div className="kebab-menu" role="menu" style={{ top: pos.top, left: pos.left }}>
-            <button role="menuitem" onClick={() => { setMenuOpen(false); setModalOpen(true); }}>
-              <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
-              Ndrysho email / fjalëkalim
-            </button>
-            {!isSelf && <div className="sep" />}
-            {!isSelf && (
-              <button role="menuitem" disabled={pending} onClick={() => quick(() => setMemberStatus(id, active ? "inactive" : "active"))}>
-                <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18.4 6.6A9 9 0 1 1 12 3" /><path d="M12 3v6" /></svg>
-                {active ? "Çaktivizo llogarinë" : "Aktivizo llogarinë"}
+          <div ref={menuRef} className="kebab-menu people-row-menu" role="menu" aria-label={`Veprime për ${name}`} style={{ top: pos.top, left: pos.left }}>
+            {teamActions && roster && (
+              <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); router.push(`/admin/team-members/${roster.id}`); }}>
+                Ndrysho në ekip
               </button>
             )}
-            {!isSelf && (
-              <button role="menuitem" className="danger" disabled={pending} onClick={removeAccount}>
-                <svg className="k-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>
+            {createAction && (
+              <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); setCreateOpen(true); }}>
+                Krijo llogari
+              </button>
+            )}
+            {addAction && (
+              <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); setAddOpen(true); }}>
+                Shto në ekip
+              </button>
+            )}
+            {accountActions && (
+              <>
+                {(teamActions || createAction || addAction) && <div className="sep" />}
+                <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); setModalOpen(true); }}>
+                  Ndrysho email / fjalëkalim
+                </button>
+                {!isSelf && (
+                  <button type="button" role="menuitem" disabled={pending} onClick={() => quick(() => setMemberStatus(id, active ? "inactive" : "active"))}>
+                    {active ? "Çaktivizo llogarinë" : "Aktivizo llogarinë"}
+                  </button>
+                )}
+              </>
+            )}
+            {(teamActions || (accountActions && !isSelf)) && <div className="sep" />}
+            {teamActions && (
+              <button type="button" role="menuitem" className="danger" onClick={() => { setMenuOpen(false); setDeleteRosterOpen(true); }}>
+                Fshij nga ekipi
+              </button>
+            )}
+            {accountActions && !isSelf && (
+              <button type="button" role="menuitem" className="danger" disabled={pending} onClick={removeAccount}>
                 Fshij llogarinë
               </button>
             )}
           </div>
         </>,
         document.body,
+      )}
+
+      {createAction && roster && (
+        <CreateAccount teamMemberId={roster.id} name={name} open={createOpen} onClose={() => setCreateOpen(false)} />
+      )}
+      {addAction && account && (
+        <AddToRoster profileId={account.id} name={name} role={account.role} open={addOpen} onClose={() => setAddOpen(false)} />
+      )}
+      {teamActions && roster && (
+        <ConfirmModal
+          open={deleteRosterOpen}
+          onClose={() => setDeleteRosterOpen(false)}
+          title="Fshij nga ekipi"
+          tone="danger"
+          confirmLabel="Fshij"
+          message={<>Sigurt që do ta fshish <strong>{roster.name}</strong> nga ekipi?</>}
+          onConfirm={removeRoster}
+        />
       )}
 
       {blocked && mounted && createPortal(

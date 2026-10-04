@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { addToRoster } from "./actions";
@@ -9,20 +8,18 @@ import { POSITION_LABEL, startingPosition } from "./positions";
 /** Contextual action for an account that has no roster row: put the person on
  * the public roster and link the two. That link is also what makes them
  * selectable in the training athlete picker. */
-export function AddToRoster({ profileId, name, role }: { profileId: string; name: string; role: string }) {
-  const [open, setOpen] = useState(false);
+export function AddToRoster({ profileId, name, role, open, onClose }: {
+  profileId: string; name: string; role: string; open: boolean; onClose: () => void;
+}) {
   const router = useRouter();
   // Same mapping the server action uses, so the sentence cannot lie.
   const position = POSITION_LABEL[startingPosition(role)];
 
   return (
     <>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(true)}>
-        Shto në ekip
-      </button>
       <ConfirmModal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={onClose}
         title="Shto në ekip"
         confirmLabel="Shto"
         message={

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Fragment } from "react";
 import { RolePicker } from "./RolePicker";
 import { AddMember } from "./AddMember";
 import { PeopleRowActions } from "./PeopleRowActions";
@@ -129,6 +130,10 @@ function chunks<T>(items: T[], size = 100): T[][] {
 
 function initials(n: string) {
   return n.trim().split(/\s+/).slice(0, 2).map(s => s[0] || "").join("").toUpperCase() || "?";
+}
+
+function isPastMember(p: Person): boolean {
+  return p.roster.length > 0 && p.roster.every(r => r.status === "past");
 }
 
 type SearchParams = Promise<{ view?: string; role?: string; q?: string }>;
@@ -290,7 +295,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
     all: all.length,
     noAccount: all.filter(p => !p.account).length,
     noRoster: all.filter(p => p.roster.length === 0).length,
-    past: all.filter(p => p.roster.length > 0 && p.roster.every(r => r.status === "past")).length,
+    past: all.filter(isPastMember).length,
   };
   const roleCounts: Record<string, number> = {};
   for (const p of all) if (p.account) roleCounts[p.account.role] = (roleCounts[p.account.role] ?? 0) + 1;
@@ -298,17 +303,22 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
 
   // --- filters ---------------------------------------------------------------
   const needle = q.toLowerCase();
-  const rows = all.filter(p => {
+  const filtered = all.filter(p => {
     if (view === "no-account" && p.account) return false;
     if (view === "no-roster" && p.roster.length > 0) return false;
-    if (view === "past" && !(p.roster.length > 0 && p.roster.every(r => r.status === "past"))) return false;
+    if (view === "past" && !isPastMember(p)) return false;
     if (roleFilter && p.account?.role !== roleFilter) return false;
     if (needle) {
-      const hay = [p.name, p.account?.email ?? "", p.roster[0]?.slug ?? ""].join(" ").toLowerCase();
+      const hay = [p.name, p.account?.email ?? "", ...p.roster.map(r => r.slug)].join(" ").toLowerCase();
       if (!hay.includes(needle)) return false;
     }
     return true;
   });
+  // `all` is alphabetical. Keep that order within each group, with former
+  // members together at the end in every filtered view.
+  const currentRows = filtered.filter(p => !isPastMember(p));
+  const pastRows = filtered.filter(isPastMember);
+  const rows = [...currentRows, ...pastRows];
 
   function href(next: { view?: View; role?: Role | null; q?: string }) {
     const params = new URLSearchParams();
@@ -395,8 +405,8 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
           <tbody>
             {rows.length === 0 ? (
               <tr><td colSpan={canManageMoney ? 6 : 5} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Asnjë person në këtë filtër.</td></tr>
-            ) : rows.map(p => {
-              const tm = p.roster[0] ?? null;
+            ) : rows.map((p, index) => {
+              const tm = p.roster.find(r => r.status === "active") ?? p.roster[0] ?? null;
               const acc = p.account;
               // The membership hangs off the ACCOUNT: memberships.member_id
               // references profiles(id), so a roster-only person cannot hold one.
@@ -428,7 +438,15 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
                 ?? null;
               const photo = tm?.photo?.storage_path ?? null;
               return (
-                <tr key={p.key}>
+                <Fragment key={p.key}>
+                {index === currentRows.length && (
+                  <tr className="people-past-divider">
+                    <td colSpan={canManageMoney ? 6 : 5}>
+                      Ish-anëtarë <span className="people-past-count">{pastRows.length}</span>
+                    </td>
+                  </tr>
+                )}
+                <tr>
                   <td>
                     <div className="person">
                       {photo
@@ -449,7 +467,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
                     {p.roster.length > 1 && (
                       <div className="mono" style={{ fontSize: 10.5, color: "var(--warn)", marginTop: 6, lineHeight: 1.7 }}>
                         {p.roster.length} rreshta ekipi për këtë llogari — mbaj njërin dhe fshij të tjerët:{" "}
-                        {p.roster.slice(1).map((extra, i) => (
+                        {p.roster.filter(r => r.id !== tm?.id).map((extra, i) => (
                           <span key={extra.id}>
                             {i > 0 ? ", " : ""}
                             {canEditRoster
@@ -536,6 +554,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
                     />
                   </td>
                 </tr>
+                </Fragment>
               );
             })}
           </tbody>

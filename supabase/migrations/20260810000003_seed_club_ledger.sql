@@ -193,6 +193,14 @@ begin
   select id into strict c_kuotizim   from public.expense_categories where code = 'kuotizim_taksa';
   select id into strict c_cash       from public.expense_categories where code = 'cash';
 
+  -- Preview branches replay migrations without the manually entered sponsor
+  -- roster. Leave the financial import absent there rather than assign costs
+  -- to invented sponsors; production already has the original data.
+  if not exists (select 1 from public.sponsors) then
+    raise notice 'club ledger seed skipped: sponsor roster is empty';
+    return;
+  end if;
+
   -- Sponsors are matched case- and space-insensitively because the sheet writes
   -- "NOVUS"/"Novus" and "Bike Plus"/"BikePlus". The normalisation deliberately
   -- does NOT collapse "BikePlus KS" into "BikePlus": they are separate sponsor

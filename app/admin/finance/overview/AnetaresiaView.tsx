@@ -507,22 +507,21 @@ export async function AnetaresiaView({ p, y, canEditPlans }: { p?: string; y?: s
 
   return (
     <>
-      <div className="overview-section-head">
+      <div className="overview-section-head overview-month-head">
         <div>
-          <span className="overview-eyebrow">PERIUDHA E ZGJEDHUR</span>
-          <h2>{label}</h2>
+          <h2>Pagesat e anëtarësisë</h2>
           <p>Pagesat dhe faturimi i muajit. Grafikat tregojnë edhe 12 muajt deri në këtë periudhë.</p>
         </div>
-      </div>
-      <div className="filter-bar overview-period-filter" aria-label="Muaji i pasqyrës">
-        <Link className="chip" href={hrefFor(periodParam(shiftPeriod(period, -1)))}>
-          ← {periodLabel(shiftPeriod(period, -1))}
-        </Link>
-        <span className="chip active">{label}</span>
-        <Link className="chip" href={hrefFor(periodParam(shiftPeriod(period, 1)))}>
-          {periodLabel(shiftPeriod(period, 1))} →
-        </Link>
-        {!isCurrent ? <Link className="chip" href={hrefFor(periodParam(thisMonth))}>Muaji aktual</Link> : null}
+        <nav className="overview-period-control" aria-label="Muaji i pasqyrës">
+          <Link className="overview-period-arrow" href={hrefFor(periodParam(shiftPeriod(period, -1)))} aria-label={`Muaji i mëparshëm: ${periodLabel(shiftPeriod(period, -1))}`}>
+            ←
+          </Link>
+          <span className="overview-period-current">{label}</span>
+          <Link className="overview-period-arrow" href={hrefFor(periodParam(shiftPeriod(period, 1)))} aria-label={`Muaji i ardhshëm: ${periodLabel(shiftPeriod(period, 1))}`}>
+            →
+          </Link>
+          {!isCurrent ? <Link className="overview-period-today" href={hrefFor(periodParam(thisMonth))}>Muaji aktual</Link> : null}
+        </nav>
       </div>
 
       <TruncationWarning parts={truncated} />

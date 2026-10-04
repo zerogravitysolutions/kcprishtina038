@@ -64,11 +64,11 @@ export default async function FinanceOverviewPage({ searchParams }: { searchPara
         </div>
       </div>
 
-      <nav className="filter-bar overview-tabs" aria-label="Pamjet e pasqyrës">
+      <nav className="overview-tabs" aria-label="Pamjet e pasqyrës">
         {VIEWS.map((v) => (
           <Link
             key={v.id}
-            className={`chip ${view === v.id ? "active" : ""}`}
+            className={`overview-tab ${view === v.id ? "active" : ""}`}
             href={overviewHref(v.id, navWindow)}
             aria-current={view === v.id ? "page" : undefined}
           >

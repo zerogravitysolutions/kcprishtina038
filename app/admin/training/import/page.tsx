@@ -31,7 +31,7 @@ export default async function StravaImportPage() {
     <div className="page-head">
       <div>
         <h1>Importo nga Strava</h1>
-        <div className="sub">Rrugë të përbashkëta nga çiklistët e lidhur, për t’u kontrolluar para krijimit.</div>
+        <div className="sub">Çiklizëm indoor dhe dalje të përbashkëta nga çiklistët e lidhur, për shqyrtim nga trajneri.</div>
       </div>
       <Link className="btn btn-ghost" href="/admin/training">← Stërvitjet</Link>
     </div>
@@ -41,7 +41,7 @@ export default async function StravaImportPage() {
         ? <div className="card" style={{ padding: 18 }}>Ende nuk ka stërvitje të propozuara për shqyrtim.</div>
         : pendingRides.map((ride) => <Link key={ride.id} className="card" href={`/admin/training/${ride.id}`}
             style={{ padding: 16, display: "flex", justifyContent: "space-between", gap: 12, textDecoration: "none" }}>
-            <span><strong>{ride.title || ride.focus || "Stërvitje grupore"}</strong><span className="mono" style={{ display: "block", fontSize: 11, marginTop: 4 }}>
+            <span><strong>{ride.title || ride.focus || "Stërvitje"}</strong><span className="mono" style={{ display: "block", fontSize: 11, marginTop: 4 }}>
               {ride.ride_date} · {ride.review_status === "under_review" ? "Stërvitje e re" : "Çiklist i ri"}
             </span></span>
             <span className="mono" style={{ color: "var(--ember)", fontSize: 12 }}>

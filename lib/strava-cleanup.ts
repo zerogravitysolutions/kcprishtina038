@@ -19,9 +19,9 @@ export async function removeImportedStravaData(athleteId: string, activityId?: n
       .select("distance_km, moving_seconds, elevation_m, strava_url, strava_imported, review_status").eq("ride_id", rideId);
     if (remainingError) throw remainingError;
     const { data: ride, error: currentRideError } = await admin.from("training_rides")
-      .select("review_status").eq("id", rideId).maybeSingle();
+      .select("kind, review_status").eq("id", rideId).maybeSingle();
     if (currentRideError) throw currentRideError;
-    if (!remaining?.length || (ride?.review_status === "under_review" && remaining.length < 2 &&
+    if (!remaining?.length || (ride?.review_status === "under_review" && ride.kind === "group" && remaining.length < 2 &&
         remaining.every((entry) => entry.strava_imported))) {
       const { error: rideError } = await admin.from("training_rides").delete().eq("id", rideId);
       if (rideError) throw rideError;

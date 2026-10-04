@@ -48,7 +48,7 @@ export function ImportReview({ sections }: { sections: Section[] }) {
   return <div style={{ display: "grid", gap: 16, maxWidth: 860 }}>
     <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
       <button type="button" className="btn btn-ember" disabled={loading} onClick={refresh}>
-        {loading ? "Duke kërkuar…" : "Rifresko përputhjet"}
+        {loading ? "Duke kërkuar…" : "Rifresko grupet outdoor"}
       </button>
       <span className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>
         {connectedCount} çiklistë të lidhur · 7 ditët e fundit
@@ -56,7 +56,7 @@ export function ImportReview({ sections }: { sections: Section[] }) {
     </div>
     {error && <p role="alert" style={{ color: "var(--err)" }}>{error}</p>}
     {!loading && !error && suggestions.length === 0 &&
-      <div className="card" style={{ padding: 20 }}>Nuk ka stërvitje grupore që plotësojnë përputhjen e rrugës 60%, kohës dhe ngjitjes.</div>}
+      <div className="card" style={{ padding: 20 }}>Nuk ka grupe outdoor që plotësojnë përputhjen e rrugës 60%, kohës dhe ngjitjes. Stërvitjet indoor shfaqen te “Në shqyrtim” kur sinkronizohen.</div>}
     {suggestions.map((suggestion) =>
       <SuggestionCard key={suggestion.key} suggestion={suggestion} sections={sections}
         onImported={() => setSuggestions((items) => items.filter((item) => item.key !== suggestion.key))} />)}

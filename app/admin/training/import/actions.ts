@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stravaGet, type StravaActivity, type StravaAthlete, type StravaConnection } from "@/lib/strava-api";
+import { cyclingMode } from "@/lib/strava-cycling";
 import { groupMatchingRides, matchRides, type LatLng, type MatchRide } from "@/lib/strava-match";
 import { metricsFromStrava, type ImportedMetrics, type PowerStreams } from "@/lib/strava-metrics";
 import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
@@ -12,7 +13,6 @@ import { dbError } from "@/lib/errors";
 import type { TableInsert } from "@/lib/supabase/types";
 
 const COACH_ROLES = new Set(["admin", "editor", "staff", "coach"]);
-const RIDE_TYPES = new Set(["Ride", "MountainBikeRide", "GravelRide", "EBikeRide", "EMountainBikeRide", "VirtualRide"]);
 const WEEK_SECONDS = 7 * 24 * 60 * 60;
 
 type StreamSet = PowerStreams & { latlng?: { data?: LatLng[] } };
@@ -97,7 +97,7 @@ export async function findStravaGroups(): Promise<
       const activities = await stravaGet<StravaActivity[]>(connection,
         `/athlete/activities?after=${after}&per_page=100`);
       return activities
-        .filter((activity) => RIDE_TYPES.has(activity.sport_type) && activity.distance > 2_000 && activity.elapsed_time > 0)
+        .filter((activity) => cyclingMode(activity) === "outdoor" && activity.distance > 2_000 && activity.elapsed_time > 0)
         .map((activity) => ({ rider, connection, activity }));
     }))).flat();
 
@@ -231,8 +231,8 @@ export async function importStravaGroup(input: {
         `/activities/${encodeURIComponent(requested.activityId)}`);
       if (String(activity.id) !== requested.activityId ||
           activity.athlete?.id !== owner.connection.strava_athlete_id ||
-          !RIDE_TYPES.has(activity.sport_type)) {
-        throw new Error("Aktiviteti nuk i përket çiklistit ose nuk është çiklizëm.");
+          cyclingMode(activity) !== "outdoor") {
+        throw new Error("Aktiviteti nuk i përket çiklistit ose nuk është çiklizëm në rrugë.");
       }
       const route = await activityRoute(owner.connection, requested.activityId);
       return { ...owner, activity, match: asMatch(owner.rider.id, activity, route) };
@@ -312,7 +312,7 @@ export async function approveStravaReview(rideId: string): Promise<{ ok: true } 
     await assertCoach();
     const supabase = await createClient();
     const { data: ride, error: rideError } = await supabase.from("training_rides")
-      .select("id, review_status, has_pending_changes").eq("id", rideId).maybeSingle();
+      .select("id, kind, review_status, has_pending_changes").eq("id", rideId).maybeSingle();
     if (rideError) throw rideError;
     if (!ride || (ride.review_status !== "under_review" && !ride.has_pending_changes)) {
       return { ok: false, error: "Nuk ka ndryshime për shqyrtim." };
@@ -320,7 +320,9 @@ export async function approveStravaReview(rideId: string): Promise<{ ok: true } 
     const { data: entries, error: entriesError } = await supabase.from("ride_entries")
       .select("id, athlete_id, review_status, set_ftp, ftp_w").eq("ride_id", rideId);
     if (entriesError) throw entriesError;
-    if ((entries ?? []).length < 2) return { ok: false, error: "Stërvitja grupore kërkon të paktën dy çiklistë." };
+    if ((entries ?? []).length < (ride.kind === "solo" ? 1 : 2)) {
+      return { ok: false, error: "Stërvitja nuk ka mjaft çiklistë për miratim." };
+    }
     if (!(entries ?? []).some((entry) => entry.review_status === "under_review")) {
       return { ok: false, error: "Nuk ka çiklistë për shqyrtim." };
     }

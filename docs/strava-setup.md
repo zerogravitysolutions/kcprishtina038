@@ -36,11 +36,16 @@ requires reconnecting every cyclist or migrating the stored tokens first.
    and search that window manually. An activity published weeks after the ride
    is still checked: the webhook provides its ID, and the matcher searches
    connected cyclists around the activity's **ride start time**, not upload time.
-3. A proposed group requires at least 60% overlap of **both** GPS routes,
+3. Only cycling activities are imported: road, mountain, gravel, e-bike, and
+   virtual rides. A `Ride` marked as a trainer session is indoor cycling. Runs,
+   swims, walks, gym workouts, and other sports are ignored. Indoor rides are
+   proposed as individual trainings **Under review**, with all available rider
+   metrics filled in. Virtual GPS is not used to group riders. A proposed outdoor
+   group requires at least 60% overlap of **both** GPS routes,
    starts within 30 minutes, at least 70% overlapping elapsed time, and
    elevation difference no greater than 20% or 150 m. Distance must also be
-   within 25% or 3 km. Every pair in a group must pass. Indoor rides without
-   GPS are excluded.
+   within 25% or 3 km. Every pair in an outdoor group must pass. Outdoor rides
+   without GPS cannot pass the route check.
 4. A new matching group is saved immediately as a training with status **Under
    review**. Its entries do not appear in cyclist history or coach KPIs until
    the coach approves them. If a rider publishes later and matches an approved

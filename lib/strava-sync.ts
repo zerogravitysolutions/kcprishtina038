@@ -3,11 +3,11 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stravaGet, type StravaActivity, type StravaAthlete, type StravaConnection } from "@/lib/strava-api";
 import { matchRides, type LatLng, type MatchRide } from "@/lib/strava-match";
+import { cyclingMode } from "@/lib/strava-cycling";
 import { metricsFromStrava, type PowerStreams } from "@/lib/strava-metrics";
 import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
 import type { TableInsert, TableRow } from "@/lib/supabase/types";
 
-const RIDE_TYPES = new Set(["Ride", "MountainBikeRide", "GravelRide", "EBikeRide", "EMountainBikeRide", "VirtualRide"]);
 const MIN_RIDE_METERS = 2_000;
 const START_WINDOW_SECONDS = 31 * 60;
 type Rider = { id: string; full_name: string; section_slug: string | null };
@@ -58,15 +58,15 @@ async function routeFor(connection: StravaConnection, activityId: number): Promi
     Array.isArray(point) && point.length === 2 && Number.isFinite(point[0]) && Number.isFinite(point[1]));
 }
 
-async function detailFor(owner: Connected, activityId: number): Promise<Matched | null> {
+async function detailFor(owner: Connected, activityId: number, cached?: StravaActivity): Promise<Matched | null> {
   let activity: StravaActivity;
-  try { activity = await stravaGet<StravaActivity>(owner.connection, `/activities/${activityId}`); }
+  try { activity = cached ?? await stravaGet<StravaActivity>(owner.connection, `/activities/${activityId}`); }
   catch (error) {
     if (error instanceof Error && error.message === "Strava API: 404") return null;
     throw error;
   }
   if (activity.id !== activityId || activity.athlete?.id !== owner.connection.strava_athlete_id ||
-      !RIDE_TYPES.has(activity.sport_type) || activity.distance < MIN_RIDE_METERS || activity.elapsed_time <= 0) return null;
+      cyclingMode(activity) !== "outdoor" || activity.distance < MIN_RIDE_METERS || activity.elapsed_time <= 0) return null;
   const route = await routeFor(owner.connection, activityId);
   if (route.length < 2) return null;
   return { ...owner, activity, match: asMatch(owner.rider, activity, route) };
@@ -89,7 +89,11 @@ async function metricsFor(item: Matched, fallbackFtp: number | null) {
   const hasProfileScope = item.connection.scopes.split(/[\s,]+/).includes("profile:read_all");
   const [streams, athlete] = await Promise.all([
     stravaGet<PowerStreams>(item.connection,
-      `/activities/${item.activity.id}/streams?keys=time,watts&key_by_type=true`),
+      `/activities/${item.activity.id}/streams?keys=time,watts&key_by_type=true`)
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.message === "Strava API: 404") return {} as PowerStreams;
+        throw error;
+      }),
     hasProfileScope ? stravaGet<StravaAthlete>(item.connection, "/athlete") : Promise.resolve(null),
   ]);
   return metricsFromStrava(item.activity, streams,
@@ -113,11 +117,61 @@ async function addEntries(rideId: string, items: Matched[]): Promise<void> {
   if (error) throw error;
 }
 
+async function proposeIndoorRide(owner: Connected, activity: StravaActivity): Promise<void> {
+  const admin = createAdminClient();
+  const [{ data: existing, error: existingError }, { data: rejected, error: rejectedError }] = await Promise.all([
+    admin.from("ride_entries").select("id").eq("athlete_id", owner.rider.id)
+      .eq("strava_activity_id", activity.id).maybeSingle(),
+    admin.from("strava_review_rejections").select("strava_activity_id")
+      .eq("athlete_id", owner.rider.id).eq("strava_activity_id", activity.id).maybeSingle(),
+  ]);
+  if (existingError || rejectedError) throw existingError ?? rejectedError;
+  if (existing || rejected) return;
+  const { data: section, error: sectionError } = owner.rider.section_slug
+    ? await admin.from("sections").select("id").eq("slug", owner.rider.section_slug)
+      .eq("active", true).maybeSingle()
+    : { data: null, error: null };
+  if (sectionError) throw sectionError;
+  const rideDate = activity.start_date_local.slice(0, 10);
+  const { data: ride, error: rideError } = await admin.from("training_rides").insert({
+    ride_date: rideDate, kind: "solo", review_status: "under_review",
+    title: suggestedTitle([activity], rideDate, true),
+    focus: suggestedFocus([activity], true), section_id: section?.id ?? null,
+    distance_km: Math.round(activity.distance / 10) / 100,
+    moving_seconds: activity.moving_time,
+    elevation_m: Math.round(activity.total_elevation_gain),
+    strava_url: `https://www.strava.com/activities/${activity.id}`,
+  }).select("id").single();
+  if (rideError || !ride) throw rideError ?? new Error("Could not save indoor Strava review ride");
+  try { await addEntries(ride.id, [{ ...owner, activity, match: asMatch(owner.rider, activity, []) }]); }
+  catch (error) {
+    await admin.from("training_rides").delete().eq("id", ride.id);
+    throw error;
+  }
+}
+
 async function processActivity(event: Event): Promise<void> {
   const all = await connections();
   const owner = all.find((item) => item.connection.strava_athlete_id === event.owner_id);
   if (!owner) return; // disconnected or no longer an active club rider
-  const target = await detailFor(owner, event.activity_id);
+  let activity: StravaActivity;
+  try { activity = await stravaGet<StravaActivity>(owner.connection, `/activities/${event.activity_id}`); }
+  catch (error) {
+    if (error instanceof Error && error.message === "Strava API: 404") return;
+    throw error;
+  }
+  if (activity.id !== event.activity_id || activity.athlete?.id !== owner.connection.strava_athlete_id) return;
+  const mode = cyclingMode(activity);
+  if (!mode) {
+    const { removeImportedStravaData } = await import("@/lib/strava-cleanup");
+    await removeImportedStravaData(owner.rider.id, event.activity_id);
+    return;
+  }
+  if (mode === "indoor") {
+    if (activity.elapsed_time > 0) await proposeIndoorRide(owner, activity);
+    return;
+  }
+  const target = await detailFor(owner, event.activity_id, activity);
   if (!target) return;
   const admin = createAdminClient();
   const { data: targetRejection, error: targetRejectionError } = await admin.from("strava_review_rejections")
@@ -130,7 +184,7 @@ async function processActivity(event: Event): Promise<void> {
   for (const candidateOwner of all) {
     if (candidateOwner.rider.id === owner.rider.id) continue;
     for (const activity of await activitiesNear(candidateOwner, center)) {
-      if (RIDE_TYPES.has(activity.sport_type) && activity.distance >= MIN_RIDE_METERS &&
+      if (cyclingMode(activity) === "outdoor" && activity.distance >= MIN_RIDE_METERS &&
           Math.abs(Date.parse(activity.start_date) - target.match.startMs) <= 30 * 60_000 &&
           Math.abs(activity.total_elevation_gain - target.activity.total_elevation_gain) <=
             Math.max(150, 0.2 * Math.max(activity.total_elevation_gain, target.activity.total_elevation_gain))) {
@@ -272,7 +326,7 @@ export async function enqueueRecentStravaActivities(): Promise<number> {
         `/athlete/activities?after=${after}&per_page=100&page=${page}`);
       if (!rows.length) break;
       for (const activity of rows) {
-        if (!RIDE_TYPES.has(activity.sport_type)) continue;
+        if (!cyclingMode(activity)) continue;
         await enqueueStravaActivity(activity.id, owner.connection.strava_athlete_id, Math.floor(Date.now() / 1000));
         found++;
       }

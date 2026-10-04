@@ -108,6 +108,7 @@ export const TRAINING_FOCUS: { value: string; label: string }[] = [
   { value: "Kronometër (TT)",    label: "Kronometër (TT) – Provë kohore individuale" },
   { value: "Long Ride",          label: "Long Ride – Dalje e gjatë (vëllim aerobik)" },
   { value: "Dalje grupore",      label: "Dalje grupore – Stërvitje e përbashkët në grup" },
+  { value: "Stërvitje indoor",    label: "Stërvitje indoor – Çiklizëm në trajner ose virtual" },
   { value: "Garë / Simulim",     label: "Garë / Simulim – Garë zyrtare ose simulim gare" },
 ];
 

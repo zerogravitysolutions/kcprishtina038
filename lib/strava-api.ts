@@ -10,6 +10,7 @@ export type StravaActivity = {
   id: number;
   name: string;
   sport_type: string;
+  trainer?: boolean;
   start_date: string;
   start_date_local: string;
   distance: number;

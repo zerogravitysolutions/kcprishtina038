@@ -7,6 +7,26 @@ const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.Modu
 const matchModule = {};
 new Function("exports", compiled)(matchModule);
 
+const cyclingSource = fs.readFileSync("lib/strava-cycling.ts", "utf8");
+const cyclingCompiled = ts.transpileModule(cyclingSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+const cyclingModule = {};
+new Function("exports", cyclingCompiled)(cyclingModule);
+for (const sport_type of ["Ride", "MountainBikeRide", "GravelRide", "EBikeRide", "EMountainBikeRide"]) {
+  assert.equal(cyclingModule.cyclingMode({ sport_type }), "outdoor");
+}
+assert.equal(cyclingModule.cyclingMode({ sport_type: "Ride", trainer: true }), "indoor");
+assert.equal(cyclingModule.cyclingMode({ sport_type: "VirtualRide" }), "indoor");
+for (const sport_type of ["Run", "VirtualRun", "Swim", "Walk", "Workout", "WeightTraining"]) {
+  assert.equal(cyclingModule.cyclingMode({ sport_type }), null);
+}
+const suggestionSource = fs.readFileSync("lib/strava-suggestions.ts", "utf8");
+const suggestionCompiled = ts.transpileModule(suggestionSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+const suggestionModule = {};
+new Function("exports", suggestionCompiled)(suggestionModule);
+const indoorActivity = { name: "", sport_type: "VirtualRide" };
+assert.equal(suggestionModule.suggestedFocus([indoorActivity], true), "Stërvitje indoor");
+assert.equal(suggestionModule.suggestedTitle([indoorActivity], "2026-10-04", true), "Stërvitje indoor · 2026-10-04");
+
 const route = Array.from({ length: 101 }, (_, i) => [42.65, 21.16 + i * 0.001]);
 const different = route.map(([lat, lon]) => [lat + 0.03, lon]);
 const partlyDifferent = route.map(([lat, lon], i) => [lat + (i > 70 ? (i - 70) * 0.001 : 0), lon]);

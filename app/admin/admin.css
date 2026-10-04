@@ -629,6 +629,9 @@ table.t .person .nm small { font-family: var(--font-mono); font-size: 10px; lett
 .kebab-menu button.danger { color: var(--err); }
 .kebab-menu button.danger:hover { background: var(--err-bg); }
 .kebab-menu .k-ic { width: 15px; height: 15px; flex-shrink: 0; opacity: .7; }
+.people-row-menu { min-width: 240px; max-height: calc(100vh - 16px); overflow-y: auto; }
+.people-row-menu button { min-height: 42px; }
+.people-row-menu button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* ---------- Race suggestions (approve/decline queue) ---------- */
 .rs-item { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid var(--line); }
@@ -1627,18 +1630,18 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 .people-chips .chip.active .people-chip-count { color: var(--accent-lo); }
 
 .people-table { table-layout: fixed; min-width: 1050px; }
-.people-table-money { min-width: 1180px; }
-.people-table th:first-child { width: 22%; }
-.people-table th:nth-child(2) { width: 9%; }
-.people-table th:nth-child(3) { width: 21%; }
-.people-table th:nth-child(4) { width: 23%; }
-.people-table th:last-child { width: 25%; }
-.people-table-money th:first-child { width: 20%; }
-.people-table-money th:nth-child(2) { width: 8%; }
-.people-table-money th:nth-child(3) { width: 16%; }
-.people-table-money th:nth-child(4) { width: 17%; }
-.people-table-money th:nth-child(5) { width: 17%; }
-.people-table-money th:last-child { width: 22%; }
+.people-table-money { min-width: 1120px; }
+.people-table th:first-child { width: 28%; }
+.people-table th:nth-child(2) { width: 11%; }
+.people-table th:nth-child(3) { width: 24%; }
+.people-table th:nth-child(4) { width: 30%; }
+.people-table th:last-child { width: 7%; }
+.people-table-money th:first-child { width: 24%; }
+.people-table-money th:nth-child(2) { width: 9%; }
+.people-table-money th:nth-child(3) { width: 20%; }
+.people-table-money th:nth-child(4) { width: 20%; }
+.people-table-money th:nth-child(5) { width: 20%; }
+.people-table-money th:last-child { width: 7%; }
 .people-table thead th { color: var(--slate-2); font-size: 10.5px; letter-spacing: .1em; }
 .people-table tbody td { vertical-align: top; padding: 17px 15px; line-height: 1.4; }
 .people-table tbody tr:hover { background: color-mix(in oklab, var(--accent) 3%, #fff); }
@@ -1655,9 +1658,7 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 .people-table .mbs-meta { color: var(--slate-2); font-family: var(--font-body); font-size: 11.5px; }
 .people-table .btn.mbs-open { min-height: 36px; padding: 7px 12px; font-size: 12px; }
 .people-table tbody td[data-lab="Anëtarësia"], .people-table tbody td.people-actions { vertical-align: middle; }
-.people-action-list { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
-.people-action-list > * { flex-shrink: 0; }
-.people-table td.people-actions .btn { margin: 0; }
+.people-table td.people-actions .kebab { width: 36px; height: 36px; }
 
 .people-account-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .people-form-note { margin: 16px 0; color: var(--text-2); font-size: 12.5px; line-height: 1.5; }
@@ -1673,7 +1674,8 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   .people-table .btn.mbs-open { min-height: 44px; }
   .mbs-empty-action { min-height: 44px; }
   .people-table td.people-actions { padding-top: 12px; }
-  .people-action-list { width: 100%; flex-wrap: wrap; }
+  .people-table td.people-actions { justify-content: flex-end; }
+  .people-table td.people-actions .kebab { width: 44px; height: 44px; }
 }
 @media (max-width: 560px) {
   .people-head { align-items: flex-start; }

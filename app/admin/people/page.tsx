@@ -3,11 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { RolePicker } from "./RolePicker";
 import { AddMember } from "./AddMember";
-import { ManageMember } from "./ManageMember";
-import { CreateAccount } from "./CreateAccount";
-import { AddToRoster } from "./AddToRoster";
+import { PeopleRowActions } from "./PeopleRowActions";
 import { MembershipFacet } from "./MembershipFacet";
-import { DeleteButton } from "../team-members/DeleteButton";
 import { POSITION_LABEL } from "./positions";
 // Types only from the client module (a Server Component may import components
 // and types from "use client", never values — a value comes back as a proxy).
@@ -530,18 +527,13 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
                   )}
 
                   <td className="actions people-actions">
-                    <div className="people-action-list">
-                      {tm && canEditRoster && (
-                        <Link className="btn btn-ghost btn-sm" href={`/admin/team-members/${tm.id}`}>Ndrysho</Link>
-                      )}
-                      {/* The one contextual action: the facet this person is missing. */}
-                      {!acc && tm && canManageAccounts && <CreateAccount teamMemberId={tm.id} name={p.name} />}
-                      {acc && !tm && canEditRoster && <AddToRoster profileId={acc.id} name={p.name} role={acc.role} />}
-                      {tm && canEditRoster && <DeleteButton id={tm.id} name={tm.full_name} />}
-                      {acc && canManageAccounts && (
-                        <ManageMember id={acc.id} name={p.name} email={acc.email} status={acc.status} isSelf={acc.id === user.id} />
-                      )}
-                    </div>
+                    <PeopleRowActions
+                      name={p.name}
+                      account={acc ? { id: acc.id, email: acc.email, status: acc.status, role: acc.role, isSelf: acc.id === user.id } : null}
+                      roster={tm ? { id: tm.id, name: tm.full_name } : null}
+                      canEditRoster={canEditRoster}
+                      canManageAccounts={canManageAccounts}
+                    />
                   </td>
                 </tr>
               );

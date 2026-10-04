@@ -24,8 +24,9 @@ function suggestPassword(len = 12): string {
 /** Contextual action for a roster person with no login: create the auth user +
  * profile and link it back through team_members.profile_id. Admin only, both
  * here and in the server action. */
-export function CreateAccount({ teamMemberId, name }: { teamMemberId: string; name: string }) {
-  const [open, setOpen] = useState(false);
+export function CreateAccount({ teamMemberId, name, open, onClose }: {
+  teamMemberId: string; name: string; open: boolean; onClose: () => void;
+}) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -45,23 +46,20 @@ export function CreateAccount({ teamMemberId, name }: { teamMemberId: string; na
     setErr(null);
     start(async () => {
       const r = await createAccountForPerson({ teamMemberId, email, password, role });
-      if (r.ok) { setOpen(false); router.refresh(); }
+      if (r.ok) { onClose(); router.refresh(); }
       else setErr(r.error ?? "Krijimi i llogarisë dështoi.");
     });
   }
 
   return (
     <>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(true)}>
-        Krijo llogari
-      </button>
       <Modal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={onClose}
         title={`Krijo llogari për ${name}`}
         footer={
           <>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)} disabled={pending}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} disabled={pending}>
               Anulo
             </button>
             <button type="button" className="btn btn-ember btn-sm" onClick={submit} disabled={pending || !email.trim()}>

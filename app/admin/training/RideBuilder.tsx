@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { createRide, resolveStravaUrl } from "./actions";
+import { createRide, fetchStravaStats } from "./actions";
 import { AthletePicker, type AthleteOption } from "./AthletePicker";
 import { NumericInput } from "@/components/admin/NumericInput";
-import { parseDurationToSeconds, TRAINING_FOCUS } from "@/lib/training";
+import { parseDurationToSeconds, formatDurationHMS, TRAINING_FOCUS } from "@/lib/training";
 
 type Section = { id: string; name_sq: string };
 
@@ -31,7 +31,7 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
   const [selected, setSelected] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
-  // Resolve mobile share links and keep manual metric entry clear.
+  // Resolve mobile share links and fill the fields when the public embed has stats.
   const lastFetched = useRef("");
   const currentUrl = useRef("");
   useEffect(() => {
@@ -41,13 +41,16 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
     const t = setTimeout(() => {
       lastFetched.current = url;
       startResolve(async () => {
-        const r = await resolveStravaUrl(url);
+        const r = await fetchStravaStats(url);
         if (currentUrl.current.trim() !== url) return;
         if (r.ok) {
           lastFetched.current = r.url;
           currentUrl.current = r.url;
           setStravaUrl(r.url);
-          setStravaNotice({ error: false, text: "Lidhja u njoh. Plotëso distancën, kohën dhe ngjitjen nga aktiviteti në Strava." });
+          if (r.distance_km != null) setDistance(String(r.distance_km));
+          if (r.elevation_m != null) setElevation(String(r.elevation_m));
+          if (r.moving_seconds != null) setDuration(formatDurationHMS(r.moving_seconds));
+          setStravaNotice({ error: false, text: r.warning ?? "Distanca, koha dhe ngjitja u plotësuan nga Strava." });
           setErr(null);
         } else setStravaNotice({ error: true, text: r.error });
       });
@@ -100,7 +103,7 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
         </div>
       </div>
 
-      {/* Strava activity link; the coach enters the shared base values. */}
+      {/* Strava activity link; available public summary values fill the base. */}
       <div className="field" style={{ marginBottom: 0 }}>
         <label>Strava {resolving ? <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--ember-deep)" }}>· duke lexuar…</span> : null}</label>
         <input
@@ -119,7 +122,7 @@ export function RideBuilder({ athletes, sections }: { athletes: AthleteOption[];
       {/* Bazë — shared, inherited by each cyclist. */}
       <div>
         <div className="mono" style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 6 }}>
-          Bazë <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· për të gjithë · plotëso nga aktiviteti</span>
+          Bazë <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--slate)" }}>· për të gjithë · nga Strava ose me dorë</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           <div className="field" style={{ marginBottom: 0 }}>

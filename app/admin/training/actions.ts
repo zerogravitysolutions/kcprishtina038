@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { RIDE_METRIC_FIELDS, RIDE_METRIC_BY_KEY, coerceMetric, normalizeDecimal, parseStrictNumber } from "@/lib/training";
 import { stravaActivityId, isStravaAppLink, parseStravaUrl } from "@/lib/strava";
+import { parseStravaEmbed } from "@/lib/strava-embed";
 import { dbError } from "@/lib/errors";
 import type { TableInsert, TableUpdate } from "@/lib/supabase/types";
 
@@ -390,5 +391,45 @@ export async function resolveStravaUrl(
     return { ok: false, error: "S’u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
   } catch (e) {
     return { ok: false, error: dbError(e, "Lidhja me Strava-n dështoi. Provo sërish.") };
+  }
+}
+
+/** Fill the shared training fields when Strava publishes an activity embed. */
+export async function fetchStravaStats(url: string): Promise<
+  | { ok: true; url: string; activityId: string; distance_km: number | null; elevation_m: number | null; moving_seconds: number | null; warning?: string }
+  | { ok: false; error: string }
+> {
+  try {
+    await assertCoach();
+    const resolved = await resolveActivity((url ?? "").trim());
+    if (!resolved) return { ok: false, error: "S’u gjet aktiviteti — ngjit lidhjen e plotë strava.com/activities/…" };
+
+    const withoutStats = {
+      ok: true as const, ...resolved,
+      distance_km: null, elevation_m: null, moving_seconds: null,
+      warning: "Lidhja u njoh, por Strava nuk dha statistika në pamjen e përbashkët. Plotëso Bazën me dorë.",
+    };
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(`https://strava-embeds.com/activity/${resolved.activityId}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      if (!response.ok) return withoutStats;
+      const stats = parseStravaEmbed(await response.text());
+      if (Object.values(stats).every((value) => value == null)) return withoutStats;
+      const incomplete = Object.values(stats).some((value) => value == null);
+      return {
+        ok: true, ...resolved, ...stats,
+        ...(incomplete ? { warning: "U plotësuan statistikat e disponueshme. Plotëso fushat e tjera nga Strava." } : {}),
+      };
+    } catch {
+      return withoutStats;
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch (error) {
+    return { ok: false, error: dbError(error, "Lidhja me Strava-n dështoi. Provo sërish.") };
   }
 }

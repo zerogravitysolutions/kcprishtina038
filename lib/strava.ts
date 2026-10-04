@@ -1,11 +1,9 @@
 // Shared Strava URL helpers — used by the public StravaEmbed widget and by the
 // coach ride editor (paste an activity link, embed it, remember the id).
 //
-// NOTE on the API: reading an activity's numbers (km / HR / power) from Strava
-// requires an OAuth access token belonging to the athlete who owns it — there
-// is no public "activity by id" endpoint. So today we store the link + embed
-// it and the coach types the numbers. Auto-fill is a later phase that needs a
-// club Strava API app + each athlete connecting their account once.
+// NOTE on the API: detailed activity metrics (HR / power) require the owner's
+// OAuth token. The public embed may expose the distance, time and elevation
+// summary; the coach enters those manually if the embed is unavailable.
 
 export type StravaKind = "route" | "segment" | "activity";
 export type ParsedStrava = { type: StravaKind; id: string } | null;

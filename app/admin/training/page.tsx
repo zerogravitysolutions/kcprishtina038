@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
-import { fmt, sum } from "@/lib/training";
+import { fmt, formatDurationShort } from "@/lib/training";
+import { stravaActivityId } from "@/lib/strava";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -9,47 +10,93 @@ export const revalidate = 0;
 export const metadata = { title: "Stërvitjet" };
 
 const COACH_ROLES = ["admin", "editor", "staff", "coach"];
+const PAGE_SIZE = 50;
 
-type EntryLite = { participated: boolean; distance_km: number | null };
+type MetricKey = "distance_km" | "moving_seconds" | "elevation_m";
+type EntryLite = {
+  participated: boolean;
+  distance_km: number | null;
+  moving_seconds: number | null;
+  elevation_m: number | null;
+  athlete: { full_name: string } | null;
+};
 type RideRow = {
   id: string;
   ride_date: string;
   title: string | null;
   focus: string | null;
+  distance_km: number | null;
+  moving_seconds: number | null;
+  elevation_m: number | null;
+  strava_url: string | null;
   review_status: "approved" | "under_review";
   has_pending_changes: boolean;
   section: { slug: string; name_sq: string } | null;
   entries: EntryLite[];
 };
 
-export default async function TrainingPage() {
+// Each row describes one session. Summing rider metrics would multiply a group
+// ride's distance and duration by its participant count.
+function sessionMetric(ride: RideRow, participants: EntryLite[], key: MetricKey, format: (value: number) => string): string {
+  const values = participants.map((entry) => entry[key]).filter((value): value is number => value != null);
+  if (values.length === 0) return ride[key] == null ? "—" : format(ride[key]);
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  return low === high ? format(low) : `${format(low)}–${format(high)}`;
+}
+
+export default async function TrainingPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const profile = await getProfile();
   if (!profile) redirect("/login");
   if (!COACH_ROLES.includes(profile.role)) redirect("/admin/dashboard");
 
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("training_rides")
-    .select("id, ride_date, title, focus, review_status, has_pending_changes, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km)")
-    .order("ride_date", { ascending: false })
-    .limit(80);
-  const rows = (data as unknown as RideRow[] | null) ?? [];
+  const query = await searchParams;
+  const requestedPage = Number(query.page);
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const offset = (page - 1) * PAGE_SIZE;
 
-  const view = rows.map((r) => ({
-    r,
-    parts: r.entries.filter((e) => e.participated).length,
-    km: sum(r.entries.map((e) => e.distance_km)),
-    title: r.title || r.focus || "Stërvitje",
-    dateShort: new Date(r.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short" }),
-    dateLong: new Date(r.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short", year: "numeric" }),
-  }));
+  const supabase = await createClient();
+  const { data, count, error } = await supabase
+    .from("training_rides")
+    .select(
+      "id, ride_date, title, focus, distance_km, moving_seconds, elevation_m, strava_url, review_status, has_pending_changes, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km, moving_seconds, elevation_m, athlete:team_members!athlete_id(full_name))",
+      { count: "exact" },
+    )
+    .order("ride_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .range(offset, offset + PAGE_SIZE - 1);
+  if (error) throw error;
+
+  const total = count ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (page > pageCount) redirect(`/admin/training?page=${pageCount}`);
+
+  const rows = (data as unknown as RideRow[] | null) ?? [];
+  const view = rows.map((ride) => {
+    const participants = ride.entries.filter((entry) => entry.participated);
+    const names = participants
+      .map((entry) => entry.athlete?.full_name ?? "Çiklist i panjohur")
+      .sort((a, b) => a.localeCompare(b, "sq"));
+    const title = ride.title?.trim() || ride.focus?.trim() || "Stërvitje";
+    const stravaId = ride.strava_url ? stravaActivityId(ride.strava_url) : null;
+    return {
+      ride,
+      title,
+      names,
+      date: new Date(`${ride.ride_date}T12:00:00`).toLocaleDateString("sq", { day: "2-digit", month: "short", year: "numeric" }),
+      distance: sessionMetric(ride, participants, "distance_km", (value) => fmt(value, 1)),
+      duration: sessionMetric(ride, participants, "moving_seconds", formatDurationShort),
+      elevation: sessionMetric(ride, participants, "elevation_m", (value) => fmt(value)),
+      stravaHref: stravaId ? `https://www.strava.com/activities/${stravaId}` : null,
+    };
+  });
 
   return (
     <>
       <div className="page-head">
         <div>
           <h1>Stërvitjet</h1>
-          <div className="sub">Regjistro stërvitjet — zgjidh 1 ose më shumë çiklistë për secilën.</div>
+          <div className="sub">Stërvitjet e regjistruara dhe vlerat e çiklistëve në një vend.</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link className="btn btn-ghost" href="/admin/training/import">Importo nga Strava</Link>
@@ -57,73 +104,70 @@ export default async function TrainingPage() {
         </div>
       </div>
 
-      <div className="filter-bar" style={{ borderRadius: 12, border: "1px solid var(--line)", marginBottom: 12 }}>
-        <span className="meta">{rows.length} stërvitje</span>
+      <div className="filter-bar training-list-bar">
+        <span className="meta">{total} stërvitje</span>
+        {total > PAGE_SIZE && <span className="training-page-count">{offset + 1}–{Math.min(offset + PAGE_SIZE, total)} nga {total}</span>}
         <div className="spacer" />
         <Link className="meta" href="/admin/training/progress" style={{ color: "var(--ember)" }}>Progresi →</Link>
       </div>
 
-      {/* Mobile: modern cards */}
-      <div className="ex-cards">
-        {view.length === 0 ? (
-          <div className="ex-empty">Ende asnjë stërvitje. Fillo me “+ Stërvitje e re”.</div>
-        ) : (
-          view.map(({ r, parts, km, title, dateShort }) => (
-            <Link key={r.id} href={`/admin/training/${r.id}`} className="ex-card">
-              <div className="ex-card-top">
-                <span className="ex-card-title">{title}</span>
-                <span className="ex-card-date">{dateShort}</span>
-              </div>
-              {(r.review_status === "under_review" || r.has_pending_changes) &&
-                <div className="mono" style={{ color: "var(--ember)", fontSize: 11, marginTop: 5 }}>
-                  {r.review_status === "under_review" ? "Në shqyrtim" : "Çiklist i ri për shqyrtim"}
-                </div>}
-              {r.section && (
-                <div className="ex-card-meta">
-                  <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span>
-                </div>
-              )}
-              {(parts > 0 || km > 0) && (
-                <div className="ex-card-stats">
-                  {parts > 0 ? <span className="ex-pill"><b>{parts}</b> çiklistë</span> : null}
-                  {km > 0 ? <span className="ex-pill"><b>{fmt(km, 1)}</b> km</span> : null}
-                </div>
-              )}
-            </Link>
-          ))
-        )}
-      </div>
-
-      {/* Desktop: table */}
-      <div className="ex-desktop table-wrap">
-        <table className="t">
+      <div className="table-wrap training-table-wrap">
+        <table className="t training-table">
           <thead>
-            <tr><th>Stërvitja</th><th>Data</th><th>Seksioni</th><th>Çiklistë</th><th>KM</th><th>Veprime</th></tr>
+            <tr>
+              <th>Stërvitja</th>
+              <th>Data</th>
+              <th>Seksioni</th>
+              <th>Çiklistët</th>
+              <th className="num">Distanca</th>
+              <th>Kohëzgjatja</th>
+              <th className="num">Ngjitja</th>
+              <th>Gjendja</th>
+              <th>Hap</th>
+            </tr>
           </thead>
           <tbody>
             {view.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: 18, color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>Ende asnjë stërvitje. Fillo me “+ Stërvitje e re”.</td></tr>
-            ) : (
-              view.map(({ r, parts, km, title, dateLong }) => (
-                <tr key={r.id}>
-                  <td>
-                    <Link href={`/admin/training/${r.id}`} style={{ fontWeight: 600 }}>{title}</Link>
-                    {(r.review_status === "under_review" || r.has_pending_changes) &&
-                      <span className="mono" style={{ display: "block", color: "var(--ember)", fontSize: 11 }}>
-                        {r.review_status === "under_review" ? "Në shqyrtim" : "Çiklist i ri për shqyrtim"}
-                      </span>}
-                  </td>
-                  <td className="mono">{dateLong}</td>
-                  <td>{r.section ? <span className={`tag-sec ${r.section.slug}`}>{r.section.name_sq}</span> : "—"}</td>
-                  <td className="mono">{parts}</td>
-                  <td className="mono">{km > 0 ? fmt(km, 1) : "—"}</td>
-                  <td className="actions"><Link className="btn btn-ghost btn-sm" href={`/admin/training/${r.id}`}>Hap</Link></td>
-                </tr>
-              ))
-            )}
+              <tr><td colSpan={9} className="training-empty">Ende asnjë stërvitje. Fillo me “+ Stërvitje e re”.</td></tr>
+            ) : view.map(({ ride, title, names, date, distance, duration, elevation, stravaHref }) => (
+              <tr key={ride.id}>
+                <td>
+                  <Link href={`/admin/training/${ride.id}`} className="training-row-title">{title}</Link>
+                  {(ride.title && ride.focus && ride.title !== ride.focus) && <span className="training-row-sub">{ride.focus}</span>}
+                  {stravaHref && <a className="training-strava-link" href={stravaHref} target="_blank" rel="noopener noreferrer">Strava ↗</a>}
+                </td>
+                <td className="mono" data-lab="Data">{date}</td>
+                <td data-lab="Seksioni">{ride.section ? <span className={`tag-sec ${ride.section.slug}`}>{ride.section.name_sq}</span> : "—"}</td>
+                <td data-lab="Çiklistët">
+                  <span className="training-rider-names" title={names.join(", ")}>
+                    {names.length ? `${names.slice(0, 2).join(", ")}${names.length > 2 ? ` +${names.length - 2}` : ""}` : "—"}
+                  </span>
+                  <span className="training-rider-count">{names.length} {names.length === 1 ? "çiklist" : "çiklistë"}</span>
+                </td>
+                <td className="num training-value" data-lab="Distanca"><span>{distance}{distance !== "—" && <span className="training-unit"> km</span>}</span></td>
+                <td className="mono training-value" data-lab="Kohëzgjatja"><span>{duration}</span></td>
+                <td className="num training-value" data-lab="Ngjitja"><span>{elevation}{elevation !== "—" && <span className="training-unit"> m</span>}</span></td>
+                <td data-lab="Gjendja">
+                  <span className={`badge-st ${ride.review_status === "under_review" ? "warn" : ride.has_pending_changes ? "ember" : "ok"}`}>
+                    {ride.review_status === "under_review" ? "Në shqyrtim" : ride.has_pending_changes ? "Ndryshim i ri" : "Miratuar"}
+                  </span>
+                </td>
+                <td className="actions training-row-action"><Link className="btn btn-ghost btn-sm" href={`/admin/training/${ride.id}`} aria-label={`Hap stërvitjen ${title}, ${date}`}>Hap →</Link></td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
+
+      {pageCount > 1 && (
+        <nav className="training-pagination" aria-label="Faqet e stërvitjeve">
+          <span>Faqja {page} nga {pageCount}</span>
+          <div>
+            {page > 1 && <Link className="btn btn-ghost btn-sm" href={`/admin/training?page=${page - 1}`}>← Më të rejat</Link>}
+            {page < pageCount && <Link className="btn btn-ghost btn-sm" href={`/admin/training?page=${page + 1}`}>Më të vjetrat →</Link>}
+          </div>
+        </nav>
+      )}
     </>
   );
 }

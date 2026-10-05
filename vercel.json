@@ -3,6 +3,6 @@
   "regions": ["fra1"],
   "crons": [
     { "path": "/api/cron/strava", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/strava-40km", "schedule": "15 * * * *" }
+    { "path": "/api/cron/strava-40km", "schedule": "15 4 * * *" }
   ]
 }

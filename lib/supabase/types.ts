@@ -664,10 +664,13 @@ interface PublicTables {
           refresh_token_ciphertext: string;
           access_expires_at: string;
           scopes: string;
+          strava_ftp_w: number | null;
+          strava_ftp_checked_at: string | null;
           connected_at: string;
           updated_at: string;
         };
-        Insert: Omit<PublicTables["strava_connections"]["Row"], "connected_at" | "updated_at">;
+        Insert: Omit<PublicTables["strava_connections"]["Row"], "connected_at" | "updated_at" | "strava_ftp_w" | "strava_ftp_checked_at">
+          & Partial<Pick<PublicTables["strava_connections"]["Row"], "strava_ftp_w" | "strava_ftp_checked_at">>;
         Update: Partial<PublicTables["strava_connections"]["Row"]>;
       };
       strava_segment_efforts: {
@@ -751,6 +754,15 @@ interface PublicTables {
         Row: { athlete_id: string; strava_activity_id: number; dismissed_at: string };
         Insert: { athlete_id: string; strava_activity_id: number; dismissed_at?: string };
         Update: Partial<PublicTables["strava_dismissed_activities"]["Row"]>;
+      };
+      strava_activities: {
+        Row: {
+          activity_id: number; athlete_id: string; started_at: string | null;
+          mode: "indoor" | "outdoor" | null; detail: unknown; fetched_at: string | null;
+          forty_km_checked: boolean;
+        };
+        Insert: { activity_id: number; athlete_id: string } & Partial<PublicTables["strava_activities"]["Row"]>;
+        Update: Partial<PublicTables["strava_activities"]["Row"]>;
       };
       strava_queue_worker: {
         Row: { id: boolean; secret: string; rescan_from: string | null; segments_refresh: boolean };

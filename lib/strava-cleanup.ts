@@ -3,8 +3,15 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /** Remove imported entries (and now-empty sessions) after revocation or deletion. */
-export async function removeImportedStravaData(athleteId: string, activityId?: number): Promise<void> {
+export async function removeImportedStravaData(athleteId: string, activityId?: number,
+  options: { keepCache?: boolean } = {}): Promise<void> {
   const admin = createAdminClient();
+  if (!options.keepCache) {
+    let cache = admin.from("strava_activities").delete().eq("athlete_id", athleteId);
+    if (activityId !== undefined) cache = cache.eq("activity_id", activityId);
+    const { error: cacheError } = await cache;
+    if (cacheError) throw cacheError;
+  }
   let segments = admin.from("strava_segment_efforts").delete().eq("athlete_id", athleteId);
   if (activityId !== undefined) segments = segments.eq("strava_activity_id", activityId);
   const { error: segmentError } = await segments;

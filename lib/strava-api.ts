@@ -23,6 +23,7 @@ export type StravaActivity = {
   weighted_average_watts?: number;
   average_cadence?: number;
   athlete?: { id: number };
+  map?: { polyline?: string | null; summary_polyline?: string | null };
   segment_efforts?: StravaSegmentEffort[];
 };
 
@@ -41,6 +42,7 @@ export type StravaSegmentEffort = {
   max_heartrate?: number;
   average_cadence?: number;
   device_watts?: boolean;
+  pr_rank?: number | null;
 };
 
 export type StravaAthlete = { id: number; ftp?: number | null };

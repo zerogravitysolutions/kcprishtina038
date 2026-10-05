@@ -4,17 +4,19 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { stravaGet, type StravaActivity, type StravaAthlete, type StravaConnection } from "@/lib/strava-api";
 import { matchIndoorRides, matchRides, type LatLng, type MatchRide } from "@/lib/strava-match";
 import { cyclingMode } from "@/lib/strava-cycling";
+import { syncFortyKmEffort } from "@/lib/strava-forty-km-sync";
+import { qualifiesForReview } from "@/lib/strava-review";
 import { metricsFromStrava, missingImportedMetrics, type PowerStreams } from "@/lib/strava-metrics";
 import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
 import { refreshSegmentSummary, refreshTrackedSegmentsForConnection, syncSegmentEffortsFromActivity } from "@/lib/strava-segment-sync";
 import type { TableInsert, TableRow, TableUpdate } from "@/lib/supabase/types";
 
-const MIN_RIDE_METERS = 2_000;
 const START_WINDOW_SECONDS = 31 * 60;
 type Rider = { id: string; full_name: string; section_slug: string | null };
 type Connected = { rider: Rider; connection: StravaConnection };
 type Matched = Connected & { activity: StravaActivity; match: MatchRide };
 type Event = TableRow<"strava_activity_events">;
+
 
 export async function enqueueStravaActivity(activityId: number, ownerId: number, eventTime: number,
   force = false, eventKind: "upsert" | "delete" | "revoke" = "upsert"): Promise<void> {
@@ -191,6 +193,12 @@ async function processActivity(event: Event): Promise<void> {
   if (!target) return;
   const changedSegments = await syncSegmentEffortsFromActivity(owner.rider.id, activity);
   for (const segmentId of changedSegments) await refreshSegmentSummary(owner.connection, segmentId);
+  await syncFortyKmEffort(owner.connection, activity);
+  if (!qualifiesForReview(activity)) {
+    const { removeUnderReviewStravaEntry } = await import("@/lib/strava-cleanup");
+    await removeUnderReviewStravaEntry(owner.rider.id, activity.id);
+    return;
+  }
   const admin = createAdminClient();
   const { data: targetRejection, error: targetRejectionError } = await admin.from("strava_review_rejections")
     .select("strava_activity_id").eq("athlete_id", owner.rider.id)
@@ -203,11 +211,10 @@ async function processActivity(event: Event): Promise<void> {
   for (const candidateOwner of all) {
     if (candidateOwner.rider.id === owner.rider.id) continue;
     for (const activity of await activitiesNear(candidateOwner, center)) {
-      if (cyclingMode(activity) === mode &&
+      if (cyclingMode(activity) === mode && qualifiesForReview(activity) &&
           (mode === "indoor"
             ? score(target.match, asMatch(candidateOwner.rider, activity, [])) !== null
-            : activity.distance >= MIN_RIDE_METERS &&
-              Math.abs(Date.parse(activity.start_date) - target.match.startMs) <= 30 * 60_000 &&
+            : Math.abs(Date.parse(activity.start_date) - target.match.startMs) <= 30 * 60_000 &&
               Math.abs(activity.total_elevation_gain - target.activity.total_elevation_gain) <=
                 Math.max(150, 0.2 * Math.max(activity.total_elevation_gain, target.activity.total_elevation_gain)))) {
         nearby.push({ item: candidateOwner, activity });
@@ -224,7 +231,7 @@ async function processActivity(event: Event): Promise<void> {
   for (const candidate of nearby) {
     if (rejectedKeys.has(`${candidate.item.rider.id}:${candidate.activity.id}`)) continue;
     const detailed = await detailFor(candidate.item, candidate.activity.id, mode);
-    if (!detailed) continue;
+    if (!detailed || !qualifiesForReview(detailed.activity)) continue;
     const overlap = score(target.match, detailed.match);
     if (overlap !== null) matched.push({ item: detailed, overlap });
   }

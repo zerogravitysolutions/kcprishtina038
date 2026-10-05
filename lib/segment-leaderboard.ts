@@ -3,6 +3,7 @@ import type { TableRow } from "@/lib/supabase/types";
 export const TRACKED_SEGMENTS = [
   { id: 11076508, name: "Stallova Climb", distanceKm: 2.504, grade: 7.4 },
   { id: 12854147, name: "Back of Stallova", distanceKm: 6.463, grade: 3.8 },
+  { id: 20387178, name: "Butovc Climb", distanceKm: 3.302, grade: 10.6 },
 ] as const;
 
 export type SegmentEffort = TableRow<"strava_segment_efforts">;

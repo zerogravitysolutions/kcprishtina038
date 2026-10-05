@@ -5,6 +5,7 @@ import { clubTodayISO } from "@/lib/clubtime";
 import { ColumnChart, TargetBars, type Point, type TargetRow } from "../charts";
 import { TeamTargets } from "./TeamTargets";
 import { FtpTargetsModal, type FtpModalMonth } from "./FtpTargetsModal";
+import { KpiTabs } from "./KpiTabs";
 import { addMonths, buildSeries, monthStart, targetOn, type FtpTarget, type KpiBucket, type KpiEntry, type KpiView, type TeamTarget } from "@/lib/kpi";
 import { fmt, monthLabel } from "@/lib/training";
 
@@ -188,6 +189,8 @@ export default async function KpiPage({ searchParams }: { searchParams: Promise<
         </div>
         <Link className="btn btn-ghost btn-sm" href="/admin/training/progress">Progresi →</Link>
       </div>
+
+      <KpiTabs active="overview" />
 
       {loadFailed ? (
         <div className="mm-msg err" style={{ marginBottom: 16 }}>

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:training-match": "node scripts/test-strava-match.cjs",
+    "test:segment-leaderboard": "node scripts/test-segment-leaderboard.cjs",
     "types": "mkdir -p lib/supabase && supabase gen types typescript --linked > lib/supabase/types.ts"
   },
   "dependencies": {

@@ -675,6 +675,44 @@ interface PublicTables {
         Insert: Omit<PublicTables["strava_connections"]["Row"], "connected_at" | "updated_at">;
         Update: Partial<PublicTables["strava_connections"]["Row"]>;
       };
+      strava_segment_efforts: {
+        Row: {
+          athlete_id: string;
+          strava_activity_id: number;
+          segment_id: number;
+          started_at: string;
+          local_date: string;
+          elapsed_seconds: number;
+          moving_seconds: number | null;
+          distance_m: number | null;
+          avg_power_w: number | null;
+          avg_hr: number | null;
+          max_hr: number | null;
+          avg_cadence: number | null;
+          device_watts: boolean | null;
+          updated_at: string;
+        };
+        Insert: Omit<PublicTables["strava_segment_efforts"]["Row"], "updated_at">;
+        Update: Partial<PublicTables["strava_segment_efforts"]["Row"]>;
+      };
+      strava_segment_stats: {
+        Row: {
+          athlete_id: string;
+          segment_id: number;
+          pr_activity_id: number | null;
+          pr_elapsed_seconds: number | null;
+          pr_date: string | null;
+          effort_count: number | null;
+          updated_at: string;
+        };
+        Insert: { athlete_id: string; segment_id: number } & Partial<PublicTables["strava_segment_stats"]["Row"]>;
+        Update: Partial<PublicTables["strava_segment_stats"]["Row"]>;
+      };
+      strava_segment_backfills: {
+        Row: { athlete_id: string; cursor_before: number; completed: boolean; updated_at: string };
+        Insert: { athlete_id: string; cursor_before: number } & Partial<PublicTables["strava_segment_backfills"]["Row"]>;
+        Update: Partial<PublicTables["strava_segment_backfills"]["Row"]>;
+      };
       strava_activity_events: {
         Row: {
           event_kind: "upsert" | "delete" | "revoke";

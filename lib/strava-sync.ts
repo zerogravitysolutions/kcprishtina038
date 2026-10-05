@@ -6,6 +6,7 @@ import { matchIndoorRides, matchRides, type LatLng, type MatchRide } from "@/lib
 import { cyclingMode } from "@/lib/strava-cycling";
 import { metricsFromStrava, missingImportedMetrics, type PowerStreams } from "@/lib/strava-metrics";
 import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
+import { refreshSegmentSummary, refreshTrackedSegmentsForConnection, syncSegmentEffortsFromActivity } from "@/lib/strava-segment-sync";
 import type { TableInsert, TableRow, TableUpdate } from "@/lib/supabase/types";
 
 const MIN_RIDE_METERS = 2_000;
@@ -183,10 +184,13 @@ async function processActivity(event: Event): Promise<void> {
   if (!mode) {
     const { removeImportedStravaData } = await import("@/lib/strava-cleanup");
     await removeImportedStravaData(owner.rider.id, event.activity_id);
+    await refreshTrackedSegmentsForConnection(owner.connection);
     return;
   }
   const target = await detailFor(owner, event.activity_id, mode, activity);
   if (!target) return;
+  const changedSegments = await syncSegmentEffortsFromActivity(owner.rider.id, activity);
+  for (const segmentId of changedSegments) await refreshSegmentSummary(owner.connection, segmentId);
   const admin = createAdminClient();
   const { data: targetRejection, error: targetRejectionError } = await admin.from("strava_review_rejections")
     .select("strava_activity_id").eq("athlete_id", owner.rider.id)
@@ -346,6 +350,11 @@ export async function processQueuedStravaActivities(batchSize = 5): Promise<{ pr
             const { error: deleteError } = await admin.from("strava_connections")
               .delete().eq("athlete_id", connection.athlete_id);
             if (deleteError) throw deleteError;
+          } else if (event.event_kind === "delete") {
+            const { data: linked, error: linkedError } = await admin.from("strava_connections")
+              .select("*").eq("athlete_id", connection.athlete_id).maybeSingle();
+            if (linkedError) throw linkedError;
+            if (linked) await refreshTrackedSegmentsForConnection(linked);
           }
         }
       }

@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptToken, exchangeCode, revokeStrava, stravaIsConfigured } from "@/lib/strava-api";
 import { removeImportedStravaData } from "@/lib/strava-cleanup";
 import { enqueueRecentStravaActivities, processQueuedStravaActivities } from "@/lib/strava-sync";
+import { refreshTrackedSegmentsForConnection } from "@/lib/strava-segment-sync";
 
 export const maxDuration = 60;
 
@@ -69,6 +70,10 @@ export async function GET(request: NextRequest) {
       try {
         await enqueueRecentStravaActivities(rider.id);
         await processQueuedStravaActivities(10);
+        const { data: connection, error: connectionError } = await admin.from("strava_connections")
+          .select("*").eq("athlete_id", rider.id).single();
+        if (connectionError) throw connectionError;
+        await refreshTrackedSegmentsForConnection(connection);
       } catch (error) {
         console.error("Strava connection backfill failed", error);
       }

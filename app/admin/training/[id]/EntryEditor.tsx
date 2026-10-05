@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateEntry, removeEntry } from "../actions";
+import { updateEntry, removeEntry, refreshStravaEntry } from "../actions";
 import { NumericInput, type NumericKind } from "@/components/admin/NumericInput";
 import {
   RIDE_METRIC_FIELDS, METRIC_GROUPS, type MetricField, type MetricGroupKey,
@@ -15,6 +15,8 @@ export type EntryRow = {
   participated: boolean;
   set_ftp: boolean;
   strava_url: string | null;
+  strava_imported: boolean;
+  strava_activity_id: number | null;
   review_status: "approved" | "under_review";
   [key: string]: unknown; // metric columns
 };
@@ -48,6 +50,8 @@ export function EntryEditor({
   const [open, setOpen] = useState(defaultOpen);
   const [pending, startSave] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(entry));
   const [participated, setParticipated] = useState(entry.participated);
@@ -115,6 +119,34 @@ export function EntryEditor({
     else setMsg({ ok: false, text: r.error });
   }
 
+  async function onRefresh() {
+    setRefreshing(true);
+    setRefreshMessage(null);
+    try {
+      const result = await refreshStravaEntry(rideId, entry.id);
+      if (!result.ok) {
+        setRefreshMessage({ ok: false, text: result.error });
+        return;
+      }
+      const filled = RIDE_METRIC_FIELDS.filter((field) =>
+        !field.computed && !values[field.key]?.trim() && result.metrics[field.key] != null).length;
+      setValues((previous) => {
+        const next = { ...previous };
+        for (const field of RIDE_METRIC_FIELDS) {
+          const value = result.metrics[field.key];
+          if (field.computed || previous[field.key]?.trim() || value == null) continue;
+          next[field.key] = field.ui === "duration" ? formatDurationHMS(value) : String(value);
+        }
+        return next;
+      });
+      setRefreshMessage({ ok: true, text: filled ? `U plotësuan ${filled} fusha nga Strava.` : "Nuk u gjetën vlera të reja në Strava." });
+    } catch {
+      setRefreshMessage({ ok: false, text: "Rifreskimi nga Strava dështoi. Provo sërish." });
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   const initials = athlete.full_name.trim().split(/\s+/).slice(0, 2).map((s) => s[0] || "").join("").toUpperCase() || "?";
 
   return (
@@ -156,8 +188,16 @@ export function EntryEditor({
             Mori pjesë
           </label>
 
+          {entry.strava_imported && <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--paper-2)", fontSize: 12, color: "var(--ink-2)" }}>
+            <div>Fushat bosh nuk kanë vlerë të regjistruar në Strava për këtë aktivitet, ose aktiviteti ishte më i shkurtër se intervali i kërkuar.</div>
+            {entry.review_status === "under_review" && <button type="button" className="btn btn-ghost btn-sm" disabled={refreshing} onClick={onRefresh} style={{ marginTop: 8 }}>
+              {refreshing ? "Duke rifreskuar…" : "Rifresko vlerat nga Strava"}
+            </button>}
+            {refreshMessage && <div role="status" style={{ marginTop: 6, color: refreshMessage.ok ? "var(--ok)" : "var(--err)" }}>{refreshMessage.text}</div>}
+          </div>}
+
           {PRIMARY_GROUPS.map((g) => (
-            <MetricGroup key={g} groupKey={g} values={values} onChange={setField} extra={
+            <MetricGroup key={g} groupKey={g} values={values} onChange={setField} imported={entry.strava_imported} extra={
               g === "power" ? (
                 <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 4 }}>
                   <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12.5, cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>
@@ -171,7 +211,7 @@ export function EntryEditor({
           ))}
 
           {SECONDARY_GROUPS.map((g) => (
-            <MetricGroup key={g} groupKey={g} values={values} onChange={setField} computed={computedDisplay} />
+            <MetricGroup key={g} groupKey={g} values={values} onChange={setField} computed={computedDisplay} imported={entry.strava_imported} />
           ))}
 
           {msg?.ok === false && (
@@ -199,13 +239,14 @@ function summaryLine(fields: MetricField[], values: Record<string, string>): str
 }
 
 function MetricGroup({
-  groupKey, values, onChange, extra, computed,
+  groupKey, values, onChange, extra, computed, imported,
 }: {
   groupKey: MetricGroupKey;
   values: Record<string, string>;
   onChange: (key: string, val: string) => void;
   extra?: React.ReactNode;
   computed?: Record<string, string>;
+  imported?: boolean;
 }) {
   const group = METRIC_GROUPS.find((g) => g.key === groupKey)!;
   const fields = RIDE_METRIC_FIELDS.filter((f) => f.group === groupKey);
@@ -217,7 +258,7 @@ function MetricGroup({
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10 }}>
         {fields.map((f) => f.computed
           ? <MetricDisplay key={f.key} field={f} value={computed?.[f.key] ?? "—"} />
-          : <MetricInput key={f.key} field={f} value={values[f.key] ?? ""} onChange={(v) => onChange(f.key, v)} />)}
+          : <MetricInput key={f.key} field={f} value={values[f.key] ?? ""} onChange={(v) => onChange(f.key, v)} imported={imported} />)}
         {extra}
       </div>
     </div>
@@ -246,7 +287,7 @@ function MetricDisplay({ field, value }: { field: MetricField; value: string }) 
   );
 }
 
-function MetricInput({ field, value, onChange }: { field: MetricField; value: string; onChange: (v: string) => void }) {
+function MetricInput({ field, value, onChange, imported }: { field: MetricField; value: string; onChange: (v: string) => void; imported?: boolean }) {
   return (
     <label className="field" style={{ marginBottom: 0, gap: 4 }}>
       <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -257,7 +298,7 @@ function MetricInput({ field, value, onChange }: { field: MetricField; value: st
         kind={metricKind(field)}
         value={value}
         onChange={onChange}
-        placeholder={field.placeholder}
+        placeholder={imported ? "—" : field.placeholder}
         hint={field.hint}
         ariaLabel={field.unit ? `${field.label} (${field.unit})` : field.label}
       />

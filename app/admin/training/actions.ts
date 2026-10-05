@@ -294,6 +294,19 @@ export async function updateEntry(
   }
 }
 
+export async function refreshStravaEntry(rideId: string, entryId: string): Promise<Result<{ metrics: Record<string, number | null> }>> {
+  try {
+    await assertCoach();
+    const { refreshImportedStravaEntry } = await import("@/lib/strava-sync");
+    const entry = await refreshImportedStravaEntry(rideId, entryId);
+    const metrics = Object.fromEntries(RIDE_METRIC_FIELDS.map((field) => [field.key, entry[field.key]]));
+    revalidatePath(`/admin/training/${rideId}`);
+    return { ok: true, metrics };
+  } catch (e) {
+    return { ok: false, error: dbError(e, "Rifreskimi nga Strava dështoi.") };
+  }
+}
+
 // ------------------------------------------------------------------ profiles
 
 export type ProfilePatch = {

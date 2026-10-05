@@ -87,4 +87,14 @@ assert.equal(imported.tss, 169);
 assert.equal(imported.avg_hr, 142);
 assert.equal(imported.avg_cadence, 82);
 assert.equal(imported.best_power_3m_w, null);
+const lateData = { ...imported, avg_hr: 150, avg_power_w: 220 };
+const filled = metricsModule.missingImportedMetrics(
+  { ...imported, avg_hr: null, avg_power_w: 205, intensity_factor: null, tss: null },
+  lateData, null,
+);
+assert.equal(filled.avg_hr, 150);
+assert.equal(filled.avg_power_w, undefined); // preserve the coach's saved value
+assert.equal(filled.intensity_factor, 0.92);
+assert.equal(filled.tss, 169);
+assert.deepEqual(metricsModule.missingImportedMetrics(imported, imported, null), {});
 console.log("Strava route matching and metric checks passed");

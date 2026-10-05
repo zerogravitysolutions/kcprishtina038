@@ -38,6 +38,24 @@ export type ImportedMetrics = {
   avg_cadence: number | null;
 };
 
+export function missingImportedMetrics(
+  existing: Partial<ImportedMetrics>, imported: ImportedMetrics, fallbackFtp: number | null,
+): Partial<ImportedMetrics> {
+  const patch: Partial<ImportedMetrics> = {};
+  for (const key of Object.keys(imported) as (keyof ImportedMetrics)[]) {
+    const value = imported[key];
+    if (typeof value === "number" && existing[key] == null) patch[key] = value;
+  }
+  const np = patch.np_w ?? existing.np_w;
+  const ftp = patch.ftp_w ?? existing.ftp_w ?? fallbackFtp;
+  const moving = patch.moving_seconds ?? existing.moving_seconds;
+  const intensity = computeIntensity(np, ftp);
+  const tss = computeTss(moving, np, ftp);
+  if (existing.intensity_factor == null && intensity != null) patch.intensity_factor = intensity;
+  if (existing.tss == null && tss != null) patch.tss = tss;
+  return patch;
+}
+
 function finite(value: number | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 }

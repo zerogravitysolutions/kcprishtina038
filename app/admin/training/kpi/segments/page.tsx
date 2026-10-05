@@ -102,12 +102,12 @@ function RiderRow({ row }: { row: SegmentLeaderboardRow }) {
         <span className={styles.rank}>{row.rank ? String(row.rank).padStart(2, "0") : "—"}</span>
         <div>
           <Link href={`/admin/athletes/${row.id}`} className={styles.name}>{row.name}</Link>
-          <div className={styles.attempts}>{row.connected ? row.attempts ? `${row.attempts} përpjekje` : "Pa përpjekje në segment" : "Strava pa lidhje"}</div>
+          {!row.connected && <div className={styles.connection}>Strava pa lidhje</div>}
         </div>
       </div>
       <div className={styles.result}>
         <span className={styles.label}>{row.pb && !row.pbVerified ? "MË E MIRA E IMPORTUAR" : "PB"}</span>
-        {row.pb ? <><strong>{formatDurationHMS(row.pb.elapsedSeconds)}</strong><span>{shortDate(row.pb.date)}</span></> : <strong>—</strong>}
+        {row.pb ? <><strong>{formatDurationHMS(row.pb.elapsedSeconds)}</strong><span>{shortDate(row.pb.date)} · {metric(row.pb.avgPowerW, "W")}</span></> : <strong>—</strong>}
       </div>
       <div className={styles.result}>
         <span className={styles.label}>PËRPJEKJA E FUNDIT</span>

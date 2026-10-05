@@ -10,7 +10,7 @@
 .segmentHead { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 20px; background: var(--paper-2); border-bottom: 1px solid var(--line); }
 .segmentHead h2 { font-family: var(--font-display); font-size: 25px; line-height: 1.1; margin: 4px 0 6px; }
 .segmentHead p { font-size: 13px; color: var(--ink-2); margin: 0; }
-.eyebrow, .count, .label, .rank, .attempts { font-family: var(--font-mono); }
+.eyebrow, .count, .label, .rank, .connection { font-family: var(--font-mono); }
 .eyebrow { font-size: 10px; letter-spacing: .13em; color: var(--ember); }
 .count { font-size: 11px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 7px 10px; background: var(--white); }
 .list { display: grid; }
@@ -22,7 +22,7 @@
 .leader .rank { color: var(--ember); font-weight: 700; }
 .name { color: var(--ink); font-weight: 650; text-decoration: none; }
 .name:hover { text-decoration: underline; }
-.attempts { font-size: 10px; color: var(--ink-3); margin-top: 3px; }
+.connection { font-size: 10px; color: var(--ink-3); margin-top: 3px; }
 .result, .metrics { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .label { font-size: 9px; letter-spacing: .1em; color: var(--ink-3); }
 .result strong { font-family: var(--font-display); font-size: 19px; color: var(--ink); white-space: nowrap; }

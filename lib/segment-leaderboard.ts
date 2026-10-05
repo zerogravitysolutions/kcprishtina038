@@ -20,7 +20,6 @@ export type SegmentResult = {
 export type SegmentLeaderboardRow = SegmentRider & {
   rank: number | null;
   connected: boolean;
-  attempts: number;
   pb: SegmentResult | null;
   pbVerified: boolean;
   latest: SegmentResult | null;
@@ -75,7 +74,7 @@ export function buildSegmentLeaderboard(
     const latest = localLatest ? resultFromEffort(localLatest) : null;
     return {
       ...rider, rank: null, connected,
-      attempts: Math.max(own.length, stat?.effort_count ?? 0), pb, pbVerified, latest,
+      pb, pbVerified, latest,
       latestIsPb: !!(pbVerified && latest && pb && latest.activityId === pb.activityId &&
         latest.elapsedSeconds === pb.elapsedSeconds),
     };

@@ -73,7 +73,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
   const nameById = new Map(members.map((m) => [m.id, m]));
   const stats = aggregateMonthly(entries);
 
-  // Active roster riders who trained in the last 30 days.
+  // Active roster riders who trained in the last 90 days.
   const idsToShow = new Set(recentRiders.map((m) => m.id));
 
   const rows: ProgressRow[] = [...idsToShow].map((id) => {

@@ -45,14 +45,14 @@ export type StravaSegmentEffort = {
   pr_rank?: number | null;
 };
 
-export type StravaAthlete = { id: number; ftp?: number | null };
+export type StravaAthlete = { id: number; ftp?: number | null; profile?: string | null };
 
 type StravaTokenResponse = {
   access_token: string;
   refresh_token: string;
   expires_at: number;
   scope?: string;
-  athlete?: { id: number };
+  athlete?: { id: number; profile?: string | null };
 };
 
 export function stravaIsConfigured(): boolean {

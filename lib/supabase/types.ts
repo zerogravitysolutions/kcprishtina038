@@ -666,11 +666,12 @@ interface PublicTables {
           scopes: string;
           strava_ftp_w: number | null;
           strava_ftp_checked_at: string | null;
+          strava_avatar_url: string | null;
           connected_at: string;
           updated_at: string;
         };
-        Insert: Omit<PublicTables["strava_connections"]["Row"], "connected_at" | "updated_at" | "strava_ftp_w" | "strava_ftp_checked_at">
-          & Partial<Pick<PublicTables["strava_connections"]["Row"], "strava_ftp_w" | "strava_ftp_checked_at">>;
+        Insert: Omit<PublicTables["strava_connections"]["Row"], "connected_at" | "updated_at" | "strava_ftp_w" | "strava_ftp_checked_at" | "strava_avatar_url">
+          & Partial<Pick<PublicTables["strava_connections"]["Row"], "strava_ftp_w" | "strava_ftp_checked_at" | "strava_avatar_url">>;
         Update: Partial<PublicTables["strava_connections"]["Row"]>;
       };
       strava_segment_efforts: {

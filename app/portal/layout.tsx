@@ -34,6 +34,8 @@ export default async function PortalLayout({ children }: { children: React.React
   const roleLine = ROLE_LABELS[profile.role] ?? "Anëtar";
   const subline = sectionName ? `${roleLine} · ${sectionName}` : roleLine;
   const ini = initials(profile.full_name);
+  // eslint-disable-next-line @next/next/no-img-element -- user photo from Supabase Storage
+  const avatar = profile.avatar_url ? <img src={profile.avatar_url} alt="" /> : ini;
 
   // A rider's tab bar is already at five items, which is the most a phone can
   // hold before the labels start truncating, so "Anëtarësia" does NOT become a
@@ -54,7 +56,7 @@ export default async function PortalLayout({ children }: { children: React.React
       {/* Mobile top bar */}
       <header className="portal-topbar">
         <Link href="/" className="brand"><img src="/assets/logo.jpg" alt="" /><b>Prishtina 038</b></Link>
-        <div className="avatar">{ini}</div>
+        <div className="avatar">{avatar}</div>
       </header>
 
       {/* Desktop left rail */}
@@ -86,7 +88,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
         <div className="portal-side-foot">
           <div className="portal-me">
-            <div className="avatar">{ini}</div>
+            <div className="avatar">{avatar}</div>
             <div className="who">{profile.full_name}<span>{subline}</span></div>
           </div>
           <form action={signOut}>

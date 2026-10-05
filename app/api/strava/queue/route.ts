@@ -4,6 +4,7 @@ import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { enqueueRecentStravaActivities, processQueuedStravaActivities } from "@/lib/strava-sync";
 import { processSegmentBackfills, refreshMissingSegmentSummaries } from "@/lib/strava-segment-sync";
+import { refreshStravaProfiles } from "@/lib/strava-cache";
 
 export const maxDuration = 60;
 
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
         }
       }
       await processQueuedStravaActivities(10);
+      await refreshStravaProfiles(true);
       if (worker.segments_refresh) {
         // Cleared only after success, so a timed-out refresh is retried.
         await refreshMissingSegmentSummaries();

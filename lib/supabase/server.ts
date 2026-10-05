@@ -70,6 +70,7 @@ export type ProfileSummary = {
   role: UserRole;
   status: MemberStatus;
   section_id: string | null;
+  avatar_url: string | null;
 };
 
 // Fetch the current user's profile (or null). Memoized per request so the
@@ -80,7 +81,7 @@ export const getProfile = cache(async (): Promise<ProfileSummary | null> => {
   if (!user) return null;
   const { data } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role, status, section_id")
+    .select("id, full_name, email, role, status, section_id, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
   return (data as ProfileSummary | null) ?? null;

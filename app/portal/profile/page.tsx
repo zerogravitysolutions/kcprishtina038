@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
+import { AvatarEditor } from "./AvatarEditor";
 import { disconnectStrava } from "./strava-actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stravaIsConfigured } from "@/lib/strava-api";
@@ -43,6 +44,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         </h1>
         <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)" }}>
           {profile.email}
+        </div>
+        <div style={{ marginTop: 22 }}>
+          <AvatarEditor name={profile.full_name} initialUrl={profile.avatar_url} />
         </div>
       </div>
 

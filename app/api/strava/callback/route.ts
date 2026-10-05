@@ -8,6 +8,7 @@ import { removeImportedStravaData } from "@/lib/strava-cleanup";
 import { enqueueRecentStravaActivities, processQueuedStravaActivities, TRAINING_IMPORT_START } from "@/lib/strava-sync";
 import { refreshTrackedSegmentsForConnection } from "@/lib/strava-segment-sync";
 import { ensureFortyKmBackfill } from "@/lib/strava-forty-km-sync";
+import { syncStravaAvatar } from "@/lib/avatar";
 
 export const maxDuration = 60;
 
@@ -68,6 +69,12 @@ export async function GET(request: NextRequest) {
     }, { onConflict: "athlete_id" });
     if (error) throw error;
     after(async () => {
+      try {
+        const { data: linked } = await admin.from("strava_connections").select("*").eq("athlete_id", rider.id).single();
+        if (linked) await syncStravaAvatar(linked, token.athlete?.profile);
+      } catch (error) {
+        console.error("Strava profile photo sync failed", error);
+      }
       try {
         await enqueueRecentStravaActivities(rider.id, TRAINING_IMPORT_START);
         await processQueuedStravaActivities(10);

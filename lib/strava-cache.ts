@@ -121,12 +121,17 @@ export async function activityStreams(connection: StravaConnection, activityId: 
     });
 }
 
-/** Strava FTP from the athlete profile, read at most once a day. */
+/** Strava FTP (needs profile:read_all) and profile photo from the athlete
+ * profile, read at most once a day. */
 export async function athleteFtp(connection: StravaConnection): Promise<number | null> {
-  if (!connection.scopes.split(/[\s,]+/).includes("profile:read_all")) return null;
   if (connection.strava_ftp_checked_at &&
       Date.now() - Date.parse(connection.strava_ftp_checked_at) < FTP_MAX_AGE_MS) return connection.strava_ftp_w;
   const athlete = await stravaGet<StravaAthlete>(connection, "/athlete");
+  if (athlete.id === connection.strava_athlete_id) {
+    const { syncStravaAvatar } = await import("@/lib/avatar");
+    await syncStravaAvatar(connection, athlete.profile).catch((error: unknown) =>
+      console.error("Strava profile photo sync failed", error));
+  }
   const ftp = athlete.id === connection.strava_athlete_id && typeof athlete.ftp === "number" ? athlete.ftp : null;
   const checkedAt = new Date().toISOString();
   const { error } = await createAdminClient().from("strava_connections")
@@ -135,6 +140,27 @@ export async function athleteFtp(connection: StravaConnection): Promise<number |
   connection.strava_ftp_w = ftp;
   connection.strava_ftp_checked_at = checkedAt;
   return ftp;
+}
+
+/** Read each connected rider's Strava profile when it is due: daily, or
+ * right away after connecting or removing a photo. */
+export async function refreshStravaProfiles(onlyUnchecked = false): Promise<number> {
+  let query = createAdminClient().from("strava_connections").select("*");
+  query = onlyUnchecked ? query.is("strava_ftp_checked_at", null)
+    : query.or(`strava_ftp_checked_at.is.null,strava_ftp_checked_at.lt.${new Date(Date.now() - FTP_MAX_AGE_MS).toISOString()}`);
+  const { data, error } = await query;
+  if (error) throw error;
+  for (const connection of data ?? []) {
+    try { await athleteFtp(connection); }
+    catch (cause) {
+      // Retry tomorrow instead of on every worker run.
+      console.error("Strava profile refresh failed", { athleteId: connection.athlete_id, cause });
+      const { error: markError } = await createAdminClient().from("strava_connections")
+        .update({ strava_ftp_checked_at: new Date().toISOString() }).eq("athlete_id", connection.athlete_id);
+      if (markError) throw markError;
+    }
+  }
+  return data?.length ?? 0;
 }
 
 export function activityRoute(activity: StravaActivity): LatLng[] {

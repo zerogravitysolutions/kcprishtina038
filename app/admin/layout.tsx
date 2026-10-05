@@ -161,7 +161,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v4.32</span>
+            <span className="sub">Admin · v4.33</span>
           </div>
         </Link>
 
@@ -169,7 +169,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
         <div className="side-foot">
           <div className="me">
-            <div className="avatar">{initials(profile.full_name)}</div>
+            <div className="avatar">{profile.avatar_url
+              // eslint-disable-next-line @next/next/no-img-element -- user photo from Supabase Storage
+              ? <img src={profile.avatar_url} alt="" /> : initials(profile.full_name)}</div>
             <div className="who">
               {profile.full_name}
               <span>{ROLE_LABEL[profile.role] ?? profile.role}</span>

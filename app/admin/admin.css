@@ -1758,3 +1758,7 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
   .training-table .training-row-action .btn { min-height: 34px; padding: 6px 10px; }
   .training-pagination { align-items: flex-start; flex-direction: column; }
 }
+
+/* Profile photo inside the initials badge. */
+.side .me .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.side .me .avatar { overflow: hidden; }

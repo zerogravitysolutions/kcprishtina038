@@ -161,7 +161,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <img src="/assets/logo.jpg" alt="" />
           <div className="brand-text">
             <span className="kc">Prishtina 038</span>
-            <span className="sub">Admin · v4.31</span>
+            <span className="sub">Admin · v4.32</span>
           </div>
         </Link>
 
@@ -175,6 +175,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <span>{ROLE_LABEL[profile.role] ?? profile.role}</span>
             </div>
           </div>
+          <Link href="/portal/profile#fjalekalimi" className="side-signout side-account">
+            <span className="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg></span>
+            Fjalëkalimi
+          </Link>
           <form action={adminSignOut}>
             <button type="submit" className="side-signout">
               <span className="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 12H3M9 6l-6 6 6 6M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5" /></svg></span>

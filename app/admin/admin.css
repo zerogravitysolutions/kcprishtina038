@@ -159,6 +159,7 @@ h1, h2, h3 { color: var(--text-1); font-family: var(--font-display); font-varian
 }
 .side-signout .ic { width: 18px; height: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; opacity: .8; transition: opacity .15s ease; }
 .side-signout:hover { background: var(--err-bg); color: var(--err); }
+.side-signout.side-account:hover { background: var(--paper-2); color: var(--ink); }
 .side-signout:hover .ic { opacity: 1; }
 .side .me .avatar {
   width: 30px; height: 30px; border-radius: 9px;

@@ -96,7 +96,7 @@ export default async function KpiPage({ searchParams }: { searchParams: Promise<
     byAthlete.get(e.athlete_id)!.push(entry);
   }
 
-  // Riders: active roster riders who trained in the last 30 days.
+  // Riders: active roster riders who trained in the last 90 days.
   const riders = activeRiders.map((m) => ({ id: m.id, name: m.full_name }));
 
   const count = view === "week" ? 8 : 6;

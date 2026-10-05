@@ -5,9 +5,9 @@ import { clubTodayISO } from "@/lib/clubtime";
 import { addDays } from "@/lib/kpi";
 
 /** Days without a training after which a rider leaves the coach views. */
-export const ACTIVE_WINDOW_DAYS = 30;
+export const ACTIVE_WINDOW_DAYS = 90;
 
-/** Active roster riders with at least one training in the last 30 days.
+/** Active roster riders with at least one training in the last 90 days.
  * KPIs, Segments and Progress list only these riders. */
 export async function recentlyActiveRiders(supabase: SupabaseClient): Promise<{ id: string; full_name: string; section_slug: string | null }[]> {
   const since = addDays(clubTodayISO(), -ACTIVE_WINDOW_DAYS);

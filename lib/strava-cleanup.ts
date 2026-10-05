@@ -9,16 +9,33 @@ export async function removeImportedStravaData(athleteId: string, activityId?: n
   if (activityId !== undefined) segments = segments.eq("strava_activity_id", activityId);
   const { error: segmentError } = await segments;
   if (segmentError) throw segmentError;
+  let fortyKm = admin.from("strava_40km_efforts").delete().eq("athlete_id", athleteId);
+  if (activityId !== undefined) fortyKm = fortyKm.eq("strava_activity_id", activityId);
+  const { error: fortyKmError } = await fortyKm;
+  if (fortyKmError) throw fortyKmError;
   if (activityId === undefined) {
-    const [{ error: statsError }, { error: backfillError }] = await Promise.all([
+    const [{ error: statsError }, { error: backfillError }, { error: fortyKmBackfillError }] = await Promise.all([
       admin.from("strava_segment_stats").delete().eq("athlete_id", athleteId),
       admin.from("strava_segment_backfills").delete().eq("athlete_id", athleteId),
+      admin.from("strava_40km_backfills").delete().eq("athlete_id", athleteId),
     ]);
-    if (statsError || backfillError) throw statsError ?? backfillError;
+    if (statsError || backfillError || fortyKmBackfillError) throw statsError ?? backfillError ?? fortyKmBackfillError;
   }
+  await removeImportedTrainingData(athleteId, activityId);
+}
+
+/** Remove a training review after an activity edit makes the ride too short.
+ * Segment and 40 km performance data remain available to the coach. */
+export async function removeUnderReviewStravaEntry(athleteId: string, activityId: number): Promise<void> {
+  await removeImportedTrainingData(athleteId, activityId, true);
+}
+
+async function removeImportedTrainingData(athleteId: string, activityId?: number, onlyUnderReview = false): Promise<void> {
+  const admin = createAdminClient();
   let query = admin.from("ride_entries").select("id, ride_id")
     .eq("athlete_id", athleteId).eq("strava_imported", true);
   if (activityId !== undefined) query = query.eq("strava_activity_id", activityId);
+  if (onlyUnderReview) query = query.eq("review_status", "under_review");
   const { data: entries, error } = await query;
   if (error) throw error;
   if (!entries?.length) return;

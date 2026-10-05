@@ -714,6 +714,27 @@ interface PublicTables {
         Insert: { athlete_id: string; cursor_before: number } & Partial<PublicTables["strava_segment_backfills"]["Row"]>;
         Update: Partial<PublicTables["strava_segment_backfills"]["Row"]>;
       };
+      strava_40km_efforts: {
+        Row: {
+          athlete_id: string;
+          strava_activity_id: number;
+          ride_started_at: string;
+          ride_date: string;
+          duration_seconds: number;
+          elapsed_seconds: number;
+          window_start_seconds: number;
+          window_end_seconds: number;
+          uses_moving_time: boolean;
+          updated_at: string;
+        };
+        Insert: Omit<PublicTables["strava_40km_efforts"]["Row"], "updated_at"> & { updated_at?: string };
+        Update: Partial<PublicTables["strava_40km_efforts"]["Row"]>;
+      };
+      strava_40km_backfills: {
+        Row: { athlete_id: string; cursor_before: number; completed: boolean; updated_at: string };
+        Insert: { athlete_id: string; cursor_before: number } & Partial<PublicTables["strava_40km_backfills"]["Row"]>;
+        Update: Partial<PublicTables["strava_40km_backfills"]["Row"]>;
+      };
       strava_activity_events: {
         Row: {
           event_kind: "upsert" | "delete" | "revoke";

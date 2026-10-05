@@ -7,6 +7,7 @@ import { encryptToken, exchangeCode, revokeStrava, stravaIsConfigured } from "@/
 import { removeImportedStravaData } from "@/lib/strava-cleanup";
 import { enqueueRecentStravaActivities, processQueuedStravaActivities } from "@/lib/strava-sync";
 import { refreshTrackedSegmentsForConnection } from "@/lib/strava-segment-sync";
+import { ensureFortyKmBackfill } from "@/lib/strava-forty-km-sync";
 
 export const maxDuration = 60;
 
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
           .select("*").eq("athlete_id", rider.id).single();
         if (connectionError) throw connectionError;
         await refreshTrackedSegmentsForConnection(connection);
+        await ensureFortyKmBackfill(rider.id);
       } catch (error) {
         console.error("Strava connection backfill failed", error);
       }

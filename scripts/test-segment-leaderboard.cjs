@@ -17,13 +17,15 @@ const effort = (athlete, activity, date, seconds, power) => ({
   max_hr: 170, avg_cadence: 80,
 });
 const riders = [
-  { id: "b", name: "Besa" }, { id: "a", name: "Albion" }, { id: "c", name: "Dren" },
+  { id: "b", name: "Besa" }, { id: "a", name: "Albion" },
+  { id: "d", name: "Dona" }, { id: "c", name: "Dren" },
 ];
 const efforts = [
   effort("a", 1, "2026-07-29", 440, 437),
   effort("a", 2, "2026-09-24", 670, 257),
   effort("b", 3, "2026-09-20", 550, 290),
   effort("b", 4, "2026-10-02", 420, 360),
+  effort("d", 5, "2026-10-02", 510, 300),
 ];
 const stats = [
   { athlete_id: "a", segment_id: segmentId, pr_activity_id: 99, pr_elapsed_seconds: 404,
@@ -31,14 +33,16 @@ const stats = [
   { athlete_id: "b", segment_id: segmentId, pr_activity_id: 4, pr_elapsed_seconds: 420,
     pr_date: "2026-10-02", effort_count: 2 },
 ];
-const rows = moduleExports.buildSegmentLeaderboard(riders, new Set(["a", "b"]), efforts, stats, segmentId);
-assert.deepEqual(rows.map((row) => [row.id, row.rank]), [["a", 1], ["b", 2], ["c", null]]);
+const rows = moduleExports.buildSegmentLeaderboard(riders, new Set(["a", "b", "d"]), efforts, stats, segmentId);
+assert.deepEqual(rows.map((row) => [row.id, row.rank]), [["a", 1], ["b", 2], ["d", 3], ["c", null]]);
 assert.equal(rows[0].pb.elapsedSeconds, 404); // all-time Strava PR beats local history
 assert.equal(rows[0].latest.elapsedSeconds, 670);
 assert.equal(rows[0].latestIsPb, false);
 assert.equal(rows[0].attempts, 205);
 assert.equal(rows[1].latestIsPb, true);
 assert.equal(rows[1].latest.avgPowerW, 360);
-assert.equal(rows[2].connected, false);
-assert.equal(rows[2].pb, null);
+assert.equal(rows[2].pbVerified, false); // partial import must not claim an all-time PB
+assert.equal(rows[2].latestIsPb, false);
+assert.equal(rows[3].connected, false);
+assert.equal(rows[3].pb, null);
 console.log("Strava segment leaderboard checks passed");

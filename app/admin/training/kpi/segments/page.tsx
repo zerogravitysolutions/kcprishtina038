@@ -68,7 +68,7 @@ export default async function SegmentKpiPage() {
       </div>
       <KpiTabs active="segments" />
       <p className={styles.explainer}>
-        PB është koha më e mirë personale; përpjekja e fundit shfaq kohën dhe matjet e saj. 👑 shënon kur përpjekja e fundit është edhe PB-ja.
+        PB vjen nga historia e Strava; kur ajo nuk është ende e disponueshme, shfaqet më e mira e importuar. 👑 shënon kur përpjekja e fundit është PB e konfirmuar.
       </p>
       <div className={styles.sections}>
         {TRACKED_SEGMENTS.map((segment) => {
@@ -106,7 +106,7 @@ function RiderRow({ row }: { row: SegmentLeaderboardRow }) {
         </div>
       </div>
       <div className={styles.result}>
-        <span className={styles.label}>PB</span>
+        <span className={styles.label}>{row.pb && !row.pbVerified ? "MË E MIRA E IMPORTUAR" : "PB"}</span>
         {row.pb ? <><strong>{formatDurationHMS(row.pb.elapsedSeconds)}</strong><span>{shortDate(row.pb.date)}</span></> : <strong>—</strong>}
       </div>
       <div className={styles.result}>

@@ -2,6 +2,7 @@ import { ConnectWithStrava, PoweredByStrava } from "@/components/strava/StravaBr
 import Link from "next/link";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { ProfileForm } from "./ProfileForm";
+import { PasswordForm } from "./PasswordForm";
 import { disconnectStrava } from "./strava-actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stravaIsConfigured } from "@/lib/strava-api";
@@ -49,6 +50,12 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0 }}>Të dhënat personale</h2>
         <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "4px 0 20px" }}>Të dhënat e tua të kontaktit. Përdoren nga trajneri i seksionit tënd dhe për regjistrimet në gara.</p>
         <ProfileForm initial={full ?? { full_name: profile.full_name, email: profile.email, phone: null, dob: null, bio: null, metadata: null }} />
+      </div>
+
+      <div id="fjalekalimi" style={{ background: "var(--white)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 14, padding: 24, marginTop: 16, scrollMarginTop: 24 }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.015em", margin: 0 }}>Fjalëkalimi</h2>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "4px 0 20px" }}>Vendos një fjalëkalim që e di vetëm ti.</p>
+        <PasswordForm />
       </div>
 
       {rider && <div style={{ background: "var(--white)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 14, padding: 24, marginTop: 16 }}>

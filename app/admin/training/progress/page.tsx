@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { recentlyActiveRiders } from "@/lib/active-riders";
 import { ProgressTable, type ProgressRow } from "./ProgressTable";
 import { ColumnChart, RowBars } from "../charts";
 import {
@@ -47,7 +48,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
   const sinceISO = `${since.getFullYear()}-${pad2(since.getMonth() + 1)}-${pad2(since.getDate())}`;
 
   const supabase = await createClient();
-  const [{ data: entryData }, { data: memberData }, { data: weeklyData }] = await Promise.all([
+  const [{ data: entryData }, { data: memberData }, { data: weeklyData }, recentRiders] = await Promise.all([
     supabase
       .from("ride_entries")
       .select("athlete_id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, ride:training_rides!inner(ride_date)")
@@ -58,6 +59,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
       .from("ride_entries")
       .select("participated, distance_km, moving_seconds, ride:training_rides!inner(ride_date)")
       .gte("ride.ride_date", sinceISO),
+    recentlyActiveRiders(supabase),
   ]);
 
   const entries = (entryData as unknown as EntryWithDate[] | null) ?? [];
@@ -71,9 +73,8 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
   const nameById = new Map(members.map((m) => [m.id, m]));
   const stats = aggregateMonthly(entries);
 
-  const idsToShow = new Set<string>();
-  for (const m of members) if (m.status === "active" && m.positions?.includes("rider")) idsToShow.add(m.id);
-  for (const id of stats.keys()) idsToShow.add(id);
+  // Active roster riders who trained in the last 30 days.
+  const idsToShow = new Set(recentRiders.map((m) => m.id));
 
   const rows: ProgressRow[] = [...idsToShow].map((id) => {
     const m = nameById.get(id);

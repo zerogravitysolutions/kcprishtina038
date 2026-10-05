@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { recentlyActiveRiders } from "@/lib/active-riders";
 import { getProfile } from "@/lib/supabase/server";
 import { buildFortyKmLeaderboard, fortyKmKmh, type FortyKmEffort, type FortyKmRow } from "@/lib/forty-km-leaderboard";
 import { buildSegmentLeaderboard, TRACKED_SEGMENTS, type SegmentEffort, type SegmentLeaderboardRow, type SegmentStats } from "@/lib/segment-leaderboard";
@@ -61,18 +62,17 @@ export default async function SegmentKpiPage() {
   if (profile.status !== "active" || !COACH_ROLES.includes(profile.role)) redirect("/admin/dashboard");
 
   const admin = createAdminClient();
-  const [memberRes, connectionRes, statsRes, backfillRes, segmentEfforts, fortyKmEfforts] = await Promise.all([
-    admin.from("team_members").select("id, full_name")
-      .eq("status", "active").contains("positions", ["rider"]).order("full_name"),
+  const [activeRiders, connectionRes, statsRes, backfillRes, segmentEfforts, fortyKmEfforts] = await Promise.all([
+    recentlyActiveRiders(admin),
     admin.from("strava_connections").select("athlete_id"),
     admin.from("strava_segment_stats").select("*")
       .in("segment_id", TRACKED_SEGMENTS.map((segment) => segment.id)),
     admin.from("strava_40km_backfills").select("athlete_id, completed"),
     allSegmentEfforts(admin), allFortyKmEfforts(admin),
   ]);
-  const error = memberRes.error ?? connectionRes.error ?? statsRes.error ?? backfillRes.error;
+  const error = connectionRes.error ?? statsRes.error ?? backfillRes.error;
   if (error) throw error;
-  const riders = (memberRes.data ?? []).map((member) => ({ id: member.id, name: member.full_name }));
+  const riders = activeRiders.map((member) => ({ id: member.id, name: member.full_name }));
   const connected = new Set((connectionRes.data ?? []).map((connection) => connection.athlete_id));
   const completed = new Set((backfillRes.data ?? []).filter((job) => job.completed).map((job) => job.athlete_id));
   const stats = (statsRes.data ?? []) as SegmentStats[];

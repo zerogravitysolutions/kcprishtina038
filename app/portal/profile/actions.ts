@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { dbError } from "@/lib/errors";
 import { parseNumField } from "@/lib/numeric";
+import { isBloodGroup } from "@/lib/blood-group";
 
 export type ProfileUpdate = {
   full_name: string;
@@ -34,6 +35,10 @@ export async function saveProfile(data: ProfileUpdate): Promise<{ ok: boolean; e
   // sends (a Server Action is a public POST endpoint; the form's own
   // normalisation is not a guarantee).
   const metadata = { ...(data.metadata ?? {}) };
+  if (metadata.blood_group && !isBloodGroup(metadata.blood_group)) {
+    return { ok: false, error: "Grupi i gjakut nuk është i vlefshëm." };
+  }
+  if (!metadata.blood_group) delete metadata.blood_group;
   for (const { key, label, max } of NUMERIC_META) {
     try {
       const n = parseNumField(metadata[key], { label, min: 0, max });

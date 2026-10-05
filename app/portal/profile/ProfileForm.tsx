@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { normalizeDecimal } from "@/lib/numeric";
+import { BLOOD_GROUPS } from "@/lib/blood-group";
 import { saveProfile, type ProfileUpdate } from "./actions";
 
 type Initial = {
@@ -15,6 +16,7 @@ const META_FIELDS = [
   ["city", "Qyteti"],
   ["postal_code", "Kodi postar"],
   ["nationality", "Shtetësia"],
+  ["blood_group", "Grupi i gjakut"],
   ["id_number", "Numri i letërnjoftimit / pasaportës"],
   ["shoe_eu", "Numri i këpucëve (EU)"],
   ["height_cm", "Gjatësia (cm)"],
@@ -36,13 +38,17 @@ export function ProfileForm({ initial }: { initial: Initial }) {
     const fd = new FormData(e.currentTarget);
     const fn = String(fd.get("first_name") ?? "").trim();
     const ln = String(fd.get("last_name") ?? "").trim();
-    const meta: Record<string, string> = {};
+    const meta: Record<string, string> = { ...(initial.metadata ?? {}) };
     for (const [k] of META_FIELDS) {
+      // Keep metadata that this form does not render (for example existing
+      // medical notes) when a member saves an unrelated profile change.
+      if (!fd.has("meta_" + k)) continue;
       let v = String(fd.get("meta_" + k) ?? "").trim();
       // The metadata blob holds strings, so "68,5" would be STORED as "68,5"
       // and read back by anything numeric (w/kg on the coach side) as 68.
       if (v && NUMERIC_META.has(k)) v = normalizeDecimal(v);
       if (v) meta[k] = v;
+      else delete meta[k];
     }
     const payload: ProfileUpdate = {
       full_name: [fn, ln].filter(Boolean).join(" ") || initial.full_name,
@@ -87,7 +93,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
           <input type="tel" inputMode="tel" name="phone" autoComplete="tel" autoCorrect="off" defaultValue={initial.phone ?? ""} />
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: 16, marginTop: 14 }}>
         <div className="field">
           <label>Email</label>
           <input type="email" inputMode="email" name="email" defaultValue={initial.email} disabled style={{ background: "color-mix(in oklab, var(--ink) 4%, var(--white))", color: "var(--ink-3)" }} />
@@ -95,6 +101,14 @@ export function ProfileForm({ initial }: { initial: Initial }) {
         <div className="field">
           <label>Shtetësia</label>
           <input type="text" name="meta_nationality" defaultValue={meta.nationality ?? ""} />
+        </div>
+        <div className="field">
+          <label htmlFor="p-blood-group">Grupi i gjakut</label>
+          <select id="p-blood-group" name="meta_blood_group" defaultValue={meta.blood_group ?? ""} aria-describedby="p-blood-group-hint">
+            <option value="">Zgjidh, nëse e di</option>
+            {BLOOD_GROUPS.map((group) => <option key={group} value={group}>{group}</option>)}
+          </select>
+          <span id="p-blood-group-hint" style={{ fontSize: 11, color: "var(--ink-3)" }}>Nëse nuk je i sigurt, lëre bosh.</span>
         </div>
       </div>
 

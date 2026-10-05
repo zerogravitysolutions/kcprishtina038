@@ -2,7 +2,8 @@ import { PoweredByStrava, ViewOnStrava } from "@/components/strava/StravaBrand";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
-import { AthleteProfileForm, type ProfileInitial } from "./AthleteProfileForm";
+import { AthleteProfileForm } from "./AthleteProfileForm";
+import { athleteSnapshots } from "@/lib/athlete-snapshot";
 import { ColumnChart, LineChart } from "../../training/charts";
 import { computeBests, fmt, toHours, formatDurationShort, weeklyVolume, type EntryLike } from "@/lib/training";
 import { AthleteKpiCharts } from "@/components/training/AthleteKpiCharts";
@@ -36,7 +37,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
 
   const [{ data: athleteData }, { data: profileData }, { data: entryData }, { data: sectionData }, { data: teamTargetData }, { data: ftpTargetData }] = await Promise.all([
     supabase.from("team_members").select("id, full_name, section_slug, dob, gender").eq("id", id).maybeSingle(),
-    supabase.from("athlete_profiles").select("ftp_w, ftp_updated_at, weight_kg, max_hr, resting_hr, notes").eq("athlete_id", id).maybeSingle(),
+    supabase.from("athlete_profiles").select("notes").eq("athlete_id", id).maybeSingle(),
     supabase
       .from("ride_entries")
       .select("id, participated, strava_url, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, ride:training_rides!inner(id, ride_date, focus)")
@@ -55,7 +56,8 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
   const sectionLabel = athlete.section_slug
     ? sectionNameBySlug.get(athlete.section_slug) ?? athlete.section_slug
     : null;
-  const prof = (profileData as ProfileInitial | null) ?? { ftp_w: null, ftp_updated_at: null, weight_kg: null, max_hr: null, resting_hr: null, notes: null };
+  const snapshot = (await athleteSnapshots([athlete.id])).get(athlete.id)!;
+  const notes = (profileData as { notes: string | null } | null)?.notes ?? null;
   const entries = (entryData as unknown as EntryRow[] | null) ?? [];
   const bests = computeBests(entries);
 
@@ -100,7 +102,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.2fr)", gap: 20, alignItems: "start" }} className="athlete-cols">
-        <AthleteProfileForm athleteId={athlete.id} initial={prof} />
+        <AthleteProfileForm athleteId={athlete.id} values={{ ...snapshot, notes }} />
 
         <div style={{ display: "grid", gap: 16 }}>
           {/* Totals */}

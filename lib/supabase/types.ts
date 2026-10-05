@@ -633,7 +633,6 @@ interface PublicTables {
           avg_power_w: number | null;
           np_w: number | null;
           ftp_w: number | null;
-          set_ftp: boolean;
           best_power_1m_w: number | null;
           best_power_3m_w: number | null;
           best_power_5m_w: number | null;
@@ -667,11 +666,12 @@ interface PublicTables {
           strava_ftp_w: number | null;
           strava_ftp_checked_at: string | null;
           strava_avatar_url: string | null;
+          strava_weight_kg: number | null;
           connected_at: string;
           updated_at: string;
         };
-        Insert: Omit<PublicTables["strava_connections"]["Row"], "connected_at" | "updated_at" | "strava_ftp_w" | "strava_ftp_checked_at" | "strava_avatar_url">
-          & Partial<Pick<PublicTables["strava_connections"]["Row"], "strava_ftp_w" | "strava_ftp_checked_at" | "strava_avatar_url">>;
+        Insert: Omit<PublicTables["strava_connections"]["Row"], "connected_at" | "updated_at" | "strava_ftp_w" | "strava_ftp_checked_at" | "strava_avatar_url" | "strava_weight_kg">
+          & Partial<Pick<PublicTables["strava_connections"]["Row"], "strava_ftp_w" | "strava_ftp_checked_at" | "strava_avatar_url" | "strava_weight_kg">>;
         Update: Partial<PublicTables["strava_connections"]["Row"]>;
       };
       strava_segment_efforts: {
@@ -773,11 +773,6 @@ interface PublicTables {
       athlete_profiles: {
         Row: {
           athlete_id: string;
-          ftp_w: number | null;
-          ftp_updated_at: string | null;
-          weight_kg: number | null;
-          max_hr: number | null;
-          resting_hr: number | null;
           notes: string | null;
           updated_by: string | null;
           created_at: string; updated_at: string;

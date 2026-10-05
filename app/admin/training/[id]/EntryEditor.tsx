@@ -14,7 +14,6 @@ export type EntryRow = {
   id: string;
   athlete_id: string;
   participated: boolean;
-  set_ftp: boolean;
   strava_url: string | null;
   strava_imported: boolean;
   strava_activity_id: number | null;
@@ -55,7 +54,6 @@ export function EntryEditor({
 
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(entry));
   const [participated, setParticipated] = useState(entry.participated);
-  const [setFtp, setSetFtp] = useState(entry.set_ftp);
 
   function setField(key: string, val: string) {
     setValues((s) => ({ ...s, [key]: val }));
@@ -78,8 +76,8 @@ export function EntryEditor({
 
   // Snapshot that changes whenever any editable value changes.
   const snapshot = useMemo(
-    () => JSON.stringify({ values, participated, setFtp }),
-    [values, participated, setFtp],
+    () => JSON.stringify({ values, participated }),
+    [values, participated],
   );
 
   const mounted = useRef(false);
@@ -102,7 +100,7 @@ export function EntryEditor({
       metrics.tss = computedTss != null ? String(computedTss) : "";
       startSave(async () => {
         const r = await updateEntry(rideId, entry.id, {
-          participated, set_ftp: setFtp, metrics,
+          participated, metrics,
         });
         setMsg(r.ok ? { ok: true, text: "Ruajtur ✓" } : { ok: false, text: r.error });
         if (r.ok) setTimeout(() => setMsg(null), 1400);
@@ -198,13 +196,9 @@ export function EntryEditor({
 
           {PRIMARY_GROUPS.map((g) => (
             <MetricGroup key={g} groupKey={g} values={values} onChange={setField} imported={entry.strava_imported} extra={
-              g === "power" ? (
-                <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 4 }}>
-                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12.5, cursor: "pointer", textTransform: "none", letterSpacing: 0 }}>
-                    <input type="checkbox" checked={setFtp} onChange={(e) => setSetFtp(e.target.checked)} style={{ accentColor: "var(--ember)" }} />
-                    Vendos FTP-në në profil
-                  </label>
-                  {wkg != null && <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>{wkg} W/kg</span>}
+              g === "power" && wkg != null ? (
+                <div style={{ gridColumn: "1 / -1", marginTop: 4 }}>
+                  <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>{wkg} W/kg</span>
                 </div>
               ) : null
             } />

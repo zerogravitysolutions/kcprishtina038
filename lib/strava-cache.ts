@@ -121,8 +121,8 @@ export async function activityStreams(connection: StravaConnection, activityId: 
     });
 }
 
-/** Strava FTP (needs profile:read_all) and profile photo from the athlete
- * profile, read at most once a day. */
+/** Strava FTP and weight (need profile:read_all) and the profile photo from
+ * the athlete profile, read at most once a day. */
 export async function athleteFtp(connection: StravaConnection): Promise<number | null> {
   if (connection.strava_ftp_checked_at &&
       Date.now() - Date.parse(connection.strava_ftp_checked_at) < FTP_MAX_AGE_MS) return connection.strava_ftp_w;
@@ -132,10 +132,12 @@ export async function athleteFtp(connection: StravaConnection): Promise<number |
     await syncStravaAvatar(connection, athlete.profile).catch((error: unknown) =>
       console.error("Strava profile photo sync failed", error));
   }
-  const ftp = athlete.id === connection.strava_athlete_id && typeof athlete.ftp === "number" ? athlete.ftp : null;
+  const own = athlete.id === connection.strava_athlete_id;
+  const ftp = own && typeof athlete.ftp === "number" ? athlete.ftp : null;
+  const weight = own && typeof athlete.weight === "number" && athlete.weight > 0 ? Math.round(athlete.weight * 10) / 10 : null;
   const checkedAt = new Date().toISOString();
   const { error } = await createAdminClient().from("strava_connections")
-    .update({ strava_ftp_w: ftp, strava_ftp_checked_at: checkedAt }).eq("athlete_id", connection.athlete_id);
+    .update({ strava_ftp_w: ftp, strava_weight_kg: weight, strava_ftp_checked_at: checkedAt }).eq("athlete_id", connection.athlete_id);
   if (error) throw error;
   connection.strava_ftp_w = ftp;
   connection.strava_ftp_checked_at = checkedAt;

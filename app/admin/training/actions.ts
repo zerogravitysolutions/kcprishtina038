@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { RIDE_METRIC_FIELDS, RIDE_METRIC_BY_KEY, coerceMetric, normalizeDecimal, parseStrictNumber } from "@/lib/training";
+import { RIDE_METRIC_FIELDS, RIDE_METRIC_BY_KEY, coerceMetric } from "@/lib/training";
 import { stravaActivityId, isStravaAppLink, parseStravaUrl } from "@/lib/strava";
 import { parseStravaEmbed } from "@/lib/strava-embed";
 import { dbError } from "@/lib/errors";
@@ -236,7 +236,6 @@ export async function removeEntry(rideId: string, entryId: string): Promise<Resu
 
 export type EntryPatch = {
   participated?: boolean;
-  set_ftp?: boolean;
   strava_url?: string;
   metrics?: Record<string, string>; // field key -> raw string (duration already in seconds)
 };
@@ -252,7 +251,6 @@ export async function updateEntry(
     const update: TableUpdate<"ride_entries"> = {};
 
     if (patch.participated !== undefined) update.participated = !!patch.participated;
-    if (patch.set_ftp !== undefined) update.set_ftp = !!patch.set_ftp;
     if (patch.strava_url !== undefined) {
       const u = patch.strava_url.trim();
       update.strava_url = u || null;
@@ -281,28 +279,6 @@ export async function updateEntry(
       if (error) return { ok: false, error: dbError(error, "Ruajtja e të dhënave dështoi. Provo sërish.") };
     }
 
-    // If this entry is flagged as an FTP source, propagate its FTP to the
-    // athlete's profile (dated to the ride). Only these two columns are
-    // written, so weight / HR / notes on the profile are preserved.
-    const { data: e } = await supabase
-      .from("ride_entries")
-      .select("athlete_id, ftp_w, set_ftp, training_rides(ride_date)")
-      .eq("id", entryId)
-      .maybeSingle<{ athlete_id: string; ftp_w: number | null; set_ftp: boolean; training_rides: { ride_date: string } | null }>();
-    if (e?.set_ftp && e.ftp_w != null) {
-      await supabase.from("athlete_profiles").upsert(
-        {
-          athlete_id: e.athlete_id,
-          ftp_w: e.ftp_w,
-          ftp_updated_at: e.training_rides?.ride_date ?? null,
-          updated_by: me.id,
-        },
-        { onConflict: "athlete_id" },
-      );
-      revalidatePath(`/admin/athletes/${e.athlete_id}`);
-      revalidatePath("/admin/athletes");
-    }
-
     revalidatePath(`/admin/training/${rideId}`);
     return { ok: true };
   } catch (e) {
@@ -325,69 +301,17 @@ export async function refreshStravaEntry(rideId: string, entryId: string): Promi
 
 // ------------------------------------------------------------------ profiles
 
-export type ProfilePatch = {
-  ftp_w?: string;
-  ftp_updated_at?: string;
-  weight_kg?: string;
-  max_hr?: string;
-  resting_hr?: string;
-  notes?: string;
-};
-
-function intField(raw: string | undefined, label: string, min?: number, max?: number):
-  { ok: true; value: number | null } | { ok: false; error: string } {
-  if (raw === undefined) return { ok: true, value: null };
-  // normalizeDecimal: "68,5" → "68.5"; commas would truncate silently.
-  // parseStrictNumber: the field is type="text", so "1.250" or "260W" must be
-  // rejected rather than read as 1 / 260 by parseInt.
-  const v = normalizeDecimal(raw);
-  if (v === "") return { ok: true, value: null };
-  const parsed = parseStrictNumber(v);
-  if (parsed == null) return { ok: false, error: `${label}: numër i pavlefshëm.` };
-  const n = Math.round(parsed);
-  if (min != null && n < min) return { ok: false, error: `${label}: minimumi ${min}.` };
-  if (max != null && n > max) return { ok: false, error: `${label}: maksimumi ${max}.` };
-  return { ok: true, value: n };
-}
-
-export async function upsertAthleteProfile(athleteId: string, patch: ProfilePatch): Promise<Result> {
+/** FTP, max HR and weight come from the rider's activities and Strava; the
+ * coach only keeps notes here. */
+export async function saveAthleteNotes(athleteId: string, notes: string): Promise<Result> {
   try {
     const me = await assertCoach();
     const supabase = await createClient();
-    const row: TableInsert<"athlete_profiles"> = { athlete_id: athleteId, updated_by: me.id };
-
-    const ftp = intField(patch.ftp_w, "FTP", 0);
-    if (!ftp.ok) return ftp;
-    row.ftp_w = ftp.value;
-
-    const maxHr = intField(patch.max_hr, "HR maksimal", 20, 260);
-    if (!maxHr.ok) return maxHr;
-    row.max_hr = maxHr.value;
-
-    const restHr = intField(patch.resting_hr, "HR në qetësi", 20, 200);
-    if (!restHr.ok) return restHr;
-    row.resting_hr = restHr.value;
-
-    if (patch.weight_kg !== undefined) {
-      // Albanian keyboards produce "," — parseFloat("68,5") is 68, i.e. silent
-      // data loss. Normalised here, on the server, so no client can bypass it.
-      const w = normalizeDecimal(patch.weight_kg);
-      if (w === "") row.weight_kg = null;
-      else {
-        const n = parseStrictNumber(w);
-        if (n == null || n < 0) return { ok: false, error: "Pesha: numër i pavlefshëm." };
-        row.weight_kg = n;
-      }
-    }
-    if (patch.ftp_updated_at !== undefined) row.ftp_updated_at = patch.ftp_updated_at.trim() || null;
-    if (patch.notes !== undefined) row.notes = patch.notes.trim() || null;
-
-    const { error } = await supabase
-      .from("athlete_profiles")
-      .upsert(row, { onConflict: "athlete_id" });
-    if (error) return { ok: false, error: dbError(error, "Ruajtja e profilit dështoi. Provo sërish.") };
+    const { error } = await supabase.from("athlete_profiles").upsert(
+      { athlete_id: athleteId, notes: notes.trim() || null, updated_by: me.id },
+      { onConflict: "athlete_id" });
+    if (error) return { ok: false, error: dbError(error, "Ruajtja e shënimeve dështoi. Provo sërish.") };
     revalidatePath(`/admin/athletes/${athleteId}`);
-    revalidatePath("/admin/athletes");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: dbError(e) };

@@ -22,6 +22,7 @@ export type SegmentLeaderboardRow = SegmentRider & {
   connected: boolean;
   attempts: number;
   pb: SegmentResult | null;
+  pbVerified: boolean;
   latest: SegmentResult | null;
   latestIsPb: boolean;
 };
@@ -60,6 +61,7 @@ export function buildSegmentLeaderboard(
     const localLatest = own.slice().sort((a, b) => b.started_at.localeCompare(a.started_at) ||
       b.strava_activity_id - a.strava_activity_id)[0];
     let pb = localBest ? resultFromEffort(localBest) : null;
+    let pbVerified = !!(pb && stat?.pr_elapsed_seconds && pb.elapsedSeconds < stat.pr_elapsed_seconds);
     if (stat?.pr_elapsed_seconds && stat.pr_activity_id && stat.pr_date &&
         (!pb || stat.pr_elapsed_seconds <= pb.elapsedSeconds)) {
       const matching = own.find((e) => e.strava_activity_id === stat.pr_activity_id &&
@@ -68,12 +70,13 @@ export function buildSegmentLeaderboard(
         activityId: stat.pr_activity_id, elapsedSeconds: stat.pr_elapsed_seconds,
         date: stat.pr_date, avgPowerW: null, avgHr: null, maxHr: null, avgCadence: null,
       };
+      pbVerified = true;
     }
     const latest = localLatest ? resultFromEffort(localLatest) : null;
     return {
       ...rider, rank: null, connected,
-      attempts: Math.max(own.length, stat?.effort_count ?? 0), pb, latest,
-      latestIsPb: !!(latest && pb && latest.activityId === pb.activityId &&
+      attempts: Math.max(own.length, stat?.effort_count ?? 0), pb, pbVerified, latest,
+      latestIsPb: !!(pbVerified && latest && pb && latest.activityId === pb.activityId &&
         latest.elapsedSeconds === pb.elapsedSeconds),
     };
   });

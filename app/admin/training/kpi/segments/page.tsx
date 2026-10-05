@@ -67,9 +67,6 @@ export default async function SegmentKpiPage() {
         <Link className="btn btn-ghost btn-sm" href="/admin/training/kpi">← KPI-të</Link>
       </div>
       <KpiTabs active="segments" />
-      <p className={styles.explainer}>
-        PB vjen nga historia e Strava; kur ajo nuk është ende e disponueshme, shfaqet më e mira e importuar. 👑 shënon kur përpjekja e fundit është PB e konfirmuar.
-      </p>
       <div className={styles.sections}>
         {TRACKED_SEGMENTS.map((segment) => {
           const rows = buildSegmentLeaderboard(riders, connected, efforts, stats, segment.id);

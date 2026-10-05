@@ -1,10 +1,3 @@
-.explainer {
-  color: var(--ink-2);
-  font-size: 13px;
-  line-height: 1.5;
-  margin: 0 0 18px;
-}
-
 .sections { display: grid; gap: 20px; }
 .segment { background: var(--white); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .segmentHead { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 20px; background: var(--paper-2); border-bottom: 1px solid var(--line); }

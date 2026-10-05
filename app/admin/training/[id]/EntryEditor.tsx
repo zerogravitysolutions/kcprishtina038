@@ -17,7 +17,6 @@ export type EntryRow = {
   strava_url: string | null;
   strava_imported: boolean;
   strava_activity_id: number | null;
-  review_status: "approved" | "under_review";
   [key: string]: unknown; // metric columns
 };
 
@@ -168,8 +167,7 @@ export function EntryEditor({
           fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13,
         }}>{initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600 }}>{athlete.full_name}{entry.review_status === "under_review" &&
-            <span style={{ color: "var(--ember)", fontSize: 11, marginLeft: 8 }}>Në shqyrtim</span>}</div>
+          <div style={{ fontWeight: 600 }}>{athlete.full_name}</div>
           <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {!participated ? "Nuk mori pjesë" : summaryLine(summaryFields, values) || "Ende pa vlera"}
           </div>
@@ -190,9 +188,9 @@ export function EntryEditor({
 
           {entry.strava_imported && <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--paper-2)", fontSize: 12, color: "var(--ink-2)" }}>
             <div>Fushat bosh nuk kanë vlerë të regjistruar në Strava për këtë aktivitet, ose aktiviteti ishte më i shkurtër se intervali i kërkuar.</div>
-            {entry.review_status === "under_review" && <button type="button" className="btn btn-ghost btn-sm" disabled={refreshing} onClick={onRefresh} style={{ marginTop: 8 }}>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={refreshing} onClick={onRefresh} style={{ marginTop: 8 }}>
               {refreshing ? "Duke rifreskuar…" : "Rifresko vlerat nga Strava"}
-            </button>}
+            </button>
             {refreshMessage && <div role="status" style={{ marginTop: 6, color: refreshMessage.ok ? "var(--ok)" : "var(--err)" }}>{refreshMessage.text}</div>}
           </div>}
 

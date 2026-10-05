@@ -9,8 +9,9 @@ rider record is required before the connection button appears.
 1. Create the club's Strava API application and set its callback domain to the
    production domain. Request enough athlete capacity for the connected riders.
 2. Apply `supabase/migrations/20261004000002_strava_connections_and_training_titles.sql`,
-   `20261004000004_strava_review_and_event_queue.sql`, and
-   `20261004000005_strava_solo_reviews.sql` in migration order.
+   `20261004000004_strava_review_and_event_queue.sql`,
+   `20261004000005_strava_solo_reviews.sql`, and
+   `20261005000004_strava_auto_publish.sql` in migration order.
 3. Add these **server-side** environment variables locally and in Vercel:
 
 | Variable | Purpose |
@@ -47,17 +48,14 @@ requires reconnecting every cyclist or migrating the stored tokens first.
    starts within 30 minutes, at least 70% overlapping elapsed time, and
    elevation difference no greater than 20% or 150 m. Distance must also be
    within 25% or 3 km. Every pair in an outdoor group must pass. Outdoor rides
-   without GPS can be reviewed individually but cannot pass the group route check.
-4. Every eligible cycling activity is saved as a training with status **Under
-   review**, even when only one cyclist is connected. Matching activities from
-   other cyclists are grouped, including activities published later. A solo
-   training becomes a group when a matching cyclist joins it. Pending entries
-   do not appear in cyclist history or coach KPIs until
-   the coach approves them. If a rider publishes later and matches an approved
-   group, only that rider's new entry waits for review; approved riders remain
-   visible. Coaches can approve or reject on the training detail page. Rejected
-   activity IDs are remembered so later Strava updates do not recreate the same
-   proposal.
+   without GPS are imported individually but cannot pass the group route check.
+4. Every eligible cycling activity (at least 20 km or 150 m of climbing) is
+   saved directly as a training, with no coach approval, even when only one
+   cyclist is connected. Matching activities from other cyclists are grouped,
+   including activities published later; a solo training becomes a group when
+   a matching cyclist joins it. If a coach deletes an imported training or
+   rider, those activity IDs are remembered so later Strava updates do not
+   recreate them.
 5. The title uses a shared Strava activity name when all riders use the same
    name. Exercise type uses matching workout words in at least half the names;
    otherwise the exercise type defaults to a group ride outdoors or indoor

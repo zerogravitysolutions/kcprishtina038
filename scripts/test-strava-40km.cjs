@@ -11,7 +11,7 @@ function load(path) {
 }
 
 const { bestFortyKm, fortyKmSpeed } = load("lib/strava-forty-km.ts");
-const { qualifiesForReview } = load("lib/strava-review.ts");
+const { qualifiesAsTraining } = load("lib/strava-qualify.ts");
 const leaderboardSource = fs.readFileSync("lib/forty-km-leaderboard.ts", "utf8");
 const leaderboardCompiled = ts.transpileModule(leaderboardSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 const leaderboard = {};
@@ -35,9 +35,9 @@ assert.equal(bestFortyKm(stopped).durationSeconds, 2400);
 assert.equal(bestFortyKm({ time: stopped.time, distance: stopped.distance }).durationSeconds, 3000);
 assert.equal(bestFortyKm({ time: { data: [0, 1200] }, distance: { data: [0, 39999] } }), null);
 
-assert.equal(qualifiesForReview({ distance: 19999, total_elevation_gain: 149 }), false);
-assert.equal(qualifiesForReview({ distance: 20000, total_elevation_gain: 0 }), true);
-assert.equal(qualifiesForReview({ distance: 0, total_elevation_gain: 150 }), true);
+assert.equal(qualifiesAsTraining({ distance: 19999, total_elevation_gain: 149 }), false);
+assert.equal(qualifiesAsTraining({ distance: 20000, total_elevation_gain: 0 }), true);
+assert.equal(qualifiesAsTraining({ distance: 0, total_elevation_gain: 150 }), true);
 const effort = (athlete_id, strava_activity_id, ride_started_at, duration_seconds) => ({
   athlete_id, strava_activity_id, ride_started_at, ride_date: ride_started_at.slice(0, 10), duration_seconds,
 });
@@ -54,4 +54,4 @@ assert.equal(rows[0].latest.strava_activity_id, 2);
 assert.equal(rows[0].latestIsPb, false);
 assert.equal(rows[1].latestIsPb, false); // incomplete history cannot confirm a crown
 assert.equal(rows[2].connected, false);
-console.log("Strava 40 km window and coach review thresholds passed");
+console.log("Strava 40 km window and training import thresholds passed");

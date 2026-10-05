@@ -592,8 +592,6 @@ interface PublicTables {
         Row: {
           id: string;
           kind: TrainingRideKind;
-          review_status: "approved" | "under_review";
-          has_pending_changes: boolean;
           ride_date: string;
           title: string | null;
           focus: string | null;
@@ -610,8 +608,6 @@ interface PublicTables {
         Insert: {
           ride_date: string;
           kind?: TrainingRideKind;
-          review_status?: "approved" | "under_review";
-          has_pending_changes?: boolean;
           title?: string | null;
           focus?: string | null;
           section_id?: string | null;
@@ -627,7 +623,6 @@ interface PublicTables {
           id: string;
           ride_id: string;
           athlete_id: string;
-          review_status: "approved" | "under_review";
           participated: boolean;
           distance_km: number | null;
           moving_seconds: number | null;
@@ -752,10 +747,10 @@ interface PublicTables {
           Partial<PublicTables["strava_activity_events"]["Row"]>;
         Update: Partial<PublicTables["strava_activity_events"]["Row"]>;
       };
-      strava_review_rejections: {
-        Row: { athlete_id: string; strava_activity_id: number; rejected_at: string };
-        Insert: { athlete_id: string; strava_activity_id: number; rejected_at?: string };
-        Update: Partial<PublicTables["strava_review_rejections"]["Row"]>;
+      strava_dismissed_activities: {
+        Row: { athlete_id: string; strava_activity_id: number; dismissed_at: string };
+        Insert: { athlete_id: string; strava_activity_id: number; dismissed_at?: string };
+        Update: Partial<PublicTables["strava_dismissed_activities"]["Row"]>;
       };
       athlete_profiles: {
         Row: {
@@ -821,7 +816,6 @@ export interface Database {
     CompositeTypes: { [_ in never]: never };
     Functions: {
       claim_strava_activity_events: { Args: { batch_size?: number }; Returns: PublicTables["strava_activity_events"]["Row"][] };
-      approve_strava_review: { Args: { p_ride_id: string }; Returns: void };
       merge_strava_singleton: { Args: { p_target_ride_id: string; p_source_ride_id: string }; Returns: boolean };
       approve_application: { Args: { app_id: string }; Returns: string };
       reject_application:  { Args: { app_id: string; reason?: string | null }; Returns: string };

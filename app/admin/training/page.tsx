@@ -27,8 +27,6 @@ type RideRow = {
   distance_km: number | null;
   moving_seconds: number | null;
   elevation_m: number | null;
-  review_status: "approved" | "under_review";
-  has_pending_changes: boolean;
   section: { slug: string; name_sq: string } | null;
   entries: EntryLite[];
 };
@@ -57,7 +55,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
   const { data, count, error } = await supabase
     .from("training_rides")
     .select(
-      "id, ride_date, title, focus, distance_km, moving_seconds, elevation_m, review_status, has_pending_changes, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km, moving_seconds, elevation_m, athlete:team_members!athlete_id(full_name))",
+      "id, ride_date, title, focus, distance_km, moving_seconds, elevation_m, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km, moving_seconds, elevation_m, athlete:team_members!athlete_id(full_name))",
       { count: "exact" },
     )
     .order("ride_date", { ascending: false })
@@ -95,7 +93,6 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
           <div className="sub">Stërvitjet e regjistruara dhe vlerat e çiklistëve në një vend.</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Link className="btn btn-ghost" href="/admin/training/import">Importo nga Strava</Link>
           <Link className="btn btn-ember" href="/admin/training/new">+ Stërvitje e re</Link>
         </div>
       </div>
@@ -118,7 +115,6 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
               <th className="num">Distanca</th>
               <th>Kohëzgjatja</th>
               <th className="num">Ngjitja</th>
-              <th>Gjendja</th>
               <th>Hap</th>
             </tr>
           </thead>
@@ -142,11 +138,6 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                 <td className="num training-value" data-lab="Distanca"><span>{distance}{distance !== "—" && <span className="training-unit"> km</span>}</span></td>
                 <td className="mono training-value" data-lab="Kohëzgjatja"><span>{duration}</span></td>
                 <td className="num training-value" data-lab="Ngjitja"><span>{elevation}{elevation !== "—" && <span className="training-unit"> m</span>}</span></td>
-                <td data-lab="Gjendja">
-                  <span className={`badge-st ${ride.review_status === "under_review" ? "warn" : ride.has_pending_changes ? "ember" : "ok"}`}>
-                    {ride.review_status === "under_review" ? "Në shqyrtim" : ride.has_pending_changes ? "Ndryshim i ri" : "Miratuar"}
-                  </span>
-                </td>
                 <td className="actions training-row-action"><Link className="btn btn-ghost btn-sm" href={`/admin/training/${ride.id}`} aria-label={`Hap stërvitjen ${title}, ${date}`}>Hap →</Link></td>
               </tr>
             ))}

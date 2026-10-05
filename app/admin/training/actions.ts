@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, getProfile } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { RIDE_METRIC_FIELDS, RIDE_METRIC_BY_KEY, coerceMetric, normalizeDecimal, parseStrictNumber } from "@/lib/training";
 import { stravaActivityId, isStravaAppLink, parseStravaUrl } from "@/lib/strava";
 import { parseStravaEmbed } from "@/lib/strava-embed";
@@ -24,6 +25,22 @@ async function assertCoach() {
 }
 
 type Result<T = unknown> = ({ ok: true } & T) | { ok: false; error: string };
+
+// Strava trainings are imported automatically, so remember the activities a
+// coach deletes; later Strava updates must not recreate them.
+async function dismissStravaActivities(filter: { rideId: string; entryId?: string }) {
+  const supabase = await createClient();
+  let query = supabase.from("ride_entries").select("athlete_id, strava_activity_id")
+    .eq("ride_id", filter.rideId).eq("strava_imported", true).not("strava_activity_id", "is", null);
+  if (filter.entryId) query = query.eq("id", filter.entryId);
+  const { data, error } = await query;
+  if (error) throw error;
+  if (!data?.length) return;
+  const { error: dismissError } = await createAdminClient().from("strava_dismissed_activities").upsert(
+    data.map((entry) => ({ athlete_id: entry.athlete_id, strava_activity_id: entry.strava_activity_id! })),
+    { onConflict: "athlete_id,strava_activity_id", ignoreDuplicates: true });
+  if (dismissError) throw dismissError;
+}
 
 // Coerce the three base fields (raw strings; moving_seconds already in seconds)
 // into DB values, reusing the shared metric field definitions.
@@ -155,6 +172,7 @@ export async function updateRide(id: string, patch: RidePatch): Promise<Result> 
 export async function deleteRide(id: string): Promise<Result> {
   try {
     await assertCoach();
+    await dismissStravaActivities({ rideId: id });
     const supabase = await createClient();
     const { error } = await supabase.from("training_rides").delete().eq("id", id);
     if (error) return { ok: false, error: dbError(error, "Fshirja e stërvitjes dështoi. Provo sërish.") };
@@ -175,13 +193,10 @@ export async function addEntry(rideId: string, athleteId: string): Promise<Resul
     // Inherit the ride's session base (distance / duration / elevation).
     const { data: ride } = await supabase
       .from("training_rides")
-      .select("distance_km, moving_seconds, elevation_m, review_status")
+      .select("distance_km, moving_seconds, elevation_m")
       .eq("id", rideId)
-      .maybeSingle<{ distance_km: number | null; moving_seconds: number | null; elevation_m: number | null; review_status: "approved" | "under_review" }>();
-    const insertRow: TableInsert<"ride_entries"> = {
-      ride_id: rideId, athlete_id: athleteId,
-      review_status: ride?.review_status === "under_review" ? "under_review" : "approved",
-    };
+      .maybeSingle<{ distance_km: number | null; moving_seconds: number | null; elevation_m: number | null }>();
+    const insertRow: TableInsert<"ride_entries"> = { ride_id: rideId, athlete_id: athleteId };
     if (ride?.distance_km != null) insertRow.distance_km = ride.distance_km;
     if (ride?.moving_seconds != null) insertRow.moving_seconds = ride.moving_seconds;
     if (ride?.elevation_m != null) insertRow.elevation_m = ride.elevation_m;
@@ -204,6 +219,7 @@ export async function addEntry(rideId: string, athleteId: string): Promise<Resul
 export async function removeEntry(rideId: string, entryId: string): Promise<Result> {
   try {
     await assertCoach();
+    await dismissStravaActivities({ rideId, entryId });
     const supabase = await createClient();
     const { error } = await supabase
       .from("ride_entries")
@@ -270,10 +286,10 @@ export async function updateEntry(
     // written, so weight / HR / notes on the profile are preserved.
     const { data: e } = await supabase
       .from("ride_entries")
-      .select("athlete_id, ftp_w, set_ftp, review_status, training_rides(ride_date)")
+      .select("athlete_id, ftp_w, set_ftp, training_rides(ride_date)")
       .eq("id", entryId)
-      .maybeSingle<{ athlete_id: string; ftp_w: number | null; set_ftp: boolean; review_status: "approved" | "under_review"; training_rides: { ride_date: string } | null }>();
-    if (e?.review_status === "approved" && e.set_ftp && e.ftp_w != null) {
+      .maybeSingle<{ athlete_id: string; ftp_w: number | null; set_ftp: boolean; training_rides: { ride_date: string } | null }>();
+    if (e?.set_ftp && e.ftp_w != null) {
       await supabase.from("athlete_profiles").upsert(
         {
           athlete_id: e.athlete_id,

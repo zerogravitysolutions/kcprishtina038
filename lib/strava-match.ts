@@ -1,4 +1,4 @@
-// Pure route matching; no Strava tokens, database access, or persistent GPS data.
+// Pure route matching; no Strava tokens or database access.
 // Every pair in an outdoor group clears the route, time, and elevation checks.
 // Indoor groups use start time and duration because virtual routes do not prove
 // that cyclists trained together. Coaches review every proposed group.
@@ -127,4 +127,25 @@ export function groupMatchingRides(rides: MatchRide[]): MatchGroup[] {
 
 export function groupMatchingIndoorRides(rides: MatchRide[]): IndoorMatchGroup[] {
   return groupByMatch(rides, matchIndoorRides).map(({ rides, minimumScore }) => ({ rides, minimumTimeMatch: minimumScore }));
+}
+
+/** Decode a Google encoded polyline (precision 5), as returned by Strava. */
+export function decodePolyline(encoded: string | null | undefined): LatLng[] {
+  if (!encoded) return [];
+  const points: LatLng[] = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    for (const axis of [0, 1]) {
+      let result = 0, shift = 0, byte: number;
+      do {
+        byte = encoded.charCodeAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20 && index < encoded.length);
+      const delta = result & 1 ? ~(result >> 1) : result >> 1;
+      if (axis === 0) lat += delta; else lng += delta;
+    }
+    points.push([lat / 1e5, lng / 1e5]);
+  }
+  return points;
 }

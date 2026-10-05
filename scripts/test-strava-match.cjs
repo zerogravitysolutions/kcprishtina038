@@ -97,4 +97,8 @@ assert.equal(filled.avg_power_w, undefined); // preserve the coach's saved value
 assert.equal(filled.intensity_factor, 0.92);
 assert.equal(filled.tss, 169);
 assert.deepEqual(metricsModule.missingImportedMetrics(imported, imported, null), {});
+// Google's reference polyline; Strava routes use the same encoding.
+assert.deepEqual(matchModule.decodePolyline("_p~iF~ps|U_ulLnnqC_mqNvxq`@"),
+  [[38.5, -120.2], [40.7, -120.95], [43.252, -126.453]]);
+assert.deepEqual(matchModule.decodePolyline(""), []);
 console.log("Strava route matching and metric checks passed");

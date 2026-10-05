@@ -3,10 +3,12 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stravaGet, type StravaActivity, type StravaConnection } from "@/lib/strava-api";
 import { cyclingMode } from "@/lib/strava-cycling";
+import { fortyKmCheckedIds, markFortyKmChecked } from "@/lib/strava-cache";
 import { bestFortyKm, FORTY_KM_METERS, type DistanceStreams } from "@/lib/strava-forty-km";
 
 /** Save only the derived fastest window, never the raw activity streams. */
-export async function syncFortyKmEffort(connection: StravaConnection, activity: StravaActivity): Promise<boolean> {
+export async function syncFortyKmEffort(connection: StravaConnection, activity: StravaActivity,
+  readStreams?: () => Promise<DistanceStreams>): Promise<boolean> {
   const admin = createAdminClient();
   const remove = async () => {
     const { error } = await admin.from("strava_40km_efforts").delete()
@@ -19,7 +21,7 @@ export async function syncFortyKmEffort(connection: StravaConnection, activity: 
   }
   let streams: DistanceStreams;
   try {
-    streams = await stravaGet<DistanceStreams>(connection,
+    streams = readStreams ? await readStreams() : await stravaGet<DistanceStreams>(connection,
       `/activities/${activity.id}/streams?keys=time,distance,moving&key_by_type=true`);
   } catch (error) {
     if (!(error instanceof Error && error.message === "Strava API: 404")) throw error;
@@ -72,9 +74,16 @@ export async function processFortyKmBackfills(): Promise<{ riders: number; rides
     }
     const activities = await stravaGet<StravaActivity[]>(connection,
       `/athlete/activities?before=${job.cursor_before}&per_page=75&page=1`);
-    const eligible = activities.filter((activity) => cyclingMode(activity) && activity.distance >= FORTY_KM_METERS);
+    // Rides already checked by the training import are not read again.
+    const checked = await fortyKmCheckedIds(connection.athlete_id, activities.map((activity) => activity.id));
+    const eligible = activities.filter((activity) =>
+      cyclingMode(activity) && activity.distance >= FORTY_KM_METERS && !checked.has(activity.id));
     for (let i = 0; i < eligible.length; i += 4) {
-      const saved = await Promise.all(eligible.slice(i, i + 4).map((activity) => syncFortyKmEffort(connection, activity)));
+      const saved = await Promise.all(eligible.slice(i, i + 4).map(async (activity) => {
+        const found = await syncFortyKmEffort(connection, activity);
+        await markFortyKmChecked(connection, activity);
+        return found;
+      }));
       rides += saved.filter(Boolean).length;
     }
     const cursor = activities.length

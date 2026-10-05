@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stravaGet, type StravaActivity, type StravaConnection, type StravaSegmentEffort } from "@/lib/strava-api";
+import { activityDetail } from "@/lib/strava-cache";
 import { cyclingMode } from "@/lib/strava-cycling";
 import { TRACKED_SEGMENTS } from "@/lib/segment-leaderboard";
 import type { TableInsert } from "@/lib/supabase/types";
@@ -66,6 +67,31 @@ export async function syncSegmentEffortsFromActivity(athleteId: string, activity
   return [...new Set([...current.map((effort) => effort.segment!.id), ...(previous ?? []).map((effort) => effort.segment_id)])];
 }
 
+export async function segmentIdsForActivity(athleteId: string, activityId: number): Promise<number[]> {
+  const { data, error } = await createAdminClient().from("strava_segment_efforts").select("segment_id")
+    .eq("athlete_id", athleteId).eq("strava_activity_id", activityId);
+  if (error) throw error;
+  return [...new Set((data ?? []).map((row) => row.segment_id))];
+}
+
+/** Save this activity's tracked efforts, then re-read a segment's PR summary
+ * from Strava only when the activity could have changed it. */
+export async function syncActivitySegments(connection: StravaConnection, activity: StravaActivity): Promise<void> {
+  const changed = await syncSegmentEffortsFromActivity(connection.athlete_id, activity);
+  if (!changed.length) return;
+  const { data: stats, error } = await createAdminClient().from("strava_segment_stats")
+    .select("segment_id, pr_elapsed_seconds, pr_activity_id")
+    .eq("athlete_id", connection.athlete_id).in("segment_id", changed);
+  if (error) throw error;
+  for (const segmentId of changed) {
+    const stat = (stats ?? []).find((row) => row.segment_id === segmentId);
+    const efforts = (activity.segment_efforts ?? []).filter((effort) => effort.segment?.id === segmentId);
+    const mayChangePb = !stat || stat.pr_activity_id === activity.id || stat.pr_elapsed_seconds == null ||
+      efforts.some((effort) => effort.pr_rank === 1 || effort.elapsed_time < stat.pr_elapsed_seconds!);
+    if (mayChangePb) await refreshSegmentSummary(connection, segmentId);
+  }
+}
+
 export async function refreshSegmentSummary(connection: StravaConnection, segmentId: number): Promise<number> {
   const admin = createAdminClient();
   const data = await stravaGet<SegmentSummary>(connection, `/segments/${segmentId}`);
@@ -105,10 +131,8 @@ async function refreshPbDetailsForConnection(connection: StravaConnection, segme
   if (savedError) throw savedError;
   if (!saved?.some((effort) => effort.avg_power_w != null)) {
     try {
-      const activity = await stravaGet<StravaActivity>(connection,
-        `/activities/${stat.pr_activity_id}?include_all_efforts=true`);
-      if (activity.id === stat.pr_activity_id &&
-          activity.athlete?.id === connection.strava_athlete_id && cyclingMode(activity) &&
+      const activity = await activityDetail(connection, stat.pr_activity_id);
+      if (activity && activity.id === stat.pr_activity_id && cyclingMode(activity) &&
           activity.segment_efforts?.some((effort) => effort.segment?.id === segmentId &&
             effort.elapsed_time === stat.pr_elapsed_seconds)) {
         await syncSegmentEffortsFromActivity(connection.athlete_id, activity);
@@ -250,8 +274,8 @@ export async function processSegmentBackfills(idleBefore?: string): Promise<numb
     const rides = rows.filter((summary) => cyclingMode(summary));
     for (let index = 0; index < rides.length; index += 4) {
       const saved = await Promise.all(rides.slice(index, index + 4).map(async (summary) => {
-        const activity = await stravaGet<StravaActivity>(connection, `/activities/${summary.id}`);
-        if (activity.athlete?.id !== connection.strava_athlete_id || !cyclingMode(activity)) return 0;
+        const activity = await activityDetail(connection, summary.id);
+        if (!activity || !cyclingMode(activity)) return 0;
         await syncSegmentEffortsFromActivity(connection.athlete_id, activity);
         return 1;
       }));

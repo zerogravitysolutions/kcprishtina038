@@ -60,6 +60,10 @@ requires reconnecting every cyclist or migrating the stored tokens first.
    history from that date is imported too. A Supabase pg_cron job
    (`strava-queue-drain`) calls `/api/strava/queue` every 5 minutes while
    Strava events are due, so backfills continue across Strava rate limits.
+   Each activity is read from Strava once: its trimmed detail (metrics, route
+   polyline, segment efforts) is cached in the service-only `strava_activities`
+   table and reused for grouping, segments, retries and history scans. Streams
+   are read once per activity, and the athlete FTP at most once a day.
 5. The title uses a shared Strava activity name when all riders use the same
    name. Exercise type uses matching workout words in at least half the names;
    otherwise the exercise type defaults to a group ride outdoors or indoor

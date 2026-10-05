@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { clubTodayISO } from "@/lib/clubtime";
+import { recentlyActiveRiders } from "@/lib/active-riders";
 import { ColumnChart, TargetBars, type Point, type TargetRow } from "../charts";
 import { TeamTargets } from "./TeamTargets";
 import { FtpTargetsModal, type FtpModalMonth } from "./FtpTargetsModal";
@@ -16,7 +17,6 @@ export const metadata = { title: "KPI-të e stërvitjes" };
 
 const COACH_ROLES = ["admin", "editor", "staff", "coach"];
 
-type Member = { id: string; full_name: string; status: string; positions: string[] };
 type EntryRow = {
   athlete_id: string;
   participated: boolean;
@@ -66,21 +66,20 @@ export default async function KpiPage({ searchParams }: { searchParams: Promise<
   // A year back covers 8 weeks, 6 months, and the month BEFORE the oldest
   // one shown (which is that month's 20-min target).
   const since = `${String(Number(today.slice(0, 4)) - 1)}-${today.slice(5, 7)}-01`;
-  const [entryRes, memberRes, targetRes, ftpRes] = await Promise.all([
+  const [entryRes, targetRes, ftpRes, activeRiders] = await Promise.all([
     fetchEntries(supabase, since),
-    supabase.from("team_members").select("id, full_name, status, positions").order("full_name"),
     supabase.from("team_kpi_targets").select("effective_from, weekly_hours, weekly_elevation_m").order("effective_from"),
     supabase.from("athlete_ftp_targets").select("athlete_id, period, target_w").gte("period", since),
+    recentlyActiveRiders(supabase),
   ]);
 
-  const loadFailed = entryRes.failed || !!memberRes.error || !!targetRes.error || !!ftpRes.error;
+  const loadFailed = entryRes.failed || !!targetRes.error || !!ftpRes.error;
   // The 20-min targets a coach typed, per rider; a month without one is automatic.
   const ftpByAthlete = new Map<string, FtpTarget[]>();
   for (const f of (ftpRes.data as (FtpTarget & { athlete_id: string })[] | null) ?? []) {
     if (!ftpByAthlete.has(f.athlete_id)) ftpByAthlete.set(f.athlete_id, []);
     ftpByAthlete.get(f.athlete_id)!.push({ period: f.period, target_w: f.target_w });
   }
-  const members = (memberRes.data as Member[] | null) ?? [];
   const targets = (targetRes.data as TeamTarget[] | null) ?? [];
 
   const byAthlete = new Map<string, KpiEntry[]>();
@@ -97,12 +96,8 @@ export default async function KpiPage({ searchParams }: { searchParams: Promise<
     byAthlete.get(e.athlete_id)!.push(entry);
   }
 
-  // Riders: the active roster's riders, plus anyone who has actually trained.
-  const nameById = new Map(members.map((m) => [m.id, m.full_name]));
-  const riderIds = new Set<string>();
-  for (const m of members) if (m.status === "active" && m.positions?.includes("rider")) riderIds.add(m.id);
-  for (const id of byAthlete.keys()) if (nameById.has(id)) riderIds.add(id);
-  const riders = [...riderIds].map((id) => ({ id, name: nameById.get(id) ?? "—" }));
+  // Riders: active roster riders who trained in the last 30 days.
+  const riders = activeRiders.map((m) => ({ id: m.id, name: m.full_name }));
 
   const count = view === "week" ? 8 : 6;
   const series = new Map<string, KpiBucket[]>();
@@ -161,7 +156,6 @@ export default async function KpiPage({ searchParams }: { searchParams: Promise<
     return best;
   };
   const thisMonth = monthStart(today);
-  const activeRiders = members.filter((m) => m.status === "active" && m.positions?.includes("rider"));
   const ftpModalMonths: FtpModalMonth[] = [-2, -1, 0, 1].map((off) => {
     const period = addMonths(thisMonth, off);
     const [y, m] = period.split("-").map(Number);

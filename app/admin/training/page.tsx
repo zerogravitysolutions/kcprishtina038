@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { fmt, formatDurationShort } from "@/lib/training";
-import { stravaActivityId } from "@/lib/strava";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,7 +27,6 @@ type RideRow = {
   distance_km: number | null;
   moving_seconds: number | null;
   elevation_m: number | null;
-  strava_url: string | null;
   review_status: "approved" | "under_review";
   has_pending_changes: boolean;
   section: { slug: string; name_sq: string } | null;
@@ -59,7 +57,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
   const { data, count, error } = await supabase
     .from("training_rides")
     .select(
-      "id, ride_date, title, focus, distance_km, moving_seconds, elevation_m, strava_url, review_status, has_pending_changes, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km, moving_seconds, elevation_m, athlete:team_members!athlete_id(full_name))",
+      "id, ride_date, title, focus, distance_km, moving_seconds, elevation_m, review_status, has_pending_changes, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km, moving_seconds, elevation_m, athlete:team_members!athlete_id(full_name))",
       { count: "exact" },
     )
     .order("ride_date", { ascending: false })
@@ -78,7 +76,6 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       .map((entry) => entry.athlete?.full_name ?? "Çiklist i panjohur")
       .sort((a, b) => a.localeCompare(b, "sq"));
     const title = ride.title?.trim() || ride.focus?.trim() || "Stërvitje";
-    const stravaId = ride.strava_url ? stravaActivityId(ride.strava_url) : null;
     return {
       ride,
       title,
@@ -87,7 +84,6 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       distance: sessionMetric(ride, participants, "distance_km", (value) => fmt(value, 1)),
       duration: sessionMetric(ride, participants, "moving_seconds", formatDurationShort),
       elevation: sessionMetric(ride, participants, "elevation_m", (value) => fmt(value)),
-      stravaHref: stravaId ? `https://www.strava.com/activities/${stravaId}` : null,
     };
   });
 
@@ -129,12 +125,11 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
           <tbody>
             {view.length === 0 ? (
               <tr><td colSpan={9} className="training-empty">Ende asnjë stërvitje. Fillo me “+ Stërvitje e re”.</td></tr>
-            ) : view.map(({ ride, title, names, date, distance, duration, elevation, stravaHref }) => (
+            ) : view.map(({ ride, title, names, date, distance, duration, elevation }) => (
               <tr key={ride.id}>
                 <td>
                   <Link href={`/admin/training/${ride.id}`} className="training-row-title">{title}</Link>
                   {(ride.title && ride.focus && ride.title !== ride.focus) && <span className="training-row-sub">{ride.focus}</span>}
-                  {stravaHref && <a className="training-strava-link" href={stravaHref} target="_blank" rel="noopener noreferrer">Strava ↗</a>}
                 </td>
                 <td className="mono" data-lab="Data">{date}</td>
                 <td data-lab="Seksioni">{ride.section ? <span className={`tag-sec ${ride.section.slug}`}>{ride.section.name_sq}</span> : "—"}</td>

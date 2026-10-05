@@ -1723,7 +1723,6 @@ table.t tbody tr.sum.total:hover td { background: color-mix(in oklab, var(--acce
 .training-table td:nth-child(2), .training-table td.training-value { white-space: nowrap; }
 .training-row-title { display: block; font-weight: 650; line-height: 1.3; }
 .training-row-sub { display: block; margin-top: 3px; color: var(--text-3); font-size: 11.5px; line-height: 1.35; }
-.training-strava-link { display: inline-block; margin-top: 4px; color: var(--accent-lo) !important; font-family: var(--font-mono); font-size: 10.5px; }
 .training-rider-names { display: block; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-1); font-size: 12.5px; }
 .training-rider-count { display: block; margin-top: 3px; color: var(--text-3); font-family: var(--font-mono); font-size: 10.5px; }
 .training-unit { color: var(--text-3); font-size: 11px; }

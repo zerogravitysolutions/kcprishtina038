@@ -7,6 +7,9 @@ import { cyclingMode } from "@/lib/strava-cycling";
 import { syncFortyKmEffort } from "@/lib/strava-forty-km-sync";
 import { qualifiesAsTraining } from "@/lib/strava-qualify";
 import { metricsFromStrava, missingImportedMetrics } from "@/lib/strava-metrics";
+import { estimateFtp } from "@/lib/athlete-metrics";
+import { best20Before } from "@/lib/athlete-snapshot";
+import { computeIntensity, computeTss } from "@/lib/training";
 import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
 import { refreshSegmentSummary, segmentIdsForActivity, syncActivitySegments } from "@/lib/strava-segment-sync";
 import {
@@ -81,21 +84,28 @@ async function promoteToGroup(ride: { id: string; ride_date: string; title: stri
 type StreamsFor = (item: Matched) => Promise<ActivityStreams>;
 const readStreams: StreamsFor = (item) => activityStreams(item.connection, item.activity.id);
 
-async function metricsFor(item: Matched, fallbackFtp: number | null, streamsFor: StreamsFor = readStreams) {
-  const [streams, ftp] = await Promise.all([streamsFor(item), athleteFtp(item.connection)]);
-  return metricsFromStrava(item.activity, streams, ftp, fallbackFtp);
+/** The ride's FTP is estimated from the rider's activities: 95% of the best
+ * 20-min power in the six weeks up to and including this ride. The FTP set in
+ * Strava is used only when there is no power data. */
+async function metricsFor(item: Matched, streamsFor: StreamsFor = readStreams) {
+  const rideDate = item.activity.start_date_local.slice(0, 10);
+  const [streams, stravaFtp, prior] = await Promise.all([
+    streamsFor(item), athleteFtp(item.connection), best20Before(item.rider.id, rideDate),
+  ]);
+  const base = metricsFromStrava(item.activity, streams, null, null);
+  const ftp = estimateFtp(Math.max(prior ?? 0, base.best_power_20m_w ?? 0)) ?? stravaFtp;
+  return {
+    ...base, ftp_w: ftp,
+    intensity_factor: computeIntensity(base.np_w, ftp), tss: computeTss(base.moving_seconds, base.np_w, ftp),
+  };
 }
 
 async function addEntries(rideId: string, items: Matched[], streamsFor: StreamsFor = readStreams): Promise<void> {
   if (!items.length) return;
   const admin = createAdminClient();
-  const { data: profiles, error: profilesError } = await admin.from("athlete_profiles")
-    .select("athlete_id, ftp_w").in("athlete_id", items.map((item) => item.rider.id));
-  if (profilesError) throw profilesError;
-  const ftpById = new Map((profiles ?? []).map((profile) => [profile.athlete_id, profile.ftp_w]));
   const entries: TableInsert<"ride_entries">[] = await Promise.all(items.map(async (item) => ({
     ride_id: rideId, athlete_id: item.rider.id,
-    ...await metricsFor(item, ftpById.get(item.rider.id) ?? null, streamsFor),
+    ...await metricsFor(item, streamsFor),
     strava_url: `https://www.strava.com/activities/${item.activity.id}`,
     strava_activity_id: item.activity.id, strava_imported: true,
   })));
@@ -107,11 +117,8 @@ async function addEntries(rideId: string, items: Matched[], streamsFor: StreamsF
  * columns. A coach's saved numbers remain authoritative. */
 async function fillMissingMetrics(entry: TableRow<"ride_entries">, item: Matched) {
   const admin = createAdminClient();
-  const { data: profile, error: profileError } = await admin.from("athlete_profiles")
-    .select("ftp_w").eq("athlete_id", entry.athlete_id).maybeSingle();
-  if (profileError) throw profileError;
-  const imported = await metricsFor(item, profile?.ftp_w ?? null);
-  const patch = missingImportedMetrics(entry, imported, profile?.ftp_w ?? null);
+  const imported = await metricsFor(item);
+  const patch = missingImportedMetrics(entry, imported, imported.ftp_w);
   if (Object.keys(patch).length) {
     let update = admin.from("ride_entries").update(patch as TableUpdate<"ride_entries">).eq("id", entry.id)
       .eq("ride_id", entry.ride_id);

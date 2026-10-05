@@ -45,7 +45,7 @@ export type StravaSegmentEffort = {
   pr_rank?: number | null;
 };
 
-export type StravaAthlete = { id: number; ftp?: number | null; profile?: string | null };
+export type StravaAthlete = { id: number; ftp?: number | null; weight?: number | null; profile?: string | null };
 
 type StravaTokenResponse = {
   access_token: string;

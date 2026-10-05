@@ -1,3 +1,4 @@
+import { athleteSnapshots } from "@/lib/athlete-snapshot";
 import { PoweredByStrava } from "@/components/strava/StravaBrand";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
@@ -28,9 +29,8 @@ export default async function PortalPerformancePage() {
 
   // The team target is readable by every logged-in user (team_kpi_targets_read); the
   // 20-min targets only for this cyclist's own athlete record (athlete_ftp_targets_select_own).
-  const [{ data: profileData }, { data: entryData }, { data: teamTargetData }, { data: ftpTargetData }] = athlete
+  const [{ data: entryData }, { data: teamTargetData }, { data: ftpTargetData }] = athlete
     ? await Promise.all([
-        supabase.from("athlete_profiles").select("ftp_w, weight_kg, max_hr, resting_hr").eq("athlete_id", athlete.id).maybeSingle(),
         supabase
           .from("ride_entries")
           .select("participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, ride:training_rides(ride_date)")
@@ -38,12 +38,12 @@ export default async function PortalPerformancePage() {
         supabase.from("team_kpi_targets").select("effective_from, weekly_hours, weekly_elevation_m").order("effective_from"),
         supabase.from("athlete_ftp_targets").select("period, target_w").eq("athlete_id", athlete.id),
       ])
-    : [{ data: null }, { data: null }, { data: null }, { data: null }];
+    : [{ data: null }, { data: null }, { data: null }];
 
-  const prof = (profileData as { ftp_w: number | null; weight_kg: number | null; max_hr: number | null; resting_hr: number | null } | null) ?? null;
+  const snapshot = athlete ? (await athleteSnapshots([athlete.id])).get(athlete.id) ?? null : null;
   const entries = (entryData as unknown as EntryRow[] | null) ?? [];
   const bests = computeBests(entries);
-  const wkg = wPerKg(prof?.ftp_w ?? null, prof?.weight_kg ?? null);
+  const wkg = wPerKg(snapshot?.ftp?.watts ?? null, snapshot?.weightKg ?? null);
   const kpiEntries = entries.map((e) => ({
     athlete_id: athlete?.id ?? "",
     ride_date: e.ride?.ride_date ?? "",
@@ -98,9 +98,9 @@ export default async function PortalPerformancePage() {
 
           {/* Baseline tiles — only present values. */}
           <div style={{ ...CARD, display: "flex", gap: 24, flexWrap: "wrap", padding: "16px 20px" }}>
-            {prof?.ftp_w ? <Stat label="FTP" value={`${prof.ftp_w} W`} sub={wkg != null ? `${wkg} W/kg` : undefined} /> : null}
-            {prof?.weight_kg ? <Stat label="Pesha" value={`${prof.weight_kg} kg`} /> : null}
-            {(prof?.max_hr || bests.max_hr) ? <Stat label="HR max" value={String(prof?.max_hr || bests.max_hr)} /> : null}
+            {snapshot?.ftp ? <Stat label="FTP" value={`${snapshot.ftp.watts} W`} sub={wkg != null ? `${wkg} W/kg` : undefined} /> : null}
+            {snapshot?.weightKg ? <Stat label="Pesha" value={`${snapshot.weightKg} kg`} /> : null}
+            {snapshot?.maxHr ? <Stat label="HR max" value={String(snapshot.maxHr.bpm)} /> : null}
             <Stat label="Stërvitje" value={String(bests.rides)} />
             {bests.total_km > 0 ? <Stat label="KM gjithsej" value={fmt(bests.total_km, 0)} /> : null}
           </div>

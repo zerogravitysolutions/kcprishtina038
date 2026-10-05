@@ -1,3 +1,4 @@
+import { athleteSnapshots } from "@/lib/athlete-snapshot";
 import { PoweredByStrava } from "@/components/strava/StravaBrand";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
@@ -23,7 +24,6 @@ type EntryJoined = EntryRow & {
     id: string;
     full_name: string;
     section_slug: string | null;
-    profile: { weight_kg: number | null; ftp_w: number | null } | null;
   } | null;
 };
 
@@ -43,7 +43,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
       .maybeSingle(),
     supabase
       .from("ride_entries")
-      .select("*, athlete:team_members!athlete_id(id, full_name, section_slug, profile:athlete_profiles(weight_kg, ftp_w))")
+      .select("*, athlete:team_members!athlete_id(id, full_name, section_slug)")
       .eq("ride_id", id),
     supabase.from("sections").select("id, name_sq").eq("active", true).order("display_order"),
     supabase.from("team_members").select("id, full_name, section_slug, gender").eq("status", "active").contains("positions", ["rider"]).order("full_name"),
@@ -55,6 +55,8 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
   const entries = ((entryData as unknown as EntryJoined[] | null) ?? [])
     .slice()
     .sort((a, b) => (a.athlete?.full_name ?? "").localeCompare(b.athlete?.full_name ?? "", "sq"));
+  // FTP and weight for W/kg come from each rider's activities and Strava.
+  const snapshots = await athleteSnapshots(entries.map((e) => e.athlete_id), ride.ride_date);
   const sections = (sectionRows as { id: string; name_sq: string }[] | null) ?? [];
   const athletes = (athleteRows as AthleteOption[] | null) ?? [];
 
@@ -110,8 +112,8 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
                 id: e.athlete?.id ?? e.athlete_id,
                 full_name: e.athlete?.full_name ?? "—",
                 section_slug: e.athlete?.section_slug ?? null,
-                weight_kg: e.athlete?.profile?.weight_kg ?? null,
-                ftp_w: e.athlete?.profile?.ftp_w ?? null,
+                weight_kg: snapshots.get(e.athlete_id)?.weightKg ?? null,
+                ftp_w: snapshots.get(e.athlete_id)?.ftp?.watts ?? null,
               }}
             />
           ))}

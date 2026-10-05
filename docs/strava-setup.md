@@ -56,6 +56,10 @@ requires reconnecting every cyclist or migrating the stored tokens first.
    a matching cyclist joins it. If a coach deletes an imported training or
    rider, those activity IDs are remembered so later Strava updates do not
    recreate them.
+   Trainings are imported from 1 July 2026 onward; a newly connected cyclist's
+   history from that date is imported too. A Supabase pg_cron job
+   (`strava-queue-drain`) calls `/api/strava/queue` every 5 minutes while
+   Strava events are due, so backfills continue across Strava rate limits.
 5. The title uses a shared Strava activity name when all riders use the same
    name. Exercise type uses matching workout words in at least half the names;
    otherwise the exercise type defaults to a group ride outdoors or indoor

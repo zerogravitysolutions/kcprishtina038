@@ -385,9 +385,14 @@ export async function processQueuedStravaActivities(batchSize = 5): Promise<{ pr
   return { processed, failed };
 }
 
-export async function enqueueRecentStravaActivities(athleteId?: string): Promise<number> {
+/** Trainings are imported from Strava from this date onward. */
+export const TRAINING_IMPORT_START = "2026-07-01";
+
+export async function enqueueRecentStravaActivities(athleteId?: string, since?: string): Promise<number> {
   const all = (await connections()).filter((owner) => !athleteId || owner.rider.id === athleteId);
-  const after = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
+  const after = since
+    ? Math.floor(Date.parse(`${since}T00:00:00Z`) / 1000)
+    : Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
   let found = 0;
   for (const owner of all) {
     for (let page = 1; page <= 5; page++) {

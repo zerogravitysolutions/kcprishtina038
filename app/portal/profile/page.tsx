@@ -1,3 +1,4 @@
+import { ConnectWithStrava, PoweredByStrava } from "@/components/strava/StravaBrand";
 import Link from "next/link";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { ProfileForm } from "./ProfileForm";
@@ -53,15 +54,16 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       {rider && <div style={{ background: "var(--white)", border: "1px solid color-mix(in oklab, var(--ink) 8%, transparent)", borderRadius: 14, padding: 24, marginTop: 16 }}>
         <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, margin: 0 }}>Strava</h2>
         <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "6px 0 14px" }}>
-          {connected ? "Llogaria jote është lidhur. Aktivitetet mund të propozohen për stërvitjet e klubit." : "Lidhe llogarinë për t’i propozuar aktivitetet e tua në stërvitjet e klubit."}
+          {connected ? "Llogaria jote është lidhur. Aktivitetet e çiklizmit importohen automatikisht si stërvitje të klubit." : "Lidhe llogarinë që aktivitetet e tua të çiklizmit të importohen automatikisht si stërvitje të klubit."}
         </p>
         {stravaStatus && stravaStatus !== "connected" && stravaStatus !== "disconnected" &&
           <p role="alert" style={{ color: "var(--err)", fontSize: 12 }}>Lidhja me Strava nuk u përfundua. Provo sërish.</p>}
         {configured ? connected ? (
           <form action={disconnectStrava}><button type="submit" className="btn btn-ghost">Shkëput Strava</button></form>
         ) : (
-          <a href="/api/strava/connect" className="btn btn-ember">Lidh me Strava</a>
+          <ConnectWithStrava href="/api/strava/connect" />
         ) : <span style={{ color: "var(--ink-3)", fontSize: 12 }}>Lidhja me Strava është në përgatitje.</span>}
+        <PoweredByStrava style={{ marginTop: 18 }} />
       </div>}
 
       {/* The money panel is not a sixth tab on the phone, so it needs a door

@@ -1,3 +1,4 @@
+import { PoweredByStrava } from "@/components/strava/StravaBrand";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
@@ -71,6 +72,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
           <div className="mono" style={{ color: "var(--ink-3)", fontSize: 12, letterSpacing: ".06em", marginTop: 6 }}>
             {dateLabel}
           </div>
+          <PoweredByStrava style={{ marginTop: 10 }} />
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link className="btn btn-ghost btn-sm" href="/admin/training">← Të gjitha</Link>

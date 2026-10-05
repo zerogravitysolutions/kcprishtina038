@@ -1,3 +1,4 @@
+import { PoweredByStrava } from "@/components/strava/StravaBrand";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
@@ -118,6 +119,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
         <div>
           <h1>Progresi</h1>
           <div className="sub">Pjesëmarrja dhe performanca e secilit çiklist — zgjidh periudhën, kliko titujt për renditje.</div>
+          <PoweredByStrava style={{ marginTop: 10 }} />
         </div>
       </div>
 

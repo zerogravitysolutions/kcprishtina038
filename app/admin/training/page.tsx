@@ -1,3 +1,4 @@
+import { PoweredByStrava, ViewOnStrava } from "@/components/strava/StravaBrand";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
@@ -27,6 +28,7 @@ type RideRow = {
   distance_km: number | null;
   moving_seconds: number | null;
   elevation_m: number | null;
+  strava_url: string | null;
   section: { slug: string; name_sq: string } | null;
   entries: EntryLite[];
 };
@@ -55,7 +57,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
   const { data, count, error } = await supabase
     .from("training_rides")
     .select(
-      "id, ride_date, title, focus, distance_km, moving_seconds, elevation_m, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km, moving_seconds, elevation_m, athlete:team_members!athlete_id(full_name))",
+      "id, ride_date, title, focus, distance_km, moving_seconds, elevation_m, strava_url, section:sections!section_id(slug, name_sq), entries:ride_entries(participated, distance_km, moving_seconds, elevation_m, athlete:team_members!athlete_id(full_name))",
       { count: "exact" },
     )
     .order("ride_date", { ascending: false })
@@ -91,6 +93,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         <div>
           <h1>Stërvitjet</h1>
           <div className="sub">Stërvitjet e regjistruara dhe vlerat e çiklistëve në një vend.</div>
+          <PoweredByStrava style={{ marginTop: 10 }} />
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link className="btn btn-ember" href="/admin/training/new">+ Stërvitje e re</Link>
@@ -126,6 +129,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                 <td>
                   <Link href={`/admin/training/${ride.id}`} className="training-row-title">{title}</Link>
                   {(ride.title && ride.focus && ride.title !== ride.focus) && <span className="training-row-sub">{ride.focus}</span>}
+                  {ride.strava_url && <span className="training-row-sub"><ViewOnStrava href={ride.strava_url} /></span>}
                 </td>
                 <td className="mono" data-lab="Data">{date}</td>
                 <td data-lab="Seksioni">{ride.section ? <span className={`tag-sec ${ride.section.slug}`}>{ride.section.name_sq}</span> : "—"}</td>

@@ -1,3 +1,4 @@
+import { PoweredByStrava } from "@/components/strava/StravaBrand";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
@@ -178,6 +179,7 @@ export default async function KpiPage({ searchParams }: { searchParams: Promise<
         <div>
           <h1>KPI-të e stërvitjes</h1>
           <div className="sub">Të gjitha vijnë nga stërvitjet e regjistruara — vetëm targeti vendoset këtu.</div>
+          <PoweredByStrava style={{ marginTop: 10 }} />
         </div>
         <Link className="btn btn-ghost btn-sm" href="/admin/training/progress">Progresi →</Link>
       </div>

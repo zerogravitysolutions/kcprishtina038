@@ -1,5 +1,6 @@
 "use client";
 
+import { ViewOnStrava } from "@/components/strava/StravaBrand";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateEntry, removeEntry, refreshStravaEntry } from "../actions";
@@ -188,6 +189,7 @@ export function EntryEditor({
 
           {entry.strava_imported && <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--paper-2)", fontSize: 12, color: "var(--ink-2)" }}>
             <div>Fushat bosh nuk kanë vlerë të regjistruar në Strava për këtë aktivitet, ose aktiviteti ishte më i shkurtër se intervali i kërkuar.</div>
+            {entry.strava_url && <ViewOnStrava href={entry.strava_url} style={{ display: "inline-block", marginTop: 8, marginRight: 14 }} />}
             <button type="button" className="btn btn-ghost btn-sm" disabled={refreshing} onClick={onRefresh} style={{ marginTop: 8 }}>
               {refreshing ? "Duke rifreskuar…" : "Rifresko vlerat nga Strava"}
             </button>

@@ -1,3 +1,4 @@
+import { PoweredByStrava } from "@/components/strava/StravaBrand";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { ColumnChart, LineChart } from "../../admin/training/charts";
@@ -78,6 +79,7 @@ export default async function PortalPerformancePage() {
       <div className="sub" style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: ".06em", color: "var(--ink-3)" }}>
         FTP-ja, rekordet dhe progresi yt.
       </div>
+      <PoweredByStrava style={{ marginTop: 10 }} />
 
       {!athlete ? (
         <div style={{ ...CARD, marginTop: 24, color: "var(--ink-3)", fontSize: 14 }}>

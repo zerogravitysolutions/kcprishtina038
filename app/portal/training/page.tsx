@@ -1,3 +1,4 @@
+import { PoweredByStrava, ViewOnStrava } from "@/components/strava/StravaBrand";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
@@ -8,6 +9,7 @@ export const revalidate = 0;
 
 type EntryRow = EntryLike & {
   id: string;
+  strava_url: string | null;
   ride: { id: string; ride_date: string; focus: string | null } | null;
 };
 
@@ -26,7 +28,7 @@ export default async function PortalTrainingPage() {
   const entries = athlete
     ? (((await supabase
         .from("ride_entries")
-        .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, ride:training_rides(id, ride_date, focus)")
+        .select("id, participated, strava_url, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, ride:training_rides(id, ride_date, focus)")
         .eq("athlete_id", athlete.id)).data) as unknown as EntryRow[] | null) ?? []
     : [];
 
@@ -41,6 +43,7 @@ export default async function PortalTrainingPage() {
       <div className="sub" style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: ".06em", color: "var(--ink-3)" }}>
         Historiku i stërvitjeve të regjistruara nga trajneri.
       </div>
+      <PoweredByStrava style={{ marginTop: 10 }} />
 
       {!athlete ? (
         <EmptyState />
@@ -80,6 +83,7 @@ export default async function PortalTrainingPage() {
                         {metrics.map((m) => <Pill key={m.l} label={m.l} value={m.v} />)}
                       </div>
                     ) : null}
+                    {e.strava_url ? <ViewOnStrava href={e.strava_url} style={{ display: "inline-block", marginTop: 11 }} /> : null}
                   </div>
                 );
               })}

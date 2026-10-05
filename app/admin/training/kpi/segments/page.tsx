@@ -8,6 +8,7 @@ import { buildSegmentLeaderboard, TRACKED_SEGMENTS, type SegmentEffort, type Seg
 import { formatDurationHMS } from "@/lib/training";
 import { KpiTabs } from "../KpiTabs";
 import styles from "./segments.module.css";
+import { PoweredByStrava, ViewOnStrava, stravaActivityUrl, stravaSegmentUrl } from "@/components/strava/StravaBrand";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -84,6 +85,7 @@ export default async function SegmentKpiPage() {
         <div>
           <h1>Segmentet kryesore</h1>
           <div className="sub">Performancat më të mira dhe përpjekjet e fundit të çiklistëve aktivë.</div>
+          <PoweredByStrava style={{ marginTop: 10 }} />
         </div>
         <Link className="btn btn-ghost btn-sm" href="/admin/training/kpi">← KPI-të</Link>
       </div>
@@ -95,7 +97,7 @@ export default async function SegmentKpiPage() {
         {TRACKED_SEGMENTS.map((segment) => {
           const rows = buildSegmentLeaderboard(riders, connected, segmentEfforts, stats, segment.id);
           return (
-            <PerformancePanel key={segment.id} title={segment.name}
+            <PerformancePanel key={segment.id} title={segment.name} href={stravaSegmentUrl(segment.id)}
               note={`${segment.distanceKm.toFixed(2)} km · ${segment.grade}% ngjitje`}>
               {rows.map((row) => <SegmentRider key={row.id} row={row} leaderSeconds={rows[0]?.pb?.elapsedSeconds ?? null} />)}
             </PerformancePanel>
@@ -106,14 +108,15 @@ export default async function SegmentKpiPage() {
   );
 }
 
-function PerformancePanel({ title, note, children }: {
-  title: string; note: string; children: React.ReactNode;
+function PerformancePanel({ title, note, href, children }: {
+  title: string; note: string; href?: string; children: React.ReactNode;
 }) {
   return (
     <section className="card" style={{ padding: 16, minWidth: 0 }} aria-label={title}>
       <div className="card-head" style={{ marginBottom: 10, gap: 8, flexWrap: "wrap" }}>
         <h3>{title}</h3>
         <span className="kicker">{note}</span>
+        {href && <ViewOnStrava href={href} />}
       </div>
       <div className={styles.list}>{children}</div>
     </section>
@@ -141,7 +144,7 @@ function SegmentRider({ row, leaderSeconds }: { row: SegmentLeaderboardRow; lead
         value={row.pb ? `${row.pbVerified ? "PB" : "Më e mira"} ${formatDurationHMS(row.pb.elapsedSeconds)} · ${metric(row.pb.avgPowerW, "W")}` : "—"} />
       <ResultBar ratio={ratio} />
       {row.pb ? <div className={styles.meta}>
-        <span>{shortDate(row.pb.date)}</span>
+        <span>{shortDate(row.pb.date)} · <ViewOnStrava href={stravaActivityUrl(row.pb.activityId)} style={{ fontSize: 10 }} /></span>
         {row.latest && <span>Fundit {formatDurationHMS(row.latest.elapsedSeconds)} · {shortDate(row.latest.date)} · {metric(row.latest.avgPowerW, "W")} · {metric(row.latest.avgHr, "bpm")}</span>}
       </div> : row.connected ? <div className={styles.meta}>Pa rezultat në segment</div> : null}
     </div>
@@ -156,7 +159,7 @@ function FortyKmRider({ row, leaderSeconds }: { row: FortyKmRow; leaderSeconds: 
         value={row.pb ? `${row.historyComplete ? "PB" : "Më e mira"} ${speed(fortyKmKmh(row.pb))}` : "—"} />
       <ResultBar ratio={ratio} />
       {row.pb ? <div className={styles.meta}>
-        <span>{formatDurationHMS(Math.round(row.pb.duration_seconds))} · {shortDate(row.pb.ride_date)}</span>
+        <span>{formatDurationHMS(Math.round(row.pb.duration_seconds))} · {shortDate(row.pb.ride_date)} · <ViewOnStrava href={stravaActivityUrl(row.pb.strava_activity_id)} style={{ fontSize: 10 }} /></span>
         {row.latest && <span>Fundit {speed(fortyKmKmh(row.latest))} · {shortDate(row.latest.ride_date)}</span>}
       </div> : row.connected ? <div className={styles.meta}>{row.historyComplete ? "Pa xhiro 40 km" : "Historiku po importohet"}</div> : null}
     </div>

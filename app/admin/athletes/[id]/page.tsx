@@ -1,3 +1,4 @@
+import { PoweredByStrava, ViewOnStrava } from "@/components/strava/StravaBrand";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient, getProfile } from "@/lib/supabase/server";
@@ -21,6 +22,7 @@ type EntryRow = EntryLike & {
   id: string;
   np_w: number | null;
   tss: number | null;
+  strava_url: string | null;
   ride: { id: string; ride_date: string; focus: string | null } | null;
 };
 
@@ -37,7 +39,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
     supabase.from("athlete_profiles").select("ftp_w, ftp_updated_at, weight_kg, max_hr, resting_hr, notes").eq("athlete_id", id).maybeSingle(),
     supabase
       .from("ride_entries")
-      .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, ride:training_rides!inner(id, ride_date, focus)")
+      .select("id, participated, strava_url, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, ride:training_rides!inner(id, ride_date, focus)")
       .eq("athlete_id", id),
     supabase.from("sections").select("slug, name_sq"),
     supabase.from("team_kpi_targets").select("effective_from, weekly_hours, weekly_elevation_m").order("effective_from"),
@@ -92,6 +94,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
         <div>
           <h1>{athlete.full_name}</h1>
           <div className="sub">{sectionLabel ?? "Çiklist"} · profili i performancës</div>
+          <PoweredByStrava style={{ marginTop: 10 }} />
         </div>
         <Link className="btn btn-ghost btn-sm" href="/admin/training/progress">← Progresi</Link>
       </div>
@@ -164,7 +167,10 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
       </div>
 
       {/* Recent rides */}
-      <h2 className="display" style={{ fontSize: 18, letterSpacing: "-0.015em", margin: "26px 0 10px" }}>Stërvitjet e fundit</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "26px 0 10px" }}>
+        <h2 className="display" style={{ fontSize: 18, letterSpacing: "-0.015em", margin: 0 }}>Stërvitjet e fundit</h2>
+        <PoweredByStrava />
+      </div>
       <div className="table-wrap">
         <table className="t">
           <thead>
@@ -177,7 +183,8 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
               recent.map((e) => (
                 <tr key={e.id}>
                   <td className="mono">{e.ride ? new Date(e.ride.ride_date + "T00:00:00").toLocaleDateString("sq", { day: "2-digit", month: "short", year: "2-digit" }) : "—"}</td>
-                  <td>{e.ride ? <Link href={`/admin/training/${e.ride.id}`} style={{ fontWeight: 600 }}>{e.ride.focus || "Stërvitje"}</Link> : "—"}</td>
+                  <td>{e.ride ? <Link href={`/admin/training/${e.ride.id}`} style={{ fontWeight: 600 }}>{e.ride.focus || "Stërvitje"}</Link> : "—"}
+                    {e.strava_url ? <div style={{ marginTop: 3 }}><ViewOnStrava href={e.strava_url} /></div> : null}</td>
                   <td className="mono">{e.distance_km != null ? fmt(e.distance_km, 1) : "—"}</td>
                   <td className="mono">{formatDurationShort(e.moving_seconds)}</td>
                   <td className="mono">{e.avg_hr ?? "—"}</td>

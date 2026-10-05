@@ -228,11 +228,13 @@ export async function refreshMissingSegmentSummaries(): Promise<number> {
   return refreshed;
 }
 
-/** Continue non-subscriber history scans without exceeding a single cron run. */
-export async function processSegmentBackfills(): Promise<number> {
+/** Continue non-subscriber history scans without exceeding a single cron run.
+ * `idleBefore` skips jobs scanned more recently, pacing frequent workers. */
+export async function processSegmentBackfills(idleBefore?: string): Promise<number> {
   const admin = createAdminClient();
-  const { data: jobs, error: jobError } = await admin.from("strava_segment_backfills")
-    .select("*").eq("completed", false).order("updated_at").limit(2);
+  let query = admin.from("strava_segment_backfills").select("*").eq("completed", false);
+  if (idleBefore) query = query.lt("updated_at", idleBefore);
+  const { data: jobs, error: jobError } = await query.order("updated_at").limit(2);
   if (jobError) throw jobError;
   let scanned = 0;
   for (const job of jobs ?? []) {

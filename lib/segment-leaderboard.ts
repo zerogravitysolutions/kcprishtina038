@@ -4,6 +4,10 @@ export const TRACKED_SEGMENTS = [
   { id: 11076508, name: "Stallova Climb", distanceKm: 2.504, grade: 7.4 },
   { id: 20387178, name: "Butovc Climb", distanceKm: 3.302, grade: 10.6 },
   { id: 12854147, name: "Back of Stallova", distanceKm: 6.463, grade: 3.8 },
+  { id: 37193368, name: "Germia Suffer Test", distanceKm: 3.798, grade: 8.4 },
+  { id: 12767492, name: "Siqeva Climb", distanceKm: 1.791, grade: 5.7 },
+  { id: 11961979, name: "Graštica - Kolic", distanceKm: 5.181, grade: 6.4 },
+  { id: 12661866, name: "Prison Wall", distanceKm: 1.118, grade: 10.8 },
 ] as const;
 
 export type SegmentEffort = TableRow<"strava_segment_efforts">;

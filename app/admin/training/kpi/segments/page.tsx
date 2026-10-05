@@ -110,10 +110,10 @@ function PerformancePanel({ title, note, children }: {
   title: string; note: string; children: React.ReactNode;
 }) {
   return (
-    <section className={styles.panel} aria-label={title}>
-      <div className={styles.panelHead}>
-        <h2>{title}</h2>
-        <span>{note}</span>
+    <section className="card" style={{ padding: 16, minWidth: 0 }} aria-label={title}>
+      <div className="card-head" style={{ marginBottom: 10, gap: 8, flexWrap: "wrap" }}>
+        <h3>{title}</h3>
+        <span className="kicker">{note}</span>
       </div>
       <div className={styles.list}>{children}</div>
     </section>

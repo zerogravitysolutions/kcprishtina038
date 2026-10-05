@@ -180,12 +180,15 @@ export async function processSegmentBackfills(): Promise<number> {
     }
     const rows = await stravaGet<StravaActivity[]>(connection,
       `/athlete/activities?before=${job.cursor_before}&per_page=30&page=1`);
-    for (const summary of rows) {
-      if (!cyclingMode(summary)) continue;
-      const activity = await stravaGet<StravaActivity>(connection, `/activities/${summary.id}`);
-      if (activity.athlete?.id !== connection.strava_athlete_id || !cyclingMode(activity)) continue;
-      await syncSegmentEffortsFromActivity(connection.athlete_id, activity);
-      scanned++;
+    const rides = rows.filter((summary) => cyclingMode(summary));
+    for (let index = 0; index < rides.length; index += 4) {
+      const saved = await Promise.all(rides.slice(index, index + 4).map(async (summary) => {
+        const activity = await stravaGet<StravaActivity>(connection, `/activities/${summary.id}`);
+        if (activity.athlete?.id !== connection.strava_athlete_id || !cyclingMode(activity)) return 0;
+        await syncSegmentEffortsFromActivity(connection.athlete_id, activity);
+        return 1;
+      }));
+      scanned += saved.reduce<number>((total, count) => total + count, 0);
     }
     const cursor = rows.length ? Math.floor(Date.parse(rows[rows.length - 1].start_date) / 1000) - 1 : job.cursor_before;
     const { error } = await admin.from("strava_segment_backfills").update({

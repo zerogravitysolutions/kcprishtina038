@@ -23,6 +23,24 @@ export type StravaActivity = {
   weighted_average_watts?: number;
   average_cadence?: number;
   athlete?: { id: number };
+  segment_efforts?: StravaSegmentEffort[];
+};
+
+export type StravaSegmentEffort = {
+  id: number;
+  activity?: { id: number };
+  athlete?: { id: number };
+  segment?: { id: number };
+  start_date: string;
+  start_date_local: string;
+  elapsed_time: number;
+  moving_time?: number;
+  distance?: number;
+  average_watts?: number;
+  average_heartrate?: number;
+  max_heartrate?: number;
+  average_cadence?: number;
+  device_watts?: boolean;
 };
 
 export type StravaAthlete = { id: number; ftp?: number | null };

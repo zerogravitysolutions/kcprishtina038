@@ -5,6 +5,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 /** Remove imported entries (and now-empty sessions) after revocation or deletion. */
 export async function removeImportedStravaData(athleteId: string, activityId?: number): Promise<void> {
   const admin = createAdminClient();
+  let segments = admin.from("strava_segment_efforts").delete().eq("athlete_id", athleteId);
+  if (activityId !== undefined) segments = segments.eq("strava_activity_id", activityId);
+  const { error: segmentError } = await segments;
+  if (segmentError) throw segmentError;
+  if (activityId === undefined) {
+    const [{ error: statsError }, { error: backfillError }] = await Promise.all([
+      admin.from("strava_segment_stats").delete().eq("athlete_id", athleteId),
+      admin.from("strava_segment_backfills").delete().eq("athlete_id", athleteId),
+    ]);
+    if (statsError || backfillError) throw statsError ?? backfillError;
+  }
   let query = admin.from("ride_entries").select("id, ride_id")
     .eq("athlete_id", athleteId).eq("strava_imported", true);
   if (activityId !== undefined) query = query.eq("strava_activity_id", activityId);

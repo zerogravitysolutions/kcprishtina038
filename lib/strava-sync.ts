@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { stravaGet, type StravaActivity, type StravaAthlete, type StravaConnection } from "@/lib/strava-api";
 import { matchIndoorRides, matchRides, type LatLng, type MatchRide } from "@/lib/strava-match";
 import { cyclingMode } from "@/lib/strava-cycling";
-import { metricsFromStrava, type PowerStreams } from "@/lib/strava-metrics";
+import { metricsFromStrava, missingImportedMetrics, type PowerStreams } from "@/lib/strava-metrics";
 import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
 import type { TableInsert, TableRow, TableUpdate } from "@/lib/supabase/types";
 
@@ -128,6 +128,46 @@ async function addEntries(rideId: string, items: Matched[]): Promise<void> {
   if (error) throw error;
 }
 
+/** Fetch the latest Strava values for an imported entry and fill only empty
+ * columns. A coach's saved numbers remain authoritative during review. */
+async function fillMissingMetrics(entry: TableRow<"ride_entries">, item: Matched) {
+  const admin = createAdminClient();
+  const { data: profile, error: profileError } = await admin.from("athlete_profiles")
+    .select("ftp_w").eq("athlete_id", entry.athlete_id).maybeSingle();
+  if (profileError) throw profileError;
+  const imported = await metricsFor(item, profile?.ftp_w ?? null);
+  const patch = missingImportedMetrics(entry, imported, profile?.ftp_w ?? null);
+  if (Object.keys(patch).length) {
+    let update = admin.from("ride_entries").update(patch as TableUpdate<"ride_entries">).eq("id", entry.id)
+      .eq("ride_id", entry.ride_id).eq("review_status", "under_review");
+    // Prevent a refresh racing with a coach's save from replacing a new value.
+    for (const key of Object.keys(patch)) update = update.is(key, null);
+    const { error } = await update;
+    if (error) throw error;
+  }
+  const { data: current, error } = await admin.from("ride_entries").select("*")
+    .eq("id", entry.id).eq("ride_id", entry.ride_id).single();
+  if (error || !current) throw error ?? new Error("Could not reload Strava entry");
+  return current;
+}
+
+export async function refreshImportedStravaEntry(rideId: string, entryId: string) {
+  const admin = createAdminClient();
+  const { data: entry, error } = await admin.from("ride_entries").select("*")
+    .eq("id", entryId).eq("ride_id", rideId).maybeSingle();
+  if (error) throw error;
+  if (!entry?.strava_imported || !entry.strava_activity_id || entry.review_status !== "under_review") {
+    throw new Error("Vetëm aktivitetet Strava në shqyrtim mund të rifreskohen.");
+  }
+  const owner = (await connections()).find((item) => item.rider.id === entry.athlete_id);
+  if (!owner) throw new Error("Lidhja e çiklistit me Strava nuk është më aktive.");
+  const activity = await stravaGet<StravaActivity>(owner.connection, `/activities/${entry.strava_activity_id}`);
+  if (activity.id !== entry.strava_activity_id || activity.athlete?.id !== owner.connection.strava_athlete_id ||
+      !cyclingMode(activity)) throw new Error("Aktiviteti i lidhur nuk është më i disponueshëm në Strava.");
+  const item: Matched = { ...owner, activity, match: asMatch(owner.rider, activity, []) };
+  return fillMissingMetrics(entry, item);
+}
+
 async function processActivity(event: Event): Promise<void> {
   const all = await connections();
   const owner = all.find((item) => item.connection.strava_athlete_id === event.owner_id);
@@ -196,6 +236,13 @@ async function processActivity(event: Event): Promise<void> {
     .in("strava_activity_id", selected.map((item) => item.activity.id));
   if (importedError) throw importedError;
   const importedRideByActivity = new Map((imported ?? []).map((entry) => [entry.strava_activity_id, entry.ride_id]));
+  const importedTarget = (imported ?? []).find((entry) => entry.strava_activity_id === target.activity.id);
+  if (importedTarget) {
+    const { data: existingEntry, error: existingError } = await admin.from("ride_entries").select("*")
+      .eq("ride_id", importedTarget.ride_id).eq("strava_activity_id", target.activity.id).maybeSingle();
+    if (existingError) throw existingError;
+    if (existingEntry?.review_status === "under_review") await fillMissingMetrics(existingEntry, target);
+  }
   const rideIds = [...new Set((imported ?? []).map((entry) => entry.ride_id))];
 
   const reusable: {

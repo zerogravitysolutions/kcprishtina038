@@ -53,6 +53,7 @@ export const RIDE_METRIC_FIELDS: MetricField[] = [
   // Core
   { key: "distance_km",     label: "Distanca",     group: "core",   kind: "num", ui: "number",   unit: "km",  step: 0.1, min: 0, summary: true, placeholder: "42.5" },
   { key: "moving_seconds",  label: "Kohëzgjatja",  group: "core",   kind: "int", ui: "duration", unit: "min", summary: true, placeholder: "90", hint: "90 = 1:30:00" },
+  { key: "elapsed_seconds", label: "Koha totale", group: "core", kind: "int", ui: "duration", unit: "min", placeholder: "95", hint: "Përfshin ndalesat" },
   { key: "elevation_m",     label: "Ngjitja",      group: "core",   kind: "int", ui: "number",   unit: "m",   min: 0, placeholder: "650" },
   // Heart rate
   { key: "avg_hr",          label: "HR mesatar",   group: "hr",     kind: "int", ui: "number",   unit: "bpm", min: 20, max: 260, summary: true, placeholder: "142" },

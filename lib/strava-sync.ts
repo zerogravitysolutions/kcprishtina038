@@ -5,7 +5,7 @@ import { stravaGet, type StravaActivity, type StravaAthlete, type StravaConnecti
 import { matchIndoorRides, matchRides, type LatLng, type MatchRide } from "@/lib/strava-match";
 import { cyclingMode } from "@/lib/strava-cycling";
 import { syncFortyKmEffort } from "@/lib/strava-forty-km-sync";
-import { qualifiesForReview } from "@/lib/strava-review";
+import { qualifiesAsTraining } from "@/lib/strava-qualify";
 import { metricsFromStrava, missingImportedMetrics, type PowerStreams } from "@/lib/strava-metrics";
 import { median, suggestedFocus, suggestedTitle } from "@/lib/strava-suggestions";
 import { refreshSegmentSummary, refreshTrackedSegmentsForConnection, syncSegmentEffortsFromActivity } from "@/lib/strava-segment-sync";
@@ -122,7 +122,7 @@ async function addEntries(rideId: string, items: Matched[]): Promise<void> {
   if (profilesError) throw profilesError;
   const ftpById = new Map((profiles ?? []).map((profile) => [profile.athlete_id, profile.ftp_w]));
   const entries: TableInsert<"ride_entries">[] = await Promise.all(items.map(async (item) => ({
-    ride_id: rideId, athlete_id: item.rider.id, review_status: "under_review" as const,
+    ride_id: rideId, athlete_id: item.rider.id,
     ...await metricsFor(item, ftpById.get(item.rider.id) ?? null),
     strava_url: `https://www.strava.com/activities/${item.activity.id}`,
     strava_activity_id: item.activity.id, strava_imported: true,
@@ -132,7 +132,7 @@ async function addEntries(rideId: string, items: Matched[]): Promise<void> {
 }
 
 /** Fetch the latest Strava values for an imported entry and fill only empty
- * columns. A coach's saved numbers remain authoritative during review. */
+ * columns. A coach's saved numbers remain authoritative. */
 async function fillMissingMetrics(entry: TableRow<"ride_entries">, item: Matched) {
   const admin = createAdminClient();
   const { data: profile, error: profileError } = await admin.from("athlete_profiles")
@@ -142,7 +142,7 @@ async function fillMissingMetrics(entry: TableRow<"ride_entries">, item: Matched
   const patch = missingImportedMetrics(entry, imported, profile?.ftp_w ?? null);
   if (Object.keys(patch).length) {
     let update = admin.from("ride_entries").update(patch as TableUpdate<"ride_entries">).eq("id", entry.id)
-      .eq("ride_id", entry.ride_id).eq("review_status", "under_review");
+      .eq("ride_id", entry.ride_id);
     // Prevent a refresh racing with a coach's save from replacing a new value.
     for (const key of Object.keys(patch)) update = update.is(key, null);
     const { error } = await update;
@@ -159,8 +159,8 @@ export async function refreshImportedStravaEntry(rideId: string, entryId: string
   const { data: entry, error } = await admin.from("ride_entries").select("*")
     .eq("id", entryId).eq("ride_id", rideId).maybeSingle();
   if (error) throw error;
-  if (!entry?.strava_imported || !entry.strava_activity_id || entry.review_status !== "under_review") {
-    throw new Error("Vetëm aktivitetet Strava në shqyrtim mund të rifreskohen.");
+  if (!entry?.strava_imported || !entry.strava_activity_id) {
+    throw new Error("Vetëm aktivitetet e importuara nga Strava mund të rifreskohen.");
   }
   const owner = (await connections()).find((item) => item.rider.id === entry.athlete_id);
   if (!owner) throw new Error("Lidhja e çiklistit me Strava nuk është më aktive.");
@@ -194,24 +194,24 @@ async function processActivity(event: Event): Promise<void> {
   const changedSegments = await syncSegmentEffortsFromActivity(owner.rider.id, activity);
   for (const segmentId of changedSegments) await refreshSegmentSummary(owner.connection, segmentId);
   await syncFortyKmEffort(owner.connection, activity);
-  if (!qualifiesForReview(activity)) {
-    const { removeUnderReviewStravaEntry } = await import("@/lib/strava-cleanup");
-    await removeUnderReviewStravaEntry(owner.rider.id, activity.id);
+  if (!qualifiesAsTraining(activity)) {
+    const { removeStravaTraining } = await import("@/lib/strava-cleanup");
+    await removeStravaTraining(owner.rider.id, activity.id);
     return;
   }
   const admin = createAdminClient();
-  const { data: targetRejection, error: targetRejectionError } = await admin.from("strava_review_rejections")
+  const { data: targetDismissal, error: targetDismissalError } = await admin.from("strava_dismissed_activities")
     .select("strava_activity_id").eq("athlete_id", owner.rider.id)
     .eq("strava_activity_id", event.activity_id).maybeSingle();
-  if (targetRejectionError) throw targetRejectionError;
-  if (targetRejection) return;
+  if (targetDismissalError) throw targetDismissalError;
+  if (targetDismissal) return;
   const nearby: { item: Connected; activity: StravaActivity }[] = [];
   const center = Math.floor(target.match.startMs / 1000);
   const score = mode === "indoor" ? matchIndoorRides : matchRides;
   for (const candidateOwner of all) {
     if (candidateOwner.rider.id === owner.rider.id) continue;
     for (const activity of await activitiesNear(candidateOwner, center)) {
-      if (cyclingMode(activity) === mode && qualifiesForReview(activity) &&
+      if (cyclingMode(activity) === mode && qualifiesAsTraining(activity) &&
           (mode === "indoor"
             ? score(target.match, asMatch(candidateOwner.rider, activity, [])) !== null
             : Math.abs(Date.parse(activity.start_date) - target.match.startMs) <= 30 * 60_000 &&
@@ -221,17 +221,17 @@ async function processActivity(event: Event): Promise<void> {
       }
     }
   }
-  const { data: rejected, error: rejectedError } = nearby.length
-    ? await admin.from("strava_review_rejections").select("athlete_id, strava_activity_id")
+  const { data: dismissed, error: dismissedError } = nearby.length
+    ? await admin.from("strava_dismissed_activities").select("athlete_id, strava_activity_id")
       .in("strava_activity_id", nearby.map(({ activity }) => activity.id))
     : { data: [], error: null };
-  if (rejectedError) throw rejectedError;
-  const rejectedKeys = new Set((rejected ?? []).map((row) => `${row.athlete_id}:${row.strava_activity_id}`));
+  if (dismissedError) throw dismissedError;
+  const dismissedKeys = new Set((dismissed ?? []).map((row) => `${row.athlete_id}:${row.strava_activity_id}`));
   const matched: { item: Matched; overlap: number }[] = [];
   for (const candidate of nearby) {
-    if (rejectedKeys.has(`${candidate.item.rider.id}:${candidate.activity.id}`)) continue;
+    if (dismissedKeys.has(`${candidate.item.rider.id}:${candidate.activity.id}`)) continue;
     const detailed = await detailFor(candidate.item, candidate.activity.id, mode);
-    if (!detailed || !qualifiesForReview(detailed.activity)) continue;
+    if (!detailed || !qualifiesAsTraining(detailed.activity)) continue;
     const overlap = score(target.match, detailed.match);
     if (overlap !== null) matched.push({ item: detailed, overlap });
   }
@@ -252,17 +252,17 @@ async function processActivity(event: Event): Promise<void> {
     const { data: existingEntry, error: existingError } = await admin.from("ride_entries").select("*")
       .eq("ride_id", importedTarget.ride_id).eq("strava_activity_id", target.activity.id).maybeSingle();
     if (existingError) throw existingError;
-    if (existingEntry?.review_status === "under_review") await fillMissingMetrics(existingEntry, target);
+    if (existingEntry) await fillMissingMetrics(existingEntry, target);
   }
   const rideIds = [...new Set((imported ?? []).map((entry) => entry.ride_id))];
 
   const reusable: {
-    ride: { id: string; ride_date: string; title: string | null; focus: string | null; review_status: string; created_at: string };
+    ride: { id: string; ride_date: string; title: string | null; focus: string | null; created_at: string };
     members: Matched[];
   }[] = [];
   for (const rideId of rideIds) {
     const { data: ride, error: rideError } = await admin.from("training_rides")
-      .select("id, ride_date, title, focus, review_status, created_at").eq("id", rideId).maybeSingle();
+      .select("id, ride_date, title, focus, created_at").eq("id", rideId).maybeSingle();
     if (rideError) throw rideError;
     if (!ride) continue;
     const { data: existing, error } = await admin.from("ride_entries")
@@ -283,7 +283,6 @@ async function processActivity(event: Event): Promise<void> {
     reusable.push({ ride, members });
   }
   reusable.sort((a, b) =>
-    Number(b.ride.review_status === "approved") - Number(a.ride.review_status === "approved") ||
     b.members.length - a.members.length || a.ride.created_at.localeCompare(b.ride.created_at));
   for (const chosen of reusable) {
     let changed = false;
@@ -321,7 +320,7 @@ async function processActivity(event: Event): Promise<void> {
   const sectionId = sectionSlugs.length === 1
     ? (sections ?? []).find((section) => section.slug === sectionSlugs[0])?.id ?? null : null;
   const { data: ride, error: rideError } = await admin.from("training_rides").insert({
-    ride_date: rideDate, kind: fresh.length === 1 ? "solo" : "group", review_status: "under_review",
+    ride_date: rideDate, kind: fresh.length === 1 ? "solo" : "group",
     title: suggestedTitle(fresh.map((item) => item.activity), rideDate, mode === "indoor"),
     focus: suggestedFocus(fresh.map((item) => item.activity), mode === "indoor"), section_id: sectionId,
     distance_km: Math.round(median(fresh.map((item) => item.activity.distance)) / 10) / 100,
@@ -329,7 +328,7 @@ async function processActivity(event: Event): Promise<void> {
     elevation_m: Math.round(median(fresh.map((item) => item.activity.total_elevation_gain))),
     strava_url: `https://www.strava.com/activities/${target.activity.id}`,
   }).select("id").single();
-  if (rideError || !ride) throw rideError ?? new Error("Could not save Strava review ride");
+  if (rideError || !ride) throw rideError ?? new Error("Could not save Strava training");
   try { await addEntries(ride.id, fresh); }
   catch (error) {
     await admin.from("training_rides").delete().eq("id", ride.id);

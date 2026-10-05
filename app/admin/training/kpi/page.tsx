@@ -43,8 +43,6 @@ async function fetchEntries(
     const { data, error } = await supabase
       .from("ride_entries")
       .select("id, athlete_id, participated, moving_seconds, elevation_m, best_power_20m_w, ride:training_rides!inner(ride_date)")
-      .eq("review_status", "approved")
-      .eq("ride.review_status", "approved")
       .gte("ride.ride_date", since)
       .order("id")
       .range(from, from + PAGE - 1);

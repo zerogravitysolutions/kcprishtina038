@@ -33,6 +33,8 @@ const nextConfig = {
     return [
       // Legacy URL kept reachable after the Next.js route was nested under /sections/.
       { source: "/section-mtb", destination: "/sections/mtb", permanent: true },
+      // Strava trainings are imported automatically; the review page was removed.
+      { source: "/admin/training/import", destination: "/admin/training", permanent: false },
     ];
   },
 

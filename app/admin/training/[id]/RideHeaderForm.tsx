@@ -11,8 +11,6 @@ export type RideHeader = {
   focus: string | null;
   section_id: string | null;
   strava_url: string | null;
-  review_status: "approved" | "under_review";
-  has_pending_changes: boolean;
 };
 
 export function RideHeaderForm({ ride, sections }: { ride: RideHeader; sections: { id: string; name_sq: string }[] }) {

@@ -5,7 +5,6 @@ import { RideHeaderForm, type RideHeader } from "./RideHeaderForm";
 import { EntryEditor, type EntryRow } from "./EntryEditor";
 import { AddAthlete } from "./AddAthlete";
 import { RideDeleteButton } from "./RideDeleteButton";
-import { StravaReviewActions } from "./StravaReviewActions";
 import type { AthleteOption } from "../AthletePicker";
 import { fmt, sum, formatDurationShort } from "@/lib/training";
 
@@ -38,7 +37,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
   const [{ data: rideData }, { data: entryData }, { data: sectionRows }, { data: athleteRows }] = await Promise.all([
     supabase
       .from("training_rides")
-      .select("id, ride_date, title, focus, section_id, strava_url, review_status, has_pending_changes")
+      .select("id, ride_date, title, focus, section_id, strava_url")
       .eq("id", id)
       .maybeSingle(),
     supabase
@@ -84,10 +83,6 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
         <Stat label="KM gjithsej" value={totalKm > 0 ? fmt(totalKm, 1) : "—"} />
         <Stat label="Koha gjithsej" value={totalSec > 0 ? formatDurationShort(totalSec) : "—"} />
       </div>
-
-      {(ride.review_status === "under_review" || ride.has_pending_changes) &&
-        <StravaReviewActions rideId={ride.id} newGroup={ride.review_status === "under_review"}
-          pendingRiders={entries.filter((entry) => entry.review_status === "under_review").length} />}
 
       <div style={{ marginBottom: 20 }}>
         <RideHeaderForm ride={ride} sections={sections} />

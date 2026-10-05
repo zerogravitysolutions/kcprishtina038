@@ -38,7 +38,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
     supabase
       .from("ride_entries")
       .select("id, participated, distance_km, moving_seconds, elevation_m, avg_hr, max_hr, avg_power_w, np_w, ftp_w, best_power_1m_w, best_power_3m_w, best_power_5m_w, best_power_10m_w, best_power_20m_w, best_power_60m_w, tss, ride:training_rides!inner(id, ride_date, focus)")
-      .eq("athlete_id", id).eq("review_status", "approved").eq("ride.review_status", "approved"),
+      .eq("athlete_id", id),
     supabase.from("sections").select("slug, name_sq"),
     supabase.from("team_kpi_targets").select("effective_from, weekly_hours, weekly_elevation_m").order("effective_from"),
     supabase.from("athlete_ftp_targets").select("period, target_w").eq("athlete_id", id),

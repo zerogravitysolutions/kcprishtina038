@@ -24,18 +24,17 @@ export async function removeImportedStravaData(athleteId: string, activityId?: n
   await removeImportedTrainingData(athleteId, activityId);
 }
 
-/** Remove a training review after an activity edit makes the ride too short.
+/** Remove an imported training after an activity edit makes the ride too short.
  * Segment and 40 km performance data remain available to the coach. */
-export async function removeUnderReviewStravaEntry(athleteId: string, activityId: number): Promise<void> {
-  await removeImportedTrainingData(athleteId, activityId, true);
+export async function removeStravaTraining(athleteId: string, activityId: number): Promise<void> {
+  await removeImportedTrainingData(athleteId, activityId);
 }
 
-async function removeImportedTrainingData(athleteId: string, activityId?: number, onlyUnderReview = false): Promise<void> {
+async function removeImportedTrainingData(athleteId: string, activityId?: number): Promise<void> {
   const admin = createAdminClient();
   let query = admin.from("ride_entries").select("id, ride_id")
     .eq("athlete_id", athleteId).eq("strava_imported", true);
   if (activityId !== undefined) query = query.eq("strava_activity_id", activityId);
-  if (onlyUnderReview) query = query.eq("review_status", "under_review");
   const { data: entries, error } = await query;
   if (error) throw error;
   if (!entries?.length) return;
@@ -44,7 +43,7 @@ async function removeImportedTrainingData(athleteId: string, activityId?: number
   if (deleteError) throw deleteError;
   for (const rideId of new Set(entries.map((entry) => entry.ride_id))) {
     const { data: remaining, error: remainingError } = await admin.from("ride_entries")
-      .select("distance_km, moving_seconds, elevation_m, strava_url, strava_imported, review_status").eq("ride_id", rideId);
+      .select("distance_km, moving_seconds, elevation_m, strava_url, strava_imported").eq("ride_id", rideId);
     if (remainingError) throw remainingError;
     if (!remaining?.length) {
       const { error: rideError } = await admin.from("training_rides").delete().eq("id", rideId);

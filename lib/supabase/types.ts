@@ -703,6 +703,7 @@ interface PublicTables {
           pr_elapsed_seconds: number | null;
           pr_date: string | null;
           effort_count: number | null;
+          pr_detail_checked_activity_id: number | null;
           updated_at: string;
         };
         Insert: { athlete_id: string; segment_id: number } & Partial<PublicTables["strava_segment_stats"]["Row"]>;

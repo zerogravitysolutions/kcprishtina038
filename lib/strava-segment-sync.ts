@@ -67,18 +67,62 @@ export async function syncSegmentEffortsFromActivity(athleteId: string, activity
 }
 
 export async function refreshSegmentSummary(connection: StravaConnection, segmentId: number): Promise<number> {
+  const admin = createAdminClient();
   const data = await stravaGet<SegmentSummary>(connection, `/segments/${segmentId}`);
   const pr = data.athlete_segment_stats;
-  const { error } = await createAdminClient().from("strava_segment_stats").upsert({
+  const { data: existing, error: readError } = await admin.from("strava_segment_stats")
+    .select("pr_detail_checked_activity_id").eq("athlete_id", connection.athlete_id)
+    .eq("segment_id", segmentId).maybeSingle();
+  if (readError) throw readError;
+  const { error } = await admin.from("strava_segment_stats").upsert({
     athlete_id: connection.athlete_id, segment_id: segmentId,
     pr_activity_id: pr?.pr_activity_id ?? null,
     pr_elapsed_seconds: positive(pr?.pr_elapsed_time),
     pr_date: pr?.pr_date?.slice(0, 10) ?? null,
     effort_count: numberOrNull(pr?.effort_count),
+    pr_detail_checked_activity_id: existing?.pr_detail_checked_activity_id ?? null,
     updated_at: new Date().toISOString(),
   }, { onConflict: "athlete_id,segment_id" });
   if (error) throw error;
   return pr?.effort_count ?? 0;
+}
+
+/** Get the actual PB effort's watts and other measurements from its activity.
+ * Segment summaries contain only the PR time, date, and activity ID. */
+async function refreshPbDetailsForConnection(connection: StravaConnection, segmentId: number): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data: stat, error: statError } = await admin.from("strava_segment_stats")
+    .select("pr_activity_id, pr_elapsed_seconds, pr_detail_checked_activity_id")
+    .eq("athlete_id", connection.athlete_id).eq("segment_id", segmentId).maybeSingle();
+  if (statError) throw statError;
+  if (!stat?.pr_activity_id || !stat.pr_elapsed_seconds ||
+      stat.pr_detail_checked_activity_id === stat.pr_activity_id) return false;
+
+  const { data: saved, error: savedError } = await admin.from("strava_segment_efforts")
+    .select("strava_activity_id, avg_power_w").eq("athlete_id", connection.athlete_id)
+    .eq("segment_id", segmentId).eq("strava_activity_id", stat.pr_activity_id)
+    .eq("elapsed_seconds", stat.pr_elapsed_seconds).limit(1);
+  if (savedError) throw savedError;
+  if (!saved?.some((effort) => effort.avg_power_w != null)) {
+    try {
+      const activity = await stravaGet<StravaActivity>(connection,
+        `/activities/${stat.pr_activity_id}?include_all_efforts=true`);
+      if (activity.id === stat.pr_activity_id &&
+          activity.athlete?.id === connection.strava_athlete_id && cyclingMode(activity) &&
+          activity.segment_efforts?.some((effort) => effort.segment?.id === segmentId &&
+            effort.elapsed_time === stat.pr_elapsed_seconds)) {
+        await syncSegmentEffortsFromActivity(connection.athlete_id, activity);
+      }
+    } catch (error) {
+      if (!(error instanceof Error && ["Strava API: 403", "Strava API: 404"].includes(error.message))) throw error;
+    }
+  }
+  const { error: updateError } = await admin.from("strava_segment_stats")
+    .update({ pr_detail_checked_activity_id: stat.pr_activity_id })
+    .eq("athlete_id", connection.athlete_id).eq("segment_id", segmentId)
+    .eq("pr_activity_id", stat.pr_activity_id);
+  if (updateError) throw updateError;
+  return true;
 }
 
 async function effortsInRange(connection: StravaConnection, segmentId: number, start: string, end: string) {
@@ -117,6 +161,7 @@ export async function refreshTrackedSegmentsForConnection(connection: StravaConn
   for (const segment of TRACKED_SEGMENTS) {
     const count = await refreshSegmentSummary(connection, segment.id);
     if (!count) continue;
+    await refreshPbDetailsForConnection(connection, segment.id);
     try {
       const effort = await latestEffort(connection, segment.id);
       if (effort?.segment?.id === segment.id && positive(effort.elapsed_time) &&
@@ -144,6 +189,26 @@ export async function refreshTrackedSegmentsForConnection(connection: StravaConn
     const { error } = await admin.from("strava_segment_backfills").delete().eq("athlete_id", connection.athlete_id);
     if (error) throw error;
   }
+}
+
+/** Fill PB metrics for already connected riders in bounded daily batches. */
+export async function refreshMissingPbDetails(): Promise<number> {
+  const admin = createAdminClient();
+  const [{ data: stats, error: statsError }, { data: links, error: linksError }] = await Promise.all([
+    admin.from("strava_segment_stats").select("athlete_id, segment_id, pr_activity_id, pr_detail_checked_activity_id")
+      .not("pr_activity_id", "is", null),
+    admin.from("strava_connections").select("*"),
+  ]);
+  if (statsError || linksError) throw statsError ?? linksError;
+  const connections = new Map((links ?? []).map((link) => [link.athlete_id, link]));
+  let refreshed = 0;
+  for (const stat of stats ?? []) {
+    if (refreshed >= 2) break;
+    if (stat.pr_detail_checked_activity_id === stat.pr_activity_id) continue;
+    const connection = connections.get(stat.athlete_id);
+    if (connection && await refreshPbDetailsForConnection(connection, stat.segment_id)) refreshed++;
+  }
+  return refreshed;
 }
 
 export async function refreshMissingSegmentSummaries(): Promise<number> {

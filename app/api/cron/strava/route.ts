@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enqueueRecentStravaActivities, processQueuedStravaActivities } from "@/lib/strava-sync";
-import { processSegmentBackfills, refreshMissingSegmentSummaries } from "@/lib/strava-segment-sync";
+import { processSegmentBackfills, refreshMissingPbDetails, refreshMissingSegmentSummaries } from "@/lib/strava-segment-sync";
 
 export const maxDuration = 60;
 
@@ -13,8 +13,9 @@ export async function GET(request: NextRequest) {
     const scanned = await enqueueRecentStravaActivities();
     const result = await processQueuedStravaActivities(10);
     const segmentsRefreshed = await refreshMissingSegmentSummaries();
+    const pbDetailsRefreshed = await refreshMissingPbDetails();
     const segmentsScanned = await processSegmentBackfills();
-    return NextResponse.json({ scanned, ...result, segmentsRefreshed, segmentsScanned });
+    return NextResponse.json({ scanned, ...result, segmentsRefreshed, pbDetailsRefreshed, segmentsScanned });
   } catch (error) {
     console.error("Scheduled Strava sync failed", error);
     return NextResponse.json({ error: "Strava sync failed" }, { status: 500 });

@@ -89,15 +89,14 @@ export default async function SegmentKpiPage() {
       </div>
       <KpiTabs active="segments" />
       <div className={styles.panels}>
-        <PerformancePanel title="40 km më të shpejta" note="40 km · shpejtësia mesatare" count={fortyKmRows.filter((row) => row.pb).length} total={riders.length}>
+        <PerformancePanel title="40 km më të shpejta" note="40 km · shpejtësia mesatare">
           {fortyKmRows.map((row) => <FortyKmRider key={row.id} row={row} leaderSeconds={fortyKmRows[0]?.pb?.duration_seconds ?? null} />)}
         </PerformancePanel>
         {TRACKED_SEGMENTS.map((segment) => {
           const rows = buildSegmentLeaderboard(riders, connected, segmentEfforts, stats, segment.id);
           return (
             <PerformancePanel key={segment.id} title={segment.name}
-              note={`${segment.distanceKm.toFixed(2)} km · ${segment.grade}% ngjitje`}
-              count={rows.filter((row) => row.pb).length} total={riders.length}>
+              note={`${segment.distanceKm.toFixed(2)} km · ${segment.grade}% ngjitje`}>
               {rows.map((row) => <SegmentRider key={row.id} row={row} leaderSeconds={rows[0]?.pb?.elapsedSeconds ?? null} />)}
             </PerformancePanel>
           );
@@ -107,26 +106,25 @@ export default async function SegmentKpiPage() {
   );
 }
 
-function PerformancePanel({ title, note, count, total, children }: {
-  title: string; note: string; count: number; total: number; children: React.ReactNode;
+function PerformancePanel({ title, note, children }: {
+  title: string; note: string; children: React.ReactNode;
 }) {
   return (
     <section className={styles.panel} aria-label={title}>
       <div className={styles.panelHead}>
-        <div><h2>{title}</h2><span>{note}</span></div>
-        <span className={styles.count}>{count}/{total} me rezultat</span>
+        <h2>{title}</h2>
+        <span>{note}</span>
       </div>
       <div className={styles.list}>{children}</div>
     </section>
   );
 }
 
-function RiderHead({ id, name, rank, crown }: { id: string; name: string; rank: number | null; crown: boolean }) {
+function RiderHead({ id, name, value, crown }: { id: string; name: string; value: string; crown: boolean }) {
   return (
     <div className={styles.riderHead}>
-      <span className={styles.rank}>{rank ? String(rank).padStart(2, "0") : "—"}</span>
       <Link href={`/admin/athletes/${id}`} className={styles.name}>{name}</Link>
-      {crown && <span className={styles.crown} role="img" aria-label="PB në përpjekjen e fundit" title="PB në përpjekjen e fundit">👑</span>}
+      <span className={styles.value}>{value}{crown && <span className={styles.crown} role="img" aria-label="PB në përpjekjen e fundit" title="PB në përpjekjen e fundit"> 👑</span>}</span>
     </div>
   );
 }
@@ -139,19 +137,13 @@ function SegmentRider({ row, leaderSeconds }: { row: SegmentLeaderboardRow; lead
   const ratio = row.pb && leaderSeconds ? leaderSeconds / row.pb.elapsedSeconds : null;
   return (
     <div className={styles.rider}>
-      <RiderHead id={row.id} name={row.name} rank={row.rank} crown={row.latestIsPb} />
-      {row.pb ? <>
-        <div className={styles.primary}><span>{row.pbVerified ? "PB" : "Më e mira e importuar"}</span><strong>{formatDurationHMS(row.pb.elapsedSeconds)}</strong></div>
-        <div className={styles.detail}>{shortDate(row.pb.date)} · {metric(row.pb.avgPowerW, "W")}</div>
-        <ResultBar ratio={ratio} />
-        {row.latest && <div className={styles.latest}>
-          <span>Fundit {formatDurationHMS(row.latest.elapsedSeconds)} · {shortDate(row.latest.date)}</span>
-          <span>{metric(row.latest.avgPowerW, "W")} · {metric(row.latest.avgHr, "bpm")}</span>
-        </div>}
-      </> : <>
-        <div className={styles.empty}>{row.connected ? "Pa rezultat në segment" : "Strava pa lidhje"}</div>
-        <ResultBar ratio={null} />
-      </>}
+      <RiderHead id={row.id} name={row.name} crown={row.latestIsPb}
+        value={row.pb ? `${row.pbVerified ? "PB" : "Më e mira"} ${formatDurationHMS(row.pb.elapsedSeconds)} · ${metric(row.pb.avgPowerW, "W")}` : "—"} />
+      <ResultBar ratio={ratio} />
+      {row.pb ? <div className={styles.meta}>
+        <span>{shortDate(row.pb.date)}</span>
+        {row.latest && <span>Fundit {formatDurationHMS(row.latest.elapsedSeconds)} · {shortDate(row.latest.date)} · {metric(row.latest.avgPowerW, "W")} · {metric(row.latest.avgHr, "bpm")}</span>}
+      </div> : row.connected ? <div className={styles.meta}>Pa rezultat në segment</div> : null}
     </div>
   );
 }
@@ -160,19 +152,13 @@ function FortyKmRider({ row, leaderSeconds }: { row: FortyKmRow; leaderSeconds: 
   const ratio = row.pb && leaderSeconds ? leaderSeconds / row.pb.duration_seconds : null;
   return (
     <div className={styles.rider}>
-      <RiderHead id={row.id} name={row.name} rank={row.rank} crown={row.latestIsPb} />
-      {row.pb ? <>
-        <div className={styles.primary}><span>{row.historyComplete ? "PB" : "Më e mira e importuar"}</span><strong>{speed(fortyKmKmh(row.pb))}</strong></div>
-        <div className={styles.detail}>{formatDurationHMS(Math.round(row.pb.duration_seconds))} · {shortDate(row.pb.ride_date)}</div>
-        <ResultBar ratio={ratio} />
-        {row.latest && <div className={styles.latest}>
-          <span>Fundit {speed(fortyKmKmh(row.latest))}</span>
-          <span>{shortDate(row.latest.ride_date)}</span>
-        </div>}
-      </> : <>
-        <div className={styles.empty}>{!row.connected ? "Strava pa lidhje" : row.historyComplete ? "Pa xhiro 40 km" : "Historiku po importohet"}</div>
-        <ResultBar ratio={null} />
-      </>}
+      <RiderHead id={row.id} name={row.name} crown={row.latestIsPb}
+        value={row.pb ? `${row.historyComplete ? "PB" : "Më e mira"} ${speed(fortyKmKmh(row.pb))}` : "—"} />
+      <ResultBar ratio={ratio} />
+      {row.pb ? <div className={styles.meta}>
+        <span>{formatDurationHMS(Math.round(row.pb.duration_seconds))} · {shortDate(row.pb.ride_date)}</span>
+        {row.latest && <span>Fundit {speed(fortyKmKmh(row.latest))} · {shortDate(row.latest.ride_date)}</span>}
+      </div> : row.connected ? <div className={styles.meta}>{row.historyComplete ? "Pa xhiro 40 km" : "Historiku po importohet"}</div> : null}
     </div>
   );
 }

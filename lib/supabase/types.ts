@@ -753,8 +753,8 @@ interface PublicTables {
         Update: Partial<PublicTables["strava_dismissed_activities"]["Row"]>;
       };
       strava_queue_worker: {
-        Row: { id: boolean; secret: string; rescan_from: string | null };
-        Insert: { id?: boolean; secret: string; rescan_from?: string | null };
+        Row: { id: boolean; secret: string; rescan_from: string | null; segments_refresh: boolean };
+        Insert: { id?: boolean; secret: string; rescan_from?: string | null; segments_refresh?: boolean };
         Update: Partial<PublicTables["strava_queue_worker"]["Row"]>;
       };
       athlete_profiles: {

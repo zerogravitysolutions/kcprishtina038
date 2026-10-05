@@ -4,8 +4,15 @@ import { createClient, getProfile } from "@/lib/supabase/server";
 import { authorizationUrl, stravaIsConfigured } from "@/lib/strava-api";
 
 export async function GET(request: NextRequest) {
+  // Strava accepts a single callback domain. Start the OAuth round trip on that
+  // domain so the state cookie and the session are there when Strava returns;
+  // the other domain (kcprishtina038.vercel.app) keeps working this way.
+  const callbackHost = process.env.STRAVA_REDIRECT_URI ? new URL(process.env.STRAVA_REDIRECT_URI).host : null;
+  if (callbackHost && request.nextUrl.host !== callbackHost) {
+    return NextResponse.redirect(new URL("/api/strava/connect", `https://${callbackHost}`));
+  }
   const profile = await getProfile();
-  if (!profile) return NextResponse.redirect(new URL("/login", request.url));
+  if (!profile) return NextResponse.redirect(new URL("/login?next=/portal/profile", request.url));
   if (!stravaIsConfigured()) return NextResponse.redirect(new URL("/portal/profile?strava=unconfigured", request.url));
 
   const supabase = await createClient();

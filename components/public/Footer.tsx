@@ -69,9 +69,12 @@ export async function Footer() {
           </div>
         </div>
 
-        {/* ===== Bottom row: copyright + federation ===== */}
+        {/* ===== Bottom row: copyright, site credit and federation ===== */}
         <div className="foot-bottom">
-          <span>{t("foot.copy", { year: new Date().getFullYear() })}</span>
+          <div>
+            <div>{t("foot.copy", { year: new Date().getFullYear() })}</div>
+            <div style={{ marginTop: 8 }}>{t("foot.credit")}</div>
+          </div>
           <span className="foot-fed">{t("foot.federation")}</span>
         </div>
       </div>

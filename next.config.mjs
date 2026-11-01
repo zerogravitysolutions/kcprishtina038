@@ -18,6 +18,10 @@ const nextConfig = {
   },
 
   images: {
+    // Vercel's optimizer can return 402 when its image allowance is exhausted.
+    // Serve the original Storage images directly so that limit cannot hide
+    // photos across the site. next/image still handles layout and lazy loading.
+    unoptimized: true,
     // Supabase Storage serves our media/ bucket here.
     remotePatterns: [
       {

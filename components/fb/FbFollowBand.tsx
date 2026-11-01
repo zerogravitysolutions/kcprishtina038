@@ -42,7 +42,7 @@ export async function FbFollowBand({ href, path, page: provided }: Props = {}) {
             {t("about.fbStripTitle")}
           </h2>
           <p className="lede fb-band__lede">
-            {page.about || t("about.fbStripBody")}
+            {t("about.fbStripBody")}
           </p>
 
           <div className="fb-band__stats mono">

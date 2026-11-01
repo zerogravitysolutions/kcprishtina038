@@ -40,8 +40,8 @@ export default async function TeamPage() {
 
       <PageHero
         eyebrow="Ekipi"
-        title="Çiklistët dhe stafi pas garave."
-        subtitle={`${active.length} anëtarë aktivë në klub. Trajnerë, komisarë dhe çiklistë në pesë seksione.`}
+        title="Njerëzit që e bëjnë klubin"
+        subtitle="Njihu me çiklistët, trajnerët dhe stafin që ndajnë pasionin për çiklizmin dhe kujdesen për jetën e klubit."
         pickerKey="team"
       />
 
@@ -65,7 +65,7 @@ export default async function TeamPage() {
 
       {past.length > 0 && (
         <TeamSection
-          title="Anëtarët e mëparshëm"
+          title="Pjesë e historisë sonë"
           members={past}
           tone="muted"
         />

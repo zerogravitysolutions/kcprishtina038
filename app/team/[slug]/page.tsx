@@ -13,6 +13,15 @@ import { getUciCategory } from "@/lib/uci-category";
 
 type Params = Promise<{ slug: string }>;
 
+const SECTION_LABELS: Record<string, string> = {
+  road: "Çiklizëm rrugor",
+  mtb: "MTB",
+  gravel: "Gravel",
+  track: "Çiklizëm në pistë",
+  youth: "Akademia e të rinjve",
+  women: "Gra dhe vajza",
+};
+
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const m = await getTeamMemberBySlug(slug);
@@ -79,7 +88,7 @@ export default async function TeamMemberPage({ params }: { params: Params }) {
             <div className="member-hero__body">
               <div className="eyebrow">
                 <span style={{ color: m.status === "past" ? "var(--ink-3)" : "var(--ember)" }}>
-                  {m.status === "past" ? "Anëtar i mëparshëm" : "Anëtar aktiv"}
+                  {m.status === "past" ? "Pjesë e historisë së klubit" : "Pjesë e ekipit"}
                 </span>
               </div>
               <h1
@@ -111,8 +120,8 @@ export default async function TeamMemberPage({ params }: { params: Params }) {
                 )}
                 {m.section_slug && (
                   <div>
-                    <div className="member-stat__num">{m.section_slug.toUpperCase()}</div>
-                    <div className="member-stat__label">Seksioni</div>
+                    <div className="member-stat__num">{SECTION_LABELS[m.section_slug] ?? m.section_slug}</div>
+                    <div className="member-stat__label">Disiplina ose programi</div>
                   </div>
                 )}
                 {m.status === "past" && m.ended_at && (
@@ -143,10 +152,10 @@ export default async function TeamMemberPage({ params }: { params: Params }) {
           <div className="container">
             <div className="section-head" style={{ marginBottom: 24 }}>
               <div>
-                <div className="eyebrow"><span>{m.status === "past" ? "Anëtarë të tjerë të mëparshëm" : "Të tjerë në ekip"}</span></div>
+                <div className="eyebrow"><span>{m.status === "past" ? "Të tjerë nga historia e klubit" : "Të tjerë në ekip"}</span></div>
               </div>
               <Link href="/team" className="btn btn-ghost" style={{ justifySelf: "start" }}>
-                <span>Shiko të gjithë ekipin</span>
+                <span>Njihu me ekipin</span>
                 <svg className="arrow" viewBox="0 0 14 14" fill="none">
                   <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
                 </svg>

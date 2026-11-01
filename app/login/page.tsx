@@ -5,7 +5,7 @@ import { LoginForm } from "./LoginForm";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Identifikohu",
+  title: "Hyr në llogari",
   description: "Hyr në llogarinë e KÇ Prishtina 038.",
   robots: { index: false, follow: true },
 };
@@ -29,9 +29,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
         </Link>
         <div className="auth-side-cta">
-          <span className="auth-eyebrow">Sezoni 2026 · në aksion</span>
+          <span className="auth-eyebrow">Komuniteti i KÇ Prishtina 038</span>
           <h2 className="auth-title">
-            Mbi qiellin e <em>Prishtinës</em>,<br />vetëm ne pedalojmë.
+            Nga <em>Prishtina</em>,<br />pedalojmë së bashku.
           </h2>
         </div>
       </aside>
@@ -40,13 +40,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <Link href="/" className="auth-back">← Kthehu në ballinë</Link>
         <div className="auth-card">
           <h1 className="auth-card-title">Mirë se erdhe.</h1>
-          <p className="auth-card-lede">Identifikohu për të hyrë në llogarinë tënde.</p>
+          <p className="auth-card-lede">Hyr për të parë profilin, stërvitjet dhe anëtarësinë tënde.</p>
           <div style={{ marginTop: 32 }}>
             <LoginForm next={params.next ?? null} />
           </div>
           <p className="auth-card-foot">
             Nuk ke ende llogari?{" "}
-            <Link href="/join" className="auth-link">Apliko si anëtar →</Link>
+            <Link href="/join" className="auth-link">Apliko për anëtarësim →</Link>
           </p>
         </div>
       </main>

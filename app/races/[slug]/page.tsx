@@ -170,7 +170,7 @@ export default async function RaceEventPage({ params }: { params: Params }) {
             {race.result_summary && (
               <div className="race-results">
                 <div className="race-results__head">
-                  <span className="eyebrow"><span>Rezultati i klubit</span></span>
+                  <span className="eyebrow"><span>Rezultatet e klubit</span></span>
                 </div>
                 {parsedResults.length >= 2 ? (
                   <ol className="race-results__list">
@@ -220,7 +220,7 @@ export default async function RaceEventPage({ params }: { params: Params }) {
                 <div>
                   <div className="eyebrow"><span>Nga gara</span></div>
                   <h2 className="display display-m" style={{ marginTop: 10 }}>
-                    {posts.length === 1 ? "1 postim" : `${posts.length} postime`}.
+                    Lajme dhe momente nga gara
                   </h2>
                 </div>
               </div>

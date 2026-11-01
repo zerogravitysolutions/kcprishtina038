@@ -11,7 +11,7 @@ const PAGE_SIZE = 24;
 
 export const metadata: Metadata = {
   title: "Lajmet",
-  description: "Postimet më të reja nga klubi KÇ Prishtina 038.",
+  description: "Lajme, fotografi dhe rrëfime nga stërvitjet, garat dhe jeta e KÇ Prishtina 038.",
   alternates: { canonical: "/news" },
 };
 

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   // attached and NEXT_PUBLIC_SITE_URL is set in Vercel, with no code change.
   metadataBase: new URL(SITE_ORIGIN),
   title: { default: "KÇ Prishtina 038 — Klubi Çiklistik i Prishtinës", template: "%s · KÇ Prishtina 038" },
-  description: "Klubi çiklistik i Prishtinës. Gjashtë disiplina, një ekip. Garojmë nën rregullat e UCI dhe FÇK.",
+  description: "Njihu me KÇ Prishtina 038: çiklistët, stërvitjet, garat dhe komuniteti ynë. Zbulo disiplinat dhe bëhu pjesë e klubit.",
   icons: { icon: "/assets/logo.jpg" },
   openGraph: {
     type: "website",

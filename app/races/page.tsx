@@ -8,7 +8,7 @@ import { getRaceEvents, mediaUrl, raceTypeLabel, type RaceEvent } from "@/lib/su
 
 export const metadata: Metadata = {
   title: "Garat",
-  description: "Garat ku KÇ Prishtina 038 ka marrë pjesë — kronologjia e plotë.",
+  description: "Garat dhe arritjet e KÇ Prishtina 038, sezon pas sezoni. Shfleto rezultatet, fotografitë dhe lajmet nga ekipi.",
   alternates: { canonical: "/races" },
 };
 
@@ -36,8 +36,8 @@ export default async function RacesPage({ searchParams }: { searchParams: Search
 
       <PageHero
         eyebrow="Garat"
-        title="Kronologjia e garave."
-        subtitle={`${all.length} gara të katalogizuara — kampionate kombëtare, gara rrugore, MTB dhe etapa ndërkombëtare.`}
+        title="Rrugëtimi ynë në gara"
+        subtitle="Nga kampionatet kombëtare te garat ndërkombëtare, çdo sezon ka historinë e vet. Shfleto garat, rezultatet dhe fotografitë e ekipit."
         pickerKey="races"
       />
 
@@ -78,7 +78,7 @@ export default async function RacesPage({ searchParams }: { searchParams: Search
       <section>
         <div className="container">
           {filtered.length === 0 ? (
-            <p style={{ color: "var(--ink-2)" }}>Nuk u gjet asnjë garë për këtë periudhë.</p>
+            <p style={{ color: "var(--ink-2)" }}>Ende nuk kemi publikuar gara për këtë periudhë. Zgjidh një vit tjetër ose shfleto të gjitha garat.</p>
           ) : (
             orderedYears.map((y) => (
               <div key={y} style={{ marginBottom: 48 }}>
@@ -137,7 +137,7 @@ function RaceCard({ race: r }: { race: RaceEvent }) {
           />
         ) : (
           <span className="race-card__placeholder" aria-hidden="true">
-            {r.race_type === "mtb" ? "MTB" : r.race_type === "stage" ? "TOUR" : "GARË"}
+            {r.race_type === "mtb" ? "MTB" : r.race_type === "stage" ? "GARA ME ETAPA" : "GARË"}
           </span>
         )}
       </div>

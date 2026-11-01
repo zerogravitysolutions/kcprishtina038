@@ -13,11 +13,11 @@ export function ResetForm() {
     const fd = new FormData(e.currentTarget);
     const pw = String(fd.get("new-pw") ?? "");
     const pw2 = String(fd.get("new-pw-confirm") ?? "");
-    if (pw !== pw2) { setMsg({ kind: "err", text: "Fjalëkalimet nuk përputhen." }); return; }
+    if (pw !== pw2) { setMsg({ kind: "err", text: "Fjalëkalimet nuk përputhen. Shkruaj të njëjtin fjalëkalim në të dyja fushat." }); return; }
     start(async () => {
       const result = await updatePassword(pw);
-      if (!result.ok) { setMsg({ kind: "err", text: "Gabim: " + result.error }); return; }
-      setMsg({ kind: "ok", text: "Fjalëkalimi u ndryshua. Po të ridrejtojmë te identifikimi…" });
+      if (!result.ok) { setMsg({ kind: "err", text: result.error || "Fjalëkalimi nuk u ndryshua. Provo sërish." }); return; }
+      setMsg({ kind: "ok", text: "Fjalëkalimi yt u ndryshua. Po të kthejmë te llogaria…" });
       setTimeout(() => router.push("/login"), 1500);
     });
   };
@@ -29,7 +29,7 @@ export function ResetForm() {
         <input type="password" name="new-pw" minLength={8} required autoComplete="new-password" />
       </div>
       <div className="field" style={{ marginTop: 16 }}>
-        <label>Konfirmo fjalëkalimin</label>
+        <label>Përsërit fjalëkalimin e ri</label>
         <input type="password" name="new-pw-confirm" minLength={8} required autoComplete="new-password" />
       </div>
       <button className="btn btn-ember" type="submit" disabled={pending} style={{ width: "100%", justifyContent: "center", marginTop: 22 }}>

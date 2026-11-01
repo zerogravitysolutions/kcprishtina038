@@ -38,7 +38,7 @@ export function MobileMenu({ links, signin, ctaLabel, ctaHref }: Props) {
       <button
         type="button"
         className="nav-mobile-trigger"
-        aria-label="Hap menynë"
+        aria-label={open ? "Mbyll menynë" : "Hap menynë"}
         aria-expanded={open}
         aria-controls="mobile-nav-sheet"
         onClick={() => setOpen((v) => !v)}

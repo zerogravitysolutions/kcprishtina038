@@ -34,11 +34,11 @@ export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
     start(async () => {
       const result: JoinResult = await submitApplication(fd);
       if (result.ok) {
-        setMsg({ kind: "ok", text: "Faleminderit! Aplikimi u dërgua. Të kontaktojmë brenda 5 ditëve pune." });
+        setMsg({ kind: "ok", text: "Faleminderit për interesimin! Aplikimi yt u dërgua. Do të të kontaktojmë brenda 5 ditëve të punës për hapat e radhës." });
         (e.target as HTMLFormElement).reset();
         setPreview(null);
       } else {
-        setMsg({ kind: "err", text: "Gabim: " + result.error });
+        setMsg({ kind: "err", text: result.error });
       }
     });
   };
@@ -61,7 +61,7 @@ export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
         <fieldset className="plan-picker">
           <legend className="plan-picker__legend">Plani i anëtarësisë</legend>
           <p className="plan-picker__hint">
-            Zgjidh planin që të përshtatet. Trajneri mund ta rishikojë zgjedhjen bashkë me ty pas vlerësimit.
+            Zgjidh planin që i përshtatet synimeve të tua. Pas aplikimit, do ta diskutosh zgjedhjen me trajnerin.
           </p>
           <div className="plan-grid">
             {plans.map((p) => (
@@ -73,7 +73,7 @@ export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
                 <span className="plan-card__price">{planAmountLabel(p)}</span>
                 {p.description_sq && <span className="plan-card__desc">{p.description_sq}</span>}
                 {!p.billable && (
-                  <span className="plan-card__note">Përzgjidhet pas vlerësimit të trajnerit</span>
+                  <span className="plan-card__note">Pranimi në këtë plan bëhet pas vlerësimit të trajnerit</span>
                 )}
               </label>
             ))}
@@ -123,7 +123,7 @@ export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
           />
         </div>
         <div className="field">
-          <label htmlFor="f-phone">{t("jp.form.phone")}</label>
+          <label htmlFor="f-phone">{t("jp.form.phone")} (opsional)</label>
           <input
             id="f-phone"
             name="phone"
@@ -139,13 +139,13 @@ export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
         <div className="field">
           <label htmlFor="f-section">{t("jp.form.section")}</label>
           <select id="f-section" name="section" required defaultValue="road">
-            <option value="road">Rrugë</option>
+            <option value="road">Çiklizëm rrugor</option>
             <option value="mtb">MTB</option>
             <option value="gravel">Gravel</option>
             <option value="track">Pistë</option>
             <option value="youth">Akademia e të rinjve (9–17)</option>
-            <option value="women">Programi i femrave</option>
-            <option value="unsure">Nuk jam i sigurt — më këshilloni</option>
+            <option value="women">Programi për gra dhe vajza</option>
+            <option value="unsure">Do të doja këshillën tuaj</option>
           </select>
         </div>
         <div className="field">
@@ -159,12 +159,12 @@ export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
       </div>
       <div className="field">
         <label htmlFor="f-notes">{t("jp.form.notes")}</label>
-        <textarea id="f-notes" name="notes" rows={4} placeholder="Disiplinat e tjera, biçikleta që ke, garat ku ke marrë pjesë, etj." />
+        <textarea id="f-notes" name="notes" rows={4} placeholder="Na trego për biçikletën, synimet ose pyetjet e tua." />
       </div>
 
       {/* Profile photo — used for the federation license number */}
       <div className="field">
-        <label htmlFor="f-photo">Fotoja e profilit</label>
+        <label htmlFor="f-photo">Fotoja e profilit (opsionale)</label>
         <div className="join-photo">
           <div className="join-photo__preview" aria-hidden="true">
             {preview
@@ -181,7 +181,7 @@ export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
               onChange={onFile}
             />
             <p className="join-photo__hint">
-              Foto e qartë e fytyrës, sfond i njëtrajtshëm. Përdoret për gjenerimin e numrit të licencës pas aprovimit të aplikimit. Madhësia maksimale 5 MB · JPG, PNG ose WebP.
+              Zgjidh një portret të qartë me sfond të njëtrajtshëm. Fotoja do të përdoret për profilin dhe dokumentet e anëtarësimit pas miratimit. JPG, PNG ose WebP, deri në 5 MB.
             </p>
           </div>
         </div>
@@ -192,7 +192,7 @@ export function JoinForm({ plans }: { plans: JoinPlanOption[] }) {
           <span>{pending ? "Duke dërguar…" : t("jp.form.submit")}</span>
           <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
         </button>
-        <span className="kicker">Përgjigjemi brenda 5 ditëve pune</span>
+        <span className="kicker">Përgjigjemi brenda 5 ditëve të punës</span>
       </div>
     </form>
   );

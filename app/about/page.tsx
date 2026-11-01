@@ -11,7 +11,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Klubi",
-  description: "Tre themelues, një ide e qartë: ta vendosim Prishtinën në hartën çiklistike të Ballkanit.",
+  description: "Historia, njerëzit dhe vlerat e KÇ Prishtina 038. Bashkë për çiklizmin në Prishtinë që nga viti 2022.",
   alternates: { canonical: "/about" },
 };
 
@@ -20,13 +20,13 @@ const FOUNDER_SLUGS = ["qendrim-pllana", "albion-ymeri", "shqiponja-osmani-pllan
 const FOUNDER_ROLES: Record<string, string> = {
   "qendrim-pllana":         "Themelues · President",
   "albion-ymeri":           "Themelues · Trajner kryesor",
-  "shqiponja-osmani-pllana": "Themelueze · Programe të femrave",
+  "shqiponja-osmani-pllana": "Themeluese · Programi për gra dhe vajza",
 };
 
 const FOUNDER_BLURBS: Record<string, string> = {
-  "qendrim-pllana":          "Ish-çiklist Masters, organizator i Granfondo Sharri 2024 dhe 2025. Trajner i seksionit Gravel.",
-  "albion-ymeri":            "Çiklist Elite në Rrugë. Trajner UCI Level 1 dhe trajner kryesor i seksionit Rrugë. Drejton planifikimin e sezonit.",
-  "shqiponja-osmani-pllana": "Drejton Akademinë e të rinjve dhe programin e femrave. Çikliste e dikurshme XCO në kombëtare. Kryen kontaktet me FÇK dhe sponsorët.",
+  "qendrim-pllana":          "Bashkëthemelues dhe president i klubit. Kujdeset për zhvillimin e tij dhe bashkëpunimin me komunitetin e çiklizmit.",
+  "albion-ymeri":            "Trajner kryesor dhe çiklist garues. Ndihmon ekipin të përgatitet, të zhvillohet dhe të arrijë synimet sportive.",
+  "shqiponja-osmani-pllana": "Mbështet programin për gra dhe vajza dhe akademinë e të rinjve, duke i afruar më shumë njerëz me çiklizmin.",
 };
 
 async function getFounders() {
@@ -60,8 +60,8 @@ export default async function AboutPage() {
       <PublicNav />
       <PageHero
         eyebrow="Klubi"
-        title="Tre themelues. Një ide e qartë."
-        subtitle="Të vendosim Prishtinën në hartën çiklistike të Ballkanit — me kalendar, akademinë e të rinjve dhe ekip që garon jashtë kufirit."
+        title="Një pasion që na bëri bashkë"
+        subtitle="Nga stërvitjet e para te garat brenda dhe jashtë Kosovës, na udhëheq i njëjti pasion: të rritemi së bashku përmes çiklizmit."
         pickerKey="about"
       />
       <div dangerouslySetInnerHTML={{ __html: body }} />
@@ -72,11 +72,11 @@ export default async function AboutPage() {
             <div className="section-head">
               <div>
                 <div className="eyebrow"><span>Themeluesit</span></div>
-                <h2 className="display display-m" style={{ marginTop: 16 }}>Tre që e nisën.</h2>
+                <h2 className="display display-m" style={{ marginTop: 16 }}>Njihu me themeluesit</h2>
               </div>
               <p className="lede">
-                KÇ Prishtina 038 lindi në vitin 2022 nga tre çiklistë që besuan se Prishtina e meriton një klub me identitet të vetin —
-                me kalendar, me akademinë e të rinjve dhe me një ekip që garon jashtë kufirit.
+                Në vitin 2022, Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana e kthyen pasionin e tyre për çiklizmin
+                në një klub që bashkon njerëz, mbështet të rinjtë dhe përfaqëson Prishtinën në gara.
               </p>
             </div>
             <div className="founders-grid">
@@ -107,7 +107,7 @@ export default async function AboutPage() {
                       <div className="founder-name">{member.full_name}</div>
                       {blurb && <p className="founder-blurb">{blurb}</p>}
                       <span className="founder-go" aria-hidden="true">
-                        <span>Lexo profilin</span>
+                        <span>Njihu më nga afër</span>
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                           <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
                         </svg>

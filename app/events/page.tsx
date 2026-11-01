@@ -8,8 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { mediaUrl } from "@/lib/supabase/fb";
 
 export const metadata: Metadata = {
-  title: "Eventet",
-  description: "Eventet e ardhshme dhe ato të kaluara të organizuara nga KÇ Prishtina 038.",
+  title: "Aktivitetet",
+  description: "Gara, dalje me biçikletë, kampe dhe stërvitje. Shfleto aktivitetet e KÇ Prishtina 038 dhe gjej takimin e radhës me ekipin.",
   alternates: { canonical: "/events" },
 };
 
@@ -35,7 +35,7 @@ export const dynamic = "force-dynamic";
 // Labels only — the keys are the `events.type` enum values and stay as-is.
 const TYPE_LABEL: Record<string, string> = {
   race: "Garë",
-  ride: "Dalje",
+  ride: "Dalje me biçikletë",
   camp: "Kamp",
   training: "Stërvitje",
 };
@@ -67,18 +67,18 @@ export default async function EventsIndexPage() {
       <PublicNav />
 
       <PageHero
-        eyebrow="Eventet"
+        eyebrow="Aktivitetet"
         title="Kalendari i klubit."
-        subtitle={`${upcoming.length} të ardhshme · ${past.length} të kaluara`}
+        subtitle="Gara, dalje me biçikletë dhe takime me ekipin. Shih çfarë na pret dhe rikthehu te aktivitetet që kemi ndarë së bashku."
         pickerKey="events"
       />
 
       <section style={{ paddingTop: 48, paddingBottom: 32 }}>
         <div className="container">
-          <SectionHeading label="Të ardhshme" count={upcoming.length} />
+          <SectionHeading label="Aktivitetet e ardhshme" count={upcoming.length} />
           {upcoming.length === 0 ? (
             <p style={{ color: "var(--ink-3)", marginTop: 16 }}>
-              Për momentin nuk ka evente të ardhshme. Kontrollo më vonë ose ndiqna në Facebook.
+              Aktivitetet e ardhshme do t’i gjesh këtu sapo të shpallen. Ndërkohë, ndiq lajmet e klubit për njoftimet e reja.
             </p>
           ) : (
             <div className="event-card-grid">
@@ -91,7 +91,7 @@ export default async function EventsIndexPage() {
       {past.length > 0 && (
         <section style={{ paddingTop: 32, paddingBottom: 80, background: "var(--paper-2)" }}>
           <div className="container">
-            <SectionHeading label="Të kaluara" count={past.length} />
+            <SectionHeading label="Aktivitetet e kaluara" count={past.length} />
             <div className="event-card-grid">
               {past.map((r) => <EventCard key={r.id} row={r} past />)}
             </div>
@@ -130,7 +130,7 @@ function SectionHeading({ label, count }: { label: string; count: number }) {
           textTransform: "uppercase",
         }}
       >
-        {count} event{count === 1 ? "" : "e"}
+        {count} {count === 1 ? "aktivitet" : "aktivitete"}
       </span>
     </div>
   );

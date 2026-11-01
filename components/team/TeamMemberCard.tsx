@@ -35,7 +35,7 @@ export function TeamMemberCard({ member: m, showCategory = true }: Props) {
           <span className="team-card__initials" aria-hidden="true">{initials}</span>
         )}
         {m.status === "past" && (
-          <span className="team-card__past-flag">2025</span>
+          <span className="team-card__past-flag">{m.ended_at?.slice(0, 4) || "Ish-anëtar"}</span>
         )}
       </div>
       <div className="team-card__body">

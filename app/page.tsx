@@ -45,7 +45,7 @@ async function fetchHomeData() {
 
   const FOUNDER_SLUGS = ["qendrim-pllana", "albion-ymeri", "shqiponja-osmani-pllana"];
   const FOUNDER_ROLES: Record<string, string> = {
-    "qendrim-pllana":         "Themelues · President",
+    "qendrim-pllana":         "Bashkëthemelues · President",
     "albion-ymeri":           "Themelues · Trajner kryesor",
     "shqiponja-osmani-pllana": "Themeluese · Programi për gra dhe vajza",
   };

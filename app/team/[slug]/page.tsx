@@ -103,6 +103,12 @@ export default async function TeamMemberPage({ params }: { params: Params }) {
                 {m.full_name}
               </h1>
 
+              {m.slug === "qendrim-pllana" && (
+                <p style={{ marginTop: 12, fontSize: 18, fontWeight: 600, color: "var(--ink-2)" }}>
+                  Bashkëthemelues · President
+                </p>
+              )}
+
               <div className="member-roles">
                 {m.positions.map((p) => (
                   <span key={p} className="member-role-chip">
@@ -133,14 +139,18 @@ export default async function TeamMemberPage({ params }: { params: Params }) {
               </div>
 
               {m.bio && (
-                <p
+                <div
                   style={{
                     marginTop: 32, fontSize: 16, lineHeight: 1.65,
                     color: "var(--ink-2)", maxWidth: "60ch",
                   }}
                 >
-                  {m.bio}
-                </p>
+                  {m.bio.split(/\r?\n\s*\r?\n/).map((paragraph, i) => (
+                    <p key={i} style={{ margin: i === 0 ? 0 : "20px 0 0" }}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
               )}
             </div>
           </div>

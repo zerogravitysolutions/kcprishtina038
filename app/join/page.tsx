@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Bashkohu",
-  description: "Apliko si anëtar i KÇ Prishtina 038. Pranojmë çiklistë të të gjitha niveleve nga 9 vjeç e lart.",
+  description: "Bëhu pjesë e KÇ Prishtina 038. Njihu me planet e anëtarësisë dhe na trego përvojën e synimet e tua në çiklizëm.",
   alternates: { canonical: "/join" },
 };
 
@@ -47,7 +47,7 @@ export default async function JoinPage() {
         <div className="container">
           <div className="form-card" style={{ maxWidth: 720, margin: "0 auto" }}>
             <div className="eyebrow"><span>Formulari i aplikimit</span></div>
-            <h2 className="display display-s" style={{ marginTop: 12 }}>Plotësoje formularin dhe ne të kontaktojmë.</h2>
+            <h2 className="display display-s" style={{ marginTop: 12 }}>Na trego pak për veten</h2>
             <JoinForm plans={plans} />
           </div>
         </div>

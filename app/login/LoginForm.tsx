@@ -27,12 +27,12 @@ export function LoginForm({ next }: { next: string | null }) {
   };
 
   const onForgot = async () => {
-    const email = prompt("Cili është email-i yt?");
+    const email = prompt("Shkruaj email-in e llogarisë sate.");
     if (!email) return;
     const result = await requestPasswordReset(email);
     alert(result.ok
-      ? "Email-i për rivendosjen e fjalëkalimit u dërgua. Kontrollo kutinë hyrëse."
-      : "Gabim: " + result.error);
+      ? "Nëse ky email është i lidhur me një llogari, do të marrësh udhëzimet për rivendosjen e fjalëkalimit. Kontrollo edhe dosjen e mesazheve të padëshiruara."
+      : result.error);
   };
 
   return (
@@ -58,13 +58,13 @@ export function LoginForm({ next }: { next: string | null }) {
 
       <div className="row">
         <label>
-          <input type="checkbox" defaultChecked /> Më mbaj të kyçur
+          <input type="checkbox" defaultChecked /> Më mbaj në llogari
         </label>
-        <span className="mono" style={{ fontSize: 11, letterSpacing: ".06em", color: "var(--ink-3)" }}>SSL · Supabase Auth</span>
+        <span className="mono" style={{ fontSize: 11, letterSpacing: ".06em", color: "var(--ink-3)" }}>Llogaria e anëtarit</span>
       </div>
 
       <button className="btn btn-ember btn-primary" type="submit" disabled={pending}>
-        {pending ? "Duke hyrë…" : "Identifikohu"}
+        {pending ? "Duke hyrë…" : "Hyr në llogari"}
         <svg className="arrow" viewBox="0 0 14 14" fill="none"><path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" /></svg>
       </button>
     </form>

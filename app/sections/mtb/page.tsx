@@ -6,8 +6,8 @@ import { getLegacyBody } from "@/lib/legacy";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "MTB · Seksioni 02",
-  description: "Cross-country mbi Germinë, Sharrin dhe Prokletijet. XCO dhe maratonë.",
+  title: "Çiklizëm malor · MTB",
+  description: "Zbulo çiklizmin malor me KÇ Prishtina 038: stërvitje në shtigje, teknikë në terren dhe gara cross-country.",
   alternates: { canonical: "/sections/mtb" },
 };
 
@@ -17,9 +17,9 @@ export default async function MtbPage() {
     <>
       <PublicNav />
       <PageHero
-        eyebrow="Seksioni 02 · MTB"
-        title="Cross-country mbi Germinë."
-        subtitle="Disiplina më e madhe e klubit pas Rrugës. Stërvitemi në shtigjet e Germisë, Sharrit dhe Prokletijeve; garojmë në XCO të FÇK dhe në maratonat rajonale."
+        eyebrow="Çiklizëm malor · MTB"
+        title="Së bashku në shtigjet e Gërmisë"
+        subtitle="Ngjitje, zbritje dhe kënaqësia e çiklizmit në natyrë. Zhvillojmë teknikën në terren dhe përgatitemi për gara cross-country e maratona malore."
         pickerKey="sections-mtb"
       />
       <div dangerouslySetInnerHTML={{ __html: body }} />

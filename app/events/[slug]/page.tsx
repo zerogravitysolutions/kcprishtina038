@@ -111,7 +111,7 @@ async function getEventSponsors(eventId: string) {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const ev = await getEvent(slug);
-  if (!ev) return { title: "Gara nuk u gjet" };
+  if (!ev) return { title: "Aktiviteti nuk u gjet" };
   const description = (ev.description_sq || "").replace(/\s+/g, " ").trim().slice(0, 160);
   return {
     title: ev.title_sq,
@@ -161,7 +161,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
         <header style={{ paddingTop: 96, paddingBottom: 32 }}>
           <div className="container" style={{ maxWidth: 1024 }}>
             <Link
-              href="/races"
+              href="/events"
               className="mono"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
@@ -172,7 +172,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
               <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M11 11 L3 3 M3 3 H9 M3 3 V9" stroke="currentColor" strokeWidth="1.5" />
               </svg>
-              <span>Të gjitha garat</span>
+              <span>Të gjitha aktivitetet</span>
             </Link>
 
             <div
@@ -347,8 +347,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
               <StravaEmbed url={ev.strava_url} />
             ) : (
               <p style={{ color: "var(--ink-3)", fontSize: 13 }}>
-                Linku i Stravës nuk u njoh si rrugë, segment ose aktivitet —
-                kontrollo URL-në në panelin e adminit.
+                Harta nuk mund të shfaqet këtu. Mund ta hapësh drejtpërdrejt në Strava përmes lidhjes më poshtë.
               </p>
             )}
 
@@ -382,7 +381,7 @@ export default async function EventDetailPage({ params }: { params: Params }) {
           <section style={{ marginTop: 72, paddingTop: 32, paddingBottom: 32, background: "var(--paper-2)" }}>
             <div className="container" style={{ maxWidth: 1024 }}>
               <div className="eyebrow" style={{ marginBottom: 20 }}>
-                <span>Sponsorët e garës</span>
+                <span>Mbështetësit e aktivitetit</span>
               </div>
               <div
                 style={{
@@ -479,17 +478,17 @@ export default async function EventDetailPage({ params }: { params: Params }) {
                 <span>Regjistrimi</span>
               </div>
               <h2 className="display display-m" style={{ marginTop: 0, marginBottom: 24 }}>
-                {regOpen ? "Bashkohu në listën e nisjes" : "Regjistrimi është mbyllur"}
+                {regOpen ? "Bëhu pjesë e aktivitetit" : openAt && openAt > now && !eventStarted ? "Regjistrimi hapet së shpejti" : "Regjistrimi është mbyllur"}
               </h2>
 
               {isFb ? (
                 <p style={{ color: "var(--ink-2)", maxWidth: 720, lineHeight: 1.65 }}>
-                  Kjo garë është importuar nga Facebook. Për regjistrim, ndiq linkun
+                  Për hollësitë e pjesëmarrjes, shih njoftimin
                   {ev.external_url && (
                     <>
                       {" "}
                       <a href={ev.external_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ember)" }}>
-                        në faqen origjinale
+                        në Facebook
                       </a>
                     </>
                   )}
@@ -500,12 +499,12 @@ export default async function EventDetailPage({ params }: { params: Params }) {
               ) : (
                 <p style={{ color: "var(--ink-2)", maxWidth: 720, lineHeight: 1.65 }}>
                   {eventStarted
-                    ? `Kjo garë u zhvillua më ${formatDate(ev.start_at)}. Rezultatet ende nuk janë publikuar — kthehu më vonë.`
+                    ? `Data e aktivitetit: ${formatDate(ev.start_at)}. Nëse publikohen rezultate, do t’i gjesh në këtë faqe.`
                     : closeAt && closeAt < now
-                      ? `Regjistrimi për këtë garë është mbyllur më ${formatDate(closeAt.toISOString())}.`
+                      ? `Regjistrimi për këtë aktivitet u mbyll më ${formatDate(closeAt.toISOString())}.`
                       : openAt && openAt > now
                         ? `Regjistrimi hapet më ${formatDate(openAt.toISOString())}.`
-                        : "Regjistrimi nuk është i hapur për këtë garë."}
+                        : "Regjistrimi për këtë aktivitet nuk është i hapur."}
                 </p>
               )}
             </div>
@@ -567,7 +566,7 @@ function ResultsBlock({
 
         {results.length === 0 ? (
           <p style={{ color: "var(--ink-2)" }}>
-            Rezultatet janë publikuar, por ende nuk ka të dhëna për t’u shfaqur.
+            Për momentin nuk ka rezultate për t’u shfaqur. Për hollësi, kontakto klubin.
           </p>
         ) : (
           <div style={{ display: "grid", gap: 24 }}>
@@ -654,7 +653,7 @@ function ResultsBlock({
                       <thead>
                         <tr style={{ textAlign: "left", borderBottom: "2px solid var(--ink)" }}>
                           <ResultsTh>Vendi</ResultsTh>
-                          <ResultsTh>Bib</ResultsTh>
+                          <ResultsTh>Nr. i garuesit</ResultsTh>
                           <ResultsTh>Emri</ResultsTh>
                           <ResultsTh>Klubi</ResultsTh>
                           <ResultsTh>Koha</ResultsTh>

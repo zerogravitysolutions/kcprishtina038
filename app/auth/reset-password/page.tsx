@@ -16,8 +16,8 @@ export default function ResetPasswordPage() {
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--ink-3)", marginTop: 3 }}>Rivendos fjalëkalimin</div>
           </div>
         </div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, letterSpacing: "-0.025em", margin: 0 }}>Vendos fjalëkalim të ri.</h1>
-        <p style={{ marginTop: 8, fontSize: 14.5, color: "var(--ink-2)" }}>Fjalëkalimi duhet të ketë së paku 8 karaktere.</p>
+        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 28, letterSpacing: "-0.025em", margin: 0 }}>Zgjidh një fjalëkalim të ri</h1>
+        <p style={{ marginTop: 8, fontSize: 14.5, color: "var(--ink-2)" }}>Përdor të paktën 8 karaktere. Zgjidh një fjalëkalim që nuk e përdor në llogari të tjera.</p>
         <ResetForm />
       </div>
     </div>

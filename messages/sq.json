@@ -1,39 +1,39 @@
 {
   "nav": {
     "about": "Klubi",
-    "sections": "Seksionet",
+    "sections": "Disiplinat",
     "join": "Bashkohu",
     "news": "Lajmet",
     "contact": "Kontakti",
-    "signin": "Identifikohu",
+    "signin": "Hyr në llogari",
     "account": "Llogaria ime",
-    "admin": "Admin",
+    "admin": "Paneli i klubit",
     "team": "Ekipi",
     "documents": "Dokumentet",
     "races": "Garat",
-    "events": "Eventet"
+    "events": "Aktivitetet"
   },
   "brand": {
     "kc": "KÇ Prishtina 038",
     "sub": "Klubi Çiklistik · Prishtinë"
   },
   "hero": {
-    "eyebrow": "Themeluar 2022 · Anëtar i FÇK & UCI",
+    "eyebrow": "Bashkë në biçikletë që nga viti 2022",
     "title": {
-      "1": "Mbi qiellin",
-      "2": "e ",
-      "3": ", vetëm",
-      "4": "ne pedalojmë.",
-      "em": "Prishtinës"
+      "1": "Nga",
+      "2": "",
+      "3": ",",
+      "4": "pedalojmë së bashku.",
+      "em": "Prishtina"
     },
-    "lede": "Klubi çiklistik i Prishtinës. Pesë disiplina, një ekip, një qytet. Garojmë sipas rregullave të UCI dhe FÇK — nga shtigjet e Germisë te kalendari kontinental.",
+    "lede": "Na bashkon dashuria për çiklizmin. Stërvitemi, garojmë dhe zbulojmë rrugë e shtigje të reja, duke mbështetur njëri-tjetrin në çdo hap.",
     "cta": {
       "primary": "Bëhu pjesë e klubit",
-      "ghost": "Shfleto seksionet"
+      "ghost": "Zbulo disiplinat"
     },
     "meta": {
       "founded": "Themeluar",
-      "under": "Nën rregullat",
+      "under": "Rregullat e garimit",
       "sections": "Disiplina",
       "riders": "Çiklistë aktivë"
     },
@@ -69,8 +69,8 @@
   },
   "about": {
     "eyebrow": "Klubi",
-    "title": "Tre themelues. Një ide e qartë: ta vendosim Prishtinën në hartën çiklistike të Ballkanit.",
-    "body": "KÇ Prishtina 038 u themelua në vitin 2022 nga Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana. I regjistruar pranë Federatës së Çiklizmit të Kosovës dhe duke garuar sipas rregullave të UCI dhe ECU, klubi mban pesë disiplina aktive — nga rruga te shtigjet e maleve, deri te akademia e re e të rinjve.",
+    "title": "Një pasion i përbashkët. Një klub për Prishtinën.",
+    "body": "KÇ Prishtina 038 u themelua në vitin 2022 nga Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana. Klubi bashkon çiklistë që duan të zhvillohen, të garojnë dhe ta bëjnë çiklizmin pjesë të jetës së qytetit.",
     "founder": {
       "1": {
         "name": "Qëndrim Pllana",
@@ -82,73 +82,73 @@
       },
       "3": {
         "name": "Shqiponja Osmani Pllana",
-        "role": "Themeluese · Programet e femrave"
+        "role": "Themeluese · Programi për gra dhe vajza"
       }
     },
     "link": "Lexo historinë e plotë",
     "fbStripEyebrow": "Faqja zyrtare",
-    "fbStripTitle": "Na ndiq në Facebook.",
-    "fbStripBody": "Aty publikojmë lajmet, fotot e garave dhe njoftimet për kampe — të gjitha këto sinkronizohen automatikisht me këtë faqe.",
-    "fbStripCta": "Hape në Facebook",
+    "fbStripTitle": "Më afër jetës së klubit",
+    "fbStripBody": "Na ndiq në Facebook për lajme, fotografi nga garat dhe njoftime për aktivitetet e ardhshme. Do të na bëhej qejfi të ishe pjesë e komunitetit tonë.",
+    "fbStripCta": "Na ndiq në Facebook",
     "fbFans": "ndjekës"
   },
   "disc": {
-    "eyebrow": "Seksionet",
-    "title": "Pesë disiplina. Një ekip.",
-    "lede": "Çdo disiplinë ka trajnerin e vet, kalendarin e vet dhe shtigjet e veta. Por kemi një logo dhe një frymë.",
+    "eyebrow": "Disiplinat",
+    "title": "Rrugë të ndryshme. I njëjti pasion.",
+    "lede": "Nga asfalti te shtigjet malore, gjej mënyrën tënde për të pedaluar. Së bashku me trajnerët, zgjedhim programin që i përshtatet përvojës dhe synimeve të tua.",
     "road": {
-      "name": "Rrugë",
-      "desc": "Seksioni i parë i klubit. Tre stërvitje në javë me trajnerin Albion Ymerin; kalendar i plotë FÇK, Granfondo i Sharrit dhe Prizrenit, si dhe etapat rajonale në Shqipëri e Maqedoninë e Veriut."
+      "name": "Çiklizëm rrugor",
+      "desc": "Stërvitje në rrugë, qëndrueshmëri dhe punë në ekip. Përgatitemi për garat kombëtare e rajonale dhe e mbështesim njëri-tjetrin gjatë rrugës."
     },
     "mtb": {
       "name": "MTB",
-      "desc": "Cross-country në shtigjet e Germisë, Sharrit dhe Prokletijeve, me trajnerin Dorant Haxhidautin. Garojmë në kalendarin XCO të FÇK dhe në maratonat rajonale; çdo të shtunë grupi i hapur Germi Saturday."
+      "desc": "Shtigje, ngjitje dhe teknikë në terren. Zhvillojmë aftësitë e çiklizmit malor dhe përgatitemi për gara cross-country dhe maratona."
     },
     "gravel": {
       "name": "Gravel",
-      "desc": "Seksioni më i ri, themeluar në 2024. Më pak gara, më shumë eksplorim — dalje 80–180 km nëpër rrugët dytësore të Kosovës dhe të rajonit, me një seri garash gravel të përbashkët me Velo Tirana në 2026."
+      "desc": "Eksplorojmë rrugët me zhavorr dhe rrugët dytësore, me ritëm që na lë hapësirë të shijojmë natyrën dhe shoqërinë."
     },
     "youth": {
       "name": "Akademia e të rinjve",
-      "desc": "Misioni më i rëndësishëm i klubit. 18 fëmijë midis 9 dhe 17 vjeç stërviten të shtunën në Germi, me dy tashmë në ekipin kombëtar U17."
+      "desc": "Një fillim i mirë në çiklizëm, me kujdes dhe mbështetje. Të rinjtë mësojnë teknikën, krijojnë besim në biçikletë dhe zbulojnë kënaqësinë e sportit."
     },
     "women": {
-      "name": "Femra",
-      "desc": "Më shumë se një seksion — një rrjet. 11 çikliste nëpër të gjitha disiplinat, me program mentorimi nga Shqiponja Osmani Pllana. Çdo të diel dalje e hapur, me biçikleta me qira nga BikePlus."
+      "name": "Gra dhe vajza",
+      "desc": "Një mjedis mikpritës për gratë dhe vajzat që duan të pedalojnë. Ndajmë përvojën, stërvitemi së bashku dhe mbështesim synimet e secilës."
     },
-    "go": "Hape seksionin"
+    "go": "Zbulo më shumë"
   },
   "roster": {
     "eyebrow": "Ekipi",
-    "title": "Çiklistët tanë.",
-    "lede": "Lista e plotë e ekipit me biografi dhe role është në faqen e ekipit.",
-    "cta": "Shih të gjithë ekipin"
+    "title": "Njihu me ekipin",
+    "lede": "Pas çdo stërvitjeje dhe gare janë njerëzit tanë. Njihu me çiklistët, trajnerët dhe stafin e klubit.",
+    "cta": "Njihu me ekipin"
   },
   "news": {
     "eyebrow": "Lajmet",
-    "title": "Nga klubi.",
+    "title": "Të rejat nga klubi",
     "cta": "Të gjitha lajmet",
-    "pageTitle": "Lajmet e fundit nga klubi.",
-    "pageLede": "Postime, foto dhe lajme direkt nga faqja jonë në Facebook.",
+    "pageTitle": "Jeta e klubit, nga afër",
+    "pageLede": "Lajme, fotografi dhe rrëfime nga stërvitjet, garat dhe momentet që ndajmë si ekip.",
     "viewOnFb": "Shih në Facebook",
-    "older": "Më të vjetra →",
-    "newer": "← Më të reja",
-    "empty": "Nuk ka lajme për momentin.",
+    "older": "Postime më të hershme →",
+    "newer": "← Postime më të reja",
+    "empty": "Ende nuk kemi publikuar lajme këtu. Rikthehu për të rejat nga klubi.",
     "loading": "Duke u ngarkuar…",
     "backToList": "← Të gjitha lajmet",
     "gallery": "Galeria",
     "originalOnFb": "Shih postimin origjinal në Facebook",
     "notFoundTitle": "Lajmi nuk u gjet",
-    "notFoundBody": "Ky lajm mund të jetë hequr ose lidhja është e pasaktë."
+    "notFoundBody": "Ky lajm mund të jetë hequr ose adresa mund të jetë e pasaktë. Shfleto lajmet e tjera të klubit."
   },
   "gallery": {
     "eyebrow": "Galeria",
-    "title": "Një vit në fotografi.",
-    "lede": "Stërvitjet, garat, çastet jashtë biçikletës. Ndani fotot tuaja në kanalin Drive të anëtarëve."
+    "title": "Momente nga klubi",
+    "lede": "Stërvitje, gara dhe çaste së bashku, në biçikletë e përtej saj."
   },
   "sponsors": {
     "eyebrow": "Sponsorët",
-    "title": "Bashkëudhëtarët tanë në çdo sezon.",
+    "title": "Faleminderit që jeni pjesë e rrugëtimit tonë",
     "bp": {
       "name": "BikePlus",
       "role": "Sponsor teknik · Mekanika & komponentët",
@@ -162,16 +162,16 @@
   },
   "join": {
     "eyebrow": "Bashkohu",
-    "title": "Nëse pedalon, ka vend për ty.",
-    "lede": "Pranojmë çiklistë të të gjitha niveleve nga 9 vjeç e lart. Stërvitje me trajner, kalendar me gara, fanellë e klubit dhe një ekip që të shtyn.",
-    "cta": "Apliko si anëtar",
+    "title": "Ka vend edhe për ty në ekip.",
+    "lede": "Po nis çiklizmin apo kërkon sfidën e radhës? Na trego përvojën dhe synimet e tua. Do të të ndihmojmë të zgjedhësh programin e duhur të anëtarësisë.",
+    "cta": "Apliko për anëtarësim",
     "perk": {
-      "1": "Stërvitje me trajner të certifikuar — 3× në javë",
-      "2": "Kalendari i garave — FÇK dhe rajonale",
-      "3": "Fanellë e klubit + helmetë për sezonin",
-      "4": "Servis i biçikletës me BikePlus",
-      "5": "Qasje në kampet stërvitore verore",
-      "6": "Komunitet me çiklistë nga gjithë Kosova"
+      "1": "Udhëzim për stërvitjen dhe zhvillimin tënd",
+      "2": "Mbështetje për synimet e tua sportive",
+      "3": "Programe për nivele të ndryshme përvoje",
+      "4": "Këshilla nga trajnerët dhe ekipi",
+      "5": "Informacion për garat dhe aktivitetet e klubit",
+      "6": "Një komunitet me të cilin ndan pasionin"
     }
   },
   "shop": {
@@ -193,48 +193,47 @@
   },
   "support": {
     "eyebrow": "Mbështet klubin",
-    "title": "Pa sponsorët dhe donatorët, pa garë.",
-    "lede": "Klubi është organizatë jofitimprurëse. Buxheti shkon në fanella, udhëtime, kampe dhe akademinë e të rinjve.",
+    "title": "Së bashku e çojmë klubin përpara.",
+    "lede": "Mbështetja jote ndihmon klubin të zhvillojë aktivitetet, të përgatitet për gara dhe t’u krijojë mundësi të rinjve.",
     "donate": {
       "title": "Bëj një donacion",
-      "body": "Kontribute të njëhershme ose mujore. Çdo euro shkon në programin e të rinjve.",
+      "body": "Çdo kontribut ndihmon në zhvillimin e klubit dhe të programeve të tij.",
       "cta": "Dhuro tani"
     },
     "sponsor": {
       "title": "Bëhu sponsor",
-      "body": "Logoja juaj në fanellë, në karavanin e garave dhe në kanalet tona dixhitale.",
-      "cta": "Shih paketat"
+      "body": "Të krijojmë së bashku një partneritet që mbështet çiklizmin dhe komunitetin tonë.",
+      "cta": "Bisedo me ne"
     }
   },
   "contact": {
     "eyebrow": "Kontakti",
-    "title": "Na gjeni në Prishtinë.",
-    "address": "Rruga e Maleve 14, 10000 Prishtinë",
-    "email": "info@prishtina038.cc",
-    "phone": "+383 38 000 000",
-    "hours": "Stërvitje: e martë dhe e enjte 18:00 · e shtunë 09:00"
+    "title": "Le të flasim për çiklizmin.",
+    "address": "Prishtinë, Kosovë",
+    "hours": "Na kontakto për oraret dhe vendtakimet e stërvitjeve.",
+    "facebook": "Na shkruaj në Facebook"
   },
   "foot": {
     "about": "Klubi",
     "disciplines": "Disiplinat",
     "community": "Komuniteti",
     "legal": "Anëtarësia · Politika e privatësisë · UCI",
-    "tagline": "Nga rruga te shtegu. Nga Prishtina për Kosovën.",
-    "copy": "© 2026 KÇ Prishtina 038 · Të gjitha të drejtat e rezervuara",
-    "federation": "I regjistruar pranë FÇK · ID: KS-22-038"
+    "tagline": "Nga Prishtina, së bashku në çdo kilometër.",
+    "copy": "© {year} KÇ Prishtina 038 · Të gjitha të drejtat e rezervuara",
+    "federation": "Anëtar i Federatës së Çiklizmit të Kosovës"
   },
   "sec": {
     "mtb": {
-      "eyebrow": "Seksioni 02 · MTB",
-      "title": "Cross-country mbi Germinë.",
-      "lede": "Disiplina më e madhe e klubit pas Rrugës. Stërvitemi në shtigjet e Germisë, Sharrit dhe Prokletijeve, garojmë në kalendarin XCO të FÇK dhe në maratonat rajonale.",
+      "eyebrow": "Çiklizëm malor · MTB",
+      "title": "Së bashku në shtigjet e Gërmisë",
+      "lede": "Ngjitje, zbritje dhe kënaqësia e çiklizmit në natyrë. Zhvillojmë teknikën në terren dhe përgatitemi për gara cross-country e maratona malore.",
       "spec": {
         "coach": "Trajner kryesor",
         "training": "Stërvitja",
         "formats": "Formatet",
         "season": "Sezoni"
       },
-      "cta": "Apliko për MTB",
+      "cta": "Bashkohu me ekipin MTB",
       "h": {
         "calendar": "Kalendari i sezonit",
         "team": "Çiklistët e seksionit"
@@ -242,38 +241,38 @@
     }
   },
   "secs": {
-    "eyebrow": "Seksionet",
-    "title": "Pesë disiplina, një klub.",
-    "lede": "Zgjidh një seksion për të parë trajnerin, oraret e stërvitjes, kalendarin e garave dhe çiklistët aktualë."
+    "eyebrow": "Disiplinat",
+    "title": "Gjej disiplinën tënde",
+    "lede": "Zbulo programet e klubit dhe zgjedhjet për stërvitje e gara."
   },
   "jp": {
     "eyebrow": "Anëtarësia",
-    "title": "Apliko si anëtar i klubit.",
-    "lede": "Plotëso formularin më poshtë. Pas aplikimit, trajneri i seksionit do të të kontaktojë brenda 5 ditëve pune.",
+    "title": "Hapi i parë për t’u bashkuar me ne",
+    "lede": "Plotëso formularin dhe na trego pak për veten. Ekipi i klubit do të të kontaktojë brenda 5 ditëve të punës për të biseduar për hapat e radhës.",
     "form": {
       "name": "Emri dhe mbiemri",
       "age": "Mosha",
       "email": "Email",
       "phone": "Telefoni",
-      "section": "Seksioni i preferuar",
+      "section": "Disiplina ose programi i preferuar",
       "exp": "Përvoja çiklistike",
-      "notes": "Shënime shtesë",
+      "notes": "Çfarë dëshiron të ndash me ne? (opsionale)",
       "submit": "Dërgo aplikimin"
     },
     "exp": {
-      "beg": "Fillestar — më pak se 1 vit",
-      "int": "Mesatar — 1–3 vite",
-      "adv": "Garues aktiv — 3+ vite"
+      "beg": "Fillestar · më pak se 1 vit përvojë",
+      "int": "Me përvojë · 1–3 vjet",
+      "adv": "Me përvojë të avancuar · mbi 3 vjet"
     },
     "fee": {
       "title": "Anëtarësia",
       "body": "Tre plane anëtarësie. Akademia I — €20.00 në muaj: këshilla dhe plan stërvitjeje, pa përcjellje nga trajneri dhe pa stërvitje të përbashkëta. Akademia II — €40.00 në muaj: trajner profesionist dhe stërvitje të përbashkëta dy herë në javë. Garues — pa pagesë mujore ndaj klubit; plan i mbyllur, vetëm për garues me performancë të zhvilluar, ku hyhet pas vlerësimit të trajnerit."
     },
     "proc": {
-      "1": "Plotëson aplikimin online",
-      "2": "Trajneri i seksionit të kontakton për një stërvitje provë",
-      "3": "Caktohen kategoria dhe oraret",
-      "4": "Merr fanellën dhe e fillon sezonin",
+      "1": "Dërgo aplikimin online",
+      "2": "Bisedo me ekipin për përvojën dhe synimet e tua",
+      "3": "Zgjidh programin së bashku me trajnerin",
+      "4": "Bashkohu me klubin dhe nis stërvitjet",
       "title": "Si funksionon"
     }
   }

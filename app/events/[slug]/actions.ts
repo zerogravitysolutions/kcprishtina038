@@ -21,9 +21,9 @@ export async function registerForEvent(slug: string, form: FormData): Promise<Re
   const club      = String(form.get("club") ?? "").trim();
   const notes     = String(form.get("notes") ?? "").trim();
 
-  if (!full_name) return { ok: false, error: "Emri është i detyrueshëm." };
+  if (!full_name) return { ok: false, error: "Shkruaj emrin dhe mbiemrin." };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return { ok: false, error: "Email-i nuk është i vlefshëm." };
+    return { ok: false, error: "Kontrollo adresën e email-it dhe provo sërish." };
   }
 
   let dob: string | null = null;
@@ -34,7 +34,7 @@ export async function registerForEvent(slug: string, form: FormData): Promise<Re
     }
     dob = dobRaw;
   }
-  if (!dob) return { ok: false, error: "Data e lindjes është e detyrueshme." };
+  if (!dob) return { ok: false, error: "Plotëso datën e lindjes." };
 
   const gender: Gender | null =
     genderRaw === "m" || genderRaw === "f" || genderRaw === "other" ? (genderRaw as Gender) : null;

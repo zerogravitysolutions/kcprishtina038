@@ -49,15 +49,15 @@ export async function submitApplication(form: FormData): Promise<JoinResult> {
     const m = today.getMonth() - d.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < d.getDate())) yrs--;
     if (yrs < 9 || yrs > 80) {
-      return { ok: false, error: "Mosha (e llogaritur nga data e lindjes) duhet të jetë midis 9 dhe 80 vjeç." };
+      return { ok: false, error: "Aplikimi është i hapur për moshat 9–80 vjeç. Kontrollo datën e lindjes ose kontakto klubin për më shumë informacion." };
     }
     age = yrs;
     dob = dobRaw;
   }
 
-  if (!name) return { ok: false, error: "Emri është i detyrueshëm." };
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Email-i nuk është i vlefshëm." };
-  if (!dob) return { ok: false, error: "Data e lindjes është e detyrueshme." };
+  if (!name) return { ok: false, error: "Shkruaj emrin dhe mbiemrin." };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "Kontrollo adresën e email-it dhe provo sërish." };
+  if (!dob) return { ok: false, error: "Plotëso datën e lindjes." };
 
   const supabase = await createClient();
 

@@ -34,9 +34,9 @@ const FOUNDING_YEAR = 2022;
 // Short blurb per founder for the landing card — kept here so the page
 // stays self-contained without adding a column to team_members for it.
 const FOUNDER_BLURBS: Record<string, string> = {
-  "qendrim-pllana":           "Themeloi klubin si president dhe sot drejton zhvillimin sportiv, kalendarin garues dhe marrëdhëniet me FÇK.",
-  "albion-ymeri":             "Trajner kryesor dhe çiklist garues — fitues i Cross Country Prishtina 2023 dhe i Kampionatit të Triatlonit.",
-  "shqiponja-osmani-pllana":  "Drejton programet e femrave dhe akademinë e të rinjve, dy kolonat me të cilat klubi po e rikthen brezin e ri në biçikletë.",
+  "qendrim-pllana":           "Bashkëthemelues dhe president i klubit. Kujdeset për zhvillimin e tij dhe bashkëpunimin me komunitetin e çiklizmit.",
+  "albion-ymeri":             "Trajner kryesor dhe çiklist garues. Ndihmon ekipin të përgatitet, të zhvillohet dhe të arrijë synimet sportive.",
+  "shqiponja-osmani-pllana":  "Mbështet programin për gra dhe vajza dhe akademinë e të rinjve, duke i afruar më shumë njerëz me çiklizmin.",
 };
 
 async function fetchHomeData() {
@@ -47,7 +47,7 @@ async function fetchHomeData() {
   const FOUNDER_ROLES: Record<string, string> = {
     "qendrim-pllana":         "Themelues · President",
     "albion-ymeri":           "Themelues · Trajner kryesor",
-    "shqiponja-osmani-pllana": "Themelueze · Programe të femrave",
+    "shqiponja-osmani-pllana": "Themeluese · Programi për gra dhe vajza",
   };
 
   const [upcomingRaces, sections, news, sponsors, fbPhotos, riderC, raceEventC, foundersRaw] = await Promise.all([
@@ -147,7 +147,7 @@ export default async function Home() {
         </svg>
 
         <div className="rail">
-          <span className="pulse">SEZONI 2026 · AKTIV</span>
+          <span className="pulse">SEZONI {new Date().getFullYear()}</span>
           <span>·</span>
           <span>UCI · ECU · FÇK</span>
           <span>·</span>
@@ -181,7 +181,7 @@ export default async function Home() {
             </div>
 
             <div className="collage">
-              <span className="badge">SEZONI 2026 · AKTIV</span>
+              <span className="badge">SEZONI {new Date().getFullYear()}</span>
               {(["s1", "s2", "s3"] as const).map((slot, i) => {
                 const photo = heroSlots[i];
                 if (photo.url) {
@@ -220,15 +220,15 @@ export default async function Home() {
           </div>
           <div className="stat">
             <div className="num mono">{stats.raceEvents}</div>
-            <div className="label">Gara të regjistruara</div>
+            <div className="label">Gara në historikun tonë</div>
           </div>
           <div className="stat">
             <div className="num mono">{pad2(stats.sectionsActive)}</div>
-            <div className="label">Disiplina aktive</div>
+            <div className="label">Disiplina dhe programe</div>
           </div>
           <div className="stat">
             <div className="num mono">{pad2(stats.yearsOnCalendar)}</div>
-            <div className="label">Vite në kalendar</div>
+            <div className="label">Vite së bashku</div>
           </div>
         </div>
       </div>
@@ -245,7 +245,7 @@ export default async function Home() {
                 const sub = [
                   r.location,
                   r.distance_km ? `${r.distance_km} km` : null,
-                  r.elevation_m ? `${r.elevation_m} m ngritje` : null,
+                  r.elevation_m ? `${r.elevation_m} m ngjitje` : null,
                 ].filter(Boolean) as string[];
                 const coverUrl = mediaUrl(r.cover?.storage_path ?? null);
                 const titleSize = idx === 0 ? "clamp(32px, 4.4vw, 60px)" : "clamp(24px, 3vw, 40px)";
@@ -356,7 +356,7 @@ export default async function Home() {
                           className="btn btn-ember"
                           style={{ marginTop: 24 }}
                         >
-                          <span>{idx === 0 ? "Regjistrohu" : "Detajet"}</span>
+                          <span>Shih detajet e garës</span>
                           <svg className="arrow" viewBox="0 0 14 14" fill="none">
                             <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
                           </svg>
@@ -424,11 +424,11 @@ export default async function Home() {
             <div className="section-head">
               <div>
                 <div className="eyebrow"><span>Themeluesit</span></div>
-                <h2 className="display display-m" style={{ marginTop: 16 }}>Tre themelues. Një ide e qartë.</h2>
+                <h2 className="display display-m" style={{ marginTop: 16 }}>Një pasion që na bëri bashkë</h2>
               </div>
               <p className="lede">
-                KÇ Prishtina 038 lindi në vitin 2022 nga tre çiklistë që besuan se Prishtina e meriton një klub me identitet të vetin —
-                me kalendar, me akademinë e të rinjve dhe me një ekip që garon jashtë kufirit.
+                Në vitin 2022, Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana e kthyen pasionin e tyre për çiklizmin
+                në një klub që bashkon njerëz, mbështet të rinjtë dhe përfaqëson Prishtinën në gara.
               </p>
             </div>
             <div className="founders-grid">
@@ -453,7 +453,7 @@ export default async function Home() {
                       <div className="founder-name">{member.full_name}</div>
                       {blurb && <p className="founder-blurb">{blurb}</p>}
                       <span className="founder-go" aria-hidden="true">
-                        <span>Lexo profilin</span>
+                        <span>Njihu më nga afër</span>
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                           <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
                         </svg>
@@ -484,27 +484,27 @@ export default async function Home() {
             <div className="history-step">
               <div className="history-year mono">2022</div>
               <h3>Themelimi</h3>
-              <p>Klubi regjistrohet pranë FÇK nga Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana. Hapet seksioni i parë — Rrugë.</p>
+              <p>Qëndrim Pllana, Albion Ymeri dhe Shqiponja Osmani Pllana themelojnë klubin në Prishtinë. Rrugëtimi nis me çiklizmin rrugor.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">2023</div>
               <h3>Triumfet e para</h3>
-              <p>Albion Ymeri fiton Cross Country Prishtina në Germi (qershor) dhe Kampionatin e Triatlonit (korrik). Klubi merr pjesë në Kupën e Mitrovicës dhe në Tour of Kosova. Betim Rexha e Valon Binakaj transferohen te klubi.</p>
+              <p>Albion Ymeri fiton Cross Country Prishtina në Gërmi (qershor) dhe Kampionatin e Triatlonit (korrik). Klubi merr pjesë në Kupën e Mitrovicës dhe në Tour of Kosova. Betim Rexha e Valon Binakaj transferohen te klubi.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">2024</div>
               <h3>Dy tituj kombëtarë</h3>
-              <p>Në Kampionatin e Kosovës (qershor), klubi merr dy medalje ari: Albion Ymeri kampion në krono Elite dhe Festim Kurti kampion në rrugë Kadetë. Albioni argjend në rrugë, Genc Isufi bronz në U23 si në krono ashtu edhe në rrugë. Valon Binakaj zgjidhet në përfaqësuesen kosovare për Tour of Albania. Nënshkruhet partneriteti me Ram Airlines.</p>
+              <p>Në Kampionatin e Kosovës (qershor), klubi merr dy medalje ari: Albion Ymeri kampion në kronometër, kategoria Elite dhe Festim Kurti kampion në garën rrugore, kategoria Kadetë. Albioni fiton argjend në garën rrugore, ndërsa Genc Isufi merr bronz në të dyja disiplinat në kategorinë U23. Valon Binakaj zgjidhet në përfaqësuesen kosovare për Tour of Albania. Nënshkruhet partneriteti me Ram Airlines.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">2025</div>
               <h3>Festim Kurti, kampion i dyfishtë</h3>
-              <p>Në Kampionatin e Kosovës (qershor), Festim Kurti — 16 vjeç — fiton si krono ashtu edhe rrugën në kategorinë Junior, me kohën e tretë më të shpejtë në krono mes të gjitha kategorive. Albion Ymeri merr argjendin në krono Elite dhe bronzin në rrugë; Genc Isufi argjend në krono U23 dhe bronz në rrugë.</p>
+              <p>Në Kampionatin e Kosovës (qershor), Festim Kurti — 16 vjeç — fiton si kronometrin ashtu edhe garën rrugore në kategorinë Junior, me kohën e tretë më të shpejtë në kronometër mes të gjitha kategorive. Albion Ymeri merr argjendin në kronometër, kategoria Elite dhe bronzin në rrugë; Genc Isufi merr argjend në kronometër dhe bronz në garën rrugore në kategorinë U23.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">Tetor 2025</div>
               <h3>Festim Kurti në Shkodër</h3>
-              <p>Festim Kurti fiton Trofeun Gilman Bakalli në Shkodër — pjesë e kalendarit ndërkufitar të federatës dhe rezultat i parë i klubit jashtë Kosovës.</p>
+              <p>Festim Kurti fiton Trofeun Gilman Bakalli në Shkodër — një rezultat që shënon një tjetër hap në garat e klubit jashtë Kosovës.</p>
             </div>
             <div className="history-step">
               <div className="history-year mono">Nëntor 2025</div>
@@ -608,8 +608,8 @@ export default async function Home() {
                   <h2 className="display display-m" style={{ marginTop: 16 }}>{t("sponsors.title")}</h2>
                 </div>
                 <p className="lede">
-                  Partnerët që na mbajnë në lëvizje — pajisje, logjistikë dhe
-                  besim që na lejon të garojmë sezon pas sezoni.
+                  Partnerët tanë na mbështesin me pajisje, logjistikë dhe besim.
+                  Kontributi i tyre na ndihmon të stërvitemi dhe të garojmë sezon pas sezoni.
                 </p>
               </div>
 
@@ -684,7 +684,7 @@ export default async function Home() {
                                 color: "var(--ember)",
                               }}
                             >
-                              <span>Vizito</span>
+                              <span>Vizito faqen</span>
                               <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                                 <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
                               </svg>
@@ -792,7 +792,7 @@ export default async function Home() {
                                 color: "var(--ember)",
                               }}
                             >
-                              <span>Vizito</span>
+                              <span>Vizito faqen</span>
                               <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                                 <path d="M3 11 L11 3 M11 3 H5 M11 3 V9" stroke="currentColor" strokeWidth="1.5" />
                               </svg>

@@ -8,7 +8,7 @@ export async function login(email: string, password: string): Promise<LoginResul
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    return { ok: false, error: dbError(error, "Kyçja dështoi. Provo sërish.") };
+    return { ok: false, error: dbError(error, "Hyrja nuk u krye. Kontrollo të dhënat dhe provo sërish.") };
   }
   // Check status + role.
   const { data: { user } } = await supabase.auth.getUser();
@@ -25,7 +25,7 @@ export async function login(email: string, password: string): Promise<LoginResul
   }
   if (profile.status !== "active") {
     await supabase.auth.signOut();
-    return { ok: false, error: "Llogaria jote është ende në pritje të aprovimit." };
+    return { ok: false, error: "Llogaria jote nuk është aktive. Kontakto klubin për ndihmë." };
   }
   return { ok: true, role: profile.role };
 }
